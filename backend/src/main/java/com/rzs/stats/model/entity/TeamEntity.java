@@ -13,6 +13,9 @@ public class TeamEntity {
     @Column(name = "team_id", nullable = false, unique = true)
     private Integer teamId;
 
+    @Column(name = "ns_id", unique = true)
+    private Integer nsId;
+
     private String displayName;
     private String nickname;
     private String cityName;
@@ -24,6 +27,8 @@ public class TeamEntity {
 
     public Long getId() { return id; }
     public Integer getTeamId() { return teamId; }
+    public Integer getNsId() { return nsId; }
+    public void setNsId(Integer nsId) { this.nsId = nsId; }
     public void setTeamId(Integer teamId) { this.teamId = teamId; }
     public String getDisplayName() { return displayName; }
     public void setDisplayName(String displayName) { this.displayName = displayName; }

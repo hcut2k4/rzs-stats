@@ -39,8 +39,8 @@ public class SyncService {
 
         try {
             NsLeague league = client.fetchLeagueInfo();
-            // season from API is 1-based; seasonIndex = season - 1
-            int currentSeasonIndex = league.getSeason() - 1;
+            // season from API is 1-based and matches the seasonIndex used in game requests
+            int currentSeasonIndex = league.getSeason();
 
             // Sync teams
             List<NsTeam> nsTeams = client.fetchAllTeams();
@@ -82,10 +82,22 @@ public class SyncService {
         return count;
     }
 
+    private java.util.Optional<TeamEntity> resolveTeam(NsTeam ns) {
+        if (ns.getTeamId() != null) {
+            java.util.Optional<TeamEntity> found = teamRepository.findByTeamId(ns.getTeamId());
+            if (found.isPresent()) return found;
+        }
+        if (ns.getId() != null) {
+            return teamRepository.findByNsId(ns.getId());
+        }
+        return java.util.Optional.empty();
+    }
+
     private void upsertTeam(NsTeam ns) {
         TeamEntity team = teamRepository.findByTeamId(ns.getTeamId())
                 .orElse(new TeamEntity());
         team.setTeamId(ns.getTeamId());
+        team.setNsId(ns.getId());
         team.setDisplayName(ns.getDisplayName());
         team.setNickname(ns.getNickName());
         team.setCityName(ns.getCityName());
@@ -110,10 +122,10 @@ public class SyncService {
         game.setSimmed(ns.getSimmed());
 
         if (ns.getHomeTeam() != null) {
-            teamRepository.findByTeamId(ns.getHomeTeam().getTeamId()).ifPresent(game::setHomeTeam);
+            resolveTeam(ns.getHomeTeam()).ifPresent(game::setHomeTeam);
         }
         if (ns.getAwayTeam() != null) {
-            teamRepository.findByTeamId(ns.getAwayTeam().getTeamId()).ifPresent(game::setAwayTeam);
+            resolveTeam(ns.getAwayTeam()).ifPresent(game::setAwayTeam);
         }
 
         gameRepository.save(game);
