@@ -17,7 +17,7 @@ public interface GameRepository extends JpaRepository<GameEntity, Long> {
 
     Optional<GameEntity> findBySeasonIndexAndGameId(Integer seasonIndex, Integer gameId);
 
-    @Query("SELECT g FROM GameEntity g WHERE g.seasonIndex = :season AND g.stageIndex = :stage AND g.weekIndex BETWEEN :minWeek AND :maxWeek")
+    @Query("SELECT g FROM GameEntity g WHERE g.seasonIndex = :season AND g.stageIndex = :stage AND g.weekIndex BETWEEN :minWeek AND :maxWeek AND g.status >= 2")
     List<GameEntity> findRegularSeasonGames(
             @Param("season") Integer season,
             @Param("stage") Integer stage,
@@ -28,12 +28,15 @@ public interface GameRepository extends JpaRepository<GameEntity, Long> {
             Integer seasonIndex, Integer stageIndex, Integer weekIndex);
 
     @Query("SELECT DISTINCT g.seasonIndex FROM GameEntity g WHERE " +
-           "(SELECT COUNT(g2) FROM GameEntity g2 WHERE g2.seasonIndex = g.seasonIndex AND g2.stageIndex = 1 AND g2.weekIndex BETWEEN 0 AND 17) >= :minGames " +
+           "(SELECT COUNT(g2) FROM GameEntity g2 WHERE g2.seasonIndex = g.seasonIndex AND g2.stageIndex = 1 AND g2.weekIndex BETWEEN 0 AND 17 AND g2.status >= 2) >= :minGames " +
            "ORDER BY g.seasonIndex")
     List<Integer> findDistinctSeasonIndicesWithMinGames(@Param("minGames") long minGames);
 
-    @Query("SELECT DISTINCT g.weekIndex FROM GameEntity g WHERE g.seasonIndex = :season AND g.stageIndex = :stage AND g.weekIndex BETWEEN 0 AND 17 ORDER BY g.weekIndex")
+    @Query("SELECT DISTINCT g.weekIndex FROM GameEntity g WHERE g.seasonIndex = :season AND g.stageIndex = :stage AND g.weekIndex BETWEEN 0 AND 17 AND g.status >= 2 ORDER BY g.weekIndex")
     List<Integer> findDistinctRegularSeasonWeeks(@Param("season") Integer season, @Param("stage") Integer stage);
+
+    @Query("SELECT g FROM GameEntity g WHERE g.seasonIndex = :season AND g.stageIndex = 1 AND g.weekIndex BETWEEN 0 AND 17 AND g.status < 2")
+    List<GameEntity> findFutureRegularSeasonGames(@Param("season") Integer season);
 
     @Query("SELECT g.seasonIndex, g.stageIndex, COUNT(g) FROM GameEntity g GROUP BY g.seasonIndex, g.stageIndex ORDER BY g.seasonIndex, g.stageIndex")
     List<Object[]> countGamesBySeasonAndStage();

@@ -19,8 +19,11 @@ public class StandingDto {
     private double winPct;
 
     private double pythagoreanPat;
-    private double oppPyPatCurr;  // In-season SoS
-    private double oppPyPatPrev;  // Pre-season SoS (previous season)
+    private double winDiff;            // actual wins minus PyPAT-expected wins (luck)
+    private double oppPyPatCurr;       // SoS Played: avg opponent PyPAT, current season
+    private double oppPyPatPrev;       // SoS Played: avg opponent PyPAT, previous season
+    private Double oppPyPatRemainingCurr; // SoS Left: future opponents' current season PyPAT (null if none)
+    private Double oppPyPatRemainingPrev; // SoS Left: future opponents' previous season PyPAT (null if none)
 
     public Integer getTeamId() { return teamId; }
     public void setTeamId(Integer teamId) { this.teamId = teamId; }
@@ -54,8 +57,14 @@ public class StandingDto {
     public void setWinPct(double winPct) { this.winPct = winPct; }
     public double getPythagoreanPat() { return pythagoreanPat; }
     public void setPythagoreanPat(double pythagoreanPat) { this.pythagoreanPat = pythagoreanPat; }
+    public double getWinDiff() { return winDiff; }
+    public void setWinDiff(double winDiff) { this.winDiff = winDiff; }
     public double getOppPyPatCurr() { return oppPyPatCurr; }
     public void setOppPyPatCurr(double oppPyPatCurr) { this.oppPyPatCurr = oppPyPatCurr; }
     public double getOppPyPatPrev() { return oppPyPatPrev; }
     public void setOppPyPatPrev(double oppPyPatPrev) { this.oppPyPatPrev = oppPyPatPrev; }
+    public Double getOppPyPatRemainingCurr() { return oppPyPatRemainingCurr; }
+    public void setOppPyPatRemainingCurr(Double oppPyPatRemainingCurr) { this.oppPyPatRemainingCurr = oppPyPatRemainingCurr; }
+    public Double getOppPyPatRemainingPrev() { return oppPyPatRemainingPrev; }
+    public void setOppPyPatRemainingPrev(Double oppPyPatRemainingPrev) { this.oppPyPatRemainingPrev = oppPyPatRemainingPrev; }
 }

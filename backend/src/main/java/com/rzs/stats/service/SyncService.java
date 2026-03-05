@@ -125,7 +125,7 @@ public class SyncService {
         TreeMap<Integer, int[]> weekStats = new TreeMap<>();
 
         for (NsGame nsGame : games) {
-            if (nsGame.getStatus() == null || nsGame.getStatus() < 2) {
+            if (nsGame.getStatus() == null) {
                 skippedStatus++;
                 continue;
             }
@@ -134,7 +134,7 @@ public class SyncService {
             if (upsertGameVerbose(nsGame, log, weekStats, week)) stored++;
         }
 
-        if (skippedStatus > 0) log.add("[SEASON " + seasonIndex + "] Skipped " + skippedStatus + " — status < 2");
+        if (skippedStatus > 0) log.add("[SEASON " + seasonIndex + "] Skipped " + skippedStatus + " — null status");
 
         int totalNullTeam = weekStats.values().stream().mapToInt(a -> a[1]).sum();
         log.add("[SEASON " + seasonIndex + "] Stored " + (games.size() - skippedStatus) +
@@ -188,7 +188,7 @@ public class SyncService {
         // stageIndex=1 contains both regular season (weekIndex 0-17) and playoffs (weekIndex >= 18)
         List<NsGame> games = client.fetchAllGamesForSeason(seasonIndex);
         for (NsGame nsGame : games) {
-            if (nsGame.getStatus() != null && nsGame.getStatus() >= 2) {
+            if (nsGame.getStatus() != null) {
                 if (upsertGame(nsGame)) count++;
             }
         }

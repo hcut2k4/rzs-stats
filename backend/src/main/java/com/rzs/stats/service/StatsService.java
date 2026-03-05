@@ -38,23 +38,44 @@ public class StatsService {
         List<GameEntity> prevGames = seasonIndex > 0 ? regularSeasonGames(seasonIndex - 1) : List.of();
         Map<Integer, TeamStats> prevStatsMap = computeTeamStats(teams, prevGames);
 
+        // Build per-team map of remaining (future) opponent IDs
+        List<GameEntity> futureGames = gameRepository.findFutureRegularSeasonGames(seasonIndex);
+        Map<Integer, Set<Integer>> remainingOpps = new HashMap<>();
+        for (GameEntity g : futureGames) {
+            if (g.getHomeTeam() == null || g.getAwayTeam() == null) continue;
+            int h = g.getHomeTeam().getTeamId(), a = g.getAwayTeam().getTeamId();
+            remainingOpps.computeIfAbsent(h, k -> new HashSet<>()).add(a);
+            remainingOpps.computeIfAbsent(a, k -> new HashSet<>()).add(h);
+        }
+
         return teams.stream().map(team -> {
             TeamStats curr = statsMap.getOrDefault(team.getTeamId(), new TeamStats());
-            return buildStandingDto(team, curr, statsMap, prevStatsMap);
+            return buildStandingDto(team, curr, statsMap, prevStatsMap, remainingOpps);
         }).sorted(Comparator.comparingDouble(StandingDto::getWinPct).reversed())
           .collect(Collectors.toList());
     }
 
     private StandingDto buildStandingDto(TeamEntity team, TeamStats curr,
                                           Map<Integer, TeamStats> currAll,
-                                          Map<Integer, TeamStats> prevAll) {
+                                          Map<Integer, TeamStats> prevAll,
+                                          Map<Integer, Set<Integer>> remainingOpps) {
         double pyPat = calculatePyPat(curr.pf, curr.pa, curr.games);
 
-        // In-season SoS: opponents' PyPat using current season, excluding H2H
+        // Played SoS: already-played opponents' PyPAT using current or previous season stats
         double oppPyPatCurr = calculateOppPyPat(team.getTeamId(), curr.opponentIds, currAll);
-
-        // Pre-season SoS: opponents' PyPat using previous season (same opponent exclusion as old app)
         double oppPyPatPrev = calculateOppPyPat(team.getTeamId(), curr.opponentIds, prevAll);
+
+        // Win Diff: actual wins minus PyPAT-expected wins
+        double actualWins   = curr.wins + 0.5 * curr.ties;
+        double expectedWins = pyPat * curr.games;
+        double winDiff = Math.round((actualWins - expectedWins) * 10.0) / 10.0;
+
+        // Remaining SoS: future opponents' PyPAT using current or previous season stats
+        Set<Integer> remOpps = remainingOpps.getOrDefault(team.getTeamId(), Set.of());
+        Double oppPyPatRemainingCurr = remOpps.isEmpty() ? null
+                : round(calculateOppPyPat(team.getTeamId(), remOpps, currAll));
+        Double oppPyPatRemainingPrev = remOpps.isEmpty() ? null
+                : round(calculateOppPyPat(team.getTeamId(), remOpps, prevAll));
 
         StandingDto dto = new StandingDto();
         dto.setTeamId(team.getTeamId());
@@ -74,8 +95,11 @@ public class StatsService {
         double winPct = curr.games > 0 ? (curr.wins + 0.5 * curr.ties) / curr.games : 0.0;
         dto.setWinPct(round(winPct));
         dto.setPythagoreanPat(round(pyPat));
+        dto.setWinDiff(winDiff);
         dto.setOppPyPatCurr(round(oppPyPatCurr));
         dto.setOppPyPatPrev(round(oppPyPatPrev));
+        dto.setOppPyPatRemainingCurr(oppPyPatRemainingCurr);
+        dto.setOppPyPatRemainingPrev(oppPyPatRemainingPrev);
         return dto;
     }
 

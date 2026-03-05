@@ -55,18 +55,18 @@ class SyncServiceTest {
     }
 
     @Test
-    void sync_skipsGamesWithStatusLessThan2() {
+    void sync_storesGamesWithAnyNonNullStatus() {
         when(client.fetchLeagueInfo()).thenReturn(league(1));
         when(client.fetchAllTeams()).thenReturn(List.of());
-        // game with status=1 should be skipped; status=2 should be saved
+        // status=1 (future) and status=2 (complete) should both be stored; null-status skipped
         when(client.fetchAllGamesForSeason(0)).thenReturn(
-                List.of(nsGame(100, 1), nsGame(101, 2)));
-        when(gameRepository.findBySeasonIndexAndGameId(0, 101)).thenReturn(Optional.empty());
+                List.of(nsGame(100, 1), nsGame(101, 2), nsGameNullStatus(102)));
+        when(gameRepository.findBySeasonIndexAndGameId(any(), any())).thenReturn(Optional.empty());
         when(gameRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
         service.sync();
 
-        verify(gameRepository, times(1)).save(any(GameEntity.class));
+        verify(gameRepository, times(2)).save(any(GameEntity.class));
     }
 
     @Test
@@ -178,6 +178,16 @@ class SyncServiceTest {
         g.setStatus(status);
         g.setSimmed(false);
         // homeTeam/awayTeam left null to avoid team-lookup in upsertGame
+        return g;
+    }
+
+    private static NsGame nsGameNullStatus(int gameId) {
+        NsGame g = new NsGame();
+        g.setGameId(gameId);
+        g.setSeasonIndex(0);
+        g.setStageIndex(1);
+        g.setWeekIndex(0);
+        g.setStatus(null);
         return g;
     }
 }
