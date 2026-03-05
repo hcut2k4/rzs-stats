@@ -39,7 +39,7 @@ export default function StandingsPage() {
     getSeasons()
       .then(s => {
         setSeasons(s)
-        if (s.length) setSeason(s[s.length - 1])
+        if (s.length) setSeason(s.length > 1 ? s[s.length - 2] : s[0])
       })
       .catch(() => setError('Failed to load seasons'))
   }, [])
