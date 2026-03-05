@@ -62,11 +62,14 @@ public class AdminController {
                     "teamId", g.getAwayTeam().getTeamId() != null ? g.getAwayTeam().getTeamId() : "null"
                 );
                 games.add(Map.of(
-                    "gameId",     g.getGameId()    != null ? g.getGameId()    : "null",
-                    "status",     g.getStatus()    != null ? g.getStatus()    : "null",
-                    "homeScore",  g.getHomeScore() != null ? g.getHomeScore() : "null",
-                    "awayScore",  g.getAwayScore() != null ? g.getAwayScore() : "null",
-                    "homeTeam",   homeTeam != null ? homeTeam : "null",
+                    "gameId",      g.getGameId()      != null ? g.getGameId()      : "null",
+                    "status",      g.getStatus()      != null ? g.getStatus()      : "null",
+                    "seasonIndex", g.getSeasonIndex() != null ? g.getSeasonIndex() : "null",
+                    "stageIndex",  g.getStageIndex()  != null ? g.getStageIndex()  : "null",
+                    "weekIndex",   g.getWeekIndex()   != null ? g.getWeekIndex()   : "null",
+                    "homeScore",   g.getHomeScore()   != null ? g.getHomeScore()   : "null",
+                    "awayScore",   g.getAwayScore()   != null ? g.getAwayScore()   : "null",
+                    "homeTeam",    homeTeam != null ? homeTeam : "null",
                     "awayTeam",   awayTeam != null ? awayTeam : "null"
                 ));
             }
@@ -79,13 +82,15 @@ public class AdminController {
         }
 
         // Mode A — season-level aggregation
-        java.util.TreeMap<Integer, Integer> byStatus    = new java.util.TreeMap<>();
-        java.util.TreeMap<Integer, Integer> byWeekIndex = new java.util.TreeMap<>();
+        java.util.TreeMap<Integer, Integer> byStatus     = new java.util.TreeMap<>();
+        java.util.TreeMap<Integer, Integer> byWeekIndex  = new java.util.TreeMap<>();
+        java.util.TreeMap<String,  Integer> byStageIndex = new java.util.TreeMap<>();
         int nullHome = 0, nullAway = 0;
 
         for (com.rzs.stats.model.ns.NsGame g : allGames) {
             byStatus.merge(g.getStatus(), 1, Integer::sum);
             byWeekIndex.merge(g.getWeekIndex(), 1, Integer::sum);
+            byStageIndex.merge(g.getStageIndex() != null ? String.valueOf(g.getStageIndex()) : "null", 1, Integer::sum);
             if (g.getHomeTeam() == null || g.getHomeTeam().getId() == null && g.getHomeTeam().getTeamId() == null) nullHome++;
             if (g.getAwayTeam() == null || g.getAwayTeam().getId() == null && g.getAwayTeam().getTeamId() == null) nullAway++;
         }
@@ -96,6 +101,7 @@ public class AdminController {
             "apiTotalReturned",   allGames.size(),
             "byStatus",           byStatus,
             "byWeekIndex",        byWeekIndex,
+            "byStageIndex",       byStageIndex,
             "nullHomeTeamCount",  nullHome,
             "nullAwayTeamCount",  nullAway
         );
@@ -108,11 +114,20 @@ public class AdminController {
         List<Object[]> rows = gameRepository.countGamesBySeasonAndStage();
         List<Map<String, Object>> counts = new ArrayList<>();
         for (Object[] row : rows) {
+            // stageIndex (row[1]) may be null; represent as string to avoid Map.of() NPE
             counts.add(Map.of(
                 "seasonIndex", row[0],
-                "stageIndex",  row[1],
+                "stageIndex",  row[1] != null ? row[1] : "null",
                 "count",       row[2]
             ));
+        }
+
+        // Total games per season (all stageIndex values) — useful for detecting
+        // games stored with unexpected (e.g. null) stageIndex values
+        List<Map<String, Object>> totals = new ArrayList<>();
+        for (int s = 0; s <= league.getSeason(); s++) {
+            long total = gameRepository.countBySeasonIndex(s);
+            if (total > 0) totals.add(Map.of("seasonIndex", s, "totalGames", total));
         }
 
         return Map.of(
@@ -121,7 +136,8 @@ public class AdminController {
                 "week",         league.getWeek(),
                 "calendarYear", league.getCalendarYear()
             ),
-            "gameCountsBySeasonAndStage", counts
+            "gameCountsBySeasonAndStage", counts,
+            "totalGamesBySeasonAllStages", totals
         );
     }
 }

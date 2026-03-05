@@ -152,7 +152,7 @@ public class SyncService {
     }
 
     private boolean upsertGameVerbose(NsGame ns, List<String> log, TreeMap<Integer, int[]> weekStats, int week) {
-        Optional<GameEntity> existing = gameRepository.findByGameId(ns.getGameId());
+        Optional<GameEntity> existing = gameRepository.findBySeasonIndexAndGameId(ns.getSeasonIndex(), ns.getGameId());
         GameEntity game = existing.orElse(new GameEntity());
         game.setGameId(ns.getGameId());
         game.setSeasonIndex(ns.getSeasonIndex());
@@ -223,7 +223,7 @@ public class SyncService {
     }
 
     private boolean upsertGame(NsGame ns) {
-        Optional<GameEntity> existing = gameRepository.findByGameId(ns.getGameId());
+        Optional<GameEntity> existing = gameRepository.findBySeasonIndexAndGameId(ns.getSeasonIndex(), ns.getGameId());
         GameEntity game = existing.orElse(new GameEntity());
         game.setGameId(ns.getGameId());
         game.setSeasonIndex(ns.getSeasonIndex());

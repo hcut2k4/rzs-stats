@@ -15,7 +15,7 @@ public interface GameRepository extends JpaRepository<GameEntity, Long> {
     int REGULAR_SEASON_MIN_WEEK = 0;
     int REGULAR_SEASON_MAX_WEEK = 17;
 
-    Optional<GameEntity> findByGameId(Integer gameId);
+    Optional<GameEntity> findBySeasonIndexAndGameId(Integer seasonIndex, Integer gameId);
 
     @Query("SELECT g FROM GameEntity g WHERE g.seasonIndex = :season AND g.stageIndex = :stage AND g.weekIndex BETWEEN :minWeek AND :maxWeek")
     List<GameEntity> findRegularSeasonGames(
@@ -37,4 +37,6 @@ public interface GameRepository extends JpaRepository<GameEntity, Long> {
 
     @Query("SELECT g.seasonIndex, g.stageIndex, COUNT(g) FROM GameEntity g GROUP BY g.seasonIndex, g.stageIndex ORDER BY g.seasonIndex, g.stageIndex")
     List<Object[]> countGamesBySeasonAndStage();
+
+    long countBySeasonIndex(Integer seasonIndex);
 }

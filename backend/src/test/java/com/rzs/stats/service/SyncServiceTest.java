@@ -44,7 +44,7 @@ class SyncServiceTest {
         when(client.fetchAllGamesForSeason(0)).thenReturn(List.of(nsGame(100, 2), nsGame(101, 2)));
         when(teamRepository.findByTeamId(any())).thenReturn(Optional.empty());
         when(teamRepository.save(any())).thenAnswer(i -> i.getArgument(0));
-        when(gameRepository.findByGameId(any())).thenReturn(Optional.empty());
+        when(gameRepository.findBySeasonIndexAndGameId(any(), any())).thenReturn(Optional.empty());
         when(gameRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
         SyncService.SyncResult result = service.sync();
@@ -61,7 +61,7 @@ class SyncServiceTest {
         // game with status=1 should be skipped; status=2 should be saved
         when(client.fetchAllGamesForSeason(0)).thenReturn(
                 List.of(nsGame(100, 1), nsGame(101, 2)));
-        when(gameRepository.findByGameId(101)).thenReturn(Optional.empty());
+        when(gameRepository.findBySeasonIndexAndGameId(0, 101)).thenReturn(Optional.empty());
         when(gameRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
         service.sync();
@@ -124,7 +124,7 @@ class SyncServiceTest {
         when(client.fetchAllTeams()).thenReturn(List.of());
         GameEntity existing = new GameEntity();
         when(client.fetchAllGamesForSeason(0)).thenReturn(List.of(nsGame(100, 2)));
-        when(gameRepository.findByGameId(100)).thenReturn(Optional.of(existing));
+        when(gameRepository.findBySeasonIndexAndGameId(0, 100)).thenReturn(Optional.of(existing));
         when(gameRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
         SyncService.SyncResult result = service.sync();

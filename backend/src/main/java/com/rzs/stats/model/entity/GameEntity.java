@@ -3,18 +3,21 @@ package com.rzs.stats.model.entity;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "game", indexes = {
-    @Index(name = "idx_game_season_stage_week", columnList = "seasonIndex, stageIndex, weekIndex"),
-    @Index(name = "idx_game_home_team", columnList = "home_team_id"),
-    @Index(name = "idx_game_away_team", columnList = "away_team_id")
-})
+@Table(name = "game",
+    indexes = {
+        @Index(name = "idx_game_season_stage_week", columnList = "seasonIndex, stageIndex, weekIndex"),
+        @Index(name = "idx_game_home_team", columnList = "home_team_id"),
+        @Index(name = "idx_game_away_team", columnList = "away_team_id")
+    },
+    uniqueConstraints = @UniqueConstraint(name = "uq_game_season_gameid", columnNames = {"seasonIndex", "gameId"})
+)
 public class GameEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private Integer gameId;
 
     private Integer seasonIndex;

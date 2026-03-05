@@ -15,21 +15,32 @@ class GameRepositoryTest {
 
     @Autowired GameRepository gameRepository;
 
-    // ── findByGameId ───────────────────────────────────────────────────────────
+    // ── findBySeasonIndexAndGameId ─────────────────────────────────────────────
 
     @Test
-    void findByGameId_found() {
+    void findBySeasonIndexAndGameId_found() {
         save(game(1, 0, 1, 0));
 
-        Optional<GameEntity> result = gameRepository.findByGameId(1);
+        Optional<GameEntity> result = gameRepository.findBySeasonIndexAndGameId(0, 1);
 
         assertThat(result).isPresent();
         assertThat(result.get().getGameId()).isEqualTo(1);
     }
 
     @Test
-    void findByGameId_notFound() {
-        assertThat(gameRepository.findByGameId(999)).isEmpty();
+    void findBySeasonIndexAndGameId_notFound() {
+        assertThat(gameRepository.findBySeasonIndexAndGameId(0, 999)).isEmpty();
+    }
+
+    @Test
+    void findBySeasonIndexAndGameId_sameGameIdDifferentSeasons_returnsCorrectOne() {
+        save(game(1, 0, 1, 0));
+        save(game(1, 1, 1, 0));
+
+        Optional<GameEntity> result = gameRepository.findBySeasonIndexAndGameId(1, 1);
+
+        assertThat(result).isPresent();
+        assertThat(result.get().getSeasonIndex()).isEqualTo(1);
     }
 
     // ── findRegularSeasonGames ─────────────────────────────────────────────────
