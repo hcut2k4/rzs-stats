@@ -48,7 +48,13 @@ export default function StandingsPage() {
     getSeasons()
       .then(s => {
         setSeasons(s)
-        if (s.length) setSeason(s.length > 1 ? s[s.length - 2] : s[0])
+        if (s.length) {
+          const defaultSeason = s.length > 1 ? s[s.length - 2] : s[0]
+          setSeason(defaultSeason)
+          // Default to prior season stats for the active/current season (insufficient games),
+          // current season stats for all historical seasons (full data available)
+          setSosMode(defaultSeason === s[s.length - 1] ? 'prev' : 'curr')
+        }
       })
       .catch(() => setError('Failed to load seasons'))
   }, [])
@@ -67,6 +73,8 @@ export default function StandingsPage() {
     else { setSortKey(key); setSortAsc(false) }
   }
 
+  const isCurrentSeason = seasons.length > 0 && season === seasons[seasons.length - 1]
+
   const sorted = [...standings].sort((a, b) => {
     const av = a[sortKey], bv = b[sortKey]
     if (av == null) return 1
@@ -74,37 +82,60 @@ export default function StandingsPage() {
     return sortAsc ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1)
   })
 
-  const sosCols = [
-    {
-      key:   sosMode === 'curr' ? 'oppPyPatCurr'          : 'oppPyPatPrev',
-      label: 'SoS Played',
-      fmt:   v => v != null ? (v * 100).toFixed(1) + '%' : '—',
-      heat:  'lower',
-      title: sosMode === 'curr'
-        ? 'Played SoS: avg opponent PyPAT from current season'
-        : 'Played SoS: avg opponent PyPAT from previous season',
-    },
-    {
-      key:   sosMode === 'curr' ? 'oppPyPatRemainingCurr' : 'oppPyPatRemainingPrev',
-      label: 'SoS Left',
-      fmt:   v => v != null ? (v * 100).toFixed(1) + '%' : '—',
-      heat:  'lower',
-      title: sosMode === 'curr'
-        ? "Remaining SoS: future opponents' current season PyPAT"
-        : "Remaining SoS: future opponents' previous season PyPAT",
-    },
-  ]
+  const sosCols = isCurrentSeason
+    ? [
+        {
+          key:   sosMode === 'curr' ? 'oppPyPatCurr'          : 'oppPyPatPrev',
+          label: 'SoS Played',
+          fmt:   v => v != null ? (v * 100).toFixed(1) + '%' : '—',
+          heat:  'lower',
+          title: sosMode === 'curr'
+            ? 'Played SoS: avg opponent-adjusted PyPAT from current season'
+            : 'Played SoS: avg opponent-adjusted PyPAT from previous season',
+        },
+        {
+          key:   sosMode === 'curr' ? 'oppPyPatRemainingCurr' : 'oppPyPatRemainingPrev',
+          label: 'SoS Left',
+          fmt:   v => v != null ? (v * 100).toFixed(1) + '%' : '—',
+          heat:  'lower',
+          title: sosMode === 'curr'
+            ? "Remaining SoS: future opponents' opponent-adjusted PyPAT (current season)"
+            : "Remaining SoS: future opponents' opponent-adjusted PyPAT (previous season)",
+        },
+        {
+          key:   sosMode === 'curr' ? 'oppPyPatTotalCurr' : 'oppPyPatTotalPrev',
+          label: 'SoS Total',
+          fmt:   v => v != null ? (v * 100).toFixed(1) + '%' : '—',
+          heat:  'lower',
+          title: sosMode === 'curr'
+            ? 'Full-season SoS: all scheduled opponents (current season stats)'
+            : 'Full-season SoS: all scheduled opponents (previous season stats)',
+        },
+      ]
+    : [
+        {
+          key:   sosMode === 'curr' ? 'oppPyPatCurr' : 'oppPyPatPrev',
+          label: 'SoS',
+          fmt:   v => v != null ? (v * 100).toFixed(1) + '%' : '—',
+          heat:  'lower',
+          title: sosMode === 'curr'
+            ? 'Strength of Schedule: avg opponent-adjusted PyPAT (current season stats)'
+            : 'Strength of Schedule: avg opponent-adjusted PyPAT (previous season stats)',
+        },
+      ]
 
   const COLS = [
-    { key: 'rank',           label: '#',     fmt: (_, i) => i + 1 },
-    { key: 'displayName',    label: 'Team',  fmt: (v, _, row) => <TeamCell row={row} /> },
+    { key: 'rank',           label: '#',       fmt: (_, i) => i + 1 },
+    { key: 'displayName',    label: 'Team',    fmt: (v, _, row) => <TeamCell row={row} /> },
     { key: 'wins',           label: 'W' },
     { key: 'losses',         label: 'L' },
     { key: 'ties',           label: 'T' },
-    { key: 'winPct',         label: 'Win%',  fmt: v => v.toFixed(3), heat: 'higher' },
-    { key: 'pointsFor',      label: 'PF' },
-    { key: 'pointsAgainst',  label: 'PA' },
-    { key: 'pythagoreanPat', label: 'PyPAT', fmt: v => (v * 100).toFixed(1) + '%', heat: 'higher',
+    { key: 'winPct',         label: 'Win%',    fmt: v => v.toFixed(3), heat: 'higher' },
+    { key: 'pointsFor',      label: 'Avg PF',
+      fmt: (v, _, row) => row.gamesPlayed > 0 ? (v / row.gamesPlayed).toFixed(1) : '—' },
+    { key: 'pointsAgainst',  label: 'Avg PA',
+      fmt: (v, _, row) => row.gamesPlayed > 0 ? (v / row.gamesPlayed).toFixed(1) : '—' },
+    { key: 'pythagoreanPat', label: 'PyPAT',   fmt: v => (v * 100).toFixed(1) + '%', heat: 'higher',
       title: 'PythagoreanPAT win expectancy' },
     { key: 'winDiff',        label: 'Luck',
       fmt: v => v != null ? (v > 0 ? '+' : '') + v.toFixed(1) : '—',
@@ -133,7 +164,11 @@ export default function StandingsPage() {
         <select
           className="bg-gray-800 border border-gray-700 rounded px-3 py-1 text-sm"
           value={season ?? ''}
-          onChange={e => setSeason(Number(e.target.value))}
+          onChange={e => {
+            const newSeason = Number(e.target.value)
+            setSeason(newSeason)
+            setSosMode(newSeason === seasons[seasons.length - 1] ? 'prev' : 'curr')
+          }}
         >
           {seasons.map(s => (
             <option key={s} value={s}>Season {s + 2025}</option>
@@ -150,19 +185,27 @@ export default function StandingsPage() {
           Group by conference
         </label>
 
-        <div className="flex items-center gap-1 text-sm bg-gray-800 rounded px-1 py-1">
-          <button
-            onClick={() => setSosMode('curr')}
-            className={`px-2 py-0.5 rounded text-xs ${sosMode === 'curr' ? 'bg-gray-600 text-white' : 'text-gray-400'}`}
+        <div className="flex items-center gap-2 text-sm">
+          <span
+            className="text-gray-400 cursor-help"
+            title="SoS is calculated using opponent-adjusted PyPAT — each opponent's quality is measured without their games against the team being evaluated, so H2H results don't inflate their rating. Previous season is more reliable early in the current season before enough games have been played to produce accurate team ratings."
           >
-            SoS: This Season
-          </button>
-          <button
-            onClick={() => setSosMode('prev')}
-            className={`px-2 py-0.5 rounded text-xs ${sosMode === 'prev' ? 'bg-gray-600 text-white' : 'text-gray-400'}`}
-          >
-            SoS: Prior Season
-          </button>
+            SoS Opponent PyPat:
+          </span>
+          <div className="flex items-center gap-1 bg-gray-800 rounded px-1 py-1">
+            <button
+              onClick={() => setSosMode('curr')}
+              className={`px-2 py-0.5 rounded text-xs ${sosMode === 'curr' ? 'bg-gray-600 text-white' : 'text-gray-400'}`}
+            >
+              This Season
+            </button>
+            <button
+              onClick={() => setSosMode('prev')}
+              className={`px-2 py-0.5 rounded text-xs ${sosMode === 'prev' ? 'bg-gray-600 text-white' : 'text-gray-400'}`}
+            >
+              Prior Season
+            </button>
+          </div>
         </div>
       </div>
 

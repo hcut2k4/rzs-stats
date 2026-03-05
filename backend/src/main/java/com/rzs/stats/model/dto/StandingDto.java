@@ -24,6 +24,8 @@ public class StandingDto {
     private double oppPyPatPrev;       // SoS Played: avg opponent PyPAT, previous season
     private Double oppPyPatRemainingCurr; // SoS Left: future opponents' current season PyPAT (null if none)
     private Double oppPyPatRemainingPrev; // SoS Left: future opponents' previous season PyPAT (null if none)
+    private Double oppPyPatTotalCurr;     // SoS Total: all scheduled opponents, current season stats (null if no schedule)
+    private Double oppPyPatTotalPrev;     // SoS Total: all scheduled opponents, previous season stats (null if no schedule)
 
     public Integer getTeamId() { return teamId; }
     public void setTeamId(Integer teamId) { this.teamId = teamId; }
@@ -67,4 +69,8 @@ public class StandingDto {
     public void setOppPyPatRemainingCurr(Double oppPyPatRemainingCurr) { this.oppPyPatRemainingCurr = oppPyPatRemainingCurr; }
     public Double getOppPyPatRemainingPrev() { return oppPyPatRemainingPrev; }
     public void setOppPyPatRemainingPrev(Double oppPyPatRemainingPrev) { this.oppPyPatRemainingPrev = oppPyPatRemainingPrev; }
+    public Double getOppPyPatTotalCurr() { return oppPyPatTotalCurr; }
+    public void setOppPyPatTotalCurr(Double oppPyPatTotalCurr) { this.oppPyPatTotalCurr = oppPyPatTotalCurr; }
+    public Double getOppPyPatTotalPrev() { return oppPyPatTotalPrev; }
+    public void setOppPyPatTotalPrev(Double oppPyPatTotalPrev) { this.oppPyPatTotalPrev = oppPyPatTotalPrev; }
 }

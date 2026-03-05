@@ -77,6 +77,14 @@ public class StatsService {
         Double oppPyPatRemainingPrev = remOpps.isEmpty() ? null
                 : round(calculateOppPyPat(team.getTeamId(), remOpps, prevAll));
 
+        // Total SoS: all scheduled opponents for the full season (played + remaining)
+        Set<Integer> allOpps = new HashSet<>(curr.opponentIds);
+        allOpps.addAll(remOpps);
+        Double oppPyPatTotalCurr = allOpps.isEmpty() ? null
+                : round(calculateOppPyPat(team.getTeamId(), allOpps, currAll));
+        Double oppPyPatTotalPrev = allOpps.isEmpty() ? null
+                : round(calculateOppPyPat(team.getTeamId(), allOpps, prevAll));
+
         StandingDto dto = new StandingDto();
         dto.setTeamId(team.getTeamId());
         dto.setDisplayName(team.getDisplayName());
@@ -100,6 +108,8 @@ public class StatsService {
         dto.setOppPyPatPrev(round(oppPyPatPrev));
         dto.setOppPyPatRemainingCurr(oppPyPatRemainingCurr);
         dto.setOppPyPatRemainingPrev(oppPyPatRemainingPrev);
+        dto.setOppPyPatTotalCurr(oppPyPatTotalCurr);
+        dto.setOppPyPatTotalPrev(oppPyPatTotalPrev);
         return dto;
     }
 

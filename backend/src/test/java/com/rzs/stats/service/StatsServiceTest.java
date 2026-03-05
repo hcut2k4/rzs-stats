@@ -420,6 +420,87 @@ class StatsServiceTest {
         assertThat(a.getOppPyPatRemainingPrev()).isGreaterThan(0.9);
     }
 
+    // ── computeStandings: oppPyPatTotal ────────────────────────────────────────
+
+    @Test
+    void computeStandings_oppPyPatTotalCurr_averagesAllScheduledOpponents() {
+        // A played B (high PyPAT ≈ 1.0) and C (high PyPAT ≈ 0.9)
+        // A's future: vs D (low PyPAT ≈ 0.1)
+        // Played SoS ≈ 0.95; Remaining SoS ≈ 0.10
+        // Average-of-averages = 0.525  ← WRONG
+        // True total = avg(B, C, D) ≈ 0.67  ← CORRECT
+        TeamEntity teamA = team(1, "A");
+        TeamEntity teamB = team(2, "B");
+        TeamEntity teamC = team(3, "C");
+        TeamEntity teamD = team(4, "D");
+        TeamEntity teamE = team(5, "E");  // foil for B and C to look strong
+
+        // B and C both dominate E (50-0) — so B and C each have PyPAT ≈ 1.0 (excl. A games)
+        // D loses badly to E (0-50) — so D has PyPAT ≈ 0.0 (excl. A games, which don't exist yet)
+        // A played B and C; A's future is vs D
+        when(teamRepository.findAll()).thenReturn(List.of(teamA, teamB, teamC, teamD, teamE));
+        when(gameRepository.findRegularSeasonGames(3, 1, 0, 17)).thenReturn(List.of(
+                game(1,  teamA, teamB, 14, 28),  // A vs B
+                game(2,  teamA, teamC, 14, 28),  // A vs C
+                game(3,  teamB, teamE, 50,  0),  // B dominates E
+                game(4,  teamC, teamE, 50,  0),  // C dominates E
+                game(5,  teamE, teamD, 50,  0)   // E dominates D
+        ));
+        when(gameRepository.findRegularSeasonGames(2, 1, 0, 17)).thenReturn(List.of());
+        when(gameRepository.findFutureRegularSeasonGames(3))
+                .thenReturn(List.of(futureGame(99, teamA, teamD)));
+
+        List<StandingDto> standings = service.computeStandings(3);
+
+        StandingDto a = standings.stream().filter(s -> s.getTeamId() == 1).findFirst().orElseThrow();
+
+        // Played SoS (B + C, both strong ≈ 1.0) should be high
+        assertThat(a.getOppPyPatCurr()).isGreaterThan(0.80);
+        // Remaining SoS (D, weak ≈ 0.0) should be low
+        assertThat(a.getOppPyPatRemainingCurr()).isNotNull();
+        assertThat(a.getOppPyPatRemainingCurr()).isLessThan(0.20);
+        // Total SoS = avg(B, C, D) — should be between played and remaining, roughly in the 0.55-0.75 range
+        // (NOT the 0.525 you'd get from averaging the two SoS values)
+        assertThat(a.getOppPyPatTotalCurr()).isNotNull();
+        assertThat(a.getOppPyPatTotalCurr()).isGreaterThan(0.50);
+        assertThat(a.getOppPyPatTotalCurr()).isLessThan(a.getOppPyPatCurr());  // pulled down by weak D
+    }
+
+    @Test
+    void computeStandings_oppPyPatTotalCurr_equalsPlayedSosWhenNoFutureGames() {
+        // When no future games, total SoS = played SoS (same set of opponents)
+        TeamEntity teamA = team(1, "A");
+        TeamEntity teamB = team(2, "B");
+
+        when(teamRepository.findAll()).thenReturn(List.of(teamA, teamB));
+        when(gameRepository.findRegularSeasonGames(3, 1, 0, 17))
+                .thenReturn(List.of(game(1, teamA, teamB, 28, 14)));
+        when(gameRepository.findRegularSeasonGames(2, 1, 0, 17)).thenReturn(List.of());
+        when(gameRepository.findFutureRegularSeasonGames(3)).thenReturn(List.of());
+
+        List<StandingDto> standings = service.computeStandings(3);
+
+        StandingDto a = standings.stream().filter(s -> s.getTeamId() == 1).findFirst().orElseThrow();
+        assertThat(a.getOppPyPatTotalCurr()).isNotNull();
+        assertThat(a.getOppPyPatTotalCurr()).isEqualTo(a.getOppPyPatCurr());
+    }
+
+    @Test
+    void computeStandings_oppPyPatTotalCurr_nullWhenNoScheduleAtAll() {
+        // Team with no played games and no future games → total SoS is null
+        TeamEntity teamA = team(1, "A");
+
+        when(teamRepository.findAll()).thenReturn(List.of(teamA));
+        when(gameRepository.findRegularSeasonGames(3, 1, 0, 17)).thenReturn(List.of());
+        when(gameRepository.findRegularSeasonGames(2, 1, 0, 17)).thenReturn(List.of());
+        when(gameRepository.findFutureRegularSeasonGames(3)).thenReturn(List.of());
+
+        List<StandingDto> standings = service.computeStandings(3);
+
+        assertThat(standings.get(0).getOppPyPatTotalCurr()).isNull();
+        assertThat(standings.get(0).getOppPyPatTotalPrev()).isNull();
+    }
+
     // ── Helpers ────────────────────────────────────────────────────────────────
 
     private static GameEntity futureGame(int gameId, TeamEntity home, TeamEntity away) {
