@@ -12,8 +12,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.TreeMap;
 
 @Service
 public class SyncService {
@@ -68,6 +70,117 @@ public class SyncService {
             lastSyncSuccess = false;
             return new SyncResult(false, message);
         }
+    }
+
+    @Transactional
+    public VerboseSyncResult syncVerbose() {
+        List<String> log = new ArrayList<>();
+        int teamsUpserted = 0;
+        int gamesAdded = 0;
+
+        try {
+            NsLeague league = client.fetchLeagueInfo();
+            int currentSeasonIndex = league.getSeason();
+            log.add("[LEAGUE] season=" + league.getSeason() + ", week=" + league.getWeek() + ", calendarYear=" + league.getCalendarYear());
+
+            List<NsTeam> nsTeams = client.fetchAllTeams();
+            log.add("[TEAMS] API returned " + nsTeams.size() + " teams");
+            for (NsTeam nsTeam : nsTeams) {
+                upsertTeam(nsTeam);
+                log.add("[TEAMS] Upserted: " + nsTeam.getDisplayName() + " (teamId=" + nsTeam.getTeamId() + ", nsId=" + nsTeam.getId() + ")");
+                teamsUpserted++;
+            }
+
+            for (int s = 0; s <= currentSeasonIndex; s++) {
+                int[] result = syncGamesForSeasonVerbose(s, log);
+                gamesAdded += result[0];
+            }
+
+            String message = teamsUpserted + " teams synced, " + gamesAdded + " games added/updated";
+            lastSyncTime = Instant.now();
+            lastSyncMessage = message;
+            lastSyncSuccess = true;
+            log.add("[DONE] " + message);
+            return new VerboseSyncResult(true, message, log);
+
+        } catch (Exception e) {
+            String message = "Sync failed: " + e.getMessage();
+            lastSyncTime = Instant.now();
+            lastSyncMessage = message;
+            lastSyncSuccess = false;
+            log.add("[ERROR] " + message);
+            return new VerboseSyncResult(false, message, log);
+        }
+    }
+
+    private int[] syncGamesForSeasonVerbose(int seasonIndex, List<String> log) {
+        List<NsGame> games = client.fetchAllGamesForSeason(seasonIndex);
+        if (games.isEmpty()) {
+            log.add("[SEASON " + seasonIndex + "] API returned 0 games — skipping");
+            return new int[]{0};
+        }
+        log.add("[SEASON " + seasonIndex + "] API returned " + games.size() + " games");
+
+        int stored = 0, skippedStatus = 0;
+        TreeMap<Integer, int[]> weekStats = new TreeMap<>();
+
+        for (NsGame nsGame : games) {
+            if (nsGame.getStatus() == null || nsGame.getStatus() < 2) {
+                skippedStatus++;
+                continue;
+            }
+            int week = nsGame.getWeekIndex() != null ? nsGame.getWeekIndex() : -1;
+            weekStats.putIfAbsent(week, new int[]{0, 0});
+            if (upsertGameVerbose(nsGame, log, weekStats, week)) stored++;
+        }
+
+        if (skippedStatus > 0) log.add("[SEASON " + seasonIndex + "] Skipped " + skippedStatus + " — status < 2");
+
+        int totalNullTeam = weekStats.values().stream().mapToInt(a -> a[1]).sum();
+        log.add("[SEASON " + seasonIndex + "] Stored " + (games.size() - skippedStatus) +
+                " — team resolved: " + ((games.size() - skippedStatus) - totalNullTeam) +
+                ", null team: " + totalNullTeam);
+
+        for (var entry : weekStats.entrySet()) {
+            int wk = entry.getKey();
+            int wkNull = entry.getValue()[1];
+            if (wkNull > 0) {
+                log.add("[SEASON " + seasonIndex + "] Week " + wk + ": " + entry.getValue()[0] + " stored, " + wkNull + " null team");
+            }
+        }
+        return new int[]{stored};
+    }
+
+    private boolean upsertGameVerbose(NsGame ns, List<String> log, TreeMap<Integer, int[]> weekStats, int week) {
+        Optional<GameEntity> existing = gameRepository.findByGameId(ns.getGameId());
+        GameEntity game = existing.orElse(new GameEntity());
+        game.setGameId(ns.getGameId());
+        game.setSeasonIndex(ns.getSeasonIndex());
+        game.setStageIndex(ns.getStageIndex());
+        game.setWeekIndex(ns.getWeekIndex());
+        game.setHomeScore(ns.getHomeScore());
+        game.setAwayScore(ns.getAwayScore());
+        game.setStatus(ns.getStatus());
+        game.setSimmed(ns.getSimmed());
+
+        boolean homeResolved = false, awayResolved = false;
+        if (ns.getHomeTeam() != null) {
+            Optional<TeamEntity> found = resolveTeam(ns.getHomeTeam());
+            if (found.isPresent()) { game.setHomeTeam(found.get()); homeResolved = true; }
+            else log.add("[SEASON " + ns.getSeasonIndex() + "] Week " + week + " gameId=" + ns.getGameId() +
+                         " homeTeam NOT resolved (id=" + ns.getHomeTeam().getId() + ", teamId=" + ns.getHomeTeam().getTeamId() + ")");
+        }
+        if (ns.getAwayTeam() != null) {
+            Optional<TeamEntity> found = resolveTeam(ns.getAwayTeam());
+            if (found.isPresent()) { game.setAwayTeam(found.get()); awayResolved = true; }
+            else log.add("[SEASON " + ns.getSeasonIndex() + "] Week " + week + " gameId=" + ns.getGameId() +
+                         " awayTeam NOT resolved (id=" + ns.getAwayTeam().getId() + ", teamId=" + ns.getAwayTeam().getTeamId() + ")");
+        }
+
+        if (!homeResolved || !awayResolved) weekStats.get(week)[1]++;
+        weekStats.get(week)[0]++;
+        gameRepository.save(game);
+        return existing.isEmpty();
     }
 
     private int syncGamesForSeason(int seasonIndex) {
@@ -137,6 +250,8 @@ public class SyncService {
     }
 
     public record SyncResult(boolean success, String message) {}
+
+    public record VerboseSyncResult(boolean success, String message, java.util.List<String> log) {}
 
     public record SyncStatus(Instant lastSyncTime, String message, Boolean success) {}
 }
