@@ -47,7 +47,7 @@ export default function GamesPage() {
     getSeasons()
       .then(s => {
         setSeasons(s)
-        if (s.length) setSeason(s[s.length - 1])
+        if (s.length) setSeason(s.length > 1 ? s[s.length - 2] : s[0])
       })
       .catch(() => setError('Failed to load seasons'))
   }, [])
@@ -104,7 +104,13 @@ export default function GamesPage() {
             >
               ‹
             </button>
-            <span className="text-sm font-medium px-2">Week {weekIndex + 1}</span>
+            <select
+              className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm"
+              value={weekIndex ?? ''}
+              onChange={e => setWeekIndex(Number(e.target.value))}
+            >
+              {weeks.map(w => <option key={w} value={w}>Week {w + 1}</option>)}
+            </select>
             <button
               onClick={() => weekIdx < weeks.length - 1 && setWeekIndex(weeks[weekIdx + 1])}
               disabled={weekIdx >= weeks.length - 1}
