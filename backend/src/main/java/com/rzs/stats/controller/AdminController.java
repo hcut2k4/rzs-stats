@@ -35,6 +35,12 @@ public class AdminController {
         return syncService.getStatus();
     }
 
+    @PostMapping("/sync/verbose")
+    public Map<String, Object> triggerVerboseSync() {
+        SyncService.VerboseSyncResult result = syncService.syncVerbose();
+        return Map.of("success", result.success(), "message", result.message(), "log", result.log());
+    }
+
     @GetMapping("/debug/api")
     public Map<String, Object> debugApi(
             @RequestParam Integer seasonIndex,
