@@ -237,6 +237,39 @@ class StatsServiceTest {
         assertThat(aDto.getOppPyPatCurr()).isCloseTo(0.5, within(0.01));
     }
 
+    @Test
+    void computeStandings_sos_sameOpponentHasDifferentPyPatForDifferentTeams() {
+        // Eagles (1) beat Cowboys (2) badly: 30-10  → Cowboys look weak without this game
+        // Cowboys (2) beat Colts  (3) badly: 28-7   → Cowboys look strong without this game
+        //
+        // Eagles' SoS: Cowboys' PyPAT excluding Eagles game = Cowboys vs Colts (28-7) → ~0.94
+        // Colts'  SoS: Cowboys' PyPAT excluding Colts  game = Cowboys vs Eagles (10-30) → ~0.06
+        //
+        // Same Cowboys stats object, but statsExcluding(Eagles) ≠ statsExcluding(Colts)
+        TeamEntity eagles  = team(1, "Eagles");
+        TeamEntity cowboys = team(2, "Cowboys");
+        TeamEntity colts   = team(3, "Colts");
+
+        when(teamRepository.findAll()).thenReturn(List.of(eagles, cowboys, colts));
+        when(gameRepository.findRegularSeasonGames(3, 1, 0, 17)).thenReturn(List.of(
+                game(1, eagles,  cowboys, 30, 10),  // Eagles beat Cowboys 30-10
+                game(2, cowboys, colts,   28,  7)   // Cowboys beat Colts 28-7
+        ));
+        when(gameRepository.findRegularSeasonGames(2, 1, 0, 17)).thenReturn(List.of());
+
+        List<StandingDto> standings = service.computeStandings(3);
+
+        StandingDto eaglesStanding = standings.stream().filter(s -> s.getTeamId() == 1).findFirst().orElseThrow();
+        StandingDto coltsStanding  = standings.stream().filter(s -> s.getTeamId() == 3).findFirst().orElseThrow();
+
+        // Eagles faced a Cowboys who demolished Colts (28-7) → high SoS
+        assertThat(eaglesStanding.getOppPyPatCurr()).isGreaterThan(0.90);
+        // Colts faced a Cowboys who got demolished by Eagles (10-30) → low SoS
+        assertThat(coltsStanding.getOppPyPatCurr()).isLessThan(0.10);
+        // Same opponent (Cowboys), but materially different PyPAT contribution
+        assertThat(eaglesStanding.getOppPyPatCurr()).isGreaterThan(coltsStanding.getOppPyPatCurr() + 0.5);
+    }
+
     // ── computeStandings: winDiff ──────────────────────────────────────────────
 
     @Test
