@@ -1,0 +1,33 @@
+# ── Maven ─────────────────────────────────────────────────────────────────────
+backend/target/
+backend/*.jar
+backend/*.war
+
+# ── Spring Boot local overrides ───────────────────────────────────────────────
+**/application-local.properties
+**/application-local.yml
+
+# ── Node / Vite ───────────────────────────────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# ── IDEs ──────────────────────────────────────────────────────────────────────
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+.vscode/
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Environment / secrets ─────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── Docker overrides ──────────────────────────────────────────────────────────
+docker-compose.override.yml

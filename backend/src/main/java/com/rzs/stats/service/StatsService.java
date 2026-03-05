@@ -1,0 +1,311 @@
+package com.rzs.stats.service;
+
+import com.rzs.stats.model.dto.GameDto;
+import com.rzs.stats.model.dto.SeasonWeekDto;
+import com.rzs.stats.model.dto.StandingDto;
+import com.rzs.stats.model.dto.TeamDto;
+import com.rzs.stats.model.entity.GameEntity;
+import com.rzs.stats.model.entity.TeamEntity;
+import com.rzs.stats.repository.GameRepository;
+import com.rzs.stats.repository.TeamRepository;
+import org.springframework.stereotype.Service;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+@Service
+public class StatsService {
+
+    private final GameRepository gameRepository;
+    private final TeamRepository teamRepository;
+
+    public StatsService(GameRepository gameRepository, TeamRepository teamRepository) {
+        this.gameRepository = gameRepository;
+        this.teamRepository = teamRepository;
+    }
+
+    // -------------------------------------------------------------------------
+    // Standings
+    // -------------------------------------------------------------------------
+
+    public List<StandingDto> computeStandings(int seasonIndex) {
+        List<GameEntity> games = regularSeasonGames(seasonIndex);
+        List<TeamEntity> teams = teamRepository.findAll();
+
+        Map<Integer, TeamStats> statsMap = computeTeamStats(teams, games);
+
+        // Pre-season SoS: use previous season regular-season games (excl H2H from that season)
+        List<GameEntity> prevGames = seasonIndex > 0 ? regularSeasonGames(seasonIndex - 1) : List.of();
+        Map<Integer, TeamStats> prevStatsMap = computeTeamStats(teams, prevGames);
+
+        return teams.stream().map(team -> {
+            TeamStats curr = statsMap.getOrDefault(team.getTeamId(), new TeamStats());
+            return buildStandingDto(team, curr, statsMap, prevStatsMap);
+        }).sorted(Comparator.comparingDouble(StandingDto::getWinPct).reversed())
+          .collect(Collectors.toList());
+    }
+
+    private StandingDto buildStandingDto(TeamEntity team, TeamStats curr,
+                                          Map<Integer, TeamStats> currAll,
+                                          Map<Integer, TeamStats> prevAll) {
+        double pyPat = calculatePyPat(curr.pf, curr.pa, curr.games);
+
+        // In-season SoS: opponents' PyPat using current season, excluding H2H
+        double oppPyPatCurr = calculateOppPyPat(team.getTeamId(), curr.opponentIds, currAll);
+
+        // Pre-season SoS: opponents' PyPat using previous season (same opponent exclusion as old app)
+        double oppPyPatPrev = calculateOppPyPat(team.getTeamId(), curr.opponentIds, prevAll);
+
+        StandingDto dto = new StandingDto();
+        dto.setTeamId(team.getTeamId());
+        dto.setDisplayName(team.getDisplayName());
+        dto.setAbbrName(team.getAbbrName());
+        dto.setCityName(team.getCityName());
+        dto.setConference(team.getConference());
+        dto.setDivision(team.getDivision());
+        dto.setPrimaryColor(team.getPrimaryColor());
+        dto.setLogoId(team.getLogoId());
+        dto.setWins(curr.wins);
+        dto.setLosses(curr.losses);
+        dto.setTies(curr.ties);
+        dto.setGamesPlayed(curr.games);
+        dto.setPointsFor(curr.pf);
+        dto.setPointsAgainst(curr.pa);
+        double winPct = curr.games > 0 ? (curr.wins + 0.5 * curr.ties) / curr.games : 0.0;
+        dto.setWinPct(round(winPct));
+        dto.setPythagoreanPat(round(pyPat));
+        dto.setOppPyPatCurr(round(oppPyPatCurr));
+        dto.setOppPyPatPrev(round(oppPyPatPrev));
+        return dto;
+    }
+
+    // -------------------------------------------------------------------------
+    // PyPat formula (ported from old Java app)
+    // -------------------------------------------------------------------------
+
+    static double calculatePyPat(int pf, int pa, int games) {
+        if (games == 0 || (pf == 0 && pa == 0)) return 0.0;
+        if (pa == 0) return 1.0;
+        if (pf == 0) return 0.0;
+        double base = (pf + (double) pa) / games;
+        double exponent = Math.pow(base, 0.251);
+        double pfExp = Math.pow(pf, exponent);
+        double paExp = Math.pow(pa, exponent);
+        return pfExp / (pfExp + paExp);
+    }
+
+    // For each opponent faced, compute their PyPat from allStats excluding H2H games.
+    // allStats already has per-team stats computed without H2H (we pass the right map).
+    private double calculateOppPyPat(int teamId, Set<Integer> opponentIds,
+                                      Map<Integer, TeamStats> allStats) {
+        if (opponentIds.isEmpty() || allStats.isEmpty()) return 0.0;
+
+        List<Double> pyPats = new ArrayList<>();
+        for (Integer oppId : opponentIds) {
+            TeamStats oppStats = allStats.get(oppId);
+            if (oppStats == null) continue;
+
+            // Exclude head-to-head: get opp stats minus games against this team
+            int[] adjusted = oppStats.statsExcluding(teamId);
+            int adjPf = adjusted[0], adjPa = adjusted[1], adjGames = adjusted[2];
+            if (adjGames > 0) {
+                pyPats.add(calculatePyPat(adjPf, adjPa, adjGames));
+            }
+        }
+        return pyPats.stream().mapToDouble(d -> d).average().orElse(0.0);
+    }
+
+    // -------------------------------------------------------------------------
+    // Team stats computation
+    // -------------------------------------------------------------------------
+
+    private Map<Integer, TeamStats> computeTeamStats(List<TeamEntity> teams, List<GameEntity> games) {
+        Map<Integer, TeamStats> map = new HashMap<>();
+        for (TeamEntity t : teams) {
+            map.put(t.getTeamId(), new TeamStats());
+        }
+        for (GameEntity g : games) {
+            if (g.getHomeTeam() == null || g.getAwayTeam() == null) continue;
+            int homeId = g.getHomeTeam().getTeamId();
+            int awayId = g.getAwayTeam().getTeamId();
+            int hs = g.getHomeScore() != null ? g.getHomeScore() : 0;
+            int as = g.getAwayScore() != null ? g.getAwayScore() : 0;
+
+            map.computeIfAbsent(homeId, k -> new TeamStats()).addGame(hs, as, awayId);
+            map.computeIfAbsent(awayId, k -> new TeamStats()).addGame(as, hs, homeId);
+        }
+        return map;
+    }
+
+    // -------------------------------------------------------------------------
+    // Games
+    // -------------------------------------------------------------------------
+
+    public List<GameDto> getGames(int seasonIndex, int stageIndex, int weekIndex) {
+        return gameRepository.findBySeasonIndexAndStageIndexAndWeekIndex(seasonIndex, stageIndex, weekIndex)
+                .stream().map(this::toGameDto).collect(Collectors.toList());
+    }
+
+    // Only show seasons that have at least 10 regular-season games recorded
+    public List<Integer> getAvailableSeasons() {
+        return gameRepository.findDistinctSeasonIndicesWithMinGames(10);
+    }
+
+    public List<Integer> getAvailableWeeks(int seasonIndex, int stageIndex) {
+        return gameRepository.findDistinctRegularSeasonWeeks(seasonIndex, stageIndex);
+    }
+
+    // -------------------------------------------------------------------------
+    // Trends: season-over-season
+    // -------------------------------------------------------------------------
+
+    public List<SeasonWeekDto> getSeasonTrends() {
+        List<Integer> seasons = gameRepository.findDistinctSeasonIndicesWithMinGames(10);
+        List<TeamEntity> teams = teamRepository.findAll();
+        List<SeasonWeekDto> result = new ArrayList<>();
+
+        for (int season : seasons) {
+            List<GameEntity> games = regularSeasonGames(season);
+            Map<Integer, TeamStats> statsMap = computeTeamStats(teams, games);
+            List<StandingDto> standings = teams.stream().map(t -> {
+                TeamStats s = statsMap.getOrDefault(t.getTeamId(), new TeamStats());
+                StandingDto dto = new StandingDto();
+                dto.setTeamId(t.getTeamId());
+                dto.setDisplayName(t.getDisplayName());
+                dto.setAbbrName(t.getAbbrName());
+                dto.setPrimaryColor(t.getPrimaryColor());
+                dto.setConference(t.getConference());
+                dto.setDivision(t.getDivision());
+                dto.setWins(s.wins);
+                dto.setLosses(s.losses);
+                dto.setTies(s.ties);
+                dto.setGamesPlayed(s.games);
+                dto.setPointsFor(s.pf);
+                dto.setPointsAgainst(s.pa);
+                double winPct = s.games > 0 ? (s.wins + 0.5 * s.ties) / s.games : 0.0;
+                dto.setWinPct(round(winPct));
+                dto.setPythagoreanPat(round(calculatePyPat(s.pf, s.pa, s.games)));
+                return dto;
+            }).sorted(Comparator.comparingDouble(StandingDto::getWinPct).reversed())
+              .collect(Collectors.toList());
+            result.add(new SeasonWeekDto(season, null, standings));
+        }
+        return result;
+    }
+
+    // -------------------------------------------------------------------------
+    // Trends: week-by-week within a season
+    // -------------------------------------------------------------------------
+
+    public List<SeasonWeekDto> getWeeklyTrends(int seasonIndex) {
+        List<Integer> weeks = gameRepository.findDistinctRegularSeasonWeeks(seasonIndex, 1);
+        List<TeamEntity> teams = teamRepository.findAll();
+        List<GameEntity> allGames = regularSeasonGames(seasonIndex);
+        List<SeasonWeekDto> result = new ArrayList<>();
+
+        for (int week : weeks) {
+            // Cumulative: all games up through this week
+            List<GameEntity> gamesThruWeek = allGames.stream()
+                    .filter(g -> g.getWeekIndex() <= week)
+                    .collect(Collectors.toList());
+            Map<Integer, TeamStats> statsMap = computeTeamStats(teams, gamesThruWeek);
+            List<StandingDto> standings = teams.stream().map(t -> {
+                TeamStats s = statsMap.getOrDefault(t.getTeamId(), new TeamStats());
+                StandingDto dto = new StandingDto();
+                dto.setTeamId(t.getTeamId());
+                dto.setDisplayName(t.getDisplayName());
+                dto.setAbbrName(t.getAbbrName());
+                dto.setPrimaryColor(t.getPrimaryColor());
+                dto.setConference(t.getConference());
+                dto.setDivision(t.getDivision());
+                dto.setWins(s.wins);
+                dto.setLosses(s.losses);
+                dto.setTies(s.ties);
+                dto.setGamesPlayed(s.games);
+                dto.setPointsFor(s.pf);
+                dto.setPointsAgainst(s.pa);
+                double winPct = s.games > 0 ? (s.wins + 0.5 * s.ties) / s.games : 0.0;
+                dto.setWinPct(round(winPct));
+                dto.setPythagoreanPat(round(calculatePyPat(s.pf, s.pa, s.games)));
+                return dto;
+            }).sorted(Comparator.comparingDouble(StandingDto::getWinPct).reversed())
+              .collect(Collectors.toList());
+            result.add(new SeasonWeekDto(seasonIndex, week, standings));
+        }
+        return result;
+    }
+
+    // -------------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------------
+
+    private List<GameEntity> regularSeasonGames(int seasonIndex) {
+        return gameRepository.findRegularSeasonGames(
+                seasonIndex,
+                GameRepository.REGULAR_SEASON_STAGE,
+                GameRepository.REGULAR_SEASON_MIN_WEEK,
+                GameRepository.REGULAR_SEASON_MAX_WEEK);
+    }
+
+    private GameDto toGameDto(GameEntity g) {
+        GameDto dto = new GameDto();
+        dto.setGameId(g.getGameId());
+        dto.setSeasonIndex(g.getSeasonIndex());
+        dto.setStageIndex(g.getStageIndex());
+        dto.setWeekIndex(g.getWeekIndex());
+        dto.setHomeScore(g.getHomeScore());
+        dto.setAwayScore(g.getAwayScore());
+        dto.setStatus(g.getStatus());
+        dto.setSimmed(g.getSimmed());
+        if (g.getHomeTeam() != null) dto.setHomeTeam(toTeamDto(g.getHomeTeam()));
+        if (g.getAwayTeam() != null) dto.setAwayTeam(toTeamDto(g.getAwayTeam()));
+        return dto;
+    }
+
+    private TeamDto toTeamDto(TeamEntity t) {
+        return new TeamDto(t.getTeamId(), t.getDisplayName(), t.getAbbrName(),
+                t.getCityName(), t.getConference(), t.getPrimaryColor(), t.getLogoId());
+    }
+
+    private static double round(double val) {
+        return Math.round(val * 10000.0) / 10000.0;
+    }
+
+    // -------------------------------------------------------------------------
+    // Inner class: mutable per-team stats accumulator
+    // -------------------------------------------------------------------------
+
+    static class TeamStats {
+        int wins, losses, ties, pf, pa, games;
+        // Map: opponentTeamId -> [opponentPF, opponentPA, gamesAgainstOpp]
+        // Used to subtract H2H when computing SoS
+        Map<Integer, int[]> h2h = new HashMap<>();
+        Set<Integer> opponentIds = new HashSet<>();
+
+        void addGame(int teamScore, int oppScore, int oppTeamId) {
+            pf += teamScore;
+            pa += oppScore;
+            games++;
+            opponentIds.add(oppTeamId);
+            // Track head-to-head: from THIS team's perspective, opp scored oppScore against team
+            // We need to know opp's perspective later, so track (oppTeamId -> opp's PF in H2H, opp's PA in H2H)
+            // opp's PF in H2H = oppScore; opp's PA in H2H = teamScore
+            h2h.computeIfAbsent(oppTeamId, k -> new int[3]);
+            h2h.get(oppTeamId)[0] += oppScore;  // opp's PF in H2H
+            h2h.get(oppTeamId)[1] += teamScore; // opp's PA in H2H
+            h2h.get(oppTeamId)[2]++;             // games against opp
+            if (teamScore > oppScore) wins++;
+            else if (teamScore < oppScore) losses++;
+            else ties++;
+        }
+
+        // Returns [adjPF, adjPA, adjGames] for this team EXCLUDING games against excludeTeamId.
+        // h2h[opp][0] = opp's PF in H2H (what opp scored = this team's PA in H2H)
+        // h2h[opp][1] = opp's PA in H2H (what this team scored = this team's PF in H2H)
+        int[] statsExcluding(int excludeTeamId) {
+            int[] hth = h2h.get(excludeTeamId);
+            if (hth == null) return new int[]{pf, pa, games};
+            return new int[]{pf - hth[1], pa - hth[0], games - hth[2]};
+        }
+    }
+}
