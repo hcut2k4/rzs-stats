@@ -34,4 +34,7 @@ public interface GameRepository extends JpaRepository<GameEntity, Long> {
 
     @Query("SELECT DISTINCT g.weekIndex FROM GameEntity g WHERE g.seasonIndex = :season AND g.stageIndex = :stage AND g.weekIndex BETWEEN 0 AND 17 ORDER BY g.weekIndex")
     List<Integer> findDistinctRegularSeasonWeeks(@Param("season") Integer season, @Param("stage") Integer stage);
+
+    @Query("SELECT g.seasonIndex, g.stageIndex, COUNT(g) FROM GameEntity g GROUP BY g.seasonIndex, g.stageIndex ORDER BY g.seasonIndex, g.stageIndex")
+    List<Object[]> countGamesBySeasonAndStage();
 }
