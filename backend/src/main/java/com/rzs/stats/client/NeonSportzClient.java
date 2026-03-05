@@ -34,10 +34,10 @@ public class NeonSportzClient {
         return fetchAllPages(url, new ParameterizedTypeReference<NsPagedResponse<NsTeam>>() {});
     }
 
-    // stageIndex=1 covers both regular season (weekIndex 0-17) and playoffs (weekIndex >= 18).
-    // We use size=500 to minimize pagination round-trips.
+    // Fetch all games for a season regardless of stageIndex; each game's stageIndex is stored
+    // from the API response. We use size=500 to minimize pagination round-trips.
     public List<NsGame> fetchAllGamesForSeason(int seasonIndex) {
-        String url = baseUrl + "/leagues/" + league + "/games/?seasonIndex=" + seasonIndex + "&stageIndex=1&size=500";
+        String url = baseUrl + "/leagues/" + league + "/games/?seasonIndex=" + seasonIndex + "&size=500";
         return fetchAllPages(url, new ParameterizedTypeReference<NsPagedResponse<NsGame>>() {});
     }
 
