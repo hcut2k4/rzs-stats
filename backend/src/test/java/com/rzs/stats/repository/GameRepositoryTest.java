@@ -198,6 +198,34 @@ class GameRepositoryTest {
         assertThat(gameRepository.findFutureRegularSeasonGames(0)).isEmpty();
     }
 
+    // ── findBySeasonIndex ──────────────────────────────────────────────────────
+
+    @Test
+    void findBySeasonIndex_returnsAllGamesForThatSeason() {
+        save(game(1, 0, 1, 0));
+        save(game(2, 0, 1, 1));
+        save(game(3, 0, 1, 2));
+
+        List<GameEntity> results = gameRepository.findBySeasonIndex(0);
+
+        assertThat(results).hasSize(3);
+        assertThat(results).extracting(GameEntity::getGameId).containsExactlyInAnyOrder(1, 2, 3);
+    }
+
+    @Test
+    void findBySeasonIndex_excludesOtherSeasons() {
+        save(game(1, 0, 1, 0));
+        save(game(2, 1, 1, 0));  // different season
+
+        assertThat(gameRepository.findBySeasonIndex(0)).hasSize(1);
+        assertThat(gameRepository.findBySeasonIndex(0).get(0).getGameId()).isEqualTo(1);
+    }
+
+    @Test
+    void findBySeasonIndex_emptyWhenNoGamesForSeason() {
+        assertThat(gameRepository.findBySeasonIndex(99)).isEmpty();
+    }
+
     // ── Helpers ────────────────────────────────────────────────────────────────
 
     private GameEntity save(GameEntity g) {

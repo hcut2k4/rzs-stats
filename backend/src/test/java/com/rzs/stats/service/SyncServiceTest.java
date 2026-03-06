@@ -44,7 +44,6 @@ class SyncServiceTest {
         when(client.fetchAllGamesForSeason(0)).thenReturn(List.of(nsGame(100, 2), nsGame(101, 2)));
         when(teamRepository.findByTeamId(any())).thenReturn(Optional.empty());
         when(teamRepository.save(any())).thenAnswer(i -> i.getArgument(0));
-        when(gameRepository.findBySeasonIndexAndGameId(any(), any())).thenReturn(Optional.empty());
         when(gameRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
         SyncService.SyncResult result = service.sync();
@@ -61,7 +60,6 @@ class SyncServiceTest {
         // status=1 (future) and status=2 (complete) should both be stored; null-status skipped
         when(client.fetchAllGamesForSeason(0)).thenReturn(
                 List.of(nsGame(100, 1), nsGame(101, 2), nsGameNullStatus(102)));
-        when(gameRepository.findBySeasonIndexAndGameId(any(), any())).thenReturn(Optional.empty());
         when(gameRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
         service.sync();
@@ -124,7 +122,7 @@ class SyncServiceTest {
         when(client.fetchAllTeams()).thenReturn(List.of());
         GameEntity existing = new GameEntity();
         when(client.fetchAllGamesForSeason(0)).thenReturn(List.of(nsGame(100, 2)));
-        when(gameRepository.findBySeasonIndexAndGameId(0, 100)).thenReturn(Optional.of(existing));
+        when(gameRepository.findBySeasonIndex(0)).thenReturn(List.of(existing));
         when(gameRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
         SyncService.SyncResult result = service.sync();
@@ -132,6 +130,103 @@ class SyncServiceTest {
         // Existing game was updated (not counted as new), so message says "0 games added/updated"
         // Actually it says "X games added/updated" where X counts new games (upsertGame returns false for existing)
         assertThat(result.success()).isTrue();
+        verify(gameRepository, times(1)).save(any(GameEntity.class));
+    }
+
+    // ── Efficiency: season skipping ────────────────────────────────────────────
+
+    @Test
+    void sync_skipsHistoricalSeasonAlreadyInDb() {
+        // currentSeasonIndex=1; season 0 is historical with games → skipped; season 1 (current) → fetched
+        when(client.fetchLeagueInfo()).thenReturn(league(1));
+        when(client.fetchAllTeams()).thenReturn(List.of());
+        when(gameRepository.countBySeasonIndex(0)).thenReturn(50L);
+        when(client.fetchAllGamesForSeason(1)).thenReturn(List.of());
+
+        service.sync();
+
+        verify(client, never()).fetchAllGamesForSeason(0);
+        verify(client, times(1)).fetchAllGamesForSeason(1);
+    }
+
+    @Test
+    void sync_fetchesCurrentSeasonEvenWhenItIsOnlySeason() {
+        // currentSeasonIndex=0; s < 0 is never true so countBySeasonIndex is never checked
+        when(client.fetchLeagueInfo()).thenReturn(league(0));
+        when(client.fetchAllTeams()).thenReturn(List.of());
+        when(client.fetchAllGamesForSeason(0)).thenReturn(List.of());
+
+        service.sync();
+
+        verify(client, times(1)).fetchAllGamesForSeason(0);
+    }
+
+    // ── Efficiency: batch team load ─────────────────────────────────────────────
+
+    @Test
+    void sync_loadsTeamsOnceViaBatchLoad() {
+        when(client.fetchLeagueInfo()).thenReturn(league(0));
+        when(client.fetchAllTeams()).thenReturn(List.of());
+        when(client.fetchAllGamesForSeason(0)).thenReturn(List.of(nsGame(100, 2), nsGame(101, 2)));
+        when(gameRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        service.sync();
+
+        verify(teamRepository, times(1)).findAll();
+        verify(teamRepository, never()).findByTeamId(any());
+        verify(teamRepository, never()).findByNsId(any());
+    }
+
+    // ── Efficiency: batch game load ─────────────────────────────────────────────
+
+    @Test
+    void sync_loadsGamesInBatchPerSeason() {
+        when(client.fetchLeagueInfo()).thenReturn(league(0));
+        when(client.fetchAllTeams()).thenReturn(List.of());
+        when(client.fetchAllGamesForSeason(0)).thenReturn(List.of(nsGame(1, 2), nsGame(2, 2)));
+        when(gameRepository.findBySeasonIndex(0)).thenReturn(List.of());
+        when(gameRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        service.sync();
+
+        verify(gameRepository, times(1)).findBySeasonIndex(0);
+        verify(gameRepository, never()).findBySeasonIndexAndGameId(any(), any());
+    }
+
+    // ── Efficiency: skip unchanged saves ───────────────────────────────────────
+
+    @Test
+    void sync_skipsUnchangedExistingGame() {
+        GameEntity existing = new GameEntity();
+        existing.setGameId(100); existing.setSeasonIndex(0); existing.setStageIndex(1);
+        existing.setWeekIndex(0); existing.setHomeScore(28); existing.setAwayScore(14);
+        existing.setStatus(2); existing.setSimmed(false);
+
+        when(client.fetchLeagueInfo()).thenReturn(league(0));
+        when(client.fetchAllTeams()).thenReturn(List.of());
+        when(client.fetchAllGamesForSeason(0)).thenReturn(List.of(nsGame(100, 2)));
+        when(gameRepository.findBySeasonIndex(0)).thenReturn(List.of(existing));
+
+        service.sync();
+
+        verify(gameRepository, never()).save(any());
+    }
+
+    @Test
+    void sync_savesGameWhenStatusChanges() {
+        GameEntity existing = new GameEntity();
+        existing.setGameId(100); existing.setSeasonIndex(0); existing.setStageIndex(1);
+        existing.setWeekIndex(0); existing.setHomeScore(0); existing.setAwayScore(0);
+        existing.setStatus(1); existing.setSimmed(false);
+
+        when(client.fetchLeagueInfo()).thenReturn(league(0));
+        when(client.fetchAllTeams()).thenReturn(List.of());
+        when(client.fetchAllGamesForSeason(0)).thenReturn(List.of(nsGame(100, 2)));
+        when(gameRepository.findBySeasonIndex(0)).thenReturn(List.of(existing));
+        when(gameRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        service.sync();
+
         verify(gameRepository, times(1)).save(any(GameEntity.class));
     }
 
