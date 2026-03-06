@@ -17,6 +17,8 @@ public interface GameRepository extends JpaRepository<GameEntity, Long> {
 
     Optional<GameEntity> findBySeasonIndexAndGameId(Integer seasonIndex, Integer gameId);
 
+    List<GameEntity> findBySeasonIndex(Integer seasonIndex);
+
     @Query("SELECT g FROM GameEntity g WHERE g.seasonIndex = :season AND g.stageIndex = :stage AND g.weekIndex BETWEEN :minWeek AND :maxWeek AND g.status >= 2")
     List<GameEntity> findRegularSeasonGames(
             @Param("season") Integer season,

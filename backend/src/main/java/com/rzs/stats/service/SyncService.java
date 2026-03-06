@@ -15,9 +15,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
+import java.util.Objects;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 @Service
 public class SyncService {
@@ -58,11 +61,22 @@ public class SyncService {
             }
             log.info("Teams synced: {}", teamsUpserted);
 
-            // Sync all seasons so historical trends are fully populated.
-            // Seasons with no data in NeonSportz return quickly (0 games).
+            // Batch-load all teams for O(1) lookup during game sync
+            Map<Integer, TeamEntity> teamsByTeamId = new HashMap<>();
+            Map<Integer, TeamEntity> teamsByNsId = new HashMap<>();
+            teamRepository.findAll().forEach(t -> {
+                if (t.getTeamId() != null) teamsByTeamId.put(t.getTeamId(), t);
+                if (t.getNsId() != null) teamsByNsId.put(t.getNsId(), t);
+            });
+
+            // Sync seasons: skip historical seasons already fully stored in DB
             for (int s = 0; s <= currentSeasonIndex; s++) {
+                if (s < currentSeasonIndex && gameRepository.countBySeasonIndex(s) > 0) {
+                    log.info("Skipping season {}/{} (already synced)", s, currentSeasonIndex);
+                    continue;
+                }
                 log.info("Syncing season {}/{}", s, currentSeasonIndex);
-                gamesAdded += syncGamesForSeason(s);
+                gamesAdded += syncGamesForSeason(s, teamsByTeamId, teamsByNsId);
             }
 
             String message = teamsUpserted + " teams synced, " + gamesAdded + " games added/updated";
@@ -101,8 +115,19 @@ public class SyncService {
                 teamsUpserted++;
             }
 
+            Map<Integer, TeamEntity> teamsByTeamId = new HashMap<>();
+            Map<Integer, TeamEntity> teamsByNsId = new HashMap<>();
+            teamRepository.findAll().forEach(t -> {
+                if (t.getTeamId() != null) teamsByTeamId.put(t.getTeamId(), t);
+                if (t.getNsId() != null) teamsByNsId.put(t.getNsId(), t);
+            });
+
             for (int s = 0; s <= currentSeasonIndex; s++) {
-                int[] result = syncGamesForSeasonVerbose(s, log);
+                if (s < currentSeasonIndex && gameRepository.countBySeasonIndex(s) > 0) {
+                    log.add("[SEASON " + s + "] Skipping (already synced)");
+                    continue;
+                }
+                int[] result = syncGamesForSeasonVerbose(s, log, teamsByTeamId, teamsByNsId);
                 gamesAdded += result[0];
             }
 
@@ -123,13 +148,18 @@ public class SyncService {
         }
     }
 
-    private int[] syncGamesForSeasonVerbose(int seasonIndex, List<String> log) {
+    private int[] syncGamesForSeasonVerbose(int seasonIndex, List<String> log,
+                                             Map<Integer, TeamEntity> teamsByTeamId,
+                                             Map<Integer, TeamEntity> teamsByNsId) {
         List<NsGame> games = client.fetchAllGamesForSeason(seasonIndex);
         if (games.isEmpty()) {
             log.add("[SEASON " + seasonIndex + "] API returned 0 games — skipping");
             return new int[]{0};
         }
         log.add("[SEASON " + seasonIndex + "] API returned " + games.size() + " games");
+
+        Map<Integer, GameEntity> existingByGameId = gameRepository.findBySeasonIndex(seasonIndex)
+                .stream().collect(Collectors.toMap(GameEntity::getGameId, g -> g));
 
         int stored = 0, skippedStatus = 0;
         TreeMap<Integer, int[]> weekStats = new TreeMap<>();
@@ -141,7 +171,7 @@ public class SyncService {
             }
             int week = nsGame.getWeekIndex() != null ? nsGame.getWeekIndex() : -1;
             weekStats.putIfAbsent(week, new int[]{0, 0});
-            if (upsertGameVerbose(nsGame, log, weekStats, week)) stored++;
+            if (upsertGameVerbose(nsGame, log, weekStats, week, existingByGameId, teamsByTeamId, teamsByNsId)) stored++;
         }
 
         if (skippedStatus > 0) log.add("[SEASON " + seasonIndex + "] Skipped " + skippedStatus + " — null status");
@@ -161,9 +191,48 @@ public class SyncService {
         return new int[]{stored};
     }
 
-    private boolean upsertGameVerbose(NsGame ns, List<String> log, TreeMap<Integer, int[]> weekStats, int week) {
-        Optional<GameEntity> existing = gameRepository.findBySeasonIndexAndGameId(ns.getSeasonIndex(), ns.getGameId());
-        GameEntity game = existing.orElse(new GameEntity());
+    private boolean upsertGameVerbose(NsGame ns, List<String> log, TreeMap<Integer, int[]> weekStats, int week,
+                                       Map<Integer, GameEntity> existingByGameId,
+                                       Map<Integer, TeamEntity> teamsByTeamId,
+                                       Map<Integer, TeamEntity> teamsByNsId) {
+        GameEntity existing = existingByGameId.get(ns.getGameId());
+        boolean isNew = existing == null;
+        GameEntity game = isNew ? new GameEntity() : existing;
+
+        TeamEntity resolvedHome = ns.getHomeTeam() != null ? resolveTeam(ns.getHomeTeam(), teamsByTeamId, teamsByNsId) : null;
+        TeamEntity resolvedAway = ns.getAwayTeam() != null ? resolveTeam(ns.getAwayTeam(), teamsByTeamId, teamsByNsId) : null;
+        boolean homeResolved = resolvedHome != null;
+        boolean awayResolved = resolvedAway != null;
+
+        if (!homeResolved && ns.getHomeTeam() != null) {
+            log.add("[SEASON " + ns.getSeasonIndex() + "] Week " + week + " gameId=" + ns.getGameId() +
+                    " homeTeam NOT resolved (id=" + ns.getHomeTeam().getId() + ", teamId=" + ns.getHomeTeam().getTeamId() + ")");
+        }
+        if (!awayResolved && ns.getAwayTeam() != null) {
+            log.add("[SEASON " + ns.getSeasonIndex() + "] Week " + week + " gameId=" + ns.getGameId() +
+                    " awayTeam NOT resolved (id=" + ns.getAwayTeam().getId() + ", teamId=" + ns.getAwayTeam().getTeamId() + ")");
+        }
+
+        if (!homeResolved || !awayResolved) weekStats.get(week)[1]++;
+        weekStats.get(week)[0]++;
+
+        if (!isNew) {
+            boolean teamChanged = !Objects.equals(
+                    existing.getHomeTeam() != null ? existing.getHomeTeam().getId() : null,
+                    resolvedHome != null ? resolvedHome.getId() : null)
+                    || !Objects.equals(
+                    existing.getAwayTeam() != null ? existing.getAwayTeam().getId() : null,
+                    resolvedAway != null ? resolvedAway.getId() : null);
+            boolean changed = !Objects.equals(existing.getStatus(), ns.getStatus())
+                    || !Objects.equals(existing.getHomeScore(), ns.getHomeScore())
+                    || !Objects.equals(existing.getAwayScore(), ns.getAwayScore())
+                    || !Objects.equals(existing.getStageIndex(), ns.getStageIndex())
+                    || !Objects.equals(existing.getWeekIndex(), ns.getWeekIndex())
+                    || !Objects.equals(existing.getSimmed(), ns.getSimmed())
+                    || teamChanged;
+            if (!changed) return false;
+        }
+
         game.setGameId(ns.getGameId());
         game.setSeasonIndex(ns.getSeasonIndex());
         game.setStageIndex(ns.getStageIndex());
@@ -172,48 +241,40 @@ public class SyncService {
         game.setAwayScore(ns.getAwayScore());
         game.setStatus(ns.getStatus());
         game.setSimmed(ns.getSimmed());
+        if (resolvedHome != null) game.setHomeTeam(resolvedHome);
+        if (resolvedAway != null) game.setAwayTeam(resolvedAway);
 
-        boolean homeResolved = false, awayResolved = false;
-        if (ns.getHomeTeam() != null) {
-            Optional<TeamEntity> found = resolveTeam(ns.getHomeTeam());
-            if (found.isPresent()) { game.setHomeTeam(found.get()); homeResolved = true; }
-            else log.add("[SEASON " + ns.getSeasonIndex() + "] Week " + week + " gameId=" + ns.getGameId() +
-                         " homeTeam NOT resolved (id=" + ns.getHomeTeam().getId() + ", teamId=" + ns.getHomeTeam().getTeamId() + ")");
-        }
-        if (ns.getAwayTeam() != null) {
-            Optional<TeamEntity> found = resolveTeam(ns.getAwayTeam());
-            if (found.isPresent()) { game.setAwayTeam(found.get()); awayResolved = true; }
-            else log.add("[SEASON " + ns.getSeasonIndex() + "] Week " + week + " gameId=" + ns.getGameId() +
-                         " awayTeam NOT resolved (id=" + ns.getAwayTeam().getId() + ", teamId=" + ns.getAwayTeam().getTeamId() + ")");
-        }
-
-        if (!homeResolved || !awayResolved) weekStats.get(week)[1]++;
-        weekStats.get(week)[0]++;
         gameRepository.save(game);
-        return existing.isEmpty();
+        return isNew;
     }
 
-    private int syncGamesForSeason(int seasonIndex) {
-        int count = 0;
-        // stageIndex=1 contains both regular season (weekIndex 0-17) and playoffs (weekIndex >= 18)
+    private int syncGamesForSeason(int seasonIndex, Map<Integer, TeamEntity> teamsByTeamId,
+                                    Map<Integer, TeamEntity> teamsByNsId) {
         List<NsGame> games = client.fetchAllGamesForSeason(seasonIndex);
+        if (games.isEmpty()) return 0;
+
+        Map<Integer, GameEntity> existingByGameId = gameRepository.findBySeasonIndex(seasonIndex)
+                .stream().collect(Collectors.toMap(GameEntity::getGameId, g -> g));
+
+        int count = 0;
         for (NsGame nsGame : games) {
             if (nsGame.getStatus() != null) {
-                if (upsertGame(nsGame)) count++;
+                if (upsertGame(nsGame, existingByGameId, teamsByTeamId, teamsByNsId)) count++;
             }
         }
         return count;
     }
 
-    private java.util.Optional<TeamEntity> resolveTeam(NsTeam ns) {
+    private TeamEntity resolveTeam(NsTeam ns, Map<Integer, TeamEntity> teamsByTeamId,
+                                    Map<Integer, TeamEntity> teamsByNsId) {
         if (ns.getTeamId() != null) {
-            java.util.Optional<TeamEntity> found = teamRepository.findByTeamId(ns.getTeamId());
-            if (found.isPresent()) return found;
+            TeamEntity found = teamsByTeamId.get(ns.getTeamId());
+            if (found != null) return found;
         }
         if (ns.getId() != null) {
-            return teamRepository.findByNsId(ns.getId());
+            return teamsByNsId.get(ns.getId());
         }
-        return java.util.Optional.empty();
+        return null;
     }
 
     private void upsertTeam(NsTeam ns) {
@@ -232,9 +293,33 @@ public class SyncService {
         teamRepository.save(team);
     }
 
-    private boolean upsertGame(NsGame ns) {
-        Optional<GameEntity> existing = gameRepository.findBySeasonIndexAndGameId(ns.getSeasonIndex(), ns.getGameId());
-        GameEntity game = existing.orElse(new GameEntity());
+    private boolean upsertGame(NsGame ns, Map<Integer, GameEntity> existingByGameId,
+                                Map<Integer, TeamEntity> teamsByTeamId,
+                                Map<Integer, TeamEntity> teamsByNsId) {
+        GameEntity existing = existingByGameId.get(ns.getGameId());
+        boolean isNew = existing == null;
+        GameEntity game = isNew ? new GameEntity() : existing;
+
+        TeamEntity resolvedHome = ns.getHomeTeam() != null ? resolveTeam(ns.getHomeTeam(), teamsByTeamId, teamsByNsId) : null;
+        TeamEntity resolvedAway = ns.getAwayTeam() != null ? resolveTeam(ns.getAwayTeam(), teamsByTeamId, teamsByNsId) : null;
+
+        if (!isNew) {
+            boolean teamChanged = !Objects.equals(
+                    existing.getHomeTeam() != null ? existing.getHomeTeam().getId() : null,
+                    resolvedHome != null ? resolvedHome.getId() : null)
+                    || !Objects.equals(
+                    existing.getAwayTeam() != null ? existing.getAwayTeam().getId() : null,
+                    resolvedAway != null ? resolvedAway.getId() : null);
+            boolean changed = !Objects.equals(existing.getStatus(), ns.getStatus())
+                    || !Objects.equals(existing.getHomeScore(), ns.getHomeScore())
+                    || !Objects.equals(existing.getAwayScore(), ns.getAwayScore())
+                    || !Objects.equals(existing.getStageIndex(), ns.getStageIndex())
+                    || !Objects.equals(existing.getWeekIndex(), ns.getWeekIndex())
+                    || !Objects.equals(existing.getSimmed(), ns.getSimmed())
+                    || teamChanged;
+            if (!changed) return false;
+        }
+
         game.setGameId(ns.getGameId());
         game.setSeasonIndex(ns.getSeasonIndex());
         game.setStageIndex(ns.getStageIndex());
@@ -243,16 +328,11 @@ public class SyncService {
         game.setAwayScore(ns.getAwayScore());
         game.setStatus(ns.getStatus());
         game.setSimmed(ns.getSimmed());
-
-        if (ns.getHomeTeam() != null) {
-            resolveTeam(ns.getHomeTeam()).ifPresent(game::setHomeTeam);
-        }
-        if (ns.getAwayTeam() != null) {
-            resolveTeam(ns.getAwayTeam()).ifPresent(game::setAwayTeam);
-        }
+        if (resolvedHome != null) game.setHomeTeam(resolvedHome);
+        if (resolvedAway != null) game.setAwayTeam(resolvedAway);
 
         gameRepository.save(game);
-        return existing.isEmpty();
+        return isNew;
     }
 
     public SyncStatus getStatus() {
