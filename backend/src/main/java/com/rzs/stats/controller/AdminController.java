@@ -4,7 +4,11 @@ import com.rzs.stats.client.NeonSportzClient;
 import com.rzs.stats.model.ns.NsLeague;
 import com.rzs.stats.repository.GameRepository;
 import com.rzs.stats.service.SyncService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.concurrent.CompletableFuture;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,6 +17,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/admin")
 public class AdminController {
+
+    private static final Logger log = LoggerFactory.getLogger(AdminController.class);
 
     private final SyncService syncService;
     private final NeonSportzClient client;
@@ -26,8 +32,13 @@ public class AdminController {
 
     @PostMapping("/sync")
     public Map<String, Object> triggerSync() {
-        SyncService.SyncResult result = syncService.sync();
-        return Map.of("success", result.success(), "message", result.message());
+        log.info("Manual sync triggered");
+        CompletableFuture.runAsync(() -> syncService.sync())
+                .exceptionally(ex -> {
+                    log.error("Unexpected error during async sync", ex);
+                    return null;
+                });
+        return Map.of("success", true, "message", "Sync started");
     }
 
     @GetMapping("/sync/status")

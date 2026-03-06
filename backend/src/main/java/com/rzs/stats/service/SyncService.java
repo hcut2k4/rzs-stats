@@ -8,6 +8,8 @@ import com.rzs.stats.model.ns.NsLeague;
 import com.rzs.stats.model.ns.NsTeam;
 import com.rzs.stats.repository.GameRepository;
 import com.rzs.stats.repository.TeamRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +21,8 @@ import java.util.TreeMap;
 
 @Service
 public class SyncService {
+
+    private static final Logger log = LoggerFactory.getLogger(SyncService.class);
 
     private final NeonSportzClient client;
     private final TeamRepository teamRepository;
@@ -40,9 +44,11 @@ public class SyncService {
         int gamesAdded = 0;
 
         try {
+            log.info("Sync started");
             NsLeague league = client.fetchLeagueInfo();
             // season from API is 1-based and matches the seasonIndex used in game requests
             int currentSeasonIndex = league.getSeason();
+            log.info("Current season index: {}", currentSeasonIndex);
 
             // Sync teams
             List<NsTeam> nsTeams = client.fetchAllTeams();
@@ -50,10 +56,12 @@ public class SyncService {
                 upsertTeam(nsTeam);
                 teamsUpserted++;
             }
+            log.info("Teams synced: {}", teamsUpserted);
 
             // Sync all seasons so historical trends are fully populated.
             // Seasons with no data in NeonSportz return quickly (0 games).
             for (int s = 0; s <= currentSeasonIndex; s++) {
+                log.info("Syncing season {}/{}", s, currentSeasonIndex);
                 gamesAdded += syncGamesForSeason(s);
             }
 
@@ -61,6 +69,7 @@ public class SyncService {
             lastSyncTime = Instant.now();
             lastSyncMessage = message;
             lastSyncSuccess = true;
+            log.info("Sync completed: {}", message);
             return new SyncResult(true, message);
 
         } catch (Exception e) {
@@ -68,6 +77,7 @@ public class SyncService {
             lastSyncTime = Instant.now();
             lastSyncMessage = message;
             lastSyncSuccess = false;
+            log.error("Sync failed after {} teams, {} games", teamsUpserted, gamesAdded, e);
             return new SyncResult(false, message);
         }
     }
