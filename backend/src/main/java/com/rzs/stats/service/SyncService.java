@@ -71,11 +71,16 @@ public class SyncService {
 
             // Sync seasons: skip historical seasons already fully stored in DB
             for (int s = 0; s <= currentSeasonIndex; s++) {
-                if (s < currentSeasonIndex && gameRepository.countBySeasonIndex(s) > 0) {
-                    log.info("Skipping season {}/{} (already synced)", s, currentSeasonIndex);
-                    continue;
+                if (s < currentSeasonIndex) {
+                    long count = gameRepository.countBySeasonIndex(s);
+                    log.info("Season {}/{}: {} games in DB", s, currentSeasonIndex, count);
+                    if (count > 0) {
+                        log.info("Skipping season {}/{} (already synced)", s, currentSeasonIndex);
+                        continue;
+                    }
+                } else {
+                    log.info("Season {}/{}: current season (always sync)", s, currentSeasonIndex);
                 }
-                log.info("Syncing season {}/{}", s, currentSeasonIndex);
                 gamesAdded += syncGamesForSeason(s, teamsByTeamId, teamsByNsId);
             }
 
