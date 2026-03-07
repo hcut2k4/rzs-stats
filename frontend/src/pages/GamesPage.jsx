@@ -6,30 +6,33 @@ function GameCard({ game }) {
   const awayLogo = `https://a.espncdn.com/i/teamlogos/nfl/500/${game.awayTeam?.abbrName?.toLowerCase()}.png`
   const homeWon = game.homeScore > game.awayScore
   const awayWon = game.awayScore > game.homeScore
+  const url = `https://neonsportz.com/leagues/RZS/games/${game.gameId}`
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 flex items-center justify-between gap-4">
-      {/* Away team */}
-      <div className={`flex flex-col items-center gap-1 w-28 text-center ${awayWon ? 'opacity-100' : 'opacity-60'}`}>
-        <img src={awayLogo} alt="" className="w-10 h-10 object-contain" onError={e => { e.target.style.display = 'none' }} />
-        <span className="text-xs font-medium">{game.awayTeam?.abbrName}</span>
-      </div>
+    <a href={url} target="_blank" rel="noopener noreferrer" className="block">
+      <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 flex items-center justify-between gap-4 hover:border-gray-600 transition-colors">
+        {/* Away team */}
+        <div className={`flex flex-col items-center gap-1 w-28 text-center ${awayWon ? 'opacity-100' : 'opacity-60'}`}>
+          <img src={awayLogo} alt="" className="w-10 h-10 object-contain" onError={e => { e.target.style.display = 'none' }} />
+          <span className="text-xs font-medium">{game.awayTeam?.abbrName}</span>
+        </div>
 
-      {/* Scores */}
-      <div className="flex items-center gap-4 text-2xl font-bold tabular-nums">
-        <span className={awayWon ? 'text-white' : 'text-gray-500'}>{game.awayScore ?? '–'}</span>
-        <span className="text-gray-600 text-base">vs</span>
-        <span className={homeWon ? 'text-white' : 'text-gray-500'}>{game.homeScore ?? '–'}</span>
-      </div>
+        {/* Scores */}
+        <div className="flex items-center gap-4 text-2xl font-bold tabular-nums">
+          <span className={awayWon ? 'text-white' : 'text-gray-500'}>{game.awayScore ?? '–'}</span>
+          <span className="text-gray-600 text-base">vs</span>
+          <span className={homeWon ? 'text-white' : 'text-gray-500'}>{game.homeScore ?? '–'}</span>
+        </div>
 
-      {/* Home team */}
-      <div className={`flex flex-col items-center gap-1 w-28 text-center ${homeWon ? 'opacity-100' : 'opacity-60'}`}>
-        <img src={homeLogo} alt="" className="w-10 h-10 object-contain" onError={e => { e.target.style.display = 'none' }} />
-        <span className="text-xs font-medium">{game.homeTeam?.abbrName}</span>
-      </div>
+        {/* Home team */}
+        <div className={`flex flex-col items-center gap-1 w-28 text-center ${homeWon ? 'opacity-100' : 'opacity-60'}`}>
+          <img src={homeLogo} alt="" className="w-10 h-10 object-contain" onError={e => { e.target.style.display = 'none' }} />
+          <span className="text-xs font-medium">{game.homeTeam?.abbrName}</span>
+        </div>
 
-      {game.simmed && <span className="absolute top-2 right-2 text-xs text-gray-500">SIM</span>}
-    </div>
+        {game.simmed && <span className="absolute top-2 right-2 text-xs text-gray-500">SIM</span>}
+      </div>
+    </a>
   )
 }
 
@@ -47,7 +50,7 @@ export default function GamesPage() {
     getSeasons()
       .then(s => {
         setSeasons(s)
-        if (s.length) setSeason(s.length > 1 ? s[s.length - 2] : s[0])
+        if (s.length) setSeason(s[s.length - 1])
       })
       .catch(() => setError('Failed to load seasons'))
   }, [])

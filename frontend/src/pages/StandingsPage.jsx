@@ -1,5 +1,46 @@
 import { useState, useEffect } from 'react'
 import { getSeasons, getStandings } from '../api/client'
+import * as XLSX from 'xlsx'
+
+export function buildStandingsRows(standings) {
+  const headers = ['Rank', 'Team', 'W', 'L', 'T', 'Win%', 'Avg PF', 'Avg PA', 'PyPAT%', 'Luck', 'SoS (Played, Curr)']
+  const rows = standings.map((r, i) => [
+    i + 1,
+    `${r.cityName} ${r.displayName}`,
+    r.wins,
+    r.losses,
+    r.ties,
+    r.winPct != null ? r.winPct.toFixed(3) : '',
+    r.gamesPlayed > 0 ? (r.pointsFor / r.gamesPlayed).toFixed(1) : '',
+    r.gamesPlayed > 0 ? (r.pointsAgainst / r.gamesPlayed).toFixed(1) : '',
+    r.pythagoreanPat != null ? (r.pythagoreanPat * 100).toFixed(1) + '%' : '',
+    r.winDiff != null ? (r.winDiff > 0 ? '+' : '') + r.winDiff.toFixed(1) : '',
+    r.oppPyPatCurr != null ? (r.oppPyPatCurr * 100).toFixed(1) + '%' : '',
+  ])
+  return [headers, ...rows]
+}
+
+function exportCsv(standings, season) {
+  const rows = buildStandingsRows(standings)
+  const csv = rows.map(row => row.map(cell => {
+    const s = String(cell)
+    return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s
+  }).join(',')).join('\n')
+  const blob = new Blob([csv], { type: 'text/csv' })
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = `standings-season-${season + 2025}.csv`
+  a.click()
+  URL.revokeObjectURL(a.href)
+}
+
+function exportExcel(standings, season) {
+  const rows = buildStandingsRows(standings)
+  const ws = XLSX.utils.aoa_to_sheet(rows)
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, `Season ${season + 2025}`)
+  XLSX.writeFile(wb, `standings-season-${season + 2025}.xlsx`)
+}
 
 function heatColor(value, allValues, direction) {
   if (value == null || isNaN(value)) return undefined
@@ -49,7 +90,7 @@ export default function StandingsPage() {
       .then(s => {
         setSeasons(s)
         if (s.length) {
-          const defaultSeason = s.length > 1 ? s[s.length - 2] : s[0]
+          const defaultSeason = s[s.length - 1]
           setSeason(defaultSeason)
           // Default to prior season stats for the active/current season (insufficient games),
           // current season stats for all historical seasons (full data available)
@@ -230,6 +271,37 @@ export default function StandingsPage() {
                       {sortKey === col.key && (sortAsc ? ' ▲' : ' ▼')}
                     </th>
                   ))}
+                  <th className="px-3 py-2 text-right">
+                    {standings.length > 0 && (
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => exportCsv(sorted, season)}
+                          title="Export CSV"
+                          className="text-gray-500 hover:text-white transition-colors"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="12" y1="18" x2="12" y2="12"/>
+                            <line x1="9" y1="15" x2="15" y2="15"/>
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => exportExcel(sorted, season)}
+                          title="Export Excel"
+                          className="text-gray-500 hover:text-white transition-colors"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            <line x1="3" y1="9" x2="21" y2="9"/>
+                            <line x1="3" y1="15" x2="21" y2="15"/>
+                            <line x1="9" y1="3" x2="9" y2="21"/>
+                            <line x1="15" y1="3" x2="15" y2="21"/>
+                          </svg>
+                        </button>
+                      </div>
+                    )}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -252,6 +324,7 @@ export default function StandingsPage() {
                         </td>
                       )
                     })}
+                    <td className="px-3 py-2" />
                   </tr>
                 ))}
               </tbody>
