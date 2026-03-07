@@ -17,7 +17,7 @@ public class SyncScheduler {
         this.syncService = syncService;
     }
 
-    @Scheduled(cron = "${rzs.sync.cron}")
+    @Scheduled(cron = "${rzs.sync.cron}", zone = "America/New_York")
     public void scheduledSync() {
         syncService.sync();
     }
