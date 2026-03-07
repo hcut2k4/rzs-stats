@@ -1,5 +1,7 @@
 package com.rzs.stats.controller;
 
+import com.rzs.stats.client.NeonSportzClient;
+import com.rzs.stats.repository.GameRepository;
 import com.rzs.stats.service.SyncService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,25 +21,23 @@ class AdminControllerTest {
 
     @Autowired MockMvc mvc;
     @MockBean SyncService syncService;
+    @MockBean NeonSportzClient client;
+    @MockBean GameRepository gameRepository;
 
     @Test
-    void postSync_success_returns200WithSuccessTrue() throws Exception {
-        when(syncService.sync()).thenReturn(new SyncService.SyncResult(true, "32 teams synced, 256 games added/updated"));
-
+    void postSync_returns200WithStartedMessage() throws Exception {
         mvc.perform(post("/api/admin/sync"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("32 teams synced, 256 games added/updated"));
+                .andExpect(jsonPath("$.message").value("Sync started"));
     }
 
     @Test
-    void postSync_failure_returns200WithSuccessFalse() throws Exception {
-        when(syncService.sync()).thenReturn(new SyncService.SyncResult(false, "Sync failed: connection refused"));
-
+    void postSync_alwaysReturnsStartedRegardlessOfOutcome() throws Exception {
+        // Sync runs async; the HTTP response always reflects "started", not the sync result
         mvc.perform(post("/api/admin/sync"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("Sync failed: connection refused"));
+                .andExpect(jsonPath("$.success").value(true));
     }
 
     @Test

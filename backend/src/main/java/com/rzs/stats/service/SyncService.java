@@ -10,6 +10,7 @@ import com.rzs.stats.repository.GameRepository;
 import com.rzs.stats.repository.TeamRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +42,7 @@ public class SyncService {
         this.gameRepository = gameRepository;
     }
 
+    @CacheEvict(cacheNames = {"standings","games","weeks","seasons","seasonTrends","weeklyTrends"}, allEntries = true)
     @Transactional
     public SyncResult sync() {
         int teamsUpserted = 0;

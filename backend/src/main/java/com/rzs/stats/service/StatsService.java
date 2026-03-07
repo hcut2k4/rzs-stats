@@ -8,6 +8,7 @@ import com.rzs.stats.model.entity.GameEntity;
 import com.rzs.stats.model.entity.TeamEntity;
 import com.rzs.stats.repository.GameRepository;
 import com.rzs.stats.repository.TeamRepository;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -28,6 +29,7 @@ public class StatsService {
     // Standings
     // -------------------------------------------------------------------------
 
+    @Cacheable("standings")
     public List<StandingDto> computeStandings(int seasonIndex) {
         List<GameEntity> games = regularSeasonGames(seasonIndex);
         List<TeamEntity> teams = teamRepository.findAll();
@@ -175,16 +177,19 @@ public class StatsService {
     // Games
     // -------------------------------------------------------------------------
 
+    @Cacheable("games")
     public List<GameDto> getGames(int seasonIndex, int stageIndex, int weekIndex) {
         return gameRepository.findBySeasonIndexAndStageIndexAndWeekIndex(seasonIndex, stageIndex, weekIndex)
                 .stream().map(this::toGameDto).collect(Collectors.toList());
     }
 
     // Only show seasons that have at least 10 regular-season games recorded
+    @Cacheable("seasons")
     public List<Integer> getAvailableSeasons() {
         return gameRepository.findDistinctSeasonIndicesWithMinGames(10);
     }
 
+    @Cacheable("weeks")
     public List<Integer> getAvailableWeeks(int seasonIndex, int stageIndex) {
         return gameRepository.findDistinctRegularSeasonWeeks(seasonIndex, stageIndex);
     }
@@ -193,6 +198,7 @@ public class StatsService {
     // Trends: season-over-season
     // -------------------------------------------------------------------------
 
+    @Cacheable("seasonTrends")
     public List<SeasonWeekDto> getSeasonTrends() {
         List<Integer> seasons = gameRepository.findDistinctSeasonIndicesWithMinGames(10);
         List<TeamEntity> teams = teamRepository.findAll();
@@ -231,6 +237,7 @@ public class StatsService {
     // Trends: week-by-week within a season
     // -------------------------------------------------------------------------
 
+    @Cacheable("weeklyTrends")
     public List<SeasonWeekDto> getWeeklyTrends(int seasonIndex) {
         List<Integer> weeks = gameRepository.findDistinctRegularSeasonWeeks(seasonIndex, 1);
         List<TeamEntity> teams = teamRepository.findAll();
