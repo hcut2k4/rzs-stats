@@ -172,9 +172,9 @@ export default function StandingsPage() {
     { key: 'losses',         label: 'L' },
     { key: 'ties',           label: 'T' },
     { key: 'winPct',         label: 'Win%',    fmt: v => v.toFixed(3), heat: 'higher' },
-    { key: 'pointsFor',      label: 'Avg PF',
+    { key: 'pointsFor',      label: 'Avg PF', heat: 'higher',
       fmt: (v, _, row) => row.gamesPlayed > 0 ? (v / row.gamesPlayed).toFixed(1) : '—' },
-    { key: 'pointsAgainst',  label: 'Avg PA',
+    { key: 'pointsAgainst',  label: 'Avg PA', heat: 'lower',
       fmt: (v, _, row) => row.gamesPlayed > 0 ? (v / row.gamesPlayed).toFixed(1) : '—' },
     { key: 'pythagoreanPat', label: 'PyPAT',   fmt: v => (v * 100).toFixed(1) + '%', heat: 'higher',
       title: 'PythagoreanPAT win expectancy' },
@@ -256,79 +256,78 @@ export default function StandingsPage() {
       {!loading && !error && groups.map(group => (
         <div key={group.label ?? 'all'} className="mb-8">
           {group.label && <h2 className="text-green-400 font-semibold mb-2">{group.label}</h2>}
-          <div className="overflow-x-auto rounded-lg border border-gray-800">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-900 text-gray-400">
-                <tr>
-                  {COLS.map(col => (
-                    <th
-                      key={col.key}
-                      className="px-3 py-2 text-left cursor-pointer hover:text-white select-none whitespace-nowrap"
-                      title={col.title}
-                      onClick={() => handleSort(col.key)}
-                    >
-                      {col.label}
-                      {sortKey === col.key && (sortAsc ? ' ▲' : ' ▼')}
-                    </th>
-                  ))}
-                  <th className="px-3 py-2 text-right">
-                    {standings.length > 0 && (
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => exportCsv(sorted, season)}
-                          title="Export CSV"
-                          className="text-gray-500 hover:text-white transition-colors"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                            <polyline points="14 2 14 8 20 8"/>
-                            <line x1="12" y1="18" x2="12" y2="12"/>
-                            <line x1="9" y1="15" x2="15" y2="15"/>
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => exportExcel(sorted, season)}
-                          title="Export Excel"
-                          className="text-gray-500 hover:text-white transition-colors"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="3" y="3" width="18" height="18" rx="2"/>
-                            <line x1="3" y1="9" x2="21" y2="9"/>
-                            <line x1="3" y1="15" x2="21" y2="15"/>
-                            <line x1="9" y1="3" x2="9" y2="21"/>
-                            <line x1="15" y1="3" x2="15" y2="21"/>
-                          </svg>
-                        </button>
-                      </div>
-                    )}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {group.rows.map((row, i) => (
-                  <tr key={row.teamId} className="border-t border-gray-800 hover:bg-gray-800/50">
-                    {COLS.map(col => {
-                      const val = row[col.key]
-                      const bgColor = col.heat === 'diverge'
-                        ? divergeColor(val)
-                        : col.heat
-                          ? heatColor(val, colValues[col.key] ?? [], col.heat)
-                          : undefined
-                      return (
-                        <td
-                          key={col.key}
-                          className="px-3 py-2 whitespace-nowrap"
-                          style={bgColor ? { backgroundColor: bgColor } : undefined}
-                        >
-                          {col.fmt ? col.fmt(val, i, row) : val ?? '—'}
-                        </td>
-                      )
-                    })}
-                    <td className="px-3 py-2" />
+          <div className="relative rounded-lg border border-gray-800">
+            {standings.length > 0 && (
+              <div className="absolute top-0 right-0 flex items-center gap-2 px-3 py-2 bg-gray-900 rounded-tr-lg z-10">
+                <button
+                  onClick={() => exportCsv(sorted, season)}
+                  title="Export CSV"
+                  className="text-gray-500 hover:text-white transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="12" y1="18" x2="12" y2="12"/>
+                    <line x1="9" y1="15" x2="15" y2="15"/>
+                  </svg>
+                </button>
+                <button
+                  onClick={() => exportExcel(sorted, season)}
+                  title="Export Excel"
+                  className="text-gray-500 hover:text-white transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <line x1="3" y1="9" x2="21" y2="9"/>
+                    <line x1="3" y1="15" x2="21" y2="15"/>
+                    <line x1="9" y1="3" x2="9" y2="21"/>
+                    <line x1="15" y1="3" x2="15" y2="21"/>
+                  </svg>
+                </button>
+              </div>
+            )}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-900 text-gray-400">
+                  <tr>
+                    {COLS.map(col => (
+                      <th
+                        key={col.key}
+                        className="px-3 py-2 text-left cursor-pointer hover:text-white select-none whitespace-nowrap"
+                        title={col.title}
+                        onClick={() => handleSort(col.key)}
+                      >
+                        {col.label}
+                        {sortKey === col.key && (sortAsc ? ' ▲' : ' ▼')}
+                      </th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {group.rows.map((row, i) => (
+                    <tr key={row.teamId} className="border-t border-gray-800 hover:bg-gray-800/50">
+                      {COLS.map(col => {
+                        const val = row[col.key]
+                        const bgColor = col.heat === 'diverge'
+                          ? divergeColor(val)
+                          : col.heat
+                            ? heatColor(val, colValues[col.key] ?? [], col.heat)
+                            : undefined
+                        return (
+                          <td
+                            key={col.key}
+                            className="px-3 py-2 whitespace-nowrap"
+                            style={bgColor ? { backgroundColor: bgColor } : undefined}
+                          >
+                            {col.fmt ? col.fmt(val, i, row) : val ?? '—'}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       ))}
