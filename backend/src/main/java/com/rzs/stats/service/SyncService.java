@@ -241,6 +241,7 @@ public class SyncService {
         }
 
         game.setGameId(ns.getGameId());
+        game.setNsPk(ns.getPk());
         game.setSeasonIndex(ns.getSeasonIndex());
         game.setStageIndex(ns.getStageIndex());
         game.setWeekIndex(ns.getWeekIndex());
@@ -328,6 +329,7 @@ public class SyncService {
         }
 
         game.setGameId(ns.getGameId());
+        game.setNsPk(ns.getPk());
         game.setSeasonIndex(ns.getSeasonIndex());
         game.setStageIndex(ns.getStageIndex());
         game.setWeekIndex(ns.getWeekIndex());

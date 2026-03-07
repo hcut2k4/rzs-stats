@@ -291,6 +291,7 @@ public class StatsService {
     private GameDto toGameDto(GameEntity g) {
         GameDto dto = new GameDto();
         dto.setGameId(g.getGameId());
+        dto.setNsPk(g.getNsPk());
         dto.setSeasonIndex(g.getSeasonIndex());
         dto.setStageIndex(g.getStageIndex());
         dto.setWeekIndex(g.getWeekIndex());

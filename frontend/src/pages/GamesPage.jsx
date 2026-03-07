@@ -6,7 +6,7 @@ function GameCard({ game }) {
   const awayLogo = `https://a.espncdn.com/i/teamlogos/nfl/500/${game.awayTeam?.abbrName?.toLowerCase()}.png`
   const homeWon = game.homeScore > game.awayScore
   const awayWon = game.awayScore > game.homeScore
-  const url = `https://neonsportz.com/leagues/RZS/games/${game.gameId}`
+  const url = `https://neonsportz.com/leagues/RZS/games/${game.nsPk ?? game.gameId}`
 
   return (
     <a href={url} target="_blank" rel="noopener noreferrer" className="block">

@@ -20,6 +20,8 @@ public class GameEntity {
     @Column(nullable = false)
     private Integer gameId;
 
+    private Integer nsPk;
+
     private Integer seasonIndex;
     private Integer stageIndex;
     private Integer weekIndex;
@@ -40,6 +42,8 @@ public class GameEntity {
     public Long getId() { return id; }
     public Integer getGameId() { return gameId; }
     public void setGameId(Integer gameId) { this.gameId = gameId; }
+    public Integer getNsPk() { return nsPk; }
+    public void setNsPk(Integer nsPk) { this.nsPk = nsPk; }
     public Integer getSeasonIndex() { return seasonIndex; }
     public void setSeasonIndex(Integer seasonIndex) { this.seasonIndex = seasonIndex; }
     public Integer getStageIndex() { return stageIndex; }
