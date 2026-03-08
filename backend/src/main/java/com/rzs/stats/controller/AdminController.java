@@ -71,6 +71,11 @@ public class AdminController {
         return syncService.getStatus();
     }
 
+    @GetMapping("/cache/warm/status")
+    public CacheWarmingService.WarmStatus getCacheWarmStatus() {
+        return cacheWarmingService.getStatus();
+    }
+
     @PostMapping("/sync/verbose")
     public Map<String, Object> triggerVerboseSync() {
         SyncService.VerboseSyncResult result = syncService.syncVerbose();

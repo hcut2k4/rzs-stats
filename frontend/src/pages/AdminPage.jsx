@@ -1,14 +1,28 @@
 import { useState, useEffect } from 'react'
-import { triggerSync, triggerForceSync, getSyncStatus, triggerCacheWarm } from '../api/client'
+import { triggerSync, triggerForceSync, getSyncStatus, triggerCacheWarm, getCacheWarmStatus } from '../api/client'
 
 export default function AdminPage() {
   const [status, setStatus] = useState(null)
   const [syncing, setSyncing] = useState(false)
   const [result, setResult] = useState(null)
+  const [warmStatus, setWarmStatus] = useState(null)
+  const [warming, setWarming] = useState(false)
 
   useEffect(() => {
     getSyncStatus().then(setStatus).catch(() => {})
+    getCacheWarmStatus().then(setWarmStatus).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (!warming) return
+    const id = setInterval(() => {
+      getCacheWarmStatus().then(s => {
+        setWarmStatus(s)
+        if (!s.inProgress) setWarming(false)
+      }).catch(() => {})
+    }, 2000)
+    return () => clearInterval(id)
+  }, [warming])
 
   const handleSync = async () => {
     setSyncing(true)
@@ -25,15 +39,11 @@ export default function AdminPage() {
   }
 
   const handleCacheWarm = async () => {
-    setSyncing(true)
-    setResult(null)
+    setWarming(true)
     try {
-      const r = await triggerCacheWarm()
-      setResult(r)
+      await triggerCacheWarm()
     } catch {
-      setResult({ success: false, message: 'Request failed' })
-    } finally {
-      setSyncing(false)
+      setWarming(false)
     }
   }
 
@@ -115,12 +125,26 @@ export default function AdminPage() {
             or whenever data feels stale. Runs in the background.
           </p>
         </div>
+        {warmStatus?.completedAt && !warmStatus.inProgress && (
+          <div>
+            <p className="text-sm text-gray-400 mb-0.5">Last warm</p>
+            <p className="font-mono text-sm">{new Date(warmStatus.completedAt).toLocaleString()}</p>
+            {warmStatus.message && (
+              <p className={`text-xs mt-1 ${warmStatus.success ? 'text-green-400' : 'text-red-400'}`}>
+                {warmStatus.message}
+              </p>
+            )}
+          </div>
+        )}
+        {warmStatus?.inProgress && (
+          <p className="text-sm text-blue-300 animate-pulse">{warmStatus.message}</p>
+        )}
         <button
           onClick={handleCacheWarm}
-          disabled={syncing}
+          disabled={warming || syncing}
           className="w-full py-2 px-4 bg-blue-700 hover:bg-blue-600 disabled:bg-gray-700 disabled:cursor-not-allowed rounded font-medium transition-colors text-sm"
         >
-          {syncing ? 'Running...' : 'Warm Cache'}
+          {warming ? 'Warming...' : 'Warm Cache'}
         </button>
       </div>
 
