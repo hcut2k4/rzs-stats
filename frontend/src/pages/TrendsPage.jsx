@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { getSeasons, getSeasonTrends, getWeeklyTrends } from '../api/client'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
@@ -12,7 +12,35 @@ function SeasonHistoryTab({ data }) {
   // Collect all teams from last season entry
   const allTeams = data.length ? data[data.length - 1].standings : []
 
+  const lastSeason = seasons[seasons.length - 1]
+  const [sortSeason, setSortSeason] = useState(lastSeason ?? null)
+  const [sortCol, setSortCol] = useState('wl')
+  const [sortAsc, setSortAsc] = useState(false)
+
   if (!data.length) return <p className="text-gray-400">No season data available.</p>
+
+  const handleSort = (season, col) => {
+    if (sortSeason === season && sortCol === col) setSortAsc(a => !a)
+    else { setSortSeason(season); setSortCol(col); setSortAsc(false) }
+  }
+
+  const sortedTeams = [...allTeams].sort((a, b) => {
+    const targetData = data.find(d => d.seasonIndex === sortSeason)
+    const ra = targetData?.standings.find(s => s.teamId === a.teamId)
+    const rb = targetData?.standings.find(s => s.teamId === b.teamId)
+    const getVal = r => {
+      if (!r) return null
+      if (sortCol === 'wl')    return r.winPct
+      if (sortCol === 'pypat') return r.pythagoreanPat
+      if (sortCol === 'luck')  return r.winDiff
+    }
+    const av = getVal(ra), bv = getVal(rb)
+    if (av == null) return 1
+    if (bv == null) return -1
+    return sortAsc ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1)
+  })
+
+  const thClass = 'px-2 py-1 text-center text-gray-500 cursor-pointer hover:text-white select-none whitespace-nowrap'
 
   return (
     <div className="overflow-x-auto rounded-lg border border-gray-800">
@@ -21,34 +49,44 @@ function SeasonHistoryTab({ data }) {
           <tr>
             <th className="px-3 py-2 text-left">Team</th>
             {seasons.map(s => (
-              <th key={s} className="px-3 py-2 text-center" colSpan={2}>Season {s + 2025}</th>
+              <th key={s} className="px-3 py-2 text-center" colSpan={3}>Season {s + 2025}</th>
             ))}
           </tr>
           <tr className="text-xs">
             <th />
             {seasons.map(s => (
-              <>
-                <th key={`${s}-wl`} className="px-2 py-1 text-center text-gray-500">W-L</th>
-                <th key={`${s}-py`} className="px-2 py-1 text-center text-gray-500">PyPat</th>
-              </>
+              <React.Fragment key={s}>
+                <th className={thClass} onClick={() => handleSort(s, 'wl')}>
+                  W-L{sortSeason === s && sortCol === 'wl' ? (sortAsc ? ' ▲' : ' ▼') : ''}
+                </th>
+                <th className={thClass} onClick={() => handleSort(s, 'pypat')}>
+                  PyPAT{sortSeason === s && sortCol === 'pypat' ? (sortAsc ? ' ▲' : ' ▼') : ''}
+                </th>
+                <th className={thClass} onClick={() => handleSort(s, 'luck')}>
+                  Luck{sortSeason === s && sortCol === 'luck' ? (sortAsc ? ' ▲' : ' ▼') : ''}
+                </th>
+              </React.Fragment>
             ))}
           </tr>
         </thead>
         <tbody>
-          {allTeams.map(team => (
+          {sortedTeams.map(team => (
             <tr key={team.teamId} className="border-t border-gray-800 hover:bg-gray-800/50">
               <td className="px-3 py-2 font-medium whitespace-nowrap">{team.displayName}</td>
               {data.map(d => {
                 const row = d.standings.find(s => s.teamId === team.teamId)
                 return (
-                  <>
-                    <td key={`${d.seasonIndex}-wl`} className="px-2 py-2 text-center text-gray-300">
+                  <React.Fragment key={d.seasonIndex}>
+                    <td className="px-2 py-2 text-center text-gray-300 whitespace-nowrap">
                       {row ? `${row.wins}-${row.losses}${row.ties ? `-${row.ties}` : ''}` : '—'}
                     </td>
-                    <td key={`${d.seasonIndex}-py`} className="px-2 py-2 text-center text-gray-300">
+                    <td className="px-2 py-2 text-center text-gray-300">
                       {row ? row.pythagoreanPat.toFixed(3) : '—'}
                     </td>
-                  </>
+                    <td className="px-2 py-2 text-center text-gray-300">
+                      {row?.winDiff != null ? (row.winDiff > 0 ? '+' : '') + row.winDiff.toFixed(1) : '—'}
+                    </td>
+                  </React.Fragment>
                 )
               })}
             </tr>

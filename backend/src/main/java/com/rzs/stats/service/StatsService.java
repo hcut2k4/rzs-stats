@@ -224,7 +224,11 @@ public class StatsService {
                 dto.setPointsAgainst(s.pa);
                 double winPct = s.games > 0 ? (s.wins + 0.5 * s.ties) / s.games : 0.0;
                 dto.setWinPct(round(winPct));
-                dto.setPythagoreanPat(round(calculatePyPat(s.pf, s.pa, s.games)));
+                double pyPat = calculatePyPat(s.pf, s.pa, s.games);
+                dto.setPythagoreanPat(round(pyPat));
+                double actualWins = s.wins + 0.5 * s.ties;
+                double winDiff = Math.round((actualWins - pyPat * s.games) * 10.0) / 10.0;
+                dto.setWinDiff(winDiff);
                 return dto;
             }).sorted(Comparator.comparingDouble(StandingDto::getWinPct).reversed())
               .collect(Collectors.toList());
