@@ -21,15 +21,18 @@ public interface GameRepository extends JpaRepository<GameEntity, Long> {
     List<GameEntity> findBySeasonIndex(Integer seasonIndex);
 
     @Cacheable("seasonGames")
-    @Query("SELECT g FROM GameEntity g WHERE g.seasonIndex = :season AND g.stageIndex = :stage AND g.weekIndex BETWEEN :minWeek AND :maxWeek AND g.status >= 2")
+    @Query("SELECT g FROM GameEntity g LEFT JOIN FETCH g.homeTeam LEFT JOIN FETCH g.awayTeam WHERE g.seasonIndex = :season AND g.stageIndex = :stage AND g.weekIndex BETWEEN :minWeek AND :maxWeek AND g.status >= 2")
     List<GameEntity> findRegularSeasonGames(
             @Param("season") Integer season,
             @Param("stage") Integer stage,
             @Param("minWeek") Integer minWeek,
             @Param("maxWeek") Integer maxWeek);
 
+    @Query("SELECT g FROM GameEntity g LEFT JOIN FETCH g.homeTeam LEFT JOIN FETCH g.awayTeam WHERE g.seasonIndex = :seasonIndex AND g.stageIndex = :stageIndex AND g.weekIndex = :weekIndex")
     List<GameEntity> findBySeasonIndexAndStageIndexAndWeekIndex(
-            Integer seasonIndex, Integer stageIndex, Integer weekIndex);
+            @Param("seasonIndex") Integer seasonIndex,
+            @Param("stageIndex") Integer stageIndex,
+            @Param("weekIndex") Integer weekIndex);
 
     @Query("SELECT DISTINCT g.seasonIndex FROM GameEntity g WHERE " +
            "(SELECT COUNT(g2) FROM GameEntity g2 WHERE g2.seasonIndex = g.seasonIndex AND g2.stageIndex = 1 AND g2.weekIndex BETWEEN 0 AND 17 AND g2.status >= 2) >= :minGames " +
@@ -39,7 +42,7 @@ public interface GameRepository extends JpaRepository<GameEntity, Long> {
     @Query("SELECT DISTINCT g.weekIndex FROM GameEntity g WHERE g.seasonIndex = :season AND g.stageIndex = :stage AND g.weekIndex BETWEEN 0 AND 17 AND g.status >= 2 ORDER BY g.weekIndex")
     List<Integer> findDistinctRegularSeasonWeeks(@Param("season") Integer season, @Param("stage") Integer stage);
 
-    @Query("SELECT g FROM GameEntity g WHERE g.seasonIndex = :season AND g.stageIndex = 1 AND g.weekIndex BETWEEN 0 AND 17 AND g.status < 2")
+    @Query("SELECT g FROM GameEntity g LEFT JOIN FETCH g.homeTeam LEFT JOIN FETCH g.awayTeam WHERE g.seasonIndex = :season AND g.stageIndex = 1 AND g.weekIndex BETWEEN 0 AND 17 AND g.status < 2")
     List<GameEntity> findFutureRegularSeasonGames(@Param("season") Integer season);
 
     @Query("SELECT g.seasonIndex, g.stageIndex, COUNT(g) FROM GameEntity g GROUP BY g.seasonIndex, g.stageIndex ORDER BY g.seasonIndex, g.stageIndex")
