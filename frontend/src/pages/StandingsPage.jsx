@@ -324,10 +324,11 @@ export default function StandingsPage() {
                     <tr key={row.teamId} className="border-t border-gray-800 hover:bg-gray-800/50 group">
                       {COLS.map(col => {
                         const val = row[col.key]
+                        const heatVal = col.getValue ? col.getValue(row) : val
                         const bgColor = col.heat === 'diverge'
-                          ? divergeColor(val)
+                          ? divergeColor(heatVal)
                           : col.heat
-                            ? heatColor(val, colValues[col.key] ?? [], col.heat)
+                            ? heatColor(heatVal, colValues[col.key] ?? [], col.heat)
                             : undefined
                         return (
                           <td
