@@ -284,7 +284,8 @@ public class SyncService {
                     || !Objects.equals(existing.getStageIndex(), ns.getStageIndex())
                     || !Objects.equals(existing.getWeekIndex(), ns.getWeekIndex())
                     || !Objects.equals(existing.getSimmed(), ns.getSimmed())
-                    || teamChanged;
+                    || teamChanged
+                    || existing.getNsPk() == null;
             if (!changed) return false;
         }
 
@@ -372,7 +373,8 @@ public class SyncService {
                     || !Objects.equals(existing.getStageIndex(), ns.getStageIndex())
                     || !Objects.equals(existing.getWeekIndex(), ns.getWeekIndex())
                     || !Objects.equals(existing.getSimmed(), ns.getSimmed())
-                    || teamChanged;
+                    || teamChanged
+                    || existing.getNsPk() == null;
             if (!changed) return false;
         }
 

@@ -200,7 +200,7 @@ class SyncServiceTest {
         GameEntity existing = new GameEntity();
         existing.setGameId(100); existing.setSeasonIndex(0); existing.setStageIndex(1);
         existing.setWeekIndex(0); existing.setHomeScore(28); existing.setAwayScore(14);
-        existing.setStatus(2); existing.setSimmed(false);
+        existing.setStatus(2); existing.setSimmed(false); existing.setNsPk(999);
 
         when(client.fetchLeagueInfo()).thenReturn(league(0));
         when(client.fetchAllTeams()).thenReturn(List.of());
