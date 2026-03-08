@@ -14,7 +14,7 @@ public class CacheWarmingService {
         this.statsService = statsService;
     }
 
-    @CacheEvict(cacheNames = {"standings", "games", "weeks", "seasons", "seasonTrends", "weeklyTrends"}, allEntries = true)
+    @CacheEvict(cacheNames = {"standings", "games", "weeks", "seasons", "seasonTrends", "weeklyTrends"}, allEntries = true, beforeInvocation = true)
     public void warmCaches() {
         List<Integer> seasons = statsService.getAvailableSeasons();
         statsService.getSeasonTrends();
