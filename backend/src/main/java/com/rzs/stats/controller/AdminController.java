@@ -41,6 +41,17 @@ public class AdminController {
         return Map.of("success", true, "message", "Sync started");
     }
 
+    @PostMapping("/sync/force")
+    public Map<String, Object> triggerForceSync() {
+        log.info("Force sync triggered");
+        CompletableFuture.runAsync(() -> syncService.syncForce())
+                .exceptionally(ex -> {
+                    log.error("Unexpected error during async force sync", ex);
+                    return null;
+                });
+        return Map.of("success", true, "message", "Force sync started — all seasons will be re-synced");
+    }
+
     @GetMapping("/sync/status")
     public SyncService.SyncStatus getSyncStatus() {
         return syncService.getStatus();

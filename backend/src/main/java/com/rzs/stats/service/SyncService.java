@@ -103,6 +103,54 @@ public class SyncService {
         }
     }
 
+    @CacheEvict(cacheNames = {"standings","games","weeks","seasons","seasonTrends","weeklyTrends"}, allEntries = true)
+    @Transactional
+    public SyncResult syncForce() {
+        int teamsUpserted = 0;
+        int gamesAdded = 0;
+
+        try {
+            log.info("Force sync started — all seasons will be re-synced");
+            NsLeague league = client.fetchLeagueInfo();
+            int currentSeasonIndex = league.getSeason();
+            log.info("Current season index: {}", currentSeasonIndex);
+
+            List<NsTeam> nsTeams = client.fetchAllTeams();
+            for (NsTeam nsTeam : nsTeams) {
+                upsertTeam(nsTeam);
+                teamsUpserted++;
+            }
+            log.info("Teams synced: {}", teamsUpserted);
+
+            Map<Integer, TeamEntity> teamsByTeamId = new HashMap<>();
+            Map<Integer, TeamEntity> teamsByNsId = new HashMap<>();
+            teamRepository.findAll().forEach(t -> {
+                if (t.getTeamId() != null) teamsByTeamId.put(t.getTeamId(), t);
+                if (t.getNsId() != null) teamsByNsId.put(t.getNsId(), t);
+            });
+
+            for (int s = 0; s <= currentSeasonIndex; s++) {
+                log.info("Force syncing season {}/{}", s, currentSeasonIndex);
+                gamesAdded += syncGamesForSeason(s, teamsByTeamId, teamsByNsId);
+            }
+
+            String message = teamsUpserted + " teams synced, " + gamesAdded + " games added/updated";
+            lastSyncTime = Instant.now();
+            lastSyncMessage = message;
+            lastSyncSuccess = true;
+            log.info("Force sync completed: {}", message);
+            return new SyncResult(true, message);
+
+        } catch (Exception e) {
+            String message = "Force sync failed: " + e.getMessage();
+            lastSyncTime = Instant.now();
+            lastSyncMessage = message;
+            lastSyncSuccess = false;
+            log.error("Force sync failed after {} teams, {} games", teamsUpserted, gamesAdded, e);
+            return new SyncResult(false, message);
+        }
+    }
+
     @Transactional
     public VerboseSyncResult syncVerbose() {
         List<String> log = new ArrayList<>();

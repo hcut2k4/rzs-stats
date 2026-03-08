@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { triggerSync, getSyncStatus } from '../api/client'
+import { triggerSync, triggerForceSync, getSyncStatus } from '../api/client'
 
 export default function AdminPage() {
   const [status, setStatus] = useState(null)
@@ -15,6 +15,25 @@ export default function AdminPage() {
     setResult(null)
     try {
       const r = await triggerSync()
+      setResult(r)
+      getSyncStatus().then(setStatus)
+    } catch {
+      setResult({ success: false, message: 'Request failed' })
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  const handleForceSync = async () => {
+    if (!window.confirm(
+      'Force re-sync will re-process ALL seasons from the API, bypassing the "already synced" check.\n\n' +
+      'This can take up to 30 minutes and will generate a large number of database writes and API calls.\n\n' +
+      'Only use this when you need to backfill missing data (e.g. after a schema change).\n\nProceed?'
+    )) return
+    setSyncing(true)
+    setResult(null)
+    try {
+      const r = await triggerForceSync()
       setResult(r)
       getSyncStatus().then(setStatus)
     } catch {
@@ -58,8 +77,25 @@ export default function AdminPage() {
         )}
       </div>
 
+      <div className="mt-6 bg-gray-900 border border-gray-800 rounded-lg p-6 space-y-3">
+        <div>
+          <p className="text-sm font-medium text-yellow-400">Force Re-sync All Seasons</p>
+          <p className="text-xs text-gray-500 mt-1">
+            Re-processes every season from the API, ignoring the "already synced" check.
+            Use this to backfill missing data after schema changes. Can take up to 30 minutes.
+          </p>
+        </div>
+        <button
+          onClick={handleForceSync}
+          disabled={syncing}
+          className="w-full py-2 px-4 bg-yellow-700 hover:bg-yellow-600 disabled:bg-gray-700 disabled:cursor-not-allowed rounded font-medium transition-colors text-sm"
+        >
+          {syncing ? 'Running...' : 'Force Re-sync All Seasons'}
+        </button>
+      </div>
+
       <p className="mt-4 text-xs text-gray-600">
-        Data syncs automatically every night at 2am ET.
+        Data syncs automatically every night at 4am ET.
       </p>
     </div>
   )

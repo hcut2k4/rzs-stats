@@ -9,4 +9,5 @@ export const getAvailableWeeks = (season, stage = 1) => api.get('/games/weeks', 
 export const getSeasonTrends = () => api.get('/trends/season').then(r => r.data)
 export const getWeeklyTrends = (season) => api.get('/trends/weekly', { params: { season } }).then(r => r.data)
 export const triggerSync = () => api.post('/admin/sync').then(r => r.data)
+export const triggerForceSync = () => api.post('/admin/sync/force').then(r => r.data)
 export const getSyncStatus = () => api.get('/admin/sync/status').then(r => r.data)
