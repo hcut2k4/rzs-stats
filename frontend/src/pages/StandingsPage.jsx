@@ -78,7 +78,7 @@ export default function StandingsPage() {
   const [seasons, setSeasons] = useState([])
   const [season, setSeason] = useState(null)
   const [standings, setStandings] = useState([])
-  const [sortKey, setSortKey] = useState('winPct')
+  const [sortKey, setSortKey] = useState('pythagoreanPat')
   const [sortAsc, setSortAsc] = useState(false)
   const [groupByConf, setGroupByConf] = useState(false)
   const [sosMode, setSosMode] = useState('curr')
