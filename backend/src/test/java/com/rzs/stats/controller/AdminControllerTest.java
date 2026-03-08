@@ -2,6 +2,7 @@ package com.rzs.stats.controller;
 
 import com.rzs.stats.client.NeonSportzClient;
 import com.rzs.stats.repository.GameRepository;
+import com.rzs.stats.service.CacheWarmingService;
 import com.rzs.stats.service.SyncService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,7 @@ class AdminControllerTest {
     @MockBean SyncService syncService;
     @MockBean NeonSportzClient client;
     @MockBean GameRepository gameRepository;
+    @MockBean CacheWarmingService cacheWarmingService;
 
     @Test
     void postSync_returns200WithStartedMessage() throws Exception {

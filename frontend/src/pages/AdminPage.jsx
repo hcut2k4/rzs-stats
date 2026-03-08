@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { triggerSync, triggerForceSync, getSyncStatus } from '../api/client'
+import { triggerSync, triggerForceSync, getSyncStatus, triggerCacheWarm } from '../api/client'
 
 export default function AdminPage() {
   const [status, setStatus] = useState(null)
@@ -17,6 +17,19 @@ export default function AdminPage() {
       const r = await triggerSync()
       setResult(r)
       getSyncStatus().then(setStatus)
+    } catch {
+      setResult({ success: false, message: 'Request failed' })
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  const handleCacheWarm = async () => {
+    setSyncing(true)
+    setResult(null)
+    try {
+      const r = await triggerCacheWarm()
+      setResult(r)
     } catch {
       setResult({ success: false, message: 'Request failed' })
     } finally {
@@ -91,6 +104,23 @@ export default function AdminPage() {
           className="w-full py-2 px-4 bg-yellow-700 hover:bg-yellow-600 disabled:bg-gray-700 disabled:cursor-not-allowed rounded font-medium transition-colors text-sm"
         >
           {syncing ? 'Running...' : 'Force Re-sync All Seasons'}
+        </button>
+      </div>
+
+      <div className="mt-6 bg-gray-900 border border-gray-800 rounded-lg p-6 space-y-3">
+        <div>
+          <p className="text-sm font-medium text-blue-400">Cache Pre-population</p>
+          <p className="text-xs text-gray-500 mt-1">
+            Clears all caches and eagerly re-builds them. Use after a deploy, reboot,
+            or whenever data feels stale. Runs in the background.
+          </p>
+        </div>
+        <button
+          onClick={handleCacheWarm}
+          disabled={syncing}
+          className="w-full py-2 px-4 bg-blue-700 hover:bg-blue-600 disabled:bg-gray-700 disabled:cursor-not-allowed rounded font-medium transition-colors text-sm"
+        >
+          {syncing ? 'Running...' : 'Warm Cache'}
         </button>
       </div>
 

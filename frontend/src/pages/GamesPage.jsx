@@ -10,10 +10,10 @@ function GameCard({ game }) {
 
   return (
     <a href={url} target="_blank" rel="noopener noreferrer" className="block">
-      <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 flex items-center justify-between gap-4 hover:border-gray-600 transition-colors">
+      <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 sm:p-4 flex items-center justify-between gap-4 hover:border-gray-600 transition-colors">
         {/* Away team */}
-        <div className={`flex flex-col items-center gap-1 w-28 text-center ${awayWon ? 'opacity-100' : 'opacity-60'}`}>
-          <img src={awayLogo} alt="" className="w-10 h-10 object-contain" onError={e => { e.target.style.display = 'none' }} />
+        <div className={`flex flex-col items-center gap-1 w-20 sm:w-28 text-center ${awayWon ? 'opacity-100' : 'opacity-60'}`}>
+          <img src={awayLogo} alt="" className="w-8 h-8 sm:w-10 sm:h-10 object-contain" onError={e => { e.target.style.display = 'none' }} />
           <span className="text-xs font-medium">{game.awayTeam?.abbrName}</span>
         </div>
 
@@ -25,8 +25,8 @@ function GameCard({ game }) {
         </div>
 
         {/* Home team */}
-        <div className={`flex flex-col items-center gap-1 w-28 text-center ${homeWon ? 'opacity-100' : 'opacity-60'}`}>
-          <img src={homeLogo} alt="" className="w-10 h-10 object-contain" onError={e => { e.target.style.display = 'none' }} />
+        <div className={`flex flex-col items-center gap-1 w-20 sm:w-28 text-center ${homeWon ? 'opacity-100' : 'opacity-60'}`}>
+          <img src={homeLogo} alt="" className="w-8 h-8 sm:w-10 sm:h-10 object-contain" onError={e => { e.target.style.display = 'none' }} />
           <span className="text-xs font-medium">{game.homeTeam?.abbrName}</span>
         </div>
 

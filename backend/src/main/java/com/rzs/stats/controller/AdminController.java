@@ -3,6 +3,7 @@ package com.rzs.stats.controller;
 import com.rzs.stats.client.NeonSportzClient;
 import com.rzs.stats.model.ns.NsLeague;
 import com.rzs.stats.repository.GameRepository;
+import com.rzs.stats.service.CacheWarmingService;
 import com.rzs.stats.service.SyncService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,11 +24,13 @@ public class AdminController {
     private final SyncService syncService;
     private final NeonSportzClient client;
     private final GameRepository gameRepository;
+    private final CacheWarmingService cacheWarmingService;
 
-    public AdminController(SyncService syncService, NeonSportzClient client, GameRepository gameRepository) {
+    public AdminController(SyncService syncService, NeonSportzClient client, GameRepository gameRepository, CacheWarmingService cacheWarmingService) {
         this.syncService = syncService;
         this.client = client;
         this.gameRepository = gameRepository;
+        this.cacheWarmingService = cacheWarmingService;
     }
 
     @PostMapping("/sync")
@@ -50,6 +53,17 @@ public class AdminController {
                     return null;
                 });
         return Map.of("success", true, "message", "Force sync started — all seasons will be re-synced");
+    }
+
+    @PostMapping("/cache/warm")
+    public Map<String, Object> triggerCacheWarm() {
+        log.info("Cache warming triggered");
+        CompletableFuture.runAsync(() -> cacheWarmingService.warmCaches())
+                .exceptionally(ex -> {
+                    log.error("Cache warming failed", ex);
+                    return null;
+                });
+        return Map.of("success", true, "message", "Cache warming started — all caches cleared and rebuilding");
     }
 
     @GetMapping("/sync/status")

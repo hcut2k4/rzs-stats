@@ -166,8 +166,8 @@ export default function StandingsPage() {
       ]
 
   const COLS = [
-    { key: 'rank',           label: '#',       fmt: (_, i) => i + 1 },
-    { key: 'displayName',    label: 'Team',    fmt: (v, _, row) => <TeamCell row={row} /> },
+    { key: 'rank',           label: '#',       fmt: (_, i) => i + 1, stickyLeft: 'left-0' },
+    { key: 'displayName',    label: 'Team',    fmt: (v, _, row) => <TeamCell row={row} />, stickyLeft: 'left-10' },
     { key: 'wins',           label: 'W' },
     { key: 'losses',         label: 'L' },
     { key: 'ties',           label: 'T' },
@@ -260,7 +260,7 @@ export default function StandingsPage() {
               ? <h2 className="text-green-400 font-semibold">{group.label}</h2>
               : <span />}
             {standings.length > 0 && (
-              <div className="flex items-center gap-1">
+              <div className="hidden sm:flex items-center gap-1">
                 <button
                   onClick={() => exportCsv(sorted, season)}
                   title="Export CSV"
@@ -299,7 +299,11 @@ export default function StandingsPage() {
                     {COLS.map(col => (
                       <th
                         key={col.key}
-                        className="px-3 py-2 text-left cursor-pointer hover:text-white select-none whitespace-nowrap"
+                        className={`px-2 py-1.5 text-left cursor-pointer hover:text-white select-none whitespace-nowrap${
+                          col.stickyLeft
+                            ? ` sticky ${col.stickyLeft} z-20 bg-gray-900${col.stickyLeft === 'left-0' ? ' w-10' : ' border-r border-gray-700'}`
+                            : ''
+                        }`}
                         title={col.title}
                         onClick={() => handleSort(col.key)}
                       >
@@ -311,7 +315,7 @@ export default function StandingsPage() {
                 </thead>
                 <tbody>
                   {group.rows.map((row, i) => (
-                    <tr key={row.teamId} className="border-t border-gray-800 hover:bg-gray-800/50">
+                    <tr key={row.teamId} className="border-t border-gray-800 hover:bg-gray-800/50 group">
                       {COLS.map(col => {
                         const val = row[col.key]
                         const bgColor = col.heat === 'diverge'
@@ -322,7 +326,11 @@ export default function StandingsPage() {
                         return (
                           <td
                             key={col.key}
-                            className="px-3 py-2 whitespace-nowrap"
+                            className={`px-2 py-1.5 whitespace-nowrap${
+                              col.stickyLeft
+                                ? ` sticky ${col.stickyLeft} z-10 bg-gray-950 group-hover:bg-gray-900${col.stickyLeft === 'left-0' ? ' w-10' : ' border-r border-gray-700'}`
+                                : ''
+                            }`}
                             style={bgColor ? { backgroundColor: bgColor } : undefined}
                           >
                             {col.fmt ? col.fmt(val, i, row) : val ?? '—'}

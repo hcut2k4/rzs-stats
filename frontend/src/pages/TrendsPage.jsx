@@ -95,6 +95,20 @@ function WeeklyTab({ season }) {
 
   return (
     <div>
+      <div className="flex items-center gap-2 mb-2">
+        <button
+          onClick={() => setHidden(new Set())}
+          className="text-xs text-gray-400 hover:text-white px-2 py-1 hover:bg-gray-800 rounded transition-colors"
+        >
+          Show All
+        </button>
+        <button
+          onClick={() => setHidden(new Set(allTeams.map(t => t.name)))}
+          className="text-xs text-gray-400 hover:text-white px-2 py-1 hover:bg-gray-800 rounded transition-colors"
+        >
+          Hide All
+        </button>
+      </div>
       <div className="flex flex-wrap gap-2 mb-4">
         {allTeams.map((t, i) => (
           <button

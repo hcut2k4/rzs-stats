@@ -11,3 +11,4 @@ export const getWeeklyTrends = (season) => api.get('/trends/weekly', { params: {
 export const triggerSync = () => api.post('/admin/sync').then(r => r.data)
 export const triggerForceSync = () => api.post('/admin/sync/force').then(r => r.data)
 export const getSyncStatus = () => api.get('/admin/sync/status').then(r => r.data)
+export const triggerCacheWarm = () => api.post('/admin/cache/warm').then(r => r.data)
