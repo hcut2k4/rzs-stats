@@ -42,7 +42,7 @@ public class SyncService {
         this.gameRepository = gameRepository;
     }
 
-    @CacheEvict(cacheNames = {"standings","games","weeks","seasons","seasonTrends","weeklyTrends"}, allEntries = true)
+    @CacheEvict(cacheNames = {"standings","games","weeks","seasons","seasonTrends","weeklyTrends","seasonGames"}, allEntries = true)
     @Transactional
     public SyncResult sync() {
         int teamsUpserted = 0;
@@ -103,7 +103,7 @@ public class SyncService {
         }
     }
 
-    @CacheEvict(cacheNames = {"standings","games","weeks","seasons","seasonTrends","weeklyTrends"}, allEntries = true)
+    @CacheEvict(cacheNames = {"standings","games","weeks","seasons","seasonTrends","weeklyTrends","seasonGames"}, allEntries = true)
     @Transactional
     public SyncResult syncForce() {
         int teamsUpserted = 0;

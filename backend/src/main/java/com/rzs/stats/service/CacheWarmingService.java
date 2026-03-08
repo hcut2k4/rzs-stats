@@ -32,7 +32,7 @@ public class CacheWarmingService {
         this.statsService = statsService;
     }
 
-    @CacheEvict(cacheNames = {"standings", "games", "weeks", "seasons", "seasonTrends", "weeklyTrends"}, allEntries = true, beforeInvocation = true)
+    @CacheEvict(cacheNames = {"standings", "games", "weeks", "seasons", "seasonTrends", "weeklyTrends", "seasonGames"}, allEntries = true, beforeInvocation = true)
     public void warmCaches() {
         inProgress = true;
         startedAt = Instant.now();

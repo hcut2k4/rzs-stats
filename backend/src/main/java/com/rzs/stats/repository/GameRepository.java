@@ -1,6 +1,7 @@
 package com.rzs.stats.repository;
 
 import com.rzs.stats.model.entity.GameEntity;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -19,6 +20,7 @@ public interface GameRepository extends JpaRepository<GameEntity, Long> {
 
     List<GameEntity> findBySeasonIndex(Integer seasonIndex);
 
+    @Cacheable("seasonGames")
     @Query("SELECT g FROM GameEntity g WHERE g.seasonIndex = :season AND g.stageIndex = :stage AND g.weekIndex BETWEEN :minWeek AND :maxWeek AND g.status >= 2")
     List<GameEntity> findRegularSeasonGames(
             @Param("season") Integer season,
