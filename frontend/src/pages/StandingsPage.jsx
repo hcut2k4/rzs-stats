@@ -116,8 +116,14 @@ export default function StandingsPage() {
 
   const isCurrentSeason = seasons.length > 0 && season === seasons[seasons.length - 1]
 
+  const pfAvg = r => r.gamesPlayed > 0 ? r.pointsFor / r.gamesPlayed : 0
+  const paAvg = r => r.gamesPlayed > 0 ? r.pointsAgainst / r.gamesPlayed : 0
+  const sortGetters = { pointsFor: pfAvg, pointsAgainst: paAvg }
+
   const sorted = [...standings].sort((a, b) => {
-    const av = a[sortKey], bv = b[sortKey]
+    const getter = sortGetters[sortKey]
+    const av = getter ? getter(a) : a[sortKey]
+    const bv = getter ? getter(b) : b[sortKey]
     if (av == null) return 1
     if (bv == null) return -1
     return sortAsc ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1)
@@ -172,9 +178,9 @@ export default function StandingsPage() {
     { key: 'losses',         label: 'L' },
     { key: 'ties',           label: 'T' },
     { key: 'winPct',         label: 'Win%',    fmt: v => v.toFixed(3), heat: 'higher' },
-    { key: 'pointsFor',      label: 'Avg PF', heat: 'higher',
+    { key: 'pointsFor',      label: 'Avg PF', heat: 'higher', getValue: pfAvg,
       fmt: (v, _, row) => row.gamesPlayed > 0 ? (v / row.gamesPlayed).toFixed(1) : '—' },
-    { key: 'pointsAgainst',  label: 'Avg PA', heat: 'lower',
+    { key: 'pointsAgainst',  label: 'Avg PA', heat: 'lower',  getValue: paAvg,
       fmt: (v, _, row) => row.gamesPlayed > 0 ? (v / row.gamesPlayed).toFixed(1) : '—' },
     { key: 'pythagoreanPat', label: 'PyPAT',   fmt: v => (v * 100).toFixed(1) + '%', heat: 'higher',
       title: 'PythagoreanPAT win expectancy' },
@@ -187,7 +193,7 @@ export default function StandingsPage() {
 
   const colValues = {}
   for (const col of COLS) {
-    if (col.heat) colValues[col.key] = sorted.map(r => r[col.key])
+    if (col.heat) colValues[col.key] = sorted.map(r => col.getValue ? col.getValue(r) : r[col.key])
   }
 
   const groups = groupByConf
