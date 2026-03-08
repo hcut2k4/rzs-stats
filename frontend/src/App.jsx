@@ -3,6 +3,7 @@ import StandingsPage from './pages/StandingsPage'
 import GamesPage from './pages/GamesPage'
 import TrendsPage from './pages/TrendsPage'
 import AdminPage from './pages/AdminPage'
+import AboutPage from './pages/AboutPage'
 
 const navClass = ({ isActive }) =>
   `px-4 py-2 rounded text-sm font-medium transition-colors ${
@@ -21,6 +22,7 @@ export default function App() {
             <NavLink to="/" end className={navClass}>Standings</NavLink>
             <NavLink to="/games" className={navClass}>Games</NavLink>
             <NavLink to="/trends" className={navClass}>Trends</NavLink>
+            <NavLink to="/about" className={navClass}>About</NavLink>
           </nav>
         </div>
       </header>
@@ -31,6 +33,7 @@ export default function App() {
           <Route path="/games" element={<GamesPage />} />
           <Route path="/trends" element={<TrendsPage />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/about" element={<AboutPage />} />
         </Routes>
       </main>
     </div>
