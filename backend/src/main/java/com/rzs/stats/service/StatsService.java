@@ -43,16 +43,19 @@ public class StatsService {
         // Build per-team map of remaining (future) opponent IDs
         List<GameEntity> futureGames = gameRepository.findFutureRegularSeasonGames(seasonIndex);
         Map<Integer, Set<Integer>> remainingOpps = new HashMap<>();
+        Map<Integer, Integer> remainingGameCount = new HashMap<>();
         for (GameEntity g : futureGames) {
             if (g.getHomeTeam() == null || g.getAwayTeam() == null) continue;
             int h = g.getHomeTeam().getTeamId(), a = g.getAwayTeam().getTeamId();
             remainingOpps.computeIfAbsent(h, k -> new HashSet<>()).add(a);
             remainingOpps.computeIfAbsent(a, k -> new HashSet<>()).add(h);
+            remainingGameCount.merge(h, 1, Integer::sum);
+            remainingGameCount.merge(a, 1, Integer::sum);
         }
 
         return teams.stream().map(team -> {
             TeamStats curr = statsMap.getOrDefault(team.getTeamId(), new TeamStats());
-            return buildStandingDto(team, curr, statsMap, prevStatsMap, remainingOpps);
+            return buildStandingDto(team, curr, statsMap, prevStatsMap, remainingOpps, remainingGameCount);
         }).sorted(Comparator.comparingDouble(StandingDto::getWinPct).reversed())
           .collect(Collectors.toList());
     }
@@ -60,7 +63,8 @@ public class StatsService {
     private StandingDto buildStandingDto(TeamEntity team, TeamStats curr,
                                           Map<Integer, TeamStats> currAll,
                                           Map<Integer, TeamStats> prevAll,
-                                          Map<Integer, Set<Integer>> remainingOpps) {
+                                          Map<Integer, Set<Integer>> remainingOpps,
+                                          Map<Integer, Integer> remainingGameCount) {
         double pyPat = calculatePyPat(curr.pf, curr.pa, curr.games);
 
         // Played SoS: already-played opponents' PyPAT using current or previous season stats
@@ -79,13 +83,30 @@ public class StatsService {
         Double oppPyPatRemainingPrev = remOpps.isEmpty() ? null
                 : round(calculateOppPyPat(team.getTeamId(), remOpps, prevAll));
 
-        // Total SoS: all scheduled opponents for the full season (played + remaining)
-        Set<Integer> allOpps = new HashSet<>(curr.opponentIds);
-        allOpps.addAll(remOpps);
-        Double oppPyPatTotalCurr = allOpps.isEmpty() ? null
-                : round(calculateOppPyPat(team.getTeamId(), allOpps, currAll));
-        Double oppPyPatTotalPrev = allOpps.isEmpty() ? null
-                : round(calculateOppPyPat(team.getTeamId(), allOpps, prevAll));
+        // Total SoS: game-count-weighted average of played and remaining SoS.
+        // Using a simple union of unique opponents would let weak played-only opponents
+        // drag Total below both Played and Left; weighting by game count is correct.
+        int gamesPlayed = curr.games;
+        int gamesLeft   = remainingGameCount.getOrDefault(team.getTeamId(), 0);
+        int totalGames  = gamesPlayed + gamesLeft;
+
+        Double oppPyPatTotalCurr;
+        Double oppPyPatTotalPrev;
+        if (totalGames == 0) {
+            oppPyPatTotalCurr = null;
+            oppPyPatTotalPrev = null;
+        } else if (gamesLeft == 0) {
+            oppPyPatTotalCurr = round(oppPyPatCurr);
+            oppPyPatTotalPrev = round(oppPyPatPrev);
+        } else if (gamesPlayed == 0) {
+            oppPyPatTotalCurr = oppPyPatRemainingCurr;
+            oppPyPatTotalPrev = oppPyPatRemainingPrev;
+        } else {
+            double remCurr = oppPyPatRemainingCurr != null ? oppPyPatRemainingCurr : 0.0;
+            double remPrev = oppPyPatRemainingPrev != null ? oppPyPatRemainingPrev : 0.0;
+            oppPyPatTotalCurr = round((oppPyPatCurr * gamesPlayed + remCurr * gamesLeft) / totalGames);
+            oppPyPatTotalPrev = round((oppPyPatPrev * gamesPlayed + remPrev * gamesLeft) / totalGames);
+        }
 
         StandingDto dto = new StandingDto();
         dto.setTeamId(team.getTeamId());
