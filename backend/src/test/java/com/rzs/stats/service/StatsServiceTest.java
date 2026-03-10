@@ -501,6 +501,76 @@ class StatsServiceTest {
         assertThat(standings.get(0).getOppPyPatTotalPrev()).isNull();
     }
 
+    @Test
+    void computeStandings_sosTotalAlwaysBetweenPlayedAndLeft() {
+        // Regression test: SoS Total must be between SoS Played and SoS Left.
+        // The old set-union code would average each unique opponent once, which under-weighted
+        // strong common opponents and let weak played-only opponents drag Total below both.
+        //
+        // Scenario:
+        //   A played B (strong ~1.0), B2 (strong ~1.0), C (weak ~0.0)  → SoS Played ≈ 0.667
+        //   A's remaining: B, B2 (strong), D, E, F (moderate ~0.5)     → SoS Left   ≈ 0.700
+        //   Old code: union avg(B,B2,C,D,E,F) ≈ 0.583 < min(0.667, 0.700)  ← violates invariant
+        //   New code: weighted avg = (0.667×3 + 0.700×5)/8 ≈ 0.688           ← within bounds ✓
+        TeamEntity teamA  = team(1, "A");
+        TeamEntity teamB  = team(2, "B");
+        TeamEntity teamB2 = team(3, "B2");
+        TeamEntity teamC  = team(4, "C");
+        TeamEntity teamD  = team(5, "D");
+        TeamEntity teamE  = team(6, "E");
+        TeamEntity teamF  = team(7, "F");
+        TeamEntity teamZ  = team(8, "Z");  // foil that shapes B/B2/C/D/E/F quality
+
+        when(teamRepository.findAll()).thenReturn(List.of(teamA, teamB, teamB2, teamC, teamD, teamE, teamF, teamZ));
+        when(gameRepository.findRegularSeasonGames(3, 1, 0, 17)).thenReturn(List.of(
+                // A's played games
+                game(1,  teamA,  teamB,  10, 40),   // A loses to B
+                game(2,  teamA,  teamB2, 10, 35),   // A loses to B2
+                game(3,  teamA,  teamC,  40, 10),   // A beats C
+                // B dominates Z → B PyPAT excl. A ≈ 1.0
+                game(4,  teamB,  teamZ,  40,  0),
+                game(5,  teamB,  teamZ,  40,  0),
+                // B2 dominates Z → B2 PyPAT excl. A ≈ 1.0
+                game(6,  teamB2, teamZ,  35,  0),
+                game(7,  teamB2, teamZ,  35,  0),
+                // Z dominates C → C PyPAT excl. A ≈ 0.0
+                game(8,  teamZ,  teamC,  40,  0),
+                game(9,  teamZ,  teamC,  40,  0),
+                // D, E, F each split vs Z → each PyPAT excl. A = 0.5
+                game(10, teamD,  teamZ,  28, 14),
+                game(11, teamZ,  teamD,  28, 14),
+                game(12, teamE,  teamZ,  28, 14),
+                game(13, teamZ,  teamE,  28, 14),
+                game(14, teamF,  teamZ,  28, 14),
+                game(15, teamZ,  teamF,  28, 14)
+        ));
+        when(gameRepository.findRegularSeasonGames(2, 1, 0, 17)).thenReturn(List.of());
+        when(gameRepository.findFutureRegularSeasonGames(3)).thenReturn(List.of(
+                futureGame(99,  teamA, teamB),    // B rematch
+                futureGame(100, teamA, teamB2),   // B2 rematch
+                futureGame(101, teamA, teamD),
+                futureGame(102, teamA, teamE),
+                futureGame(103, teamA, teamF)
+        ));
+
+        List<StandingDto> standings = service.computeStandings(3);
+        StandingDto a = standings.stream().filter(s -> s.getTeamId() == 1).findFirst().orElseThrow();
+
+        double played = a.getOppPyPatCurr();             // avg(B≈1,B2≈1,C≈0) ≈ 0.667
+        Double left   = a.getOppPyPatRemainingCurr();    // avg(B≈1,B2≈1,D=0.5,E=0.5,F=0.5) = 0.700
+        Double total  = a.getOppPyPatTotalCurr();        // weighted avg → ≈ 0.688
+
+        assertThat(left).isNotNull();
+        assertThat(total).isNotNull();
+        // SoS Total must be between SoS Played and SoS Left (the invariant the old code violated)
+        assertThat(total).isGreaterThanOrEqualTo(Math.min(played, left));
+        assertThat(total).isLessThanOrEqualTo(Math.max(played, left) + 0.001);
+        // Confirm the scenario actually exercises the interesting case (both endpoints distinct)
+        assertThat(played).isGreaterThan(0.60);  // strong played SoS
+        assertThat(left).isGreaterThan(0.60);    // strong remaining SoS
+        assertThat(total).isGreaterThan(played); // total pulled up by moderates in remaining
+    }
+
     // ── Helpers ────────────────────────────────────────────────────────────────
 
     private static GameEntity futureGame(int gameId, TeamEntity home, TeamEntity away) {
