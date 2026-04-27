@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { buildStandingsRows } from '../pages/StandingsPage'
 import * as XLSX from 'xlsx'
 
+const SEASON_YEAR = 5 + 2025   // season index 5 → display year 2030
+
 const sampleStandings = [
   {
     teamId: 1,
@@ -125,7 +127,7 @@ describe('exportExcel (SheetJS smoke test)', () => {
     expect(() => {
       const ws = XLSX.utils.aoa_to_sheet(rows)
       const wb = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(wb, ws, 'Season 2030')
+      XLSX.utils.book_append_sheet(wb, ws, `Season ${SEASON_YEAR}`)
     }).not.toThrow()
   })
 
@@ -133,7 +135,7 @@ describe('exportExcel (SheetJS smoke test)', () => {
     const rows = buildStandingsRows(sampleStandings)
     const ws = XLSX.utils.aoa_to_sheet(rows)
     const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Season 2030')
-    expect(wb.SheetNames).toContain('Season 2030')
+    XLSX.utils.book_append_sheet(wb, ws, `Season ${SEASON_YEAR}`)
+    expect(wb.SheetNames).toContain(`Season ${SEASON_YEAR}`)
   })
 })

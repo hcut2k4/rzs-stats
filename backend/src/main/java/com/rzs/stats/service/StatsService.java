@@ -204,10 +204,9 @@ public class StatsService {
                 .stream().map(this::toGameDto).collect(Collectors.toList());
     }
 
-    // Only show seasons that have at least 10 regular-season games recorded
     @Cacheable("seasons")
     public List<Integer> getAvailableSeasons() {
-        return gameRepository.findDistinctSeasonIndicesWithMinGames(10);
+        return gameRepository.findDistinctSeasonIndicesWithMinGames(1);
     }
 
     @Cacheable("weeks")
