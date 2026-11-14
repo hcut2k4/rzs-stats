@@ -27,9 +27,9 @@ function GameRow({ game, i }) {
     >
       <TeamSide team={game.awayTeam} won={awayWon} />
       <div className="flex items-center gap-3 text-xl font-bold num">
-        <span className={awayWon ? '' : 'text-muted'}>{game.awayScore ?? '–'}</span>
+        <span className={`w-8 text-right ${awayWon ? '' : 'text-muted'}`}>{game.awayScore ?? '–'}</span>
         <span className="text-muted text-xs font-normal">@</span>
-        <span className={homeWon ? '' : 'text-muted'}>{game.homeScore ?? '–'}</span>
+        <span className={`w-8 ${homeWon ? '' : 'text-muted'}`}>{game.homeScore ?? '–'}</span>
       </div>
       <div className="flex items-center justify-end gap-3">
         {game.simmed && <span className="text-[10px] font-semibold tracking-wide border border-line rounded px-1 text-muted">SIM</span>}
@@ -128,8 +128,8 @@ export default function GamesPage() {
         games.length === 0
           ? <p className="text-muted">No games found for this week.</p>
           : (
-            <div className="border-b border-rule">
-              <div className="grid grid-cols-[1fr_auto_1fr] gap-4 px-3 py-1.5 border-t-2 border-rule th">
+            <div className="border-b border-rule max-w-3xl">
+              <div className="grid grid-cols-[1fr_auto_1fr] gap-4 px-3 py-1.5 th">
                 <span>Away</span>
                 <span>Score</span>
                 <span className="text-right">Home</span>

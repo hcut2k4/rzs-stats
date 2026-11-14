@@ -83,7 +83,7 @@ function SeasonHistoryTab({ data }) {
             return (
               <tr key={team.teamId} className={`border-t border-line ${rowBg}`}>
                 <td className={`px-2 py-1.5 font-semibold whitespace-nowrap sticky left-0 z-10 border-r border-line ${rowBg}`}>
-                  <span className="inline-flex items-center gap-2">
+                  <span className="flex items-center gap-2">
                     <TeamLogo abbr={team.abbrName} size={22} />
                     {team.displayName}
                   </span>

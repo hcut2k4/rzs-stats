@@ -16,7 +16,7 @@ export function TeamLogo({ abbr, size = 24 }) {
 
 export function TeamCell({ abbr, name, size = 24 }) {
   return (
-    <span className="inline-flex items-center gap-2">
+    <span className="flex items-center gap-2">
       <TeamLogo abbr={abbr} size={size} />
       <span>{name ?? abbr}</span>
     </span>
