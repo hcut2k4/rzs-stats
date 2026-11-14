@@ -12,6 +12,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -61,9 +63,10 @@ class StatsControllerTest {
     void getGames_defaultStageIsOne() throws Exception {
         when(statsService.getGames(4, 1, 0)).thenReturn(List.of());
 
-        // stage param omitted → defaults to 1
         mvc.perform(get("/api/games").param("season", "4").param("week", "0"))
                 .andExpect(status().isOk());
+
+        verify(statsService).getGames(4, 1, 0);
     }
 
     @Test
@@ -73,6 +76,115 @@ class StatsControllerTest {
         mvc.perform(get("/api/games/weeks").param("season", "4").param("stage", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(4));
+    }
+
+    @Test
+    void getAvailableWeeks_defaultStageIsOne() throws Exception {
+        when(statsService.getAvailableWeeks(4, 1)).thenReturn(List.of());
+
+        mvc.perform(get("/api/games/weeks").param("season", "4"))
+                .andExpect(status().isOk());
+
+        verify(statsService).getAvailableWeeks(4, 1);
+    }
+
+    @Test
+    void getStandings_withoutSeason_returns400() throws Exception {
+        mvc.perform(get("/api/standings"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(statsService);
+    }
+
+    @Test
+    void getGames_withoutSeason_returns400() throws Exception {
+        mvc.perform(get("/api/games").param("week", "2"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(statsService);
+    }
+
+    @Test
+    void getGames_withoutWeek_returns400() throws Exception {
+        mvc.perform(get("/api/games").param("season", "4"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(statsService);
+    }
+
+    @Test
+    void getAvailableWeeks_withoutSeason_returns400() throws Exception {
+        mvc.perform(get("/api/games/weeks"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(statsService);
+    }
+
+    @Test
+    void getWeeklyTrends_withoutSeason_returns400() throws Exception {
+        mvc.perform(get("/api/trends/weekly"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(statsService);
+    }
+
+    @Test
+    void getStandings_withNonNumericSeason_returns400() throws Exception {
+        mvc.perform(get("/api/standings").param("season", "abc"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(statsService);
+    }
+
+    @Test
+    void getGames_withNonNumericSeason_returns400() throws Exception {
+        mvc.perform(get("/api/games").param("season", "abc").param("week", "2"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(statsService);
+    }
+
+    @Test
+    void getGames_withNonNumericWeek_returns400() throws Exception {
+        mvc.perform(get("/api/games").param("season", "4").param("week", "xyz"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(statsService);
+    }
+
+    @Test
+    void getGames_withNonNumericStage_returns400() throws Exception {
+        mvc.perform(get("/api/games")
+                        .param("season", "4")
+                        .param("stage", "foo")
+                        .param("week", "2"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(statsService);
+    }
+
+    @Test
+    void getAvailableWeeks_withNonNumericSeason_returns400() throws Exception {
+        mvc.perform(get("/api/games/weeks").param("season", "abc"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(statsService);
+    }
+
+    @Test
+    void getAvailableWeeks_withNonNumericStage_returns400() throws Exception {
+        mvc.perform(get("/api/games/weeks").param("season", "4").param("stage", "foo"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(statsService);
+    }
+
+    @Test
+    void getWeeklyTrends_withNonNumericSeason_returns400() throws Exception {
+        mvc.perform(get("/api/trends/weekly").param("season", "abc"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(statsService);
     }
 
     @Test
