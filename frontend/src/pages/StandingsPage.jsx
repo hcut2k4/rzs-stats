@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { getSeasons, getStandings } from '../api/client'
 import * as XLSX from 'xlsx'
+import { teamLogoUrl } from '../utils/teamLogo'
 
 export function buildStandingsRows(standings) {
   const headers = ['Rank', 'Team', 'W', 'L', 'T', 'Win%', 'Avg PF', 'Avg PA', 'PyPAT%', 'Luck', 'SoS (Played, Curr)']
@@ -65,7 +66,7 @@ function divergeColor(value) {
 }
 
 function TeamCell({ row }) {
-  const logoUrl = `https://a.espncdn.com/i/teamlogos/nfl/500/${row.abbrName?.toLowerCase()}.png`
+  const logoUrl = teamLogoUrl(row.abbrName)
   return (
     <div className="flex items-center gap-2">
       <img src={logoUrl} alt="" className="w-6 h-6 object-contain" onError={e => { e.target.style.display = 'none' }} />
