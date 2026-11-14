@@ -86,7 +86,7 @@ export default function GamesPage() {
           value={season ?? ''}
           onChange={e => setSeason(Number(e.target.value))}
         >
-          {seasons.map(s => <option key={s} value={s}>Season {s + 2025}</option>)}
+          {seasons.map(s => <option key={s} value={s}>Season {s + 2026}</option>)}
         </select>
 
         <select

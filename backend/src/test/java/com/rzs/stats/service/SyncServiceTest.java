@@ -54,6 +54,51 @@ class SyncServiceTest {
     }
 
     @Test
+    void sync_purgesOldDataWhenNoStoredTeamMatchesApiTeams() {
+        TeamEntity old = new TeamEntity();
+        old.setTeamId(999);
+        when(teamRepository.findAll()).thenReturn(List.of(old));
+        when(client.fetchLeagueInfo()).thenReturn(league(0));
+        when(client.fetchAllTeams()).thenReturn(List.of(nsTeam(10)));
+        when(client.fetchAllGamesForSeason(0)).thenReturn(List.of());
+        when(teamRepository.findByTeamId(any())).thenReturn(Optional.empty());
+        when(teamRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        service.sync();
+
+        verify(gameRepository).deleteAllInBatch();
+        verify(teamRepository).deleteAllInBatch();
+    }
+
+    @Test
+    void sync_keepsDataWhenStoredTeamsMatchApiTeams() {
+        TeamEntity same = new TeamEntity();
+        same.setTeamId(10);
+        when(teamRepository.findAll()).thenReturn(List.of(same));
+        when(client.fetchLeagueInfo()).thenReturn(league(0));
+        when(client.fetchAllTeams()).thenReturn(List.of(nsTeam(10)));
+        when(client.fetchAllGamesForSeason(0)).thenReturn(List.of());
+        when(teamRepository.findByTeamId(any())).thenReturn(Optional.of(same));
+        when(teamRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        service.sync();
+
+        verify(gameRepository, never()).deleteAllInBatch();
+        verify(teamRepository, never()).deleteAllInBatch();
+    }
+
+    @Test
+    void sync_doesNotPurgeWhenApiReturnsNoTeams() {
+        when(client.fetchLeagueInfo()).thenReturn(league(0));
+        when(client.fetchAllTeams()).thenReturn(List.of());
+        when(client.fetchAllGamesForSeason(0)).thenReturn(List.of());
+
+        service.sync();
+
+        verify(gameRepository, never()).deleteAllInBatch();
+    }
+
+    @Test
     void sync_storesGamesWithAnyNonNullStatus() {
         when(client.fetchLeagueInfo()).thenReturn(league(1));
         when(client.fetchAllTeams()).thenReturn(List.of());
