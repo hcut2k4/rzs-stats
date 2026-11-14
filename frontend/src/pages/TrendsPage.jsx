@@ -49,7 +49,7 @@ function SeasonHistoryTab({ data }) {
           <tr>
             <th className="px-3 py-2 text-left">Team</th>
             {seasons.map(s => (
-              <th key={s} className="px-3 py-2 text-center" colSpan={3}>Season {s + 2025}</th>
+              <th key={s} className="px-3 py-2 text-center" colSpan={3}>Season {s + 2026}</th>
             ))}
           </tr>
           <tr className="text-xs">
@@ -225,7 +225,7 @@ export default function TrendsPage() {
               value={season ?? ''}
               onChange={e => setSeason(Number(e.target.value))}
             >
-              {seasons.map(s => <option key={s} value={s}>Season {s + 2025}</option>)}
+              {seasons.map(s => <option key={s} value={s}>Season {s + 2026}</option>)}
             </select>
           </div>
           <WeeklyTab season={season} />

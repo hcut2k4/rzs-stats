@@ -29,7 +29,7 @@ function exportCsv(standings, season) {
   const blob = new Blob([csv], { type: 'text/csv' })
   const a = document.createElement('a')
   a.href = URL.createObjectURL(blob)
-  a.download = `standings-season-${season + 2025}.csv`
+  a.download = `standings-season-${season + 2026}.csv`
   a.click()
   URL.revokeObjectURL(a.href)
 }
@@ -38,8 +38,8 @@ function exportExcel(standings, season) {
   const rows = buildStandingsRows(standings)
   const ws = XLSX.utils.aoa_to_sheet(rows)
   const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, `Season ${season + 2025}`)
-  XLSX.writeFile(wb, `standings-season-${season + 2025}.xlsx`)
+  XLSX.utils.book_append_sheet(wb, ws, `Season ${season + 2026}`)
+  XLSX.writeFile(wb, `standings-season-${season + 2026}.xlsx`)
 }
 
 function heatColor(value, allValues, direction) {
@@ -218,7 +218,7 @@ export default function StandingsPage() {
           }}
         >
           {seasons.map(s => (
-            <option key={s} value={s}>Season {s + 2025}</option>
+            <option key={s} value={s}>Season {s + 2026}</option>
           ))}
         </select>
 

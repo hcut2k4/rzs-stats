@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
@@ -57,6 +58,7 @@ public class SyncService {
 
             // Sync teams
             List<NsTeam> nsTeams = client.fetchAllTeams();
+            purgeIfLeagueReplaced(nsTeams);
             for (NsTeam nsTeam : nsTeams) {
                 upsertTeam(nsTeam);
                 teamsUpserted++;
@@ -116,6 +118,7 @@ public class SyncService {
             log.info("Current season index: {}", currentSeasonIndex);
 
             List<NsTeam> nsTeams = client.fetchAllTeams();
+            purgeIfLeagueReplaced(nsTeams);
             for (NsTeam nsTeam : nsTeams) {
                 upsertTeam(nsTeam);
                 teamsUpserted++;
@@ -164,6 +167,7 @@ public class SyncService {
 
             List<NsTeam> nsTeams = client.fetchAllTeams();
             log.add("[TEAMS] API returned " + nsTeams.size() + " teams");
+            purgeIfLeagueReplaced(nsTeams);
             for (NsTeam nsTeam : nsTeams) {
                 upsertTeam(nsTeam);
                 log.add("[TEAMS] Upserted: " + nsTeam.getDisplayName() + " (teamId=" + nsTeam.getTeamId() + ", nsId=" + nsTeam.getId() + ")");
@@ -332,6 +336,18 @@ public class SyncService {
             return teamsByNsId.get(ns.getId());
         }
         return null;
+    }
+
+    // A new Madden cycle creates a new Neon league with new teamIds (and reused nsIds); old rows would collide.
+    private void purgeIfLeagueReplaced(List<NsTeam> nsTeams) {
+        if (nsTeams.isEmpty()) return;
+        Set<Integer> apiTeamIds = nsTeams.stream().map(NsTeam::getTeamId).collect(Collectors.toSet());
+        List<TeamEntity> existing = teamRepository.findAll();
+        if (!existing.isEmpty() && existing.stream().noneMatch(t -> apiTeamIds.contains(t.getTeamId()))) {
+            log.warn("No stored team matches the API's teams — league was replaced; purging games and teams");
+            gameRepository.deleteAllInBatch();
+            teamRepository.deleteAllInBatch();
+        }
     }
 
     private void upsertTeam(NsTeam ns) {
