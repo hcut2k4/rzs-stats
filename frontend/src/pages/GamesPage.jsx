@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { getSeasons, getAvailableWeeks, getGames } from '../api/client'
+import { teamLogoUrl } from '../utils/teamLogo'
 
 function GameCard({ game }) {
-  const homeLogo = `https://a.espncdn.com/i/teamlogos/nfl/500/${game.homeTeam?.abbrName?.toLowerCase()}.png`
-  const awayLogo = `https://a.espncdn.com/i/teamlogos/nfl/500/${game.awayTeam?.abbrName?.toLowerCase()}.png`
+  const homeLogo = teamLogoUrl(game.homeTeam?.abbrName)
+  const awayLogo = teamLogoUrl(game.awayTeam?.abbrName)
   const homeWon = game.homeScore > game.awayScore
   const awayWon = game.awayScore > game.homeScore
   const url = `https://neonsportz.com/leagues/RZS/games/${game.nsPk ?? game.gameId}`
