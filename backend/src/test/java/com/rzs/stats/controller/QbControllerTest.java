@@ -52,7 +52,7 @@ class QbControllerTest {
 
     @Test
     void movementReturnsExpectedCollections() throws Exception {
-        when(service.movement(0, REGULAR, 1)).thenReturn(new QbDtos.Movement(List.of(), List.of(), List.of()));
+        when(service.movement(0, REGULAR, 1, QbStatsService.Basis.SEASON)).thenReturn(new QbDtos.Movement(List.of(), List.of(), List.of()));
         mvc.perform(get("/api/qb/movement").param("season", "0"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.risers").isArray())
                 .andExpect(jsonPath("$.fallers").isArray()).andExpect(jsonPath("$.series").isArray());

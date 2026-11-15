@@ -137,11 +137,46 @@ class QbStatsServiceTest {
         when(repository.findInScope(0, 0, 17)).thenReturn(List.of(row("a", 0, 20, 400), row("b", 0, 20, 200),
                 row("a", 1, 20, 0), row("b", 1, 20, 600)));
         when(games.findCompletedInScope(0, 0, 17)).thenReturn(List.of(game(0), game(1)));
-        var result = service.movement(0, REGULAR, 1);
+        var result = service.movement(0, REGULAR, 1, QbStatsService.Basis.SEASON);
         assertThat(result.risers()).extracting(d -> d.rosterId).containsExactly("b");
         assertThat(result.fallers()).extracting(d -> d.rosterId).containsExactly("a");
         assertThat(result.series().getFirst().ranks()).extracting(r -> r.rank()).containsExactly(2, 1);
         assertThat(result.series().getFirst().ranks()).extracting(r -> r.week()).containsExactly(0, 1);
+    }
+
+    @Test
+    void movementPlotsEveryWeekRegardlessOfTheMoversWindow() {
+        when(repository.findInScope(0, 0, 17)).thenReturn(List.of(row("a", 0, 20, 400), row("a", 1, 20, 400),
+                row("a", 2, 20, 400), row("b", 0, 20, 200), row("b", 1, 20, 200), row("b", 2, 20, 900)));
+        when(games.findCompletedInScope(0, 0, 17)).thenReturn(List.of(game(0), game(1), game(2)));
+        var result = service.movement(0, REGULAR, 1, QbStatsService.Basis.SEASON);
+        assertThat(result.series().getFirst().ranks()).extracting(r -> r.week()).containsExactly(0, 1, 2);
+        assertThat(result.risers()).extracting(d -> d.rosterId).containsExactly("b");
+    }
+
+    @Test
+    void movementSkipsWeeksWithNoGames() {
+        when(repository.findInScope(0, 18, 22)).thenReturn(List.of(row("a", 18, 20, 400), row("a", 22, 20, 400)));
+        when(games.findCompletedInScope(0, 18, 22)).thenReturn(List.of(game(18), game(22)));
+        var result = service.movement(0, PLAYOFFS, 1, QbStatsService.Basis.SEASON);
+        assertThat(result.series().getFirst().ranks()).extracting(r -> r.week()).containsExactly(18, 22);
+    }
+
+    @Test
+    void alltimeBasisRanksTheCareerBoardWeekByWeekAcrossSeasons() {
+        var a0 = row("a", 17, 250, 2500);
+        var b0 = row("b", 17, 250, 1250);
+        var a1 = row("a", 0, 250, 0);
+        var b1 = row("b", 0, 250, 3750);
+        a1.setSeasonIndex(1);
+        b1.setSeasonIndex(1);
+        when(repository.findInScope(null, 0, 17)).thenReturn(List.of(a0, b0, a1, b1));
+        var result = service.movement(1, REGULAR, 1, QbStatsService.Basis.ALLTIME);
+        var ranks = result.series().getFirst().ranks();
+        assertThat(ranks).extracting(r -> r.season()).containsExactly(0, 1);
+        assertThat(ranks).extracting(r -> r.week()).containsExactly(17, 0);
+        assertThat(result.risers()).extracting(d -> d.rosterId).containsExactly("b");
+        assertThat(result.fallers()).extracting(d -> d.rosterId).containsExactly("a");
     }
 
     @Test

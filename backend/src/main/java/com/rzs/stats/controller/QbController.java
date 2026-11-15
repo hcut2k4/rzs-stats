@@ -28,9 +28,10 @@ public class QbController {
 
     @GetMapping("/movement")
     public QbDtos.Movement movement(@RequestParam(required = false) Integer season,
-            @RequestParam(defaultValue = "REGULAR") String stage, @RequestParam(defaultValue = "1") int window) {
+            @RequestParam(defaultValue = "REGULAR") String stage, @RequestParam(defaultValue = "1") int window,
+            @RequestParam(defaultValue = "SEASON") String basis) {
         validate(season, null);
-        return service.movement(season, parse(Stage.class, stage), window);
+        return service.movement(season, parse(Stage.class, stage), window, parse(QbStatsService.Basis.class, basis));
     }
 
     @GetMapping("/profile/{rosterId}")

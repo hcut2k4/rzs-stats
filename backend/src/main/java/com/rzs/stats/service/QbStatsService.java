@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 @Service
 public class QbStatsService {
     public enum Scope { WEEK, SEASON, ALLTIME }
+    public enum Basis { SEASON, ALLTIME }
     public enum Stage {
         REGULAR, PLAYOFFS, BOTH;
         public int minWeek() { return this == PLAYOFFS ? 18 : 0; }
@@ -115,15 +116,24 @@ public class QbStatsService {
     }
 
     @Cacheable("qbStats")
-    public QbDtos.Movement movement(Integer season, Stage stage, int window) {
+    public QbDtos.Movement movement(Integer season, Stage stage, int window, Basis basis) {
         if (window < 1) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "window must be positive");
-        List<QbGameStatEntity> rows = repository.findInScope(season, stage.minWeek(), stage.maxWeek());
+        boolean career = basis == Basis.ALLTIME;
+        List<QbGameStatEntity> rows = repository.findInScope(career ? null : season, stage.minWeek(), stage.maxWeek());
         int selectedSeason = season == null ? rows.stream().mapToInt(QbGameStatEntity::getSeasonIndex).max().orElse(0) : season;
-        rows = rows.stream().filter(r -> r.getSeasonIndex() == selectedSeason).toList();
-        List<GameEntity> teamGames = games.findCompletedInScope(selectedSeason, stage.minWeek(), stage.maxWeek());
-        int latest = rows.stream().mapToInt(QbGameStatEntity::getWeekIndex).max().orElse(stage.minWeek());
-        Map<String, Integer> changes = changes(rows, teamGames, latest, latest - window, null, stage);
-        List<QbStatDto> current = cumulative(rows, teamGames, latest, null, stage).stream().filter(d -> d.rank != null).toList();
+        if (!career) rows = rows.stream().filter(r -> r.getSeasonIndex() == selectedSeason).toList();
+        List<GameEntity> teamGames = games.findCompletedInScope(career ? null : selectedSeason, stage.minWeek(), stage.maxWeek());
+
+        // Points come from weeks that actually have games, so an empty playoff week never reaches the chart.
+        List<Point> points = rows.stream().map(r -> new Point(r.getSeasonIndex(), r.getWeekIndex())).distinct()
+                .sorted(Comparator.comparingInt(Point::season).thenComparingInt(Point::week)).toList();
+        if (points.isEmpty()) return new QbDtos.Movement(List.of(), List.of(), List.of());
+
+        List<QbGameStatEntity> scoped = rows;
+        List<QbStatDto> now = boardAt(scoped, teamGames, points.getLast(), career, stage);
+        List<QbStatDto> before = boardAt(scoped, teamGames, points.get(Math.max(0, points.size() - 1 - window)), career, stage);
+        Map<String, Integer> changes = cohortChange(now, before);
+        List<QbStatDto> current = now.stream().filter(d -> d.rank != null).toList();
         current.forEach(d -> d.rankChange = changes.get(d.rosterId));
         List<QbStatDto> risers = current.stream().filter(d -> d.rankChange != null && d.rankChange > 0)
                 .sorted(Comparator.comparingInt((QbStatDto d) -> d.rankChange).reversed().thenComparing(ORDER)).limit(5).toList();
@@ -131,13 +141,23 @@ public class QbStatsService {
                 .sorted(Comparator.comparingInt((QbStatDto d) -> d.rankChange).thenComparing(ORDER)).limit(5).toList();
         Map<String, List<QbDtos.Rank>> history = new LinkedHashMap<>();
         current.stream().limit(10).forEach(d -> history.put(d.rosterId, new ArrayList<>()));
-        for (int w = Math.max(stage.minWeek(), latest - window); w <= latest; w++) {
-            for (QbStatDto d : cumulative(rows, teamGames, w, null, stage)) if (d.rank != null && history.containsKey(d.rosterId))
-                history.get(d.rosterId).add(new QbDtos.Rank(w, d.rank, d.tanya));
+        for (Point p : points) {
+            for (QbStatDto d : boardAt(scoped, teamGames, p, career, stage)) if (d.rank != null && history.containsKey(d.rosterId))
+                history.get(d.rosterId).add(new QbDtos.Rank(p.season(), p.week(), d.rank, d.tanya));
         }
         List<QbDtos.Series> series = current.stream().limit(10)
                 .map(d -> new QbDtos.Series(d.rosterId, d.playerName, d.teamAbbr, history.get(d.rosterId))).toList();
         return new QbDtos.Movement(risers, fallers, series);
+    }
+
+    private record Point(int season, int week) {}
+
+    // The career board is re-ranked every week, so a QB can climb the all-time list mid-season.
+    private List<QbStatDto> boardAt(List<QbGameStatEntity> rows, List<GameEntity> teamGames, Point p, boolean career, Stage stage) {
+        List<QbGameStatEntity> upTo = rows.stream().filter(r -> career
+                ? r.getSeasonIndex() < p.season() || (r.getSeasonIndex() == p.season() && r.getWeekIndex() <= p.week())
+                : r.getWeekIndex() <= p.week()).toList();
+        return aggregate(upTo, teamGames, career ? Scope.ALLTIME : Scope.SEASON, p.week(), null, stage);
     }
 
     @Cacheable("qbStats")

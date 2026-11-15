@@ -14,6 +14,24 @@ const n1 = v => v != null ? v.toFixed(1) : '—'
 const signed2 = v => v != null ? (v > 0 ? '+' : '') + v.toFixed(2) : '—'
 const pct1 = v => v != null ? (v * 100).toFixed(1) + '%' : '—'
 
+const ROUND_ABBR = { 18: 'WC', 19: 'DIV', 20: 'CONF', 22: 'SB' }
+
+export function pointLabel(season, week, showSeason) {
+  const w = week >= 18 ? (ROUND_ABBR[week] ?? `P${week - 17}`) : `W${week + 1}`
+  return showSeason ? `'${String(season + 2026).slice(2)} ${w}` : w
+}
+
+const BASES = [
+  { value: 'season', label: 'Season' },
+  { value: 'alltime', label: 'All-time' },
+]
+
+const WINDOWS = [
+  { value: 1, label: 'Last week' },
+  { value: 4, label: 'Last 4' },
+  { value: 999, label: 'From start' },
+]
+
 const PRESETS = [
   { value: 'efficiency', label: 'Efficiency' },
   { value: 'classic', label: 'Classic' },
@@ -230,17 +248,18 @@ function MoverList({ title, rows, direction }) {
   )
 }
 
-function Movement({ data, loading }) {
+function Movement({ data, loading, basis }) {
   const [hidden, setHidden] = useState({})
   if (loading) return <div className="text-muted">Loading...</div>
   if (!data) return null
 
   const series = data.series ?? []
-  const weeks = [...new Set(series.flatMap(s => (s.ranks ?? []).map(p => p.week)))].sort((a, b) => a - b)
-  const chartData = weeks.map(week => {
-    const point = { week: `W${week + 1}` }
+  const points = [...new Map(series.flatMap(s => (s.ranks ?? []).map(p => [`${p.season}:${p.week}`, p]))).values()]
+    .sort((a, b) => a.season - b.season || a.week - b.week)
+  const chartData = points.map(p => {
+    const point = { label: pointLabel(p.season, p.week, basis === 'alltime') }
     for (const s of series) {
-      const hit = (s.ranks ?? []).find(p => p.week === week)
+      const hit = (s.ranks ?? []).find(q => q.season === p.season && q.week === p.week)
       if (hit) point[s.rosterId] = hit.rank
     }
     return point
@@ -257,12 +276,16 @@ function Movement({ data, loading }) {
       {series.length > 0 && (
         <div>
           <h3 className="font-display font-bold uppercase text-lg mb-1">Rank by week</h3>
-          <p className="text-xs text-muted mb-3">Cumulative TANY/A rank through each week. Click a name to show or hide it.</p>
+          <p className="text-xs text-muted mb-3">
+            {basis === 'alltime'
+              ? 'Career TANY/A rank, re-ranked after every week across all seasons. Early weeks are sparse until quarterbacks reach 250 career attempts. Click a name to show or hide it.'
+              : 'Cumulative TANY/A rank through each week of the season. Click a name to show or hide it.'}
+          </p>
           <div className="h-96 -ml-2">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 4, right: 16, bottom: 4, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--line))" />
-                <XAxis dataKey="week" tick={{ fontSize: 12 }} stroke="rgb(var(--muted))" />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} interval="preserveStartEnd" minTickGap={16} stroke="rgb(var(--muted))" />
                 <YAxis reversed domain={[1, maxRank]} allowDecimals={false} tick={{ fontSize: 12 }} stroke="rgb(var(--muted))" width={32} />
                 <RTooltip
                   contentStyle={{ background: 'rgb(var(--bg))', border: '1px solid rgb(var(--line))', fontSize: 12 }}
@@ -313,6 +336,8 @@ export default function QbPage() {
   const [includeUnqualified, setIncludeUnqualified] = useState(false)
   const [rows, setRows] = useState([])
   const [movement, setMovement] = useState(null)
+  const [basis, setBasis] = useState('season')
+  const [moverWindow, setMoverWindow] = useState(1)
   const [sortKey, setSortKey] = useState('tanya')
   const [sortAsc, setSortAsc] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -357,14 +382,15 @@ export default function QbPage() {
   }, [tab, scope, season, week, stage, minAtt, includeUnqualified])
 
   useEffect(() => {
-    if (tab !== 'movement' || season == null) return
+    if (tab !== 'movement') return
+    if (basis === 'season' && season == null) return
     setLoading(true)
     setError(null)
-    getQbMovement({ season, stage })
+    getQbMovement({ season, stage, basis, window: moverWindow })
       .then(setMovement)
       .catch(() => setError('Failed to load movement'))
       .finally(() => setLoading(false))
-  }, [tab, season, stage])
+  }, [tab, season, stage, basis, moverWindow])
 
   const handleSort = key => {
     if (key === sortKey) setSortAsc(a => !a)
@@ -398,28 +424,61 @@ export default function QbPage() {
         qualifier={`${qualifier} · ranked by TANY/A`}
         takeaway="TANY/A folds a quarterback's rushing into his passing efficiency, so scramblers and pocket passers sit on one scale."
       >
-        <div className="flex border border-line rounded overflow-hidden">
-          {SCOPES.map(s => (
-            <button
-              key={s.value}
-              onClick={() => setScope(s.value)}
-              className={`px-2 py-1 text-xs font-medium ${scope === s.value ? 'bg-ink text-bg' : 'text-muted hover:text-ink'}`}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
+        {tab === 'leaderboard' ? (
+          <>
+            <div className="flex border border-line rounded overflow-hidden">
+              {SCOPES.map(s => (
+                <button
+                  key={s.value}
+                  onClick={() => setScope(s.value)}
+                  className={`px-2 py-1 text-xs font-medium ${scope === s.value ? 'bg-ink text-bg' : 'text-muted hover:text-ink'}`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
 
-        {scope !== 'alltime' && (
-          <select className="field" value={season ?? ''} onChange={e => setSeason(Number(e.target.value))}>
-            {seasons.map(s => <option key={s} value={s}>Season {s + 2026}</option>)}
-          </select>
-        )}
+            {scope !== 'alltime' && (
+              <select className="field" value={season ?? ''} onChange={e => setSeason(Number(e.target.value))}>
+                {seasons.map(s => <option key={s} value={s}>Season {s + 2026}</option>)}
+              </select>
+            )}
 
-        {scope === 'week' && (
-          <select className="field" value={week ?? ''} onChange={e => setWeek(Number(e.target.value))}>
-            {weeks.map(w => <option key={w} value={w}>Week {w + 1}</option>)}
-          </select>
+            {scope === 'week' && (
+              <select className="field" value={week ?? ''} onChange={e => setWeek(Number(e.target.value))}>
+                {weeks.map(w => <option key={w} value={w}>Week {w + 1}</option>)}
+              </select>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="flex border border-line rounded overflow-hidden">
+              {BASES.map(b => (
+                <button
+                  key={b.value}
+                  onClick={() => setBasis(b.value)}
+                  className={`px-2 py-1 text-xs font-medium ${basis === b.value ? 'bg-ink text-bg' : 'text-muted hover:text-ink'}`}
+                >
+                  {b.label}
+                </button>
+              ))}
+            </div>
+
+            {basis === 'season' && (
+              <select className="field" value={season ?? ''} onChange={e => setSeason(Number(e.target.value))}>
+                {seasons.map(s => <option key={s} value={s}>Season {s + 2026}</option>)}
+              </select>
+            )}
+
+            <label className="flex items-center gap-2 text-sm">
+              <InfoTip text="How far back the risers and fallers compare. It does not change the chart, which always plots every week available.">
+                <span className="text-muted">Movers vs</span>
+              </InfoTip>
+              <select className="field" value={moverWindow} onChange={e => setMoverWindow(Number(e.target.value))}>
+                {WINDOWS.map(w => <option key={w.value} value={w.value}>{w.label}</option>)}
+              </select>
+            </label>
+          </>
         )}
 
         <div className="flex border border-line rounded overflow-hidden">
@@ -495,7 +554,7 @@ export default function QbPage() {
         />
       )}
 
-      {!loading && !error && tab === 'movement' && <Movement data={movement} loading={false} />}
+      {!loading && !error && tab === 'movement' && <Movement data={movement} loading={false} basis={basis} />}
     </div>
   )
 }

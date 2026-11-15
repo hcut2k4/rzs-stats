@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildQbRows } from '../pages/QbPage'
+import { buildQbRows, pointLabel } from '../pages/QbPage'
 
 const sampleRows = [
   {
@@ -52,5 +52,24 @@ describe('buildQbRows', () => {
   it('falls back to row order when the server sends no rank', () => {
     const rows = buildQbRows([{ ...sampleRows[0], rank: null }])
     expect(rows[1][0]).toBe(1)
+  })
+})
+
+describe('pointLabel', () => {
+  it('numbers regular season weeks from one', () => {
+    expect(pointLabel(2, 0, false)).toBe('W1')
+    expect(pointLabel(2, 17, false)).toBe('W18')
+  })
+
+  it('names playoff rounds instead of numbering them', () => {
+    expect(pointLabel(1, 18, false)).toBe('WC')
+    expect(pointLabel(1, 19, false)).toBe('DIV')
+    expect(pointLabel(1, 20, false)).toBe('CONF')
+    expect(pointLabel(1, 22, false)).toBe('SB')
+  })
+
+  it('prefixes the season when the timeline spans more than one', () => {
+    expect(pointLabel(0, 6, true)).toBe("'26 W7")
+    expect(pointLabel(2, 22, true)).toBe("'28 SB")
   })
 })
