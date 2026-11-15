@@ -38,3 +38,8 @@ export const getEloMatchup = (teamA, teamB, homeTeam) => api.get('/elo/matchup',
 export const getEloConfig = () => api.get('/admin/elo/config').then(r => r.data)
 export const putEloConfig = (config) => api.put('/admin/elo/config', config).then(r => r.data)
 export const getEloUpcoming = (season) => api.get('/elo/upcoming', { params: { season } }).then(r => r.data)
+
+export const getQbLeaderboard = (params) => api.get('/qb/leaderboard', { params }).then(r => r.data)
+export const getQbMovement = (params) => api.get('/qb/movement', { params }).then(r => r.data)
+export const triggerQbSync = () => api.post('/admin/sync/qb').then(r => r.data)
+export const getQbSyncStatus = () => api.get('/admin/sync/qb/status').then(r => r.data)

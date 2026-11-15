@@ -22,6 +22,7 @@ class AdminTokenUnsetTest {
     @Autowired MockMvc mvc;
     @MockBean com.rzs.stats.service.EloConfigService eloConfig;
     @MockBean SyncService syncService;
+    @MockBean com.rzs.stats.service.QbStatsSyncService qbSync;
     @MockBean NeonSportzClient client;
     @MockBean GameRepository gameRepository;
     @MockBean CacheWarmingService cacheWarmingService;

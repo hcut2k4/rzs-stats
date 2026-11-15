@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import PageHeader from '../components/PageHeader'
-import { triggerSync, triggerForceSync, getSyncStatus, triggerCacheWarm, getCacheWarmStatus, checkAdminAuth, setAdminToken, getEloConfig, putEloConfig } from '../api/client'
+import { triggerSync, triggerForceSync, getSyncStatus, triggerCacheWarm, getCacheWarmStatus, checkAdminAuth, setAdminToken, getEloConfig, putEloConfig, triggerQbSync, getQbSyncStatus } from '../api/client'
 
 const ELO_DEFAULTS = { initialRating: 1500, k: 25, divisor: 400, movEnabled: true, marginCap: 21, homeFieldAdvantage: 0, offseasonRetention: 0.9 }
 
@@ -69,11 +69,25 @@ function AdminTools() {
   const [result, setResult] = useState(null)
   const [warmStatus, setWarmStatus] = useState(null)
   const [warming, setWarming] = useState(false)
+  const [qbStatus, setQbStatus] = useState(null)
+  const [qbSyncing, setQbSyncing] = useState(false)
 
   useEffect(() => {
     getSyncStatus().then(setStatus).catch(() => {})
     getCacheWarmStatus().then(setWarmStatus).catch(() => {})
+    getQbSyncStatus().then(setQbStatus).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (!qbSyncing) return
+    const id = setInterval(() => {
+      getQbSyncStatus().then(s => {
+        setQbStatus(s)
+        if (!s.inProgress) setQbSyncing(false)
+      }).catch(() => {})
+    }, 2000)
+    return () => clearInterval(id)
+  }, [qbSyncing])
 
   useEffect(() => {
     if (!warming) return
@@ -106,6 +120,19 @@ function AdminTools() {
       await triggerCacheWarm()
     } catch {
       setWarming(false)
+    }
+  }
+
+  const handleQbSync = async () => {
+    if (!window.confirm(
+      'Re-pull every QB game stat line from the passing, rushing and team endpoints for all seasons.\n\n' +
+      'This is roughly 280 API requests and runs in the background.\n\nProceed?'
+    )) return
+    setQbSyncing(true)
+    try {
+      await triggerQbSync()
+    } catch {
+      setQbSyncing(false)
     }
   }
 
@@ -207,6 +234,37 @@ function AdminTools() {
           className="btn w-full justify-center py-2"
         >
           {warming ? 'Warming...' : 'Warm Cache'}
+        </button>
+      </div>
+
+      <div className="mt-6 border border-line rounded p-5 space-y-3">
+        <div>
+          <p className="text-sm font-medium text-ink">Re-sync QB Stats</p>
+          <p className="text-xs text-muted mt-1">
+            Re-pulls every QB game line for all seasons from the passing, rushing and team endpoints.
+            Nightly sync only fetches new weeks, so use this after a schema or allocation change.
+          </p>
+        </div>
+        {qbStatus?.completedAt && !qbStatus.inProgress && (
+          <div>
+            <p className="text-sm text-muted mb-0.5">Last QB sync</p>
+            <p className="font-mono text-sm">{new Date(qbStatus.completedAt).toLocaleString()}</p>
+            {qbStatus.message && (
+              <p className={`text-xs mt-1 ${qbStatus.success ? 'text-good' : 'text-bad'}`}>
+                {qbStatus.message}
+              </p>
+            )}
+          </div>
+        )}
+        {qbStatus?.inProgress && (
+          <p className="text-sm text-accent animate-pulse">{qbStatus.message}</p>
+        )}
+        <button
+          onClick={handleQbSync}
+          disabled={qbSyncing || syncing}
+          className="btn w-full justify-center py-2"
+        >
+          {qbSyncing ? 'Syncing QB stats...' : 'Re-sync QB Stats'}
         </button>
       </div>
 

@@ -27,12 +27,13 @@ class SyncServiceTest {
     @Mock NeonSportzClient client;
     @Mock TeamRepository teamRepository;
     @Mock GameRepository gameRepository;
+    @Mock com.rzs.stats.repository.QbGameStatRepository qbRepository;
 
     SyncService service;
 
     @BeforeEach
     void setUp() {
-        service = new SyncService(client, teamRepository, gameRepository);
+        service = new SyncService(client, teamRepository, gameRepository, qbRepository);
     }
 
     // ── sync() ─────────────────────────────────────────────────────────────────
@@ -66,6 +67,7 @@ class SyncServiceTest {
 
         service.sync();
 
+        verify(qbRepository).deleteAllInBatch();
         verify(gameRepository).deleteAllInBatch();
         verify(teamRepository).deleteAllInBatch();
     }

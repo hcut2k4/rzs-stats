@@ -15,6 +15,8 @@ import static org.mockito.Mockito.*;
 class SyncSchedulerTest {
 
     @Mock SyncService syncService;
+    @Mock com.rzs.stats.service.QbStatsSyncService qbSync;
+
     @InjectMocks SyncScheduler syncScheduler;
 
     @BeforeEach
@@ -26,12 +28,14 @@ class SyncSchedulerTest {
     void scheduledSync_callsSyncServiceSync() {
         syncScheduler.scheduledSync();
         verify(syncService, times(1)).sync();
+        verify(qbSync).syncIncremental();
     }
 
     @Test
     void scheduledSync_completesEvenIfSyncFails() {
         when(syncService.sync()).thenReturn(new SyncService.SyncResult(false, "failed"));
         assertDoesNotThrow(() -> syncScheduler.scheduledSync());
+        verifyNoInteractions(qbSync);
         verify(syncService, times(1)).sync();
     }
 }
