@@ -69,8 +69,8 @@ describe('pointLabel', () => {
   })
 
   it('prefixes the season when the timeline spans more than one', () => {
-    expect(pointLabel(0, 6, true)).toBe("'26 W7")
-    expect(pointLabel(2, 22, true)).toBe("'28 SB")
+    expect(pointLabel(0, 6, true)).toBe("S103 W7")
+    expect(pointLabel(2, 22, true)).toBe("S105 SB")
   })
 })
 

@@ -5,6 +5,7 @@ import { TeamCell } from '../components/TeamLogo'
 import PageHeader from '../components/PageHeader'
 import InfoTip from '../components/InfoTip'
 import { goodBadColor, divergeColor } from '../utils/heat'
+import { seasonLabel, seasonNumber } from '../utils/seasons'
 
 export function buildStandingsRows(standings) {
   const headers = ['Rank', 'Team', 'W', 'L', 'T', 'Win%', 'Avg PF', 'Avg PA', 'PyPAT%', 'Luck', 'SoS (Played, Curr)']
@@ -33,7 +34,7 @@ function exportCsv(standings, season) {
   const blob = new Blob([csv], { type: 'text/csv' })
   const a = document.createElement('a')
   a.href = URL.createObjectURL(blob)
-  a.download = `standings-season-${season + 2026}.csv`
+  a.download = `standings-season-${seasonNumber(season)}.csv`
   a.click()
   URL.revokeObjectURL(a.href)
 }
@@ -42,8 +43,8 @@ function exportExcel(standings, season) {
   const rows = buildStandingsRows(standings)
   const ws = XLSX.utils.aoa_to_sheet(rows)
   const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, `Season ${season + 2026}`)
-  XLSX.writeFile(wb, `standings-season-${season + 2026}.xlsx`)
+  XLSX.utils.book_append_sheet(wb, ws, seasonLabel(season))
+  XLSX.writeFile(wb, `standings-season-${seasonNumber(season)}.xlsx`)
 }
 
 const pct = v => v != null ? (v * 100).toFixed(1) + '%' : '—'
@@ -167,7 +168,7 @@ export default function StandingsPage() {
     <div>
       <PageHeader
         title="Standings"
-        qualifier={season != null ? `Season ${season + 2026}${gamesLabel ? ` · ${gamesLabel}` : ''} · ranked by PyPAT` : null}
+        qualifier={season != null ? `${seasonLabel(season)}${gamesLabel ? ` · ${gamesLabel}` : ''} · ranked by PyPAT` : null}
       >
         <select
           className="field"
@@ -179,7 +180,7 @@ export default function StandingsPage() {
           }}
         >
           {seasons.map(s => (
-            <option key={s} value={s}>Season {s + 2026}</option>
+            <option key={s} value={s}>Season {seasonNumber(s)}</option>
           ))}
         </select>
 

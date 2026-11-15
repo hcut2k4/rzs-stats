@@ -8,6 +8,7 @@ import InfoTip from '../components/InfoTip'
 import Tabs from '../components/Tabs'
 import { goodBadColor, divergeColor } from '../utils/heat'
 import { COLORS } from '../utils/chartColors'
+import { seasonLabel, seasonNumber } from '../utils/seasons'
 
 const n2 = v => v != null ? v.toFixed(2) : '—'
 const n1 = v => v != null ? v.toFixed(1) : '—'
@@ -44,7 +45,7 @@ export const neonPlayerUrl = rosterId => `https://neonsportz.com/leagues/RZS/pla
 
 export function pointLabel(season, week, showSeason) {
   const w = week >= 18 ? (ROUND_ABBR[week] ?? `P${week - 17}`) : `W${week + 1}`
-  return showSeason ? `'${String(season + 2026).slice(2)} ${w}` : w
+  return showSeason ? `S${seasonNumber(season)} ${w}` : w
 }
 
 const BASES = [
@@ -502,14 +503,14 @@ export default function QbPage() {
   const scopeLabel = scope === 'alltime'
     ? 'all-time'
     : scope === 'week'
-      ? `${season + 2026}-week-${week != null ? week + 1 : ''}`
-      : `season-${season + 2026}`
+      ? `${seasonNumber(season)}-week-${week != null ? week + 1 : ''}`
+      : `season-${seasonNumber(season)}`
 
   const qualifier = scope === 'alltime'
     ? 'All seasons · min 250 attempts'
     : scope === 'week'
-      ? `Season ${season + 2026} · Week ${week != null ? week + 1 : '—'} · min 10 attempts`
-      : `Season ${season + 2026} · min 10 attempts per team game`
+      ? `${seasonLabel(season)} · Week ${week != null ? week + 1 : '—'} · min 10 attempts`
+      : `${seasonLabel(season)} · min 10 attempts per team game`
 
   return (
     <div>
@@ -534,7 +535,7 @@ export default function QbPage() {
 
             {scope !== 'alltime' && (
               <select className="field" value={season ?? ''} onChange={e => setSeason(Number(e.target.value))}>
-                {seasons.map(s => <option key={s} value={s}>Season {s + 2026}</option>)}
+                {seasons.map(s => <option key={s} value={s}>Season {seasonNumber(s)}</option>)}
               </select>
             )}
 
@@ -560,7 +561,7 @@ export default function QbPage() {
 
             {basis === 'season' && (
               <select className="field" value={season ?? ''} onChange={e => setSeason(Number(e.target.value))}>
-                {seasons.map(s => <option key={s} value={s}>Season {s + 2026}</option>)}
+                {seasons.map(s => <option key={s} value={s}>Season {seasonNumber(s)}</option>)}
               </select>
             )}
 

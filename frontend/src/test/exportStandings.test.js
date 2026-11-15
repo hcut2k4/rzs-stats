@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { buildStandingsRows } from '../pages/StandingsPage'
 import * as XLSX from 'xlsx'
 
-const SEASON_YEAR = 5 + 2026   // season index 5 → display year 2031
+const SEASON_YEAR = 5 + 103   // season index 5 → league season 108
 
 const sampleStandings = [
   {
