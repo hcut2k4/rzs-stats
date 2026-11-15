@@ -55,7 +55,7 @@ const ALL_COLS = [
   { key: 'passAtt', label: 'Att', presets: ['efficiency', 'classic', 'rushing', 'all'], group: 'Volume' },
   { key: 'tanya', label: 'TANY/A', fmt: n2, heat: 'higher', presets: ['efficiency', 'classic', 'rushing', 'all'], group: 'Efficiency', groupStart: true, title: TANYA_TIP },
   { key: 'anya', label: 'ANY/A', fmt: n2, heat: 'higher', presets: ['efficiency', 'all'], group: 'Efficiency', title: 'Adjusted Net Yards per Attempt — passing only, no fumble term. The classic benchmark.' },
-  { key: 'rushValue', label: 'RUSH+', fmt: v => <RushPlus value={v} />, presets: ['efficiency', 'rushing', 'all'], group: 'Efficiency', title: RUSHPLUS_TIP },
+  { key: 'rushValue', label: 'RUSH+', fmt: signed2, heat: 'higher', presets: ['efficiency', 'rushing', 'all'], group: 'Efficiency', title: RUSHPLUS_TIP },
   { key: 'passerRating', label: 'Rating', fmt: n1, heat: 'higher', presets: ['classic', 'all'], group: 'Efficiency' },
   { key: 'passComp', label: 'Cmp', presets: ['classic', 'all'], group: 'Passing', groupStart: true },
   { key: 'passYds', label: 'Yds', heat: 'higher', presets: ['classic', 'all'], group: 'Passing' },
@@ -72,12 +72,6 @@ const ALL_COLS = [
   { key: 'rushYdsPerAtt', label: 'YPC', fmt: n1, heat: 'higher', presets: ['rushing', 'all'], group: 'Rushing' },
   { key: 'rushTd', label: 'TD', heat: 'higher', presets: ['rushing', 'all'], group: 'Rushing' },
 ]
-
-function RushPlus({ value }) {
-  if (value == null) return <span className="text-muted">—</span>
-  const tone = value > 0 ? 'text-good' : value < 0 ? 'text-bad' : ''
-  return <span className={tone}>{signed2(value)}</span>
-}
 
 function Move({ value }) {
   if (value == null) return <span className="text-muted text-xs">new</span>
