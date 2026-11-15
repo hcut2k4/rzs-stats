@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import PageHeader from '../components/PageHeader'
-import { triggerSync, triggerForceSync, getSyncStatus, triggerCacheWarm, getCacheWarmStatus } from '../api/client'
+import { triggerSync, triggerForceSync, getSyncStatus, triggerCacheWarm, getCacheWarmStatus, checkAdminAuth, setAdminToken } from '../api/client'
 
-export default function AdminPage() {
+function AdminTools() {
   const [status, setStatus] = useState(null)
   const [syncing, setSyncing] = useState(false)
   const [result, setResult] = useState(null)
@@ -152,6 +152,54 @@ export default function AdminPage() {
       <p className="mt-4 text-xs text-muted">
         Data syncs automatically every night at 4am ET.
       </p>
+    </div>
+  )
+}
+
+export default function AdminPage() {
+  const [authed, setAuthed] = useState(null)
+  const [passcode, setPasscode] = useState('')
+  const [rejected, setRejected] = useState(false)
+
+  const check = () =>
+    checkAdminAuth()
+      .then(() => setAuthed(true))
+      .catch(() => setAuthed(false))
+
+  useEffect(() => { check() }, [])
+
+  const submit = async e => {
+    e.preventDefault()
+    setAdminToken(passcode)
+    setRejected(false)
+    try {
+      await checkAdminAuth()
+      setAuthed(true)
+    } catch {
+      setAdminToken(null)
+      setRejected(true)
+    }
+  }
+
+  if (authed === null) return <div className="text-muted">Loading...</div>
+  if (authed) return <AdminTools />
+
+  return (
+    <div className="max-w-md">
+      <PageHeader title="Admin" qualifier="Passcode required" />
+      <form onSubmit={submit} className="space-y-3">
+        <input
+          type="password"
+          autoFocus
+          aria-label="Passcode"
+          value={passcode}
+          onChange={e => setPasscode(e.target.value)}
+          className="field w-full"
+          placeholder="Passcode"
+        />
+        {rejected && <p className="text-sm text-bad">Incorrect passcode.</p>}
+        <button type="submit" className="btn-primary w-full justify-center py-2">Unlock</button>
+      </form>
     </div>
   )
 }
