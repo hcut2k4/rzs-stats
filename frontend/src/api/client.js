@@ -30,3 +30,10 @@ export const triggerForceSync = () => api.post('/admin/sync/force').then(r => r.
 export const getSyncStatus = () => api.get('/admin/sync/status').then(r => r.data)
 export const triggerCacheWarm = () => api.post('/admin/cache/warm').then(r => r.data)
 export const getCacheWarmStatus = () => api.get('/admin/cache/warm/status').then(r => r.data)
+
+export const getEloRatings = (season, week) => api.get('/elo/ratings', { params: { season, week } }).then(r => r.data)
+export const getEloHistory = (season) => api.get('/elo/history', { params: { season } }).then(r => r.data)
+export const getEloGames = (season, week) => api.get('/elo/games', { params: { season, week } }).then(r => r.data)
+export const getEloMatchup = (teamA, teamB, homeTeam) => api.get('/elo/matchup', { params: { teamA, teamB, homeTeam } }).then(r => r.data)
+export const getEloConfig = () => api.get('/admin/elo/config').then(r => r.data)
+export const putEloConfig = (config) => api.put('/admin/elo/config', config).then(r => r.data)

@@ -1,6 +1,67 @@
 import { useState, useEffect } from 'react'
 import PageHeader from '../components/PageHeader'
-import { triggerSync, triggerForceSync, getSyncStatus, triggerCacheWarm, getCacheWarmStatus, checkAdminAuth, setAdminToken } from '../api/client'
+import { triggerSync, triggerForceSync, getSyncStatus, triggerCacheWarm, getCacheWarmStatus, checkAdminAuth, setAdminToken, getEloConfig, putEloConfig } from '../api/client'
+
+const ELO_DEFAULTS = { initialRating: 1500, k: 25, divisor: 400, movEnabled: true, marginCap: 21, homeFieldAdvantage: 0, offseasonRetention: 0.9 }
+
+const ELO_FIELDS = [
+  ['initialRating', 'Initial rating'],
+  ['k', 'K factor'],
+  ['divisor', 'Probability divisor'],
+  ['marginCap', 'Margin cap (points)'],
+  ['homeFieldAdvantage', 'Home-field advantage (Elo points)'],
+  ['offseasonRetention', 'Offseason retention (0–1)'],
+]
+
+function EloConfigPanel() {
+  const [config, setConfig] = useState(null)
+  const [message, setMessage] = useState(null)
+
+  useEffect(() => { getEloConfig().then(setConfig).catch(() => setMessage({ ok: false, text: 'Failed to load Elo settings' })) }, [])
+
+  const save = async e => {
+    e.preventDefault()
+    setMessage(null)
+    try {
+      setConfig(await putEloConfig(config))
+      setMessage({ ok: true, text: 'Saved. Ratings recalculate from all games.' })
+    } catch {
+      setMessage({ ok: false, text: 'Rejected: check the values are in range.' })
+    }
+  }
+
+  if (!config) return null
+
+  return (
+    <form onSubmit={save} className="mt-6 border border-line rounded p-5 space-y-3">
+      <div>
+        <p className="text-sm font-medium">Elo Settings</p>
+        <p className="text-xs text-muted mt-1">Changing these recalculates every rating from the full game history.</p>
+      </div>
+      {ELO_FIELDS.map(([key, text]) => (
+        <label key={key} className="flex items-center justify-between gap-3 text-sm">
+          {text}
+          <input
+            type="number"
+            step="any"
+            className="field w-28 text-right"
+            value={config[key]}
+            onChange={e => setConfig({ ...config, [key]: e.target.value === '' ? '' : Number(e.target.value) })}
+          />
+        </label>
+      ))}
+      <label className="flex items-center justify-between gap-3 text-sm">
+        Margin-of-victory adjustment
+        <input type="checkbox" className="accent-accent" checked={config.movEnabled} onChange={e => setConfig({ ...config, movEnabled: e.target.checked })} />
+      </label>
+      {message && <p className={`text-sm ${message.ok ? 'text-good' : 'text-bad'}`}>{message.text}</p>}
+      <div className="flex gap-2">
+        <button type="submit" className="btn-primary flex-1 justify-center py-2">Save</button>
+        <button type="button" className="btn py-2" onClick={() => setConfig(ELO_DEFAULTS)}>Reset to defaults</button>
+      </div>
+    </form>
+  )
+}
 
 function AdminTools() {
   const [status, setStatus] = useState(null)
@@ -148,6 +209,8 @@ function AdminTools() {
           {warming ? 'Warming...' : 'Warm Cache'}
         </button>
       </div>
+
+      <EloConfigPanel />
 
       <p className="mt-4 text-xs text-muted">
         Data syncs automatically every night at 4am ET.

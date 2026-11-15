@@ -6,10 +6,13 @@ import AdminPage from '../pages/AdminPage'
 
 vi.mock('../api/client')
 
+const ELO_CONFIG = { initialRating: 1500, k: 25, divisor: 400, movEnabled: true, marginCap: 21, homeFieldAdvantage: 0, offseasonRetention: 0.9 }
+
 describe('AdminPage passcode gate', () => {
   beforeEach(() => {
     client.getSyncStatus.mockResolvedValue({})
     client.getCacheWarmStatus.mockResolvedValue({})
+    client.getEloConfig.mockResolvedValue(ELO_CONFIG)
   })
   afterEach(() => vi.clearAllMocks())
 
@@ -42,5 +45,25 @@ describe('AdminPage passcode gate', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Unlock' }))
     expect(await screen.findByText('Incorrect passcode.')).toBeInTheDocument()
     expect(client.setAdminToken).toHaveBeenLastCalledWith(null)
+  })
+
+  it('saves edited Elo settings', async () => {
+    client.checkAdminAuth.mockResolvedValue({ ok: true })
+    client.putEloConfig.mockImplementation(c => Promise.resolve(c))
+    render(<AdminPage />)
+    const k = await screen.findByLabelText('K factor')
+    await userEvent.clear(k)
+    await userEvent.type(k, '30')
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+    expect(client.putEloConfig).toHaveBeenCalledWith({ ...ELO_CONFIG, k: 30 })
+    expect(await screen.findByText(/Saved/)).toBeInTheDocument()
+  })
+
+  it('shows an error when the backend rejects Elo settings', async () => {
+    client.checkAdminAuth.mockResolvedValue({ ok: true })
+    client.putEloConfig.mockRejectedValue({ response: { status: 400 } })
+    render(<AdminPage />)
+    await userEvent.click(await screen.findByRole('button', { name: 'Save' }))
+    expect(await screen.findByText(/Rejected/)).toBeInTheDocument()
   })
 })
