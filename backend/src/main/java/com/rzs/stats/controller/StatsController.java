@@ -41,6 +41,12 @@ public class StatsController {
         return elo.games(season, week, teamId);
     }
 
+    @GetMapping("/elo/upcoming")
+    public List<EloDtos.Upcoming> eloUpcoming(@RequestParam(required = false) Integer season,
+                                              @RequestParam(required = false) Integer week) {
+        return elo.upcoming(season, week);
+    }
+
     @GetMapping("/elo/matchup")
     public EloDtos.Matchup eloMatchup(@RequestParam int teamA, @RequestParam int teamB,
                                       @RequestParam(required = false) Integer homeTeam) {

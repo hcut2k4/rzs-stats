@@ -37,3 +37,4 @@ export const getEloGames = (season, week) => api.get('/elo/games', { params: { s
 export const getEloMatchup = (teamA, teamB, homeTeam) => api.get('/elo/matchup', { params: { teamA, teamB, homeTeam } }).then(r => r.data)
 export const getEloConfig = () => api.get('/admin/elo/config').then(r => r.data)
 export const putEloConfig = (config) => api.put('/admin/elo/config', config).then(r => r.data)
+export const getEloUpcoming = (season) => api.get('/elo/upcoming', { params: { season } }).then(r => r.data)

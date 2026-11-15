@@ -13,4 +13,6 @@ public class EloDtos {
                        double movMultiplier, double pointsMoved, double homePostgameElo, double awayPostgameElo) {}
     public record Matchup(Team teamA, Team teamB, double eloA, double eloB,
                           double teamAWinProbability, double teamBWinProbability) {}
+    public record Upcoming(Integer gameId, int season, int week, Team homeTeam, Team awayTeam,
+                           double homeElo, double awayElo, double homeWinProbability, double awayWinProbability) {}
 }

@@ -1,6 +1,8 @@
 package com.rzs.stats.service;
 
 import com.rzs.stats.model.dto.EloDtos;
+import com.rzs.stats.model.entity.GameEntity;
+import com.rzs.stats.repository.GameRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -11,10 +13,35 @@ import java.util.*;
 public class EloQueryService {
     private final EloHistoryService history;
     private final EloService engine;
+    private final GameRepository games;
 
-    public EloQueryService(EloHistoryService history, EloService engine) {
+    public EloQueryService(EloHistoryService history, EloService engine, GameRepository games) {
         this.history = history;
         this.engine = engine;
+        this.games = games;
+    }
+
+    public List<EloDtos.Upcoming> upcoming(Integer season, Integer week) {
+        EloService.Timeline timeline = history.getTimeline();
+        if (timeline.history().isEmpty()) return List.of();
+        int target = season != null ? season : timeline.history().getLast().season();
+        Map<Integer, Double> current = new HashMap<>();
+        selected(timeline, target, null).forEach(s -> current.put(s.team().teamId(), s.endElo()));
+        if (current.isEmpty()) return List.of();
+        double advantage = timeline.config().homeFieldAdvantage();
+        return games.findFutureRegularSeasonGames(target).stream()
+                .filter(g -> week == null || g.getWeekIndex().equals(week))
+                .filter(g -> current.containsKey(g.getHomeTeam().getTeamId()) && current.containsKey(g.getAwayTeam().getTeamId()))
+                .sorted(Comparator.comparing(GameEntity::getWeekIndex).thenComparing(GameEntity::getGameId, Comparator.nullsLast(Comparator.naturalOrder())))
+                .map(g -> {
+                    double home = current.get(g.getHomeTeam().getTeamId());
+                    double away = current.get(g.getAwayTeam().getTeamId());
+                    double p = engine.probability(home + advantage, away, timeline.config());
+                    return new EloDtos.Upcoming(g.getGameId(), g.getSeasonIndex(), g.getWeekIndex(),
+                            new EloService.Team(g.getHomeTeam().getTeamId(), g.getHomeTeam().getAbbrName(), g.getHomeTeam().getDisplayName()),
+                            new EloService.Team(g.getAwayTeam().getTeamId(), g.getAwayTeam().getAbbrName(), g.getAwayTeam().getDisplayName()),
+                            round(home), round(away), p, 1 - p);
+                }).toList();
     }
 
     public List<EloDtos.Rating> ratings(Integer season, Integer week) {

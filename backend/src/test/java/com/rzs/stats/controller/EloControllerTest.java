@@ -33,7 +33,7 @@ class EloControllerTest {
     void setUp() {
         var configService = new EloConfigService(configs);
         var engine = new EloService();
-        var queries = new EloQueryService(new EloHistoryService(games, configService, engine), engine);
+        var queries = new EloQueryService(new EloHistoryService(games, configService, engine), engine, games);
         mvc = MockMvcBuilders.standaloneSetup(new StatsController(null, queries),
                 new AdminController(null, null, games, null, configService)).build();
     }
@@ -44,6 +44,21 @@ class EloControllerTest {
         var g = new GameEntity(); g.setGameId(id); g.setSeasonIndex(season); g.setStageIndex(1);
         g.setWeekIndex(week); g.setStatus(2); g.setHomeTeam(a); g.setAwayTeam(b); g.setHomeScore(score); g.setAwayScore(0);
         return g;
+    }
+
+    @Test
+    void upcomingProjectsUnplayedGamesFromCurrentRatings() throws Exception {
+        var future = game(9, 0, 5, 0);
+        future.setStatus(1);
+        when(games.findAllForElo()).thenReturn(List.of(game(1, 0, 0, 7)));
+        when(games.findFutureRegularSeasonGames(0)).thenReturn(List.of(future));
+        mvc.perform(get("/api/elo/upcoming")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].week").value(5))
+                .andExpect(jsonPath("$[0].homeElo").value(1526.0))
+                .andExpect(jsonPath("$[0].awayElo").value(1474.0))
+                .andExpect(jsonPath("$[0].homeWinProbability").value(org.hamcrest.Matchers.closeTo(0.5746, 0.001)));
+        mvc.perform(get("/api/elo/upcoming").param("week", "6")).andExpect(content().json("[]"));
     }
 
     @Test

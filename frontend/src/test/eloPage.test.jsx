@@ -15,6 +15,7 @@ describe('EloPage', () => {
     client.getEloHistory.mockResolvedValue([hist(1, 0), hist(1, 18), hist(1, 22)])
     client.getEloRatings.mockResolvedValue([rating(1, 'BUF', 1700, 1), rating(2, 'MIA', 1300, 2)])
     client.getEloGames.mockResolvedValue([])
+    client.getEloUpcoming.mockResolvedValue([])
   })
   afterEach(() => vi.clearAllMocks())
 
@@ -41,5 +42,37 @@ describe('EloPage', () => {
     await screen.findAllByText('BUFx')
     await userEvent.click(screen.getByRole('tab', { name: 'Matchup' }))
     expect(await screen.findByText('90.9%')).toBeInTheDocument()
+  })
+
+  it('lists matchup teams alphabetically by nickname', async () => {
+    client.getEloRatings.mockResolvedValue([rating(1, 'AAA', 1700, 1), rating(2, 'ZZZ', 1300, 2), rating(3, 'MMM', 1500, 3)])
+    client.getEloMatchup.mockResolvedValue(null)
+    render(<MemoryRouter><EloPage /></MemoryRouter>)
+    await screen.findAllByText('AAAx')
+    await userEvent.click(screen.getByRole('tab', { name: 'Matchup' }))
+    const options = (await screen.findAllByLabelText('Team A'))[0].querySelectorAll('option')
+    expect([...options].map(o => o.textContent)).toEqual(['AAAx', 'MMMx', 'ZZZx'])
+  })
+
+  it('explains column headings with tooltips', async () => {
+    render(<MemoryRouter><EloPage /></MemoryRouter>)
+    await screen.findAllByText('BUFx')
+    expect(screen.getByText('vs 1500')).toHaveAttribute('title', expect.stringContaining('1500 average'))
+    expect(screen.getByText('Rank move')).toHaveAttribute('title', expect.stringContaining('places'))
+  })
+
+  it('offers future weeks on the Games tab with projected win probabilities', async () => {
+    client.getEloUpcoming.mockResolvedValue([{
+      gameId: 9, season: 1, week: 23,
+      homeTeam: { teamId: 1, abbrName: 'BUF', displayName: 'Bills' }, awayTeam: { teamId: 2, abbrName: 'MIA', displayName: 'Dolphins' },
+      homeElo: 1700, awayElo: 1300, homeWinProbability: 0.909, awayWinProbability: 0.091,
+    }])
+    render(<MemoryRouter><EloPage /></MemoryRouter>)
+    await screen.findAllByText('BUFx')
+    expect(screen.queryByRole('option', { name: /projected/ })).toBeNull()
+    await userEvent.click(screen.getByRole('tab', { name: 'Games' }))
+    await userEvent.selectOptions(screen.getByLabelText('Week'), '23')
+    expect(await screen.findByText('90.9%')).toBeInTheDocument()
+    expect(screen.getByText('Projected')).toBeInTheDocument()
   })
 })
