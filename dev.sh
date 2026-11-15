@@ -3,14 +3,14 @@ set -e
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 
-if command -v docker >/dev/null 2>&1; then
+if docker info >/dev/null 2>&1; then
     DOCKER=1
     echo "==> Starting postgres..."
     docker compose -f "$ROOT/docker-compose.yml" up postgres -d
     MVN_ARGS=(spring-boot:run)
 else
     DOCKER=0
-    echo "==> Docker not found; using embedded Postgres (backend/.localdb)"
+    echo "==> Docker unavailable; using embedded Postgres (backend/.localdb)"
     MVN_ARGS=(-Pembedded-db spring-boot:run -Dspring-boot.run.profiles=embedded-db)
 fi
 
