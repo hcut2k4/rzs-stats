@@ -41,9 +41,10 @@ public class QbStatsCalculator {
         d.gamesPlayed = rows.size();
         double passPlays = (double) d.passAtt + d.passSacks;
         double passNumerator = d.passYds - d.sackYardsLost + 20.0 * d.passTd - 45.0 * (d.passInt + d.fumblesLost);
-        d.passOnly = divide(passNumerator, passPlays);
         d.tanya = divide(passNumerator + d.rushYds + 20.0 * d.rushTd, passPlays + d.rushAtt);
-        d.deltaRush = d.tanya == null || d.passOnly == null ? null : d.tanya - d.passOnly;
+        // Every estimated lost fumble is charged here by convention: Madden cannot separate rushing
+        // fumbles from strip-sacks, and ANY/A carries no fumble term at all.
+        d.rushValue = divide(d.rushYds - 4.0 * d.rushAtt + 20.0 * d.rushTd - 45.0 * d.fumblesLost, passPlays);
         d.anya = divide(d.passYds - d.sackYardsLost + 20.0 * d.passTd - 45.0 * d.passInt, passPlays);
         d.tdPct = divide(d.passTd, d.passAtt);
         d.intPct = divide(d.passInt, d.passAtt);

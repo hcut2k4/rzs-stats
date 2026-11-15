@@ -6,7 +6,6 @@ import { TeamLogo } from '../components/TeamLogo'
 import PageHeader from '../components/PageHeader'
 import InfoTip from '../components/InfoTip'
 import Tabs from '../components/Tabs'
-import DivergingBar from '../components/DivergingBar'
 import { goodBadColor, divergeColor } from '../utils/heat'
 import { COLORS } from '../utils/chartColors'
 
@@ -35,7 +34,7 @@ const STAGES = [
 ]
 
 const TANYA_TIP = 'Total Adjusted Net Yards per Attempt. (PassYds − SackYds + RushYds + 20×(PassTD + RushTD) − 45×(INT + FumblesLost)) ÷ (Att + Sacks + RushAtt). Rushing counts in both the numerator and the denominator, so volume alone does not inflate it.'
-const DRUSH_TIP = 'How much a QB\'s rushing changes his efficiency: TANY/A minus the identical formula with rushing yards, TDs and attempts set to zero. Blue = rushing helps, orange = rushing hurts.'
+const RUSHPLUS_TIP = 'Adjusted QB rushing production above a baseline of 4 yards per carry, including rushing touchdowns and estimated lost fumbles, normalized per passing opportunity. All estimated QB fumbles lost are charged to rushing because passing and rushing fumbles cannot be distinguished.'
 const EST_TIP = 'Estimated. Madden does not expose individual sack yardage or lost fumbles, so each is allocated from the team game total — sack yards by share of sacks taken, lost fumbles by share of team fumbles.'
 
 // Column order defines the table; `presets` controls which views show it.
@@ -56,8 +55,7 @@ const ALL_COLS = [
   { key: 'passAtt', label: 'Att', presets: ['efficiency', 'classic', 'rushing', 'all'], group: 'Volume' },
   { key: 'tanya', label: 'TANY/A', fmt: n2, heat: 'higher', presets: ['efficiency', 'classic', 'rushing', 'all'], group: 'Efficiency', groupStart: true, title: TANYA_TIP },
   { key: 'anya', label: 'ANY/A', fmt: n2, heat: 'higher', presets: ['efficiency', 'all'], group: 'Efficiency', title: 'Adjusted Net Yards per Attempt — passing only, no fumble term. The classic benchmark.' },
-  { key: 'deltaRush', label: 'Δrush', fmt: signed2, heat: 'diverge', divergeLimit: 1, presets: ['efficiency', 'rushing', 'all'], group: 'Efficiency', title: DRUSH_TIP },
-  { key: 'deltaRushBar', label: '', presets: ['efficiency', 'rushing'], group: 'Efficiency', sortable: false, fmt: (_, __, row) => <DivergingBar value={row.deltaRush ?? 0} max={1} /> },
+  { key: 'rushValue', label: 'RUSH+', fmt: v => <RushPlus value={v} />, presets: ['efficiency', 'rushing', 'all'], group: 'Efficiency', title: RUSHPLUS_TIP },
   { key: 'passerRating', label: 'Rating', fmt: n1, heat: 'higher', presets: ['classic', 'all'], group: 'Efficiency' },
   { key: 'passComp', label: 'Cmp', presets: ['classic', 'all'], group: 'Passing', groupStart: true },
   { key: 'passYds', label: 'Yds', heat: 'higher', presets: ['classic', 'all'], group: 'Passing' },
@@ -75,6 +73,12 @@ const ALL_COLS = [
   { key: 'rushTd', label: 'TD', heat: 'higher', presets: ['rushing', 'all'], group: 'Rushing' },
 ]
 
+function RushPlus({ value }) {
+  if (value == null) return <span className="text-muted">—</span>
+  const tone = value > 0 ? 'text-good' : value < 0 ? 'text-bad' : ''
+  return <span className={tone}>{signed2(value)}</span>
+}
+
 function Move({ value }) {
   if (value == null) return <span className="text-muted text-xs">new</span>
   if (value === 0) return <span className="text-muted">—</span>
@@ -87,11 +91,11 @@ function Move({ value }) {
 }
 
 export function buildQbRows(rows) {
-  const headers = ['Rank', 'QB', 'Team', 'GP', 'Att', 'TANY/A', 'ANY/A', 'Drush', 'Rating', 'Cmp', 'Yds', 'TD', 'INT',
+  const headers = ['Rank', 'QB', 'Team', 'GP', 'Att', 'TANY/A', 'ANY/A', 'RUSH+', 'Rating', 'Cmp', 'Yds', 'TD', 'INT',
     'TD%', 'INT%', 'TD:INT', 'Sacks', 'Est Sack Yds', 'Est Fumbles Lost', 'Rush Att', 'Rush Yds', 'YPC', 'Rush TD']
   const body = rows.map((r, i) => [
     r.rank ?? i + 1, r.playerName, r.teamAbbr, r.gamesPlayed, r.passAtt,
-    n2(r.tanya), n2(r.anya), signed2(r.deltaRush), n1(r.passerRating),
+    n2(r.tanya), n2(r.anya), signed2(r.rushValue), n1(r.passerRating),
     r.passComp, r.passYds, r.passTd, r.passInt,
     pct1(r.tdPct), pct1(r.intPct), r.tdToInt != null ? r.tdToInt.toFixed(1) : 'n/a',
     r.passSacks, n1(r.sackYardsLost), n1(r.fumblesLost),
@@ -204,7 +208,7 @@ function Leaderboard({ rows, preset, sortKey, sortAsc, onSort, scopeLabel }) {
       </div>
       {rows.length === 0 && <p className="text-muted py-6">No qualifying quarterbacks for this scope.</p>}
       <p className="text-xs text-muted mt-2">
-        Green = better, red = worse. Δrush: blue = rushing adds efficiency, orange = it costs. ~ marks an estimated value. Faded rows are below the attempt minimum.
+        Green = better, red = worse. RUSH+ is adjusted rushing production per passing opportunity, above a 4-yard-per-carry baseline. ~ marks an estimated value. Faded rows are below the attempt minimum.
       </p>
     </>
   )

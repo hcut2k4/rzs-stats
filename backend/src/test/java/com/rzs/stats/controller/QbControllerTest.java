@@ -39,7 +39,7 @@ class QbControllerTest {
         List<String> fields = new ArrayList<>();
         json.fieldNames().forEachRemaining(fields::add);
         assertThat(fields).containsExactlyInAnyOrder("rosterId", "playerName", "teamAbbr", "teamName", "gamesPlayed",
-                "tanya", "passOnly", "deltaRush", "anya", "passerRating", "passAtt", "passComp", "passYds", "passTd", "passInt",
+                "tanya", "rushValue", "anya", "passerRating", "passAtt", "passComp", "passYds", "passTd", "passInt",
                 "tdPct", "intPct", "tdToInt", "passSacks", "sackYardsLost", "fumblesLost", "rushAtt", "rushYds", "rushTd",
                 "rushYdsPerAtt", "qualified", "rank", "rankChange");
     }

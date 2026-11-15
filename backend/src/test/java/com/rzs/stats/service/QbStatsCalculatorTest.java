@@ -45,24 +45,62 @@ class QbStatsCalculatorTest {
         assertThat(d.sackYardsLost).isCloseTo(40.0 / 3, within(1e-12));
         assertThat(d.fumblesLost).isCloseTo(1.0 / 3, within(1e-12));
         assertThat(d.tanya).isCloseTo((300 - 40.0 / 3 + 40 + 80 - 60) / 37, within(1e-12));
-        assertThat(d.passOnly).isCloseTo((300 - 40.0 / 3 + 60 - 60) / 32, within(1e-12));
         assertThat(d.anya).isCloseTo((300 - 40.0 / 3 + 60 - 45) / 32, within(1e-12));
-        assertThat(d.deltaRush).isCloseTo(d.tanya - d.passOnly, within(1e-12));
+        assertThat(d.rushValue).isCloseTo((40 - 20 + 20 - 45.0 / 3) / 32, within(1e-12));
         assertThat(d.tdPct).isEqualTo(0.1);
         assertThat(d.intPct).isEqualTo(1.0 / 30);
         assertThat(d.tdToInt).isEqualTo(3.0);
     }
 
     @Test
-    void zeroRushingHasZeroRushingDeltaEvenWithFumbles() {
+    void zeroRushingChargesTheFumblePenaltyToRushValue() {
         var row = row("a", 0, 20, 200);
         row.setRushFum(1);
         row.setTeamFumbles(1);
         row.setTeamFumblesLost(1);
         var d = calculator.calculate(List.of(row));
-        assertThat(d.deltaRush).isZero();
-        assertThat(d.passOnly).isEqualTo(155.0 / 20);
+        assertThat(d.rushValue).isEqualTo(-45.0 / 20);
         assertThat(d.anya).isEqualTo(10.0);
+    }
+
+    @Test
+    void rushValueIsPositiveAboveTheFourYardBaselineAndNegativeBelowIt() {
+        var good = row("a", 0, 20, 200);
+        good.setRushAtt(10);
+        good.setRushYds(90);
+        good.setRushTd(2);
+        var bad = row("b", 0, 20, 200);
+        bad.setRushAtt(10);
+        bad.setRushYds(15);
+        assertThat(calculator.calculate(List.of(good)).rushValue).isEqualTo((90 - 40 + 40) / 20.0);
+        assertThat(calculator.calculate(List.of(bad)).rushValue).isEqualTo((15 - 40) / 20.0);
+    }
+
+    @Test
+    void rushValueKeepsFractionalFumblesLostUnrounded() {
+        var row = row("a", 0, 30, 300);
+        row.setRushAtt(4);
+        row.setRushYds(16);
+        row.setRushFum(2);
+        row.setTeamFumbles(3);
+        row.setTeamFumblesLost(1);
+        var d = calculator.calculate(List.of(row));
+        assertThat(d.fumblesLost).isCloseTo(2.0 / 3, within(1e-12));
+        assertThat(d.rushValue).isCloseTo((16 - 16 - 45 * (2.0 / 3)) / 30, within(1e-12));
+    }
+
+    @Test
+    void rushValueAggregatesSeasonTotalsInsteadOfAveragingGames() {
+        var a = row("a", 0, 10, 100);
+        a.setRushAtt(2);
+        a.setRushYds(40);
+        var b = row("a", 1, 30, 300);
+        b.setRushAtt(10);
+        b.setRushYds(10);
+        var total = calculator.calculate(List.of(a, b));
+        assertThat(total.rushValue).isEqualTo((50 - 48) / 40.0);
+        assertThat(total.rushValue).isNotEqualTo(
+                (calculator.calculate(List.of(a)).rushValue + calculator.calculate(List.of(b)).rushValue) / 2);
     }
 
     @Test
@@ -119,7 +157,6 @@ class QbStatsCalculatorTest {
         var total = calculator.calculate(List.of(a, b));
         assertThat(total.tanya).isEqualTo(5.0);
         assertThat(total.tanya).isNotEqualTo((calculator.calculate(List.of(a)).tanya + calculator.calculate(List.of(b)).tanya) / 2);
-        assertThat(total.passOnly).isEqualTo(5.0);
         assertThat(total.anya).isEqualTo(5.0);
     }
 
@@ -127,8 +164,7 @@ class QbStatsCalculatorTest {
     void zeroDenominatorsReturnNull() {
         var d = calculator.calculate(List.of(row("a", 0, 0, 0)));
         assertThat(d.tanya).isNull();
-        assertThat(d.passOnly).isNull();
-        assertThat(d.deltaRush).isNull();
+        assertThat(d.rushValue).isNull();
         assertThat(d.anya).isNull();
         assertThat(d.passerRating).isNull();
         assertThat(d.tdPct).isNull();
