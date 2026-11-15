@@ -29,8 +29,20 @@ const TIPS = {
   score: 'Final score, away team first.',
   homeProb: 'The chance the home team was expected to win before the game, based only on the two teams\' Elo ratings. 50% is a toss-up.',
   mov: 'Margin-of-victory multiplier. Bigger wins move ratings more, up to a 21-point cap. A heavy favorite winning big gets less credit than an upset winner. 1.00 is a tie.',
+  result: 'Flags upsets: games won by the team Elo gave less than a 50% chance beforehand. The label shows the winner\'s pregame chance, and the darker the shade, the bigger the upset.',
   projHome: 'Projected chance the home team wins, using both teams\' current Elo ratings. 50% is a toss-up. These games have not been played yet.',
   projElo: 'Each team\'s current Elo rating, which is used for the projection.',
+}
+
+const UPSET = '234 88 12'
+
+function upsetInfo(g) {
+  if (g.homeScore === g.awayScore) return null
+  const homeWon = g.homeScore > g.awayScore
+  const chance = homeWon ? g.homeWinProbability : g.awayWinProbability
+  if (chance >= 0.5) return null
+  const winner = homeWon ? g.homeTeam : g.awayTeam
+  return { chance, winner, shade: `rgb(${UPSET} / ${(0.08 + ((0.5 - chance) / 0.5) * 0.4).toFixed(2)})` }
 }
 
 const Th = ({ tip, className = '', children }) => (
@@ -288,6 +300,7 @@ function GamesTab({ season, week, upcoming }) {
                 <Th tip={TIPS.score} className="text-right">Score</Th>
                 <Th tip={TIPS.homeProb} className="text-right">Home win prob.</Th>
                 <Th tip={TIPS.mov} className="text-right">MOV mult.</Th>
+                <Th tip={TIPS.result}>Result</Th>
               </tr>
             </thead>
             <tbody>
@@ -298,11 +311,20 @@ function GamesTab({ season, week, upcoming }) {
                   <td className="px-2 py-1.5 text-right">{g.awayScore}–{g.homeScore}</td>
                   <td className="px-2 py-1.5 text-right">{pct(g.homeWinProbability)}</td>
                   <td className="px-2 py-1.5 text-right">{g.movMultiplier.toFixed(2)}</td>
+                  {(() => {
+                    const upset = upsetInfo(g)
+                    return upset
+                      ? <td className="px-2 py-1.5 whitespace-nowrap font-semibold" style={{ backgroundColor: upset.shade }}
+                          title={`${upset.winner.displayName} had a ${pct(upset.chance)} chance before the game`}>
+                          Upset · {Math.round(upset.chance * 100)}%
+                        </td>
+                      : <td className="px-2 py-1.5" />
+                  })()}
                 </tr>
               ))}
             </tbody>
           </table>
-          <p className="text-xs text-muted px-2 py-2">Each team shows its pregame Elo and the points it gained or lost in that game.</p>
+          <p className="text-xs text-muted px-2 py-2">Each team shows its pregame Elo and the points it gained or lost in that game. Upset means the winner had under a 50% chance beforehand; darker shading is a bigger upset.</p>
         </div>
       )}
       {projected.length > 0 && (
