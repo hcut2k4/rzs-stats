@@ -6,12 +6,14 @@ import TrendsPage from './pages/TrendsPage'
 import AdminPage from './pages/AdminPage'
 import AboutPage from './pages/AboutPage'
 import EloPage from './pages/EloPage'
+import QbPage from './pages/QbPage'
 import ThemeToggle from './components/ThemeToggle'
 
 const LINKS = [
   { to: '/', label: 'Standings', end: true },
   { to: '/games', label: 'Games' },
   { to: '/elo', label: 'Elo' },
+  { to: '/qb', label: 'QBs' },
   { to: '/trends', label: 'Trends' },
   { to: '/about', label: 'About' },
 ]
@@ -67,6 +69,7 @@ export default function App() {
           <Route path="/" element={<StandingsPage />} />
           <Route path="/games" element={<GamesPage />} />
           <Route path="/elo" element={<EloPage />} />
+          <Route path="/qb" element={<QbPage />} />
           <Route path="/trends" element={<TrendsPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/about" element={<AboutPage />} />

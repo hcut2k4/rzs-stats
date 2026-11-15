@@ -37,6 +37,17 @@ const STATS = [
       'Teams keep 90% of their distance from 1500 between seasons, so good teams stay good with room to change',
     ],
   },
+  {
+    name: 'TANY/A',
+    def: 'Total Adjusted Net Yards per Attempt — one efficiency number covering everything a quarterback does with the ball, passing and running.',
+    bullets: [
+      '(PassYds − SackYds + RushYds + 20 × (PassTD + RushTD) − 45 × (INT + FumblesLost)) ÷ (Att + Sacks + RushAtt)',
+      'Touchdowns are worth 20 yards, turnovers cost 45 — the standard ANY/A weights, extended to rushing',
+      'Rushing counts in both halves of the fraction, so carries only help a QB who gains yards with them',
+      'Δrush is TANY/A minus the same formula with the rushing inputs removed — positive means his running raises his per-play efficiency, negative means he runs less efficiently than he passes',
+      'Sack yardage and lost fumbles are estimated — Madden reports them only per team, so each is split among the players responsible for that game',
+    ],
+  },
 ]
 
 const PAGES = [
@@ -64,6 +75,15 @@ const PAGES = [
       'History — rating trends across every season; click teams to highlight them',
       'Matchup — pick any two teams for a predicted win probability',
       'Games — game-by-game Elo changes, pregame ratings, and projected win chances for unplayed games',
+    ],
+  },
+  {
+    name: 'QBs',
+    bullets: [
+      'Leaderboard — every quarterback ranked by TANY/A, by week, season or all-time',
+      'Column presets for efficiency, classic box score and rushing; all columns sortable',
+      'Movement — biggest risers and fallers, plus a rank-by-week chart',
+      'Regular season, playoffs or both; export to CSV or Excel',
     ],
   },
   {

@@ -12,6 +12,7 @@ describe('AdminPage passcode gate', () => {
   beforeEach(() => {
     client.getSyncStatus.mockResolvedValue({})
     client.getCacheWarmStatus.mockResolvedValue({})
+    client.getQbSyncStatus.mockResolvedValue({})
     client.getEloConfig.mockResolvedValue(ELO_CONFIG)
   })
   afterEach(() => vi.clearAllMocks())

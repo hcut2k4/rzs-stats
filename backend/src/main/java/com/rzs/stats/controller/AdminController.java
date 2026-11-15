@@ -1,5 +1,6 @@
 package com.rzs.stats.controller;
 
+import com.rzs.stats.service.QbStatsSyncService;
 import com.rzs.stats.client.NeonSportzClient;
 import com.rzs.stats.model.ns.NsLeague;
 import com.rzs.stats.repository.GameRepository;
@@ -29,13 +30,26 @@ public class AdminController {
     private final CacheWarmingService cacheWarmingService;
 
     private final EloConfigService eloConfig;
+    private final QbStatsSyncService qbSync;
 
-    public AdminController(SyncService syncService, NeonSportzClient client, GameRepository gameRepository, CacheWarmingService cacheWarmingService, EloConfigService eloConfig) {
+    public AdminController(SyncService syncService, NeonSportzClient client, GameRepository gameRepository, CacheWarmingService cacheWarmingService, EloConfigService eloConfig, QbStatsSyncService qbSync) {
         this.eloConfig = eloConfig;
+        this.qbSync = qbSync;
         this.syncService = syncService;
         this.client = client;
         this.gameRepository = gameRepository;
         this.cacheWarmingService = cacheWarmingService;
+    }
+
+    @PostMapping("/sync/qb")
+    public Map<String, Object> triggerQbSync() {
+        CompletableFuture.runAsync(qbSync::syncAll);
+        return Map.of("success", true, "message", "QB sync started");
+    }
+
+    @GetMapping("/sync/qb/status")
+    public QbStatsSyncService.Status getQbSyncStatus() {
+        return qbSync.getStatus();
     }
 
     @GetMapping("/elo/config")

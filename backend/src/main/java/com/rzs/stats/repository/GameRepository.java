@@ -25,6 +25,7 @@ public interface GameRepository extends JpaRepository<GameEntity, Long> {
 
     Optional<GameEntity> findBySeasonIndexAndGameId(Integer seasonIndex, Integer gameId);
 
+    @Query("SELECT g FROM GameEntity g LEFT JOIN FETCH g.homeTeam LEFT JOIN FETCH g.awayTeam WHERE g.seasonIndex = :seasonIndex")
     List<GameEntity> findBySeasonIndex(Integer seasonIndex);
 
     @Cacheable("seasonGames")
@@ -57,6 +58,9 @@ public interface GameRepository extends JpaRepository<GameEntity, Long> {
 
     @Query("SELECT g.seasonIndex, g.stageIndex, COUNT(g) FROM GameEntity g GROUP BY g.seasonIndex, g.stageIndex ORDER BY g.seasonIndex, g.stageIndex")
     List<Object[]> countGamesBySeasonAndStage();
+
+    @Query("SELECT g FROM GameEntity g LEFT JOIN FETCH g.homeTeam LEFT JOIN FETCH g.awayTeam WHERE (:season IS NULL OR g.seasonIndex = :season) AND g.stageIndex = 1 AND g.weekIndex BETWEEN :minWeek AND :maxWeek AND g.status >= 2")
+    List<GameEntity> findCompletedInScope(Integer season, int minWeek, int maxWeek);
 
     long countBySeasonIndex(Integer seasonIndex);
 }

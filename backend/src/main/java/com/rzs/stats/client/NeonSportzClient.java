@@ -1,6 +1,9 @@
 package com.rzs.stats.client;
 
 import com.rzs.stats.model.ns.NsGame;
+import com.rzs.stats.model.ns.NsPassingStat;
+import com.rzs.stats.model.ns.NsRushingStat;
+import com.rzs.stats.model.ns.NsTeamStat;
 import com.rzs.stats.model.ns.NsLeague;
 import com.rzs.stats.model.ns.NsPagedResponse;
 import com.rzs.stats.model.ns.NsTeam;
@@ -39,6 +42,27 @@ public class NeonSportzClient {
     public List<NsGame> fetchAllGamesForSeason(int seasonIndex) {
         String url = baseUrl + "/leagues/" + league + "/games/?seasonIndex=" + seasonIndex + "&size=500";
         return fetchAllPages(url, new ParameterizedTypeReference<NsPagedResponse<NsGame>>() {});
+    }
+
+    public List<NsPassingStat> fetchPassingStats(int season, int stage, int week) {
+        if (stage != 1 || week < 0 || week > 22) throw new IllegalArgumentException("QB stats require stage 1, weeks 0-22");
+        String url = baseUrl + "/leagues/" + league + "/stats/passing/?size=100&seasonIndex=" + season
+                + "&stageIndex=" + stage + "&weekIndex=" + week;
+        return fetchAllPages(url, new ParameterizedTypeReference<NsPagedResponse<NsPassingStat>>() {});
+    }
+
+    public List<NsRushingStat> fetchRushingStats(int season, int stage, int week) {
+        if (stage != 1 || week < 0 || week > 22) throw new IllegalArgumentException("QB stats require stage 1, weeks 0-22");
+        String url = baseUrl + "/leagues/" + league + "/stats/rushing/?size=100&seasonIndex=" + season
+                + "&stageIndex=" + stage + "&weekIndex=" + week;
+        return fetchAllPages(url, new ParameterizedTypeReference<NsPagedResponse<NsRushingStat>>() {});
+    }
+
+    public List<NsTeamStat> fetchTeamsStats(int season, int stage, int week) {
+        if (stage != 1 || week < 0 || week > 22) throw new IllegalArgumentException("QB stats require stage 1, weeks 0-22");
+        String url = baseUrl + "/leagues/" + league + "/stats/teams/?size=100&seasonIndex=" + season
+                + "&stageIndex=" + stage + "&weekIndex=" + week;
+        return fetchAllPages(url, new ParameterizedTypeReference<NsPagedResponse<NsTeamStat>>() {});
     }
 
     private <T> List<T> fetchAllPages(String url, ParameterizedTypeReference<NsPagedResponse<T>> typeRef) {

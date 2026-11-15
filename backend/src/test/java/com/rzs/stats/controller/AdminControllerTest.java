@@ -25,9 +25,31 @@ class AdminControllerTest {
     @MockBean com.rzs.stats.repository.EloConfigRepository eloConfigs;
     @Autowired MockMvc mvc;
     @MockBean SyncService syncService;
+    @MockBean com.rzs.stats.service.QbStatsSyncService qbSync;
     @MockBean NeonSportzClient client;
     @MockBean GameRepository gameRepository;
     @MockBean CacheWarmingService cacheWarmingService;
+
+    @Test
+    void postQbSyncReturnsImmediatelyWithStartedMessage() throws Exception {
+        mvc.perform(post("/api/admin/sync/qb"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("QB sync started"));
+        org.mockito.Mockito.verify(qbSync, org.mockito.Mockito.timeout(1000)).syncAll();
+    }
+
+    @Test
+    void qbSyncStatusIncludesProgressAndOutcome() throws Exception {
+        when(qbSync.getStatus()).thenReturn(new com.rzs.stats.service.QbStatsSyncService.Status(
+                false, "Done", Instant.parse("2026-11-14T12:00:00Z"), true));
+        mvc.perform(get("/api/admin/sync/qb/status"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.inProgress").value(false))
+                .andExpect(jsonPath("$.message").value("Done"))
+                .andExpect(jsonPath("$.completedAt").exists())
+                .andExpect(jsonPath("$.success").value(true));
+    }
 
     @Test
     void postSync_returns200WithStartedMessage() throws Exception {
