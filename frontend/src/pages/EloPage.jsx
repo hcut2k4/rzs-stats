@@ -9,6 +9,7 @@ import InfoTip from '../components/InfoTip'
 import { divergeColor } from '../utils/heat'
 import { weekLabel } from '../utils/playoffRounds'
 import { COLORS } from '../utils/chartColors'
+import { seasonLabel, seasonNumber } from '../utils/seasons'
 
 const BASE = 1500
 const label = w => weekLabel(w >= 18 ? 2 : 1, w)
@@ -146,7 +147,7 @@ function HistoryTab({ history, teams }) {
   const emphasised = id => focus.has(id) || hover === id
   const anyEmphasis = focus.size > 0 || hover != null
   const toggle = id => setFocus(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
-  const seasonOf = key => `Season ${Number(key.split('-')[0]) + 2026}`
+  const seasonOf = key => seasonLabel(Number(key.split('-')[0]))
 
   return (
     <div>
@@ -180,7 +181,7 @@ function HistoryTab({ history, teams }) {
           {boundaries.map(k => <ReferenceLine key={k} x={k} stroke="rgb(var(--muted))" strokeDasharray="3 3" />)}
           <Tooltip
             contentStyle={{ background: 'rgb(var(--bg))', border: '1px solid rgb(var(--rule))', borderRadius: 3 }}
-            labelFormatter={k => { const [s, w] = k.split('-').map(Number); return `Season ${s + 2026} · ${label(w)}` }}
+            labelFormatter={k => { const [s, w] = k.split('-').map(Number); return `${seasonLabel(s)} · ${label(w)}` }}
             itemSorter={item => -item.value}
             formatter={(v, id) => [v.toFixed(1), teams.find(t => String(t.teamId) === String(id))?.abbrName ?? id]}
           />
@@ -420,12 +421,12 @@ export default function EloPage() {
     <div>
       <PageHeader
         title="Elo"
-        qualifier={season != null && week != null ? `Season ${season + 2026} · ${label(week)} · long-term team strength` : 'Long-term team strength'}
+        qualifier={season != null && week != null ? `${seasonLabel(season)} · ${label(week)} · long-term team strength` : 'Long-term team strength'}
       >
         {showWeek && seasons.length > 0 && (
           <>
             <select className="field" aria-label="Season" value={season ?? ''} onChange={e => changeSeason(Number(e.target.value))}>
-              {seasons.map(s => <option key={s} value={s}>Season {s + 2026}</option>)}
+              {seasons.map(s => <option key={s} value={s}>Season {seasonNumber(s)}</option>)}
             </select>
             <select className="field" aria-label="Week" value={week ?? ''} onChange={e => setWeek(Number(e.target.value))}>
               {weekOptions.map(w => <option key={w} value={w}>{label(w)}{weeks.includes(w) ? '' : ' (projected)'}</option>)}

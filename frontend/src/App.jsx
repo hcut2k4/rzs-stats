@@ -78,7 +78,7 @@ export default function App() {
 
       <footer className="border-t border-line text-xs text-muted">
         <div className="max-w-7xl mx-auto px-4 py-4">
-          Data from NeonSportz, synced nightly at 4 AM ET. Season label = index + 2026.
+          Data from NeonSportz, synced nightly at 4 AM ET. Seasons are labeled by league season number.
         </div>
       </footer>
     </div>

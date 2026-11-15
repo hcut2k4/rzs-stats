@@ -8,6 +8,7 @@ import Tabs from '../components/Tabs'
 import { TeamLogo } from '../components/TeamLogo'
 import { goodBadColor, divergeColor } from '../utils/heat'
 import { COLORS } from '../utils/chartColors'
+import { seasonNumber } from '../utils/seasons'
 
 // ── Season history tab ────────────────────────────────────────────────────────
 
@@ -63,7 +64,7 @@ function SeasonHistoryTab({ data }) {
             <th className="px-2 pt-2 text-left text-[11px] font-bold uppercase tracking-wider sticky left-0 bg-bg z-20">Team</th>
             {seasons.map(s => (
               <th key={s} className="px-2 pt-2 text-center text-[11px] font-bold uppercase tracking-wider border-l border-rule" colSpan={3}>
-                Season {s + 2026}
+                Season {seasonNumber(s)}
               </th>
             ))}
           </tr>
@@ -222,7 +223,7 @@ export default function TrendsPage() {
       <PageHeader title="Trends" qualifier="PyPAT and Luck across seasons and weeks">
         {tab === 'weekly' && (
           <select className="field" value={season ?? ''} onChange={e => setSeason(Number(e.target.value))}>
-            {seasons.map(s => <option key={s} value={s}>Season {s + 2026}</option>)}
+            {seasons.map(s => <option key={s} value={s}>Season {seasonNumber(s)}</option>)}
           </select>
         )}
       </PageHeader>

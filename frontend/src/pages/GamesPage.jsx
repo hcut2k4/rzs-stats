@@ -3,6 +3,7 @@ import { getSeasons, getAvailableWeeks, getGames } from '../api/client'
 import { TeamLogo } from '../components/TeamLogo'
 import PageHeader from '../components/PageHeader'
 import { weekLabel } from '../utils/playoffRounds'
+import { seasonLabel, seasonNumber } from '../utils/seasons'
 
 function TeamSide({ team, won, align }) {
   return (
@@ -85,11 +86,11 @@ export default function GamesPage() {
       <PageHeader
         title="Games"
         qualifier={season != null && weekIndex != null
-          ? `Season ${season + 2026} · ${stage === 1 ? 'Regular season' : 'Playoffs'} · ${weekLabel(stage, weekIndex)}`
+          ? `${seasonLabel(season)} · ${stage === 1 ? 'Regular season' : 'Playoffs'} · ${weekLabel(stage, weekIndex)}`
           : null}
       >
         <select className="field" value={season ?? ''} onChange={e => setSeason(Number(e.target.value))}>
-          {seasons.map(s => <option key={s} value={s}>Season {s + 2026}</option>)}
+          {seasons.map(s => <option key={s} value={s}>Season {seasonNumber(s)}</option>)}
         </select>
 
         <select className="field" value={stage} onChange={e => setStage(Number(e.target.value))}>
