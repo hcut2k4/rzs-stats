@@ -140,12 +140,12 @@ public class QbStatsService {
         List<QbStatDto> fallers = current.stream().filter(d -> d.rankChange != null && d.rankChange < 0)
                 .sorted(Comparator.comparingInt((QbStatDto d) -> d.rankChange).thenComparing(ORDER)).limit(5).toList();
         Map<String, List<QbDtos.Rank>> history = new LinkedHashMap<>();
-        current.stream().limit(10).forEach(d -> history.put(d.rosterId, new ArrayList<>()));
+        current.forEach(d -> history.put(d.rosterId, new ArrayList<>()));
         for (Point p : points) {
             for (QbStatDto d : boardAt(scoped, teamGames, p, career, stage)) if (d.rank != null && history.containsKey(d.rosterId))
                 history.get(d.rosterId).add(new QbDtos.Rank(p.season(), p.week(), d.rank, d.tanya));
         }
-        List<QbDtos.Series> series = current.stream().limit(10)
+        List<QbDtos.Series> series = current.stream()
                 .map(d -> new QbDtos.Series(d.rosterId, d.playerName, d.teamAbbr, history.get(d.rosterId))).toList();
         return new QbDtos.Movement(risers, fallers, series);
     }

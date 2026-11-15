@@ -14,6 +14,25 @@ const n1 = v => v != null ? v.toFixed(1) : '—'
 const signed2 = v => v != null ? (v > 0 ? '+' : '') + v.toFixed(2) : '—'
 const pct1 = v => v != null ? (v * 100).toFixed(1) + '%' : '—'
 
+const SUFFIXES = new Set(['jr', 'sr', 'ii', 'iii', 'iv', 'v'])
+
+export function nameParts(fullName) {
+  const tokens = (fullName ?? '').trim().split(/\s+/).filter(Boolean)
+  while (tokens.length > 1 && SUFFIXES.has(tokens[tokens.length - 1].replace(/\./g, '').toLowerCase())) tokens.pop()
+  const first = tokens[0] ?? ''
+  return { first, last: tokens.length > 1 ? tokens[tokens.length - 1] : first }
+}
+
+// Shared last names get a first initial so the chart legend stays unambiguous.
+export function chartNames(series) {
+  const parts = series.map(s => ({ ...s, ...nameParts(s.playerName) }))
+  const counts = {}
+  for (const p of parts) counts[p.last] = (counts[p.last] ?? 0) + 1
+  return parts
+    .map(p => ({ ...p, label: counts[p.last] > 1 ? `${p.first.charAt(0)}. ${p.last}` : p.last }))
+    .sort((a, b) => a.last.localeCompare(b.last) || a.first.localeCompare(b.first))
+}
+
 const ROUND_ABBR = { 18: 'WC', 19: 'DIV', 20: 'CONF', 22: 'SB' }
 
 export function pointLabel(season, week, showSeason) {
@@ -266,6 +285,7 @@ function Movement({ data, loading, basis }) {
     return point
   })
   const maxRank = Math.max(1, ...series.flatMap(s => (s.ranks ?? []).map(p => p.rank)))
+  const named = chartNames(series)
 
   const toggle = id =>
     setFocus(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
@@ -292,19 +312,20 @@ function Movement({ data, loading, basis }) {
             <button onClick={() => setFocus(new Set())} className="text-ink font-medium hover:text-accent">Clear</button>
           </div>
           <div className="flex flex-wrap gap-1 mb-4">
-            {series.map((s, i) => (
+            {named.map((s, i) => (
               <button
                 key={s.rosterId}
                 onClick={() => toggle(s.rosterId)}
                 onMouseEnter={() => setHover(s.rosterId)}
                 onMouseLeave={() => setHover(null)}
                 aria-pressed={focus.has(s.rosterId)}
+                title={s.playerName}
                 className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs border transition-colors ${
                   focus.has(s.rosterId) ? 'border-rule bg-surface font-semibold' : 'border-line text-muted hover:text-ink'
                 }`}
               >
                 <span className="w-2 h-2 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />
-                {s.playerName}
+                {s.label}
               </button>
             ))}
           </div>
@@ -320,7 +341,7 @@ function Movement({ data, loading, basis }) {
                 itemSorter={item => item.value}
                 formatter={(value, key) => [`#${value}`, series.find(s => s.rosterId === key)?.playerName ?? key]}
               />
-              {series.map((s, i) => (
+              {named.map((s, i) => (
                 <Line
                   key={s.rosterId}
                   type="monotone"

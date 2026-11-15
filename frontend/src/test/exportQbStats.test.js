@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildQbRows, pointLabel } from '../pages/QbPage'
+import { buildQbRows, pointLabel, chartNames } from '../pages/QbPage'
 
 const sampleRows = [
   {
@@ -71,5 +71,33 @@ describe('pointLabel', () => {
   it('prefixes the season when the timeline spans more than one', () => {
     expect(pointLabel(0, 6, true)).toBe("'26 W7")
     expect(pointLabel(2, 22, true)).toBe("'28 SB")
+  })
+})
+
+describe('chartNames', () => {
+  const s = names => names.map((playerName, i) => ({ rosterId: String(i), playerName }))
+
+  it('shows last name only and sorts alphabetically by it', () => {
+    const out = chartNames(s(['Josh Allen', 'Patrick Mahomes', 'Joe Burrow']))
+    expect(out.map(p => p.label)).toEqual(['Allen', 'Burrow', 'Mahomes'])
+  })
+
+  it('adds a first initial only when a last name is shared, ordered by first name', () => {
+    const out = chartNames(s(['C.J. Williams', 'Bryce Young', 'Brock Williams']))
+    expect(out.map(p => p.label)).toEqual(['B. Williams', 'C. Williams', 'Young'])
+  })
+
+  it('keeps shared last names sorted among everyone else by last name', () => {
+    const out = chartNames(s(['Caleb Williams', 'Josh Allen', 'Bryce Williams', 'Joe Burrow']))
+    expect(out.map(p => p.label)).toEqual(['Allen', 'Burrow', 'B. Williams', 'C. Williams'])
+  })
+
+  it('ignores generational suffixes when taking the last name', () => {
+    const out = chartNames(s(['Anthony Richardson Sr', 'Michael Penix Jr']))
+    expect(out.map(p => p.label)).toEqual(['Penix', 'Richardson'])
+  })
+
+  it('falls back to a single-token name', () => {
+    expect(chartNames(s(['Pele'])).map(p => p.label)).toEqual(['Pele'])
   })
 })
