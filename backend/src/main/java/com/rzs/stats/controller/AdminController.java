@@ -5,6 +5,8 @@ import com.rzs.stats.model.ns.NsLeague;
 import com.rzs.stats.repository.GameRepository;
 import com.rzs.stats.service.CacheWarmingService;
 import com.rzs.stats.service.SyncService;
+import com.rzs.stats.service.EloConfigService;
+import com.rzs.stats.model.dto.EloConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
@@ -26,11 +28,24 @@ public class AdminController {
     private final GameRepository gameRepository;
     private final CacheWarmingService cacheWarmingService;
 
-    public AdminController(SyncService syncService, NeonSportzClient client, GameRepository gameRepository, CacheWarmingService cacheWarmingService) {
+    private final EloConfigService eloConfig;
+
+    public AdminController(SyncService syncService, NeonSportzClient client, GameRepository gameRepository, CacheWarmingService cacheWarmingService, EloConfigService eloConfig) {
+        this.eloConfig = eloConfig;
         this.syncService = syncService;
         this.client = client;
         this.gameRepository = gameRepository;
         this.cacheWarmingService = cacheWarmingService;
+    }
+
+    @GetMapping("/elo/config")
+    public EloConfig getEloConfig() {
+        return eloConfig.get();
+    }
+
+    @PutMapping("/elo/config")
+    public EloConfig updateEloConfig(@RequestBody EloConfig config) {
+        return eloConfig.update(config);
     }
 
     @PostMapping("/sync")

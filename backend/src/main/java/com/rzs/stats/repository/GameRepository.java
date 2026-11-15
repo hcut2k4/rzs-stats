@@ -16,6 +16,9 @@ public interface GameRepository extends JpaRepository<GameEntity, Long> {
     int REGULAR_SEASON_MIN_WEEK = 0;
     int REGULAR_SEASON_MAX_WEEK = 17;
 
+    @Query("SELECT g FROM GameEntity g LEFT JOIN FETCH g.homeTeam LEFT JOIN FETCH g.awayTeam")
+    List<GameEntity> findAllForElo();
+
     Optional<GameEntity> findBySeasonIndexAndGameId(Integer seasonIndex, Integer gameId);
 
     List<GameEntity> findBySeasonIndex(Integer seasonIndex);

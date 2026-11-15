@@ -24,6 +24,10 @@ class StatsCacheTest {
     @MockBean GameRepository gameRepository;
     @MockBean TeamRepository teamRepository;
 
+    @Autowired EloHistoryService eloHistoryService;
+    @Autowired EloQueryService eloQueries;
+    @Autowired EloConfigService eloConfigService;
+    @Autowired CacheWarmingService warming;
     @Autowired StatsService statsService;
     @Autowired SyncService syncService;
     @Autowired CacheManager cacheManager;
@@ -49,6 +53,72 @@ class StatsCacheTest {
         when(client.fetchLeagueInfo()).thenReturn(league);
         when(client.fetchAllTeams()).thenReturn(List.of());
         when(client.fetchAllGamesForSeason(anyInt())).thenReturn(List.of());
+    }
+
+    @Test
+    void eloTimelineIsComputedOnceAcrossEndpointQueries() {
+        eloQueries.ratings(null, null);
+        eloQueries.history(null);
+        eloQueries.games(null, null, null);
+        verify(gameRepository, times(1)).findAllForElo();
+    }
+
+    @Test
+    void syncAndForceSyncEvictEloWithEveryOtherCache() {
+        for (boolean force : List.of(false, true)) {
+            cacheManager.getCacheNames().forEach(name -> cacheManager.getCache(name).put("sentinel", "old"));
+            eloHistoryService.getTimeline();
+            if (force) syncService.syncForce(); else syncService.sync();
+            for (String name : cacheManager.getCacheNames()) {
+                org.assertj.core.api.Assertions.assertThat(cacheManager.getCache(name).get("sentinel")).isNull();
+            }
+            eloHistoryService.getTimeline();
+        }
+        verify(gameRepository, times(3)).findAllForElo();
+    }
+
+    @Test
+    void warmingEvictsAllCachesAndRecomputesEloEvenWithoutSeasons() {
+        eloHistoryService.getTimeline();
+        cacheManager.getCacheNames().forEach(name -> cacheManager.getCache(name).put("sentinel", "old"));
+        warming.warmCaches();
+        for (String name : cacheManager.getCacheNames()) {
+            org.assertj.core.api.Assertions.assertThat(cacheManager.getCache(name).get("sentinel")).isNull();
+        }
+        org.assertj.core.api.Assertions.assertThat(warming.getStatus().success()).isTrue();
+        eloHistoryService.getTimeline();
+        verify(gameRepository, times(2)).findAllForElo();
+    }
+
+    @Test
+    void warmingComputesEloAfterSeasonCaches() {
+        when(gameRepository.findDistinctSeasonIndicesWithMinGames(anyLong())).thenReturn(List.of(0));
+        when(gameRepository.findDistinctRegularSeasonWeeks(0, 1)).thenReturn(List.of(0));
+        warming.warmCaches();
+        var order = inOrder(gameRepository);
+        order.verify(gameRepository).findBySeasonIndexAndStageIndexAndWeekIndex(0, 1, 0);
+        order.verify(gameRepository).findAllForElo();
+        org.assertj.core.api.Assertions.assertThat(warming.getStatus().success()).isTrue();
+    }
+
+    @Test
+    void invalidConfigPreservesCachedTimeline() {
+        eloHistoryService.getTimeline();
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> eloConfigService.update(
+                new com.rzs.stats.model.dto.EloConfig(1500, 0, 400, true, 21, 0, 0.9)))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+        eloHistoryService.getTimeline();
+        verify(gameRepository, times(1)).findAllForElo();
+    }
+
+    @Test
+    void configChangesEvictOnlyEloHistory() {
+        eloHistoryService.getTimeline();
+        cacheManager.getCache("standings").put("sentinel", "keep");
+        eloConfigService.update(com.rzs.stats.model.dto.EloConfig.defaults());
+        eloHistoryService.getTimeline();
+        verify(gameRepository, times(2)).findAllForElo();
+        org.assertj.core.api.Assertions.assertThat(cacheManager.getCache("standings").get("sentinel", String.class)).isEqualTo("keep");
     }
 
     @Test
