@@ -39,14 +39,20 @@ const STATS = [
   },
   {
     name: 'TANY/A',
-    def: 'Total Adjusted Net Yards per Attempt — one efficiency number covering everything a quarterback does with the ball, passing and running.',
+    def: 'Total Adjusted Net Yards per Attempt — measures overall QB efficiency by combining passing and rushing production.',
     bullets: [
-      '(PassYds − SackYds + RushYds + 20 × (PassTD + RushTD) − 45 × (INT + FumblesLost)) ÷ (Att + Sacks + RushAtt)',
-      'Touchdowns are worth 20 yards, turnovers cost 45 — the standard ANY/A weights, extended to rushing',
-      'Rushing counts in both halves of the fraction, so carries only help a QB who gains yards with them',
-      'RUSH+ is a separate stat: (RushYds − 4 × RushAtt + 20 × RushTD − 45 × FumblesLost) ÷ (Att + Sacks) — rushing production above a 4-yard-per-carry baseline, per passing opportunity',
-      'Every estimated lost fumble is charged to RUSH+ by convention, since Madden cannot tell a rushing fumble from a strip-sack and ANY/A has no fumble term — do not add RUSH+ to TANY/A, which already counts them',
-      'Sack yardage and lost fumbles are estimated — Madden reports them only per team, so each is split among the players responsible for that game',
+      'Touchdowns add 20 adjusted yards; interceptions and lost fumbles subtract 45.',
+      'Includes passing attempts, sacks, and rushing attempts. Higher is better.',
+      'Sack yardage and lost fumbles are estimated from team game stats.',
+    ],
+  },
+  {
+    name: 'RUSH+',
+    def: 'The extra production a quarterback adds with his legs, measured against each passing opportunity.',
+    bullets: [
+      'Credits rushing yards above 4 per carry, adds 20 for each rushing touchdown, subtracts 45 for each estimated lost fumble.',
+      'Positive means his running is worth more than it costs. Higher is better.',
+      'Every estimated fumble is charged here, so RUSH+ is read alongside TANY/A, not added to it.',
     ],
   },
 ]
@@ -83,8 +89,9 @@ const PAGES = [
     bullets: [
       'Leaderboard — every quarterback ranked by TANY/A, by week, season or all-time',
       'Column presets for efficiency, classic box score and rushing; all columns sortable',
-      'Movement — biggest risers and fallers, plus a rank-by-week chart',
+      'Movement — biggest risers and fallers, plus a rank-by-week chart you can track season by season or across every season',
       'Regular season, playoffs or both; export to CSV or Excel',
+      'Click any quarterback to open his player page on NeonSportz',
     ],
   },
   {
@@ -102,6 +109,7 @@ const RESOURCES = [
   { href: 'https://legacy.daddyleagues.com/redzone/blog/news/45389/PythagoreanPAT', label: 'PythagoreanPAT' },
   { href: 'https://legacy.daddyleagues.com/redzone/blog/news/45508/Season-82-PythagoreanPat', label: 'Season 82 PythagoreanPAT' },
   { href: 'https://modules.scorenetwork.org/football/nfl-elo-ratings/', label: 'Introduction to NFL Elo Ratings — SCORE' },
+  { href: 'https://www.stampedeblue.com/2020/5/27/21265202/qb-stats-matter-pt-3-anya-epa-efficiency-win-rate-pp', label: 'QB Stats Matter (pt. 3): ANY/A, TANY/A and EPA — Stampede Blue' },
   { href: 'https://library.fangraphs.com/principles/expected-wins-and-losses/', label: 'Expected Wins and Losses — FanGraphs' },
   { href: 'https://legacy.baseballprospectus.com/glossary/index.php?mode=viewstat&stat=136', label: 'Pythagorean Record — Baseball Prospectus' },
 ]
