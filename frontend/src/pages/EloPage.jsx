@@ -60,7 +60,7 @@ function RatingsTab({ ratings, loading }) {
               <th className="th text-right">Elo</th>
               <th className="th min-w-[160px]">vs 1500</th>
               <th className="th text-right">Change</th>
-              <th className="th text-right">Rank</th>
+              <th className="th text-right">Rank move</th>
               <th className="th text-right">Games</th>
             </tr>
           </thead>
@@ -106,6 +106,8 @@ function HistoryTab({ history, teams }) {
 
   if (!data.length) return <p className="text-muted">No history available.</p>
 
+  const elos = history.map(r => r.endElo)
+  const yDomain = [Math.floor(Math.min(...elos) / 100) * 100, Math.ceil(Math.max(...elos) / 100) * 100]
   const emphasised = id => focus.has(id) || hover === id
   const anyEmphasis = focus.size > 0 || hover != null
   const toggle = id => setFocus(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
@@ -138,7 +140,7 @@ function HistoryTab({ history, teams }) {
         <LineChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
           <CartesianGrid strokeDasharray="2 4" stroke="rgb(var(--line))" />
           <XAxis dataKey="key" ticks={ticks} tickFormatter={seasonOf} tick={{ fill: 'rgb(var(--muted))', fontSize: 12 }} stroke="rgb(var(--line))" />
-          <YAxis domain={['dataMin - 25', 'dataMax + 25']} tickFormatter={v => v.toFixed(0)} tick={{ fill: 'rgb(var(--muted))', fontSize: 12 }} stroke="rgb(var(--line))" />
+          <YAxis domain={yDomain} tickCount={(yDomain[1] - yDomain[0]) / 100 + 1} allowDecimals={false} tickFormatter={v => v.toFixed(0)} tick={{ fill: 'rgb(var(--muted))', fontSize: 12 }} stroke="rgb(var(--line))" />
           <ReferenceLine y={BASE} stroke="rgb(var(--rule))" />
           {boundaries.map(k => <ReferenceLine key={k} x={k} stroke="rgb(var(--muted))" strokeDasharray="3 3" />)}
           <Tooltip
