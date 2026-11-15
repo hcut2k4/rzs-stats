@@ -249,7 +249,8 @@ function MoverList({ title, rows, direction }) {
 }
 
 function Movement({ data, loading, basis }) {
-  const [hidden, setHidden] = useState({})
+  const [focus, setFocus] = useState(new Set())
+  const [hover, setHover] = useState(null)
   if (loading) return <div className="text-muted">Loading...</div>
   if (!data) return null
 
@@ -266,6 +267,11 @@ function Movement({ data, loading, basis }) {
   })
   const maxRank = Math.max(1, ...series.flatMap(s => (s.ranks ?? []).map(p => p.rank)))
 
+  const toggle = id =>
+    setFocus(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+  const emphasised = id => focus.has(id) || hover === id
+  const anyEmphasis = focus.size > 0 || hover != null
+
   return (
     <div className="space-y-8">
       <div className="grid sm:grid-cols-2 gap-6">
@@ -276,47 +282,59 @@ function Movement({ data, loading, basis }) {
       {series.length > 0 && (
         <div>
           <h3 className="font-display font-bold uppercase text-lg mb-1">Rank by week</h3>
-          <p className="text-xs text-muted mb-3">
+          <p className="text-xs text-muted mb-2">
             {basis === 'alltime'
-              ? 'Career TANY/A rank, re-ranked after every week across all seasons. Early weeks are sparse until quarterbacks reach 250 career attempts. Click a name to show or hide it.'
-              : 'Cumulative TANY/A rank through each week of the season. Click a name to show or hide it.'}
+              ? 'Career TANY/A rank, re-ranked after every week across all seasons. Early weeks are sparse until quarterbacks reach 250 career attempts.'
+              : 'Cumulative TANY/A rank through each week of the season.'}
           </p>
-          <div className="h-96 -ml-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 4, right: 16, bottom: 4, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--line))" />
-                <XAxis dataKey="label" tick={{ fontSize: 11 }} interval="preserveStartEnd" minTickGap={16} stroke="rgb(var(--muted))" />
-                <YAxis reversed domain={[1, maxRank]} allowDecimals={false} tick={{ fontSize: 12 }} stroke="rgb(var(--muted))" width={32} />
-                <RTooltip
-                  contentStyle={{ background: 'rgb(var(--bg))', border: '1px solid rgb(var(--line))', fontSize: 12 }}
-                  formatter={(value, key) => [`#${value}`, series.find(s => s.rosterId === key)?.playerName ?? key]}
-                />
-                {series.map((s, i) => !hidden[s.rosterId] && (
-                  <Line
-                    key={s.rosterId}
-                    type="monotone"
-                    dataKey={s.rosterId}
-                    stroke={COLORS[i % COLORS.length]}
-                    strokeWidth={2}
-                    dot={false}
-                    connectNulls
-                  />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
+          <div className="flex items-center gap-3 mb-2 text-xs text-muted">
+            <span>Click quarterbacks to highlight them. The rest fade back.</span>
+            <button onClick={() => setFocus(new Set())} className="text-ink font-medium hover:text-accent">Clear</button>
           </div>
-          <div className="flex flex-wrap gap-2 mt-3">
+          <div className="flex flex-wrap gap-1 mb-4">
             {series.map((s, i) => (
               <button
                 key={s.rosterId}
-                onClick={() => setHidden(h => ({ ...h, [s.rosterId]: !h[s.rosterId] }))}
-                className={`flex items-center gap-1.5 px-2 py-1 text-xs border border-line rounded ${hidden[s.rosterId] ? 'opacity-40' : ''}`}
+                onClick={() => toggle(s.rosterId)}
+                onMouseEnter={() => setHover(s.rosterId)}
+                onMouseLeave={() => setHover(null)}
+                aria-pressed={focus.has(s.rosterId)}
+                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs border transition-colors ${
+                  focus.has(s.rosterId) ? 'border-rule bg-surface font-semibold' : 'border-line text-muted hover:text-ink'
+                }`}
               >
-                <span className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS[i % COLORS.length] }} />
+                <span className="w-2 h-2 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />
                 {s.playerName}
               </button>
             ))}
           </div>
+          <ResponsiveContainer width="100%" height={420}>
+            <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="2 4" stroke="rgb(var(--line))" />
+              <XAxis dataKey="label" tick={{ fill: 'rgb(var(--muted))', fontSize: 11 }} stroke="rgb(var(--line))"
+                     interval="preserveStartEnd" minTickGap={16} />
+              <YAxis reversed domain={[1, maxRank]} allowDecimals={false} width={32}
+                     tick={{ fill: 'rgb(var(--muted))', fontSize: 12 }} stroke="rgb(var(--line))" />
+              <RTooltip
+                contentStyle={{ background: 'rgb(var(--bg))', border: '1px solid rgb(var(--rule))', borderRadius: 3 }}
+                itemSorter={item => item.value}
+                formatter={(value, key) => [`#${value}`, series.find(s => s.rosterId === key)?.playerName ?? key]}
+              />
+              {series.map((s, i) => (
+                <Line
+                  key={s.rosterId}
+                  type="monotone"
+                  dataKey={s.rosterId}
+                  stroke={COLORS[i % COLORS.length]}
+                  dot={false}
+                  strokeWidth={emphasised(s.rosterId) ? 3 : 1.5}
+                  strokeOpacity={anyEmphasis && !emphasised(s.rosterId) ? 0.12 : 1}
+                  isAnimationActive={false}
+                  connectNulls
+                />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       )}
     </div>
