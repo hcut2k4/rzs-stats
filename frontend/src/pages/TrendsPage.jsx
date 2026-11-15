@@ -143,7 +143,8 @@ function WeeklyTab({ season }) {
   if (loading) return <p className="text-muted">Loading...</p>
   if (!data.length) return <p className="text-muted">No data available.</p>
 
-  const allTeams = data[0]?.standings.map(s => ({ id: s.teamId, name: s.displayName, abbr: s.abbrName })) ?? []
+  const allTeams = (data[0]?.standings.map(s => ({ id: s.teamId, name: s.displayName, abbr: s.abbrName })) ?? [])
+    .sort((a, b) => (a.abbr ?? a.name).localeCompare(b.abbr ?? b.name))
   const chartData = data.map(d => {
     const point = { week: `Wk ${d.weekIndex + 1}` }
     d.standings.forEach(s => { point[s.displayName] = s.pythagoreanPat })
