@@ -28,6 +28,15 @@ const STATS = [
       'Toggle on Standings between current-season and prior-season opponent PyPAT — prior season is the default for the active season, where small sample sizes make current-season data less reliable',
     ],
   },
+  {
+    name: 'Elo',
+    def: 'Long-term team strength across seasons, built from game results, opponent quality, and scoring margin.',
+    bullets: [
+      'Every team starts at 1500 — higher is stronger, and ratings move after every game, playoffs included',
+      'Beating strong teams earns more points, and losing to weak teams costs more; bigger wins count more, with diminishing returns after 21 points',
+      'Teams keep 90% of their distance from 1500 between seasons, so good teams stay good with room to change',
+    ],
+  },
 ]
 
 const PAGES = [
@@ -49,6 +58,15 @@ const PAGES = [
     ],
   },
   {
+    name: 'Elo',
+    bullets: [
+      'Ratings — all 32 teams ranked by Elo, with weekly change, rank movement, and biggest risers and droppers',
+      'History — rating trends across every season; click teams to highlight them',
+      'Matchup — pick any two teams for a predicted win probability',
+      'Games — game-by-game Elo changes, pregame ratings, and projected win chances for unplayed games',
+    ],
+  },
+  {
     name: 'Trends',
     bullets: [
       'Season History — W-L, PyPAT, Luck across all seasons, sortable',
@@ -62,6 +80,7 @@ const RESOURCES = [
   { href: 'https://legacy.daddyleagues.com/redzone/blog/news/46068/PythagoreanPAT-Win-Expectancy-Season-86', label: 'PythagoreanPAT Win Expectancy — Season 86' },
   { href: 'https://legacy.daddyleagues.com/redzone/blog/news/45389/PythagoreanPAT', label: 'PythagoreanPAT' },
   { href: 'https://legacy.daddyleagues.com/redzone/blog/news/45508/Season-82-PythagoreanPat', label: 'Season 82 PythagoreanPAT' },
+  { href: 'https://modules.scorenetwork.org/football/nfl-elo-ratings/', label: 'Introduction to NFL Elo Ratings — SCORE' },
   { href: 'https://library.fangraphs.com/principles/expected-wins-and-losses/', label: 'Expected Wins and Losses — FanGraphs' },
   { href: 'https://legacy.baseballprospectus.com/glossary/index.php?mode=viewstat&stat=136', label: 'Pythagorean Record — Baseball Prospectus' },
 ]
@@ -81,7 +100,7 @@ export default function AboutPage() {
     <div>
       <PageHeader title="About" qualifier="How the numbers work" />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         {STATS.map(({ name, def, bullets }) => (
           <div key={name} className="border-t-2 border-rule pt-3">
             <h2 className="font-display font-bold uppercase text-xl mb-1">{name}</h2>
@@ -92,7 +111,7 @@ export default function AboutPage() {
       </div>
 
       <h2 className="th mb-3">Pages</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         {PAGES.map(({ name, bullets }) => (
           <div key={name} className="border-t border-line pt-3">
             <h3 className="text-sm font-semibold mb-2">{name}</h3>

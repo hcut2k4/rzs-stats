@@ -200,7 +200,8 @@ public class StatsService {
 
     @Cacheable("games")
     public List<GameDto> getGames(int seasonIndex, int stageIndex, int weekIndex) {
-        return gameRepository.findBySeasonIndexAndStageIndexAndWeekIndex(seasonIndex, stageIndex, weekIndex)
+        int storedStage = stageIndex == GameRepository.PLAYOFF_API_STAGE ? GameRepository.REGULAR_SEASON_STAGE : stageIndex;
+        return gameRepository.findBySeasonIndexAndStageIndexAndWeekIndex(seasonIndex, storedStage, weekIndex)
                 .stream().map(this::toGameDto).collect(Collectors.toList());
     }
 
@@ -211,6 +212,7 @@ public class StatsService {
 
     @Cacheable("weeks")
     public List<Integer> getAvailableWeeks(int seasonIndex, int stageIndex) {
+        if (stageIndex == GameRepository.PLAYOFF_API_STAGE) return gameRepository.findDistinctPlayoffWeeks(seasonIndex);
         return gameRepository.findDistinctRegularSeasonWeeks(seasonIndex, stageIndex);
     }
 

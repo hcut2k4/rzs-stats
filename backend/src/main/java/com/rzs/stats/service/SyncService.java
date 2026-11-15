@@ -1,5 +1,6 @@
 package com.rzs.stats.service;
 
+import com.rzs.stats.config.CacheNames;
 import com.rzs.stats.client.NeonSportzClient;
 import com.rzs.stats.model.entity.GameEntity;
 import com.rzs.stats.model.entity.TeamEntity;
@@ -43,7 +44,7 @@ public class SyncService {
         this.gameRepository = gameRepository;
     }
 
-    @CacheEvict(cacheNames = {"standings","games","weeks","seasons","seasonTrends","weeklyTrends","seasonGames"}, allEntries = true)
+    @CacheEvict(cacheResolver = CacheNames.ALL, allEntries = true)
     @Transactional
     public SyncResult sync() {
         int teamsUpserted = 0;
@@ -105,7 +106,7 @@ public class SyncService {
         }
     }
 
-    @CacheEvict(cacheNames = {"standings","games","weeks","seasons","seasonTrends","weeklyTrends","seasonGames"}, allEntries = true)
+    @CacheEvict(cacheResolver = CacheNames.ALL, allEntries = true)
     @Transactional
     public SyncResult syncForce() {
         int teamsUpserted = 0;

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { getSeasons, getAvailableWeeks, getGames } from '../api/client'
 import { TeamLogo } from '../components/TeamLogo'
 import PageHeader from '../components/PageHeader'
+import { weekLabel } from '../utils/playoffRounds'
 
 function TeamSide({ team, won, align }) {
   return (
@@ -84,7 +85,7 @@ export default function GamesPage() {
       <PageHeader
         title="Games"
         qualifier={season != null && weekIndex != null
-          ? `Season ${season + 2026} · ${stage === 1 ? 'Regular season' : 'Playoffs'} · Week ${weekIndex + 1}`
+          ? `Season ${season + 2026} · ${stage === 1 ? 'Regular season' : 'Playoffs'} · ${weekLabel(stage, weekIndex)}`
           : null}
       >
         <select className="field" value={season ?? ''} onChange={e => setSeason(Number(e.target.value))}>
@@ -107,7 +108,7 @@ export default function GamesPage() {
               ‹
             </button>
             <select className="field" value={weekIndex ?? ''} onChange={e => setWeekIndex(Number(e.target.value))}>
-              {weeks.map(w => <option key={w} value={w}>Week {w + 1}</option>)}
+              {weeks.map(w => <option key={w} value={w}>{weekLabel(stage, w)}</option>)}
             </select>
             <button
               onClick={() => weekIdx < weeks.length - 1 && setWeekIndex(weeks[weekIdx + 1])}

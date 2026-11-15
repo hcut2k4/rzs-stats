@@ -1,5 +1,6 @@
 package com.rzs.stats.service;
 
+import com.rzs.stats.config.CacheNames;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;
@@ -15,6 +16,7 @@ public class CacheWarmingService {
     private static final Logger log = LoggerFactory.getLogger(CacheWarmingService.class);
 
     private final StatsService statsService;
+    private final EloHistoryService eloHistoryService;
 
     private volatile boolean inProgress = false;
     private volatile Instant startedAt;
@@ -28,11 +30,12 @@ public class CacheWarmingService {
         return new WarmStatus(inProgress, startedAt, completedAt, message, success);
     }
 
-    public CacheWarmingService(StatsService statsService) {
+    public CacheWarmingService(StatsService statsService, EloHistoryService eloHistoryService) {
         this.statsService = statsService;
+        this.eloHistoryService = eloHistoryService;
     }
 
-    @CacheEvict(cacheNames = {"standings", "games", "weeks", "seasons", "seasonTrends", "weeklyTrends", "seasonGames"}, allEntries = true, beforeInvocation = true)
+    @CacheEvict(cacheResolver = CacheNames.ALL, allEntries = true, beforeInvocation = true)
     public void warmCaches() {
         inProgress = true;
         startedAt = Instant.now();
@@ -55,6 +58,7 @@ public class CacheWarmingService {
                 }
                 log.info("Cache warming: season {}/{} (index={}, {} weeks) done", i + 1, total, season, weeks.size());
             }
+            eloHistoryService.getTimeline();
             long elapsed = Duration.between(startedAt, Instant.now()).getSeconds();
             message = total + " seasons cached in " + elapsed + "s";
             success = true;

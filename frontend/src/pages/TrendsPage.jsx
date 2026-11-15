@@ -7,6 +7,7 @@ import PageHeader from '../components/PageHeader'
 import Tabs from '../components/Tabs'
 import { TeamLogo } from '../components/TeamLogo'
 import { goodBadColor, divergeColor } from '../utils/heat'
+import { COLORS } from '../utils/chartColors'
 
 // ── Season history tab ────────────────────────────────────────────────────────
 
@@ -120,11 +121,6 @@ function SeasonHistoryTab({ data }) {
 }
 
 // ── Weekly progression tab ────────────────────────────────────────────────────
-
-const COLORS = [
-  '#2563eb', '#dc2626', '#16a34a', '#d97706', '#7c3aed', '#0891b2',
-  '#db2777', '#65a30d', '#ea580c', '#0d9488', '#4f46e5', '#ca8a04',
-]
 
 function WeeklyTab({ season }) {
   const [data, setData] = useState([])

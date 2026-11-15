@@ -5,6 +5,7 @@ import com.rzs.stats.repository.GameRepository;
 import com.rzs.stats.service.CacheWarmingService;
 import com.rzs.stats.service.SyncService;
 import org.junit.jupiter.api.Test;
+import com.rzs.stats.service.EloConfigService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -18,8 +19,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(AdminController.class)
+@org.springframework.context.annotation.Import(EloConfigService.class)
 class AdminControllerTest {
 
+    @MockBean com.rzs.stats.repository.EloConfigRepository eloConfigs;
     @Autowired MockMvc mvc;
     @MockBean SyncService syncService;
     @MockBean NeonSportzClient client;
