@@ -9,9 +9,6 @@ public interface QbGameStatRepository extends JpaRepository<QbGameStatEntity, Lo
     @Query("SELECT q FROM QbGameStatEntity q LEFT JOIN FETCH q.team WHERE (:season IS NULL OR q.seasonIndex = :season) AND q.stageIndex = 1 AND q.weekIndex BETWEEN :minWeek AND :maxWeek ORDER BY q.seasonIndex, q.weekIndex, q.rosterId")
     List<QbGameStatEntity> findInScope(Integer season, int minWeek, int maxWeek);
 
-    @Query("SELECT q FROM QbGameStatEntity q LEFT JOIN FETCH q.team WHERE q.rosterId = :rosterId AND q.stageIndex = 1 AND q.weekIndex BETWEEN :minWeek AND :maxWeek ORDER BY q.seasonIndex, q.weekIndex")
-    List<QbGameStatEntity> findProfile(String rosterId, int minWeek, int maxWeek);
-
     boolean existsBySeasonIndexAndStageIndexAndWeekIndex(int season, int stage, int week);
     void deleteBySeasonIndexAndStageIndexAndWeekIndex(int season, int stage, int week);
 }

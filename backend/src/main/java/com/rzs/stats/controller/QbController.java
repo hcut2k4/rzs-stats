@@ -34,11 +34,6 @@ public class QbController {
         return service.movement(season, parse(Stage.class, stage), window, parse(QbStatsService.Basis.class, basis));
     }
 
-    @GetMapping("/profile/{rosterId}")
-    public QbDtos.Profile profile(@PathVariable String rosterId, @RequestParam(defaultValue = "REGULAR") String stage) {
-        return service.profile(rosterId, parse(Stage.class, stage));
-    }
-
     private void validate(Integer season, Integer week) {
         if (season != null && season < 0 || week != null && (week < 0 || week > 22))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid season or week");

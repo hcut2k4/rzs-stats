@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildQbRows, pointLabel, chartNames } from '../pages/QbPage'
+import { buildQbRows, pointLabel, chartNames, weekOptionLabel, neonPlayerUrl } from '../pages/QbPage'
 
 const sampleRows = [
   {
@@ -49,9 +49,9 @@ describe('buildQbRows', () => {
     expect(first[header.indexOf('Est Fumbles Lost')]).toBe('0.7')
   })
 
-  it('falls back to row order when the server sends no rank', () => {
-    const rows = buildQbRows([{ ...sampleRows[0], rank: null }])
-    expect(rows[1][0]).toBe(1)
+  it('leaves the rank blank rather than inventing one for an unqualified quarterback', () => {
+    const rows = buildQbRows([{ ...sampleRows[0], rank: null, qualified: false }])
+    expect(rows[1][0]).toBe('')
   })
 })
 
@@ -99,5 +99,25 @@ describe('chartNames', () => {
 
   it('falls back to a single-token name', () => {
     expect(chartNames(s(['Pele'])).map(p => p.label)).toEqual(['Pele'])
+  })
+})
+
+describe('weekOptionLabel', () => {
+  it('numbers regular season weeks from one', () => {
+    expect(weekOptionLabel(0)).toBe('Week 1')
+    expect(weekOptionLabel(17)).toBe('Week 18')
+  })
+
+  it('names playoff rounds so they are selectable by round', () => {
+    expect(weekOptionLabel(18)).toBe('Wild Card')
+    expect(weekOptionLabel(19)).toBe('Divisional')
+    expect(weekOptionLabel(20)).toBe('Conference')
+    expect(weekOptionLabel(22)).toBe('Super Bowl')
+  })
+})
+
+describe('neonPlayerUrl', () => {
+  it('builds the NeonSportz player page url from a roster id', () => {
+    expect(neonPlayerUrl('555223472')).toBe('https://neonsportz.com/leagues/RZS/players/555223472')
   })
 })

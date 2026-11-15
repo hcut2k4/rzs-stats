@@ -1,7 +1,6 @@
 package com.rzs.stats.service;
 
 import com.rzs.stats.model.entity.GameEntity;
-import com.rzs.stats.model.entity.QbGameStatEntity;
 import com.rzs.stats.model.entity.TeamEntity;
 import com.rzs.stats.repository.GameRepository;
 import com.rzs.stats.repository.QbGameStatRepository;
@@ -179,24 +178,4 @@ class QbStatsServiceTest {
         assertThat(result.fallers()).extracting(d -> d.rosterId).containsExactly("a");
     }
 
-    @Test
-    void profileUsesTheSameCalculatorForSeasonsGamesAndComponents() {
-        QbGameStatEntity a = row("a", 18, 20, 200);
-        a.setPassTd(2);
-        a.setPassInt(1);
-        a.setRushFum(1);
-        a.setTeamFumbles(3);
-        a.setTeamFumblesLost(1);
-        when(repository.findProfile("a", 18, 22)).thenReturn(List.of(a));
-        var game = game(18);
-        TeamEntity away = new TeamEntity();
-        away.setAbbrName("BBB");
-        game.setAwayTeam(away);
-        when(games.findCompletedInScope(null, 18, 22)).thenReturn(List.of(game));
-        var result = service.profile("a", PLAYOFFS);
-        assertThat(result.games().getFirst().opponentAbbr()).isEqualTo("BBB");
-        assertThat(result.seasons().getFirst().tanya).isEqualTo(9.0);
-        assertThat(result.games().getFirst().tanya()).isEqualTo(9.0);
-        assertThat(result.components().turnoverPenalty()).isEqualTo(60.0);
-    }
 }

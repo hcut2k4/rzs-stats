@@ -53,10 +53,12 @@ public class QbStatsService {
         List<QbGameStatEntity> selected = rows.stream().filter(r -> scope == Scope.ALLTIME ||
                 (scope == Scope.WEEK ? r.getWeekIndex() == endWeek : r.getWeekIndex() <= endWeek)).toList();
         List<QbStatDto> result = aggregate(selected, teamGames, scope, scope == Scope.ALLTIME ? stage.maxWeek() : endWeek, minAtt, stage);
-        Map<String, Integer> changes = scope == Scope.ALLTIME
-                ? seasonChanges(rows, teamGames, stage, selectedSeason, minAtt)
-                : changes(rows, teamGames, endWeek, endWeek - 1, minAtt, stage);
-        result.forEach(d -> d.rankChange = d.qualified ? changes.get(d.rosterId) : null);
+        if (scope != Scope.WEEK) {
+            Map<String, Integer> changes = scope == Scope.ALLTIME
+                    ? seasonChanges(rows, teamGames, stage, selectedSeason, minAtt)
+                    : changes(rows, teamGames, endWeek, endWeek - 1, minAtt, stage);
+            result.forEach(d -> d.rankChange = d.qualified ? changes.get(d.rosterId) : null);
+        }
         return result.stream().filter(d -> includeUnqualified || d.qualified).toList();
     }
 
@@ -158,32 +160,6 @@ public class QbStatsService {
                 ? r.getSeasonIndex() < p.season() || (r.getSeasonIndex() == p.season() && r.getWeekIndex() <= p.week())
                 : r.getWeekIndex() <= p.week()).toList();
         return aggregate(upTo, teamGames, career ? Scope.ALLTIME : Scope.SEASON, p.week(), null, stage);
-    }
-
-    @Cacheable("qbStats")
-    public QbDtos.Profile profile(String rosterId, Stage stage) {
-        List<QbGameStatEntity> rows = repository.findProfile(rosterId, stage.minWeek(), stage.maxWeek());
-        if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Quarterback not found");
-        List<GameEntity> teamGames = games.findCompletedInScope(null, stage.minWeek(), stage.maxWeek());
-        List<QbStatDto> seasons = new ArrayList<>();
-        Map<Integer, List<QbGameStatEntity>> bySeason = rows.stream().collect(Collectors.groupingBy(QbGameStatEntity::getSeasonIndex, TreeMap::new, Collectors.toList()));
-        for (var entry : bySeason.entrySet()) {
-            List<GameEntity> seasonGames = teamGames.stream().filter(g -> g.getSeasonIndex().equals(entry.getKey())).toList();
-            seasons.addAll(aggregate(entry.getValue(), seasonGames, Scope.SEASON, stage.maxWeek(), null, stage));
-        }
-        List<QbDtos.Game> gameDtos = rows.stream().map(r -> {
-            QbStatDto d = calculator.calculate(List.of(r));
-            String opponent = teamGames.stream().filter(g -> g.getSeasonIndex() == r.getSeasonIndex() && g.getWeekIndex() == r.getWeekIndex())
-                    .filter(g -> Objects.equals(abbr(g.getHomeTeam()), d.teamAbbr) || Objects.equals(abbr(g.getAwayTeam()), d.teamAbbr))
-                    .map(g -> Objects.equals(abbr(g.getHomeTeam()), d.teamAbbr) ? abbr(g.getAwayTeam()) : abbr(g.getHomeTeam()))
-                    .findFirst().orElse(null);
-            return new QbDtos.Game(r.getSeasonIndex(), r.getWeekIndex(), r.getStageIndex(), opponent, d.tanya,
-                    d.passAtt, d.passYds, d.passTd, d.passInt, d.rushAtt, d.rushYds, d.rushTd, d.sackYardsLost, d.fumblesLost);
-        }).toList();
-        QbStatDto total = calculator.calculate(rows);
-        return new QbDtos.Profile(rosterId, total.playerName, total.teamAbbr, total.teamName, seasons, gameDtos,
-                new QbDtos.Components(total.passYds, total.sackYardsLost, total.rushYds, 20 * (total.passTd + total.rushTd),
-                        45 * (total.passInt + total.fumblesLost)));
     }
 
     private String abbr(TeamEntity team) { return team == null ? null : team.getAbbrName(); }

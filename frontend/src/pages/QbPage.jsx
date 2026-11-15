@@ -34,6 +34,13 @@ export function chartNames(series) {
 }
 
 const ROUND_ABBR = { 18: 'WC', 19: 'DIV', 20: 'CONF', 22: 'SB' }
+const ROUND_NAME = { 18: 'Wild Card', 19: 'Divisional', 20: 'Conference', 22: 'Super Bowl' }
+
+export function weekOptionLabel(week) {
+  return week >= 18 ? (ROUND_NAME[week] ?? `Playoff Week ${week + 1}`) : `Week ${week + 1}`
+}
+
+export const neonPlayerUrl = rosterId => `https://neonsportz.com/leagues/RZS/players/${rosterId}`
 
 export function pointLabel(season, week, showSeason) {
   const w = week >= 18 ? (ROUND_ABBR[week] ?? `P${week - 17}`) : `W${week + 1}`
@@ -81,11 +88,17 @@ const ALL_COLS = [
   {
     key: 'playerName', label: 'QB', stickyLeft: 'left-10', presets: ['efficiency', 'classic', 'rushing', 'all'],
     fmt: (v, _, row) => (
-      <span className="flex items-center gap-2">
+      <a
+        href={neonPlayerUrl(row.rosterId)}
+        target="_blank"
+        rel="noreferrer"
+        title={`${v} on NeonSportz`}
+        className="flex items-center gap-2 hover:text-accent"
+      >
         <TeamLogo abbr={row.teamAbbr} size={20} />
         <span className="font-semibold">{v}</span>
         <span className="text-muted text-xs">{row.teamAbbr}</span>
-      </span>
+      </a>
     ),
   },
   { key: 'gamesPlayed', label: 'GP', presets: ['efficiency', 'classic', 'rushing', 'all'], group: 'Volume', groupStart: true },
@@ -125,7 +138,7 @@ export function buildQbRows(rows) {
   const headers = ['Rank', 'QB', 'Team', 'GP', 'Att', 'TANY/A', 'ANY/A', 'RUSH+', 'Rating', 'Cmp', 'Yds', 'TD', 'INT',
     'TD%', 'INT%', 'TD:INT', 'Sacks', 'Est Sack Yds', 'Est Fumbles Lost', 'Rush Att', 'Rush Yds', 'YPC', 'Rush TD']
   const body = rows.map((r, i) => [
-    r.rank ?? i + 1, r.playerName, r.teamAbbr, r.gamesPlayed, r.passAtt,
+    r.rank ?? '', r.playerName, r.teamAbbr, r.gamesPlayed, r.passAtt,
     n2(r.tanya), n2(r.anya), signed2(r.rushValue), n1(r.passerRating),
     r.passComp, r.passYds, r.passTd, r.passInt,
     pct1(r.tdPct), pct1(r.intPct), r.tdToInt != null ? r.tdToInt.toFixed(1) : 'n/a',
@@ -155,8 +168,9 @@ function exportExcel(rows, label) {
   XLSX.writeFile(wb, `qb-stats-${label}.xlsx`)
 }
 
-function Leaderboard({ rows, preset, sortKey, sortAsc, onSort, scopeLabel }) {
+function Leaderboard({ rows, preset, sortKey, sortAsc, onSort, scopeLabel, scope, minAtt }) {
   const cols = ALL_COLS.filter(c => c.presets.includes(preset))
+    .filter(c => c.key !== 'rankChange' || scope !== 'week')
 
   const groupSpans = []
   for (const col of cols) {
@@ -237,7 +251,18 @@ function Leaderboard({ rows, preset, sortKey, sortAsc, onSort, scopeLabel }) {
           </tbody>
         </table>
       </div>
-      {rows.length === 0 && <p className="text-muted py-6">No qualifying quarterbacks for this scope.</p>}
+      {rows.length === 0 && (
+        <div className="py-6 text-sm text-muted">
+          <p className="text-ink font-semibold mb-1">No quarterbacks met the attempt minimum.</p>
+          <p>
+            {scope === 'week'
+              ? 'A single-week board needs 10 pass attempts in the selected week. Try another week, or lower Min att.'
+              : scope === 'alltime'
+                ? 'The all-time board needs 250 career attempts, or 50 in the playoffs. Lower Min att to see everyone.'
+                : 'A season board needs 10 attempts per team game played. Early in a season few quarterbacks clear it — lower Min att, or tick Show unqualified.'}
+          </p>
+        </div>
+      )}
       <p className="text-xs text-muted mt-2">
         Green = better, red = worse. RUSH+ is adjusted rushing production per passing opportunity, above a 4-yard-per-carry baseline. ~ marks an estimated value. Faded rows are below the attempt minimum.
       </p>
@@ -249,7 +274,11 @@ function MoverList({ title, rows, direction }) {
   return (
     <div>
       <h3 className="font-display font-bold uppercase text-lg mb-2">{title}</h3>
-      {rows.length === 0 && <p className="text-muted text-sm">Not enough data yet.</p>}
+      {rows.length === 0 && (
+        <p className="text-muted text-sm">
+          No {direction === 'up' ? 'risers' : 'fallers'} over this window — nobody qualified moved {direction === 'up' ? 'up' : 'down'} the board. Widen "Movers vs" to compare further back.
+        </p>
+      )}
       <div className="border-y border-rule divide-y divide-line">
         {rows.map(r => (
           <div key={r.rosterId} className="flex items-center gap-3 py-2 px-1">
@@ -414,15 +443,18 @@ export default function QbPage() {
       .catch(() => setError('Failed to load seasons'))
   }, [])
 
+  // The week list has to follow the stage, or picking Playoffs leaves only unreachable weeks.
   useEffect(() => {
     if (season == null) return
-    getAvailableWeeks(season, 1)
-      .then(w => {
+    const wanted = stage === 'playoffs' ? [2] : stage === 'both' ? [1, 2] : [1]
+    Promise.all(wanted.map(s => getAvailableWeeks(season, s).catch(() => [])))
+      .then(lists => {
+        const w = [...new Set(lists.flat())].sort((a, b) => a - b)
         setWeeks(w)
-        if (w.length) setWeek(prev => (prev != null && w.includes(prev) ? prev : w[w.length - 1]))
+        setWeek(prev => (prev != null && w.includes(prev) ? prev : w.length ? w[w.length - 1] : null))
       })
       .catch(() => setWeeks([]))
-  }, [season])
+  }, [season, stage])
 
   useEffect(() => {
     if (tab !== 'leaderboard') return
@@ -508,7 +540,7 @@ export default function QbPage() {
 
             {scope === 'week' && (
               <select className="field" value={week ?? ''} onChange={e => setWeek(Number(e.target.value))}>
-                {weeks.map(w => <option key={w} value={w}>Week {w + 1}</option>)}
+                {weeks.map(w => <option key={w} value={w}>{weekOptionLabel(w)}</option>)}
               </select>
             )}
           </>
@@ -613,6 +645,7 @@ export default function QbPage() {
           sortAsc={sortAsc}
           onSort={handleSort}
           scopeLabel={scopeLabel}
+          scope={scope}
         />
       )}
 

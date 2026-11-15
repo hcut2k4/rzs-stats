@@ -13,7 +13,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
 
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -52,19 +52,26 @@ class AdminControllerTest {
     }
 
     @Test
-    void postSync_returns200WithStartedMessage() throws Exception {
+    void manualSyncRunsQbSyncAfterSuccessfulGameSync() throws Exception {
+        when(syncService.sync()).thenReturn(new SyncService.SyncResult(true, "ok"));
         mvc.perform(post("/api/admin/sync"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Sync started"));
+        verify(qbSync, timeout(1000)).syncIncremental();
+        var order = inOrder(syncService, qbSync);
+        order.verify(syncService).sync();
+        order.verify(qbSync).syncIncremental();
     }
 
     @Test
-    void postSync_alwaysReturnsStartedRegardlessOfOutcome() throws Exception {
-        // Sync runs async; the HTTP response always reflects "started", not the sync result
+    void failedGameSyncSkipsQbSyncAndStillReturnsStarted() throws Exception {
+        when(syncService.sync()).thenReturn(new SyncService.SyncResult(false, "failed"));
         mvc.perform(post("/api/admin/sync"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
+        verify(syncService, timeout(1000)).sync();
+        verify(qbSync, after(100).never()).syncIncremental();
     }
 
     @Test

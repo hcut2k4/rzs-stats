@@ -65,7 +65,9 @@ public class AdminController {
     @PostMapping("/sync")
     public Map<String, Object> triggerSync() {
         log.info("Manual sync triggered");
-        CompletableFuture.runAsync(() -> syncService.sync())
+        CompletableFuture.runAsync(() -> {
+                    if (syncService.sync().success()) qbSync.syncIncremental();
+                })
                 .exceptionally(ex -> {
                     log.error("Unexpected error during async sync", ex);
                     return null;
