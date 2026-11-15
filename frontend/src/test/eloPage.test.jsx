@@ -79,4 +79,20 @@ describe('EloPage', () => {
     const cells = screen.getAllByRole('cell').map(c => c.textContent)
     expect(cells.slice(-2)).toEqual(['9.1%', '90.9%'])
   })
+
+  it('flags upsets on completed games and leaves expected results unmarked', async () => {
+    const team = (id, abbrName) => ({ teamId: id, abbrName, displayName: abbrName + 'x' })
+    const game = (gameId, homeScore, awayScore, homeWinProbability) => ({
+      gameId, season: 1, week: 22, homeTeam: team(1, 'HOM'), awayTeam: team(2, 'AWY'),
+      homePregameElo: 1500, awayPregameElo: 1500, homeWinProbability, awayWinProbability: 1 - homeWinProbability,
+      homeScore, awayScore, margin: Math.abs(homeScore - awayScore), movMultiplier: 1, pointsMoved: 10,
+      homePostgameElo: 1510, awayPostgameElo: 1490,
+    })
+    client.getEloGames.mockResolvedValue([game(1, 10, 20, 0.7), game(2, 20, 10, 0.7), game(3, 14, 14, 0.7)])
+    render(<MemoryRouter><EloPage /></MemoryRouter>)
+    await screen.findAllByText('BUFx')
+    await userEvent.click(screen.getByRole('tab', { name: 'Games' }))
+    expect(await screen.findByText('Upset · 30%')).toBeInTheDocument()
+    expect(screen.getAllByText(/Upset ·/)).toHaveLength(1)
+  })
 })
