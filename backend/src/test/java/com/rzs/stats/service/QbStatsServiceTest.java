@@ -106,6 +106,33 @@ class QbStatsServiceTest {
     }
 
     @Test
+    void alltimeMovementComparesAgainstTheBoardBeforeTheLatestSeason() {
+        var a0 = row("a", 0, 250, 2000);
+        var b0 = row("b", 0, 250, 1000);
+        var a1 = row("a", 0, 250, 0);
+        var b1 = row("b", 0, 250, 4000);
+        a1.setSeasonIndex(1);
+        b1.setSeasonIndex(1);
+        when(repository.findInScope(null, 0, 17)).thenReturn(List.of(a0, b0, a1, b1));
+        var result = service.leaderboard(ALLTIME, null, null, REGULAR, null, false);
+        assertThat(result).extracting(d -> d.rosterId).containsExactly("b", "a");
+        assertThat(result.get(0).rankChange).isEqualTo(1);
+        assertThat(result.get(1).rankChange).isEqualTo(-1);
+    }
+
+    @Test
+    void alltimePlayoffQualificationUsesFiftyAttemptsInsteadOfTheFullSeasonBar() {
+        var qualifies = row("a", 18, 50, 400);
+        var shortOf = row("b", 18, 49, 400);
+        when(repository.findInScope(null, 18, 22)).thenReturn(List.of(qualifies, shortOf));
+        var result = service.leaderboard(ALLTIME, null, null, PLAYOFFS, null, true);
+        assertThat(result).filteredOn(d -> d.rosterId.equals("a")).singleElement()
+                .satisfies(d -> assertThat(d.qualified).isTrue());
+        assertThat(result).filteredOn(d -> d.rosterId.equals("b")).singleElement()
+                .satisfies(d -> assertThat(d.qualified).isFalse());
+    }
+
+    @Test
     void movementShowsTopQuarterbacksAndWeeklyCumulativeRanks() {
         when(repository.findInScope(0, 0, 17)).thenReturn(List.of(row("a", 0, 20, 400), row("b", 0, 20, 200),
                 row("a", 1, 20, 0), row("b", 1, 20, 600)));

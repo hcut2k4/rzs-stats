@@ -24,6 +24,10 @@ public class QbStatsService {
         public int maxWeek() { return this == REGULAR ? 17 : 22; }
     }
 
+    static final int ALLTIME_MIN_ATT = 250;
+    // Two playoff brackets exist, so a full-season bar would empty the board; 50 is about two playoff starts.
+    static final int ALLTIME_PLAYOFF_MIN_ATT = 50;
+
     private final QbGameStatRepository repository;
     private final GameRepository games;
     private final QbStatsCalculator calculator;
@@ -47,15 +51,15 @@ public class QbStatsService {
         List<GameEntity> teamGames = games.findCompletedInScope(scope == Scope.ALLTIME ? null : selectedSeason, stage.minWeek(), stage.maxWeek());
         List<QbGameStatEntity> selected = rows.stream().filter(r -> scope == Scope.ALLTIME ||
                 (scope == Scope.WEEK ? r.getWeekIndex() == endWeek : r.getWeekIndex() <= endWeek)).toList();
-        List<QbStatDto> result = aggregate(selected, teamGames, scope, scope == Scope.ALLTIME ? stage.maxWeek() : endWeek, minAtt);
-        if (scope != Scope.ALLTIME) {
-            Map<String, Integer> changes = changes(rows, teamGames, endWeek, endWeek - 1, minAtt);
-            result.forEach(d -> d.rankChange = d.qualified ? changes.get(d.rosterId) : null);
-        }
+        List<QbStatDto> result = aggregate(selected, teamGames, scope, scope == Scope.ALLTIME ? stage.maxWeek() : endWeek, minAtt, stage);
+        Map<String, Integer> changes = scope == Scope.ALLTIME
+                ? seasonChanges(rows, teamGames, stage, selectedSeason, minAtt)
+                : changes(rows, teamGames, endWeek, endWeek - 1, minAtt, stage);
+        result.forEach(d -> d.rankChange = d.qualified ? changes.get(d.rosterId) : null);
         return result.stream().filter(d -> includeUnqualified || d.qualified).toList();
     }
 
-    private List<QbStatDto> aggregate(List<QbGameStatEntity> rows, List<GameEntity> teamGames, Scope scope, int through, Integer minAtt) {
+    private List<QbStatDto> aggregate(List<QbGameStatEntity> rows, List<GameEntity> teamGames, Scope scope, int through, Integer minAtt, Stage stage) {
         Map<String, List<QbGameStatEntity>> grouped = rows.stream().collect(Collectors.groupingBy(QbGameStatEntity::getRosterId));
         List<QbStatDto> result = new ArrayList<>();
         for (List<QbGameStatEntity> player : grouped.values()) {
@@ -66,7 +70,7 @@ public class QbStatsService {
             long threshold = minAtt != null ? minAtt : switch (scope) {
                 case WEEK -> 10;
                 case SEASON -> 10 * played;
-                case ALLTIME -> 250;
+                case ALLTIME -> stage == Stage.PLAYOFFS ? ALLTIME_PLAYOFF_MIN_ATT : ALLTIME_MIN_ATT;
             };
             dto.qualified = dto.passAtt >= threshold;
             result.add(dto);
@@ -77,9 +81,19 @@ public class QbStatsService {
         return result;
     }
 
-    private Map<String, Integer> changes(List<QbGameStatEntity> rows, List<GameEntity> teamGames, int current, int previous, Integer minAtt) {
-        List<QbStatDto> now = cumulative(rows, teamGames, current, minAtt);
-        List<QbStatDto> before = cumulative(rows, teamGames, previous, minAtt);
+    private Map<String, Integer> changes(List<QbGameStatEntity> rows, List<GameEntity> teamGames, int current, int previous, Integer minAtt, Stage stage) {
+        return cohortChange(cumulative(rows, teamGames, current, minAtt, stage), cumulative(rows, teamGames, previous, minAtt, stage));
+    }
+
+    // All-time movement compares the career board against where it stood before the latest season.
+    private Map<String, Integer> seasonChanges(List<QbGameStatEntity> rows, List<GameEntity> teamGames, Stage stage,
+                                               int latestSeason, Integer minAtt) {
+        List<QbGameStatEntity> prior = rows.stream().filter(r -> r.getSeasonIndex() < latestSeason).toList();
+        return cohortChange(aggregate(rows, teamGames, Scope.ALLTIME, stage.maxWeek(), minAtt, stage),
+                aggregate(prior, teamGames, Scope.ALLTIME, stage.maxWeek(), minAtt, stage));
+    }
+
+    private Map<String, Integer> cohortChange(List<QbStatDto> now, List<QbStatDto> before) {
         Set<String> cohort = now.stream().filter(d -> d.rank != null).map(d -> d.rosterId).collect(Collectors.toSet());
         Set<String> previouslyQualified = before.stream().filter(d -> d.rank != null).map(d -> d.rosterId).collect(Collectors.toSet());
         Map<String, Integer> oldRanks = cohortRanks(before, cohort);
@@ -96,8 +110,8 @@ public class QbStatsService {
         return result;
     }
 
-    private List<QbStatDto> cumulative(List<QbGameStatEntity> rows, List<GameEntity> teamGames, int week, Integer minAtt) {
-        return aggregate(rows.stream().filter(r -> r.getWeekIndex() <= week).toList(), teamGames, Scope.SEASON, week, minAtt);
+    private List<QbStatDto> cumulative(List<QbGameStatEntity> rows, List<GameEntity> teamGames, int week, Integer minAtt, Stage stage) {
+        return aggregate(rows.stream().filter(r -> r.getWeekIndex() <= week).toList(), teamGames, Scope.SEASON, week, minAtt, stage);
     }
 
     @Cacheable("qbStats")
@@ -108,8 +122,8 @@ public class QbStatsService {
         rows = rows.stream().filter(r -> r.getSeasonIndex() == selectedSeason).toList();
         List<GameEntity> teamGames = games.findCompletedInScope(selectedSeason, stage.minWeek(), stage.maxWeek());
         int latest = rows.stream().mapToInt(QbGameStatEntity::getWeekIndex).max().orElse(stage.minWeek());
-        Map<String, Integer> changes = changes(rows, teamGames, latest, latest - window, null);
-        List<QbStatDto> current = cumulative(rows, teamGames, latest, null).stream().filter(d -> d.rank != null).toList();
+        Map<String, Integer> changes = changes(rows, teamGames, latest, latest - window, null, stage);
+        List<QbStatDto> current = cumulative(rows, teamGames, latest, null, stage).stream().filter(d -> d.rank != null).toList();
         current.forEach(d -> d.rankChange = changes.get(d.rosterId));
         List<QbStatDto> risers = current.stream().filter(d -> d.rankChange != null && d.rankChange > 0)
                 .sorted(Comparator.comparingInt((QbStatDto d) -> d.rankChange).reversed().thenComparing(ORDER)).limit(5).toList();
@@ -118,7 +132,7 @@ public class QbStatsService {
         Map<String, List<QbDtos.Rank>> history = new LinkedHashMap<>();
         current.stream().limit(10).forEach(d -> history.put(d.rosterId, new ArrayList<>()));
         for (int w = Math.max(stage.minWeek(), latest - window); w <= latest; w++) {
-            for (QbStatDto d : cumulative(rows, teamGames, w, null)) if (d.rank != null && history.containsKey(d.rosterId))
+            for (QbStatDto d : cumulative(rows, teamGames, w, null, stage)) if (d.rank != null && history.containsKey(d.rosterId))
                 history.get(d.rosterId).add(new QbDtos.Rank(w, d.rank, d.tanya));
         }
         List<QbDtos.Series> series = current.stream().limit(10)
@@ -135,7 +149,7 @@ public class QbStatsService {
         Map<Integer, List<QbGameStatEntity>> bySeason = rows.stream().collect(Collectors.groupingBy(QbGameStatEntity::getSeasonIndex, TreeMap::new, Collectors.toList()));
         for (var entry : bySeason.entrySet()) {
             List<GameEntity> seasonGames = teamGames.stream().filter(g -> g.getSeasonIndex().equals(entry.getKey())).toList();
-            seasons.addAll(aggregate(entry.getValue(), seasonGames, Scope.SEASON, stage.maxWeek(), null));
+            seasons.addAll(aggregate(entry.getValue(), seasonGames, Scope.SEASON, stage.maxWeek(), null, stage));
         }
         List<QbDtos.Game> gameDtos = rows.stream().map(r -> {
             QbStatDto d = calculator.calculate(List.of(r));
