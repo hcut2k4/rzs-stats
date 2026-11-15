@@ -1,37 +1,39 @@
 import { useState, useEffect } from 'react'
 import { getSeasons, getAvailableWeeks, getGames } from '../api/client'
-import { teamLogoUrl } from '../utils/teamLogo'
+import { TeamLogo } from '../components/TeamLogo'
+import PageHeader from '../components/PageHeader'
 
-function GameCard({ game }) {
-  const homeLogo = teamLogoUrl(game.homeTeam?.abbrName)
-  const awayLogo = teamLogoUrl(game.awayTeam?.abbrName)
+function TeamSide({ team, won, align }) {
+  return (
+    <div className={`flex items-center gap-2 ${align === 'right' ? 'justify-end' : ''} ${won ? 'font-bold' : 'text-muted'}`}>
+      {align === 'right' && <span>{team?.abbrName}</span>}
+      <TeamLogo abbr={team?.abbrName} size={28} />
+      {align !== 'right' && <span>{team?.abbrName}</span>}
+    </div>
+  )
+}
+
+function GameRow({ game, i }) {
   const homeWon = game.homeScore > game.awayScore
   const awayWon = game.awayScore > game.homeScore
   const url = `https://neonsportz.com/leagues/RZS/games/${game.nsPk ?? game.gameId}`
 
   return (
-    <a href={url} target="_blank" rel="noopener noreferrer" className="block">
-      <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 sm:p-4 flex items-center justify-between gap-4 hover:border-gray-600 transition-colors">
-        {/* Away team */}
-        <div className={`flex flex-col items-center gap-1 w-20 sm:w-28 text-center ${awayWon ? 'opacity-100' : 'opacity-60'}`}>
-          <img src={awayLogo} alt="" className="w-8 h-8 sm:w-10 sm:h-10 object-contain" onError={e => { e.target.style.display = 'none' }} />
-          <span className="text-xs font-medium">{game.awayTeam?.abbrName}</span>
-        </div>
-
-        {/* Scores */}
-        <div className="flex items-center gap-4 text-2xl font-bold tabular-nums">
-          <span className={awayWon ? 'text-white' : 'text-gray-500'}>{game.awayScore ?? '–'}</span>
-          <span className="text-gray-600 text-base">vs</span>
-          <span className={homeWon ? 'text-white' : 'text-gray-500'}>{game.homeScore ?? '–'}</span>
-        </div>
-
-        {/* Home team */}
-        <div className={`flex flex-col items-center gap-1 w-20 sm:w-28 text-center ${homeWon ? 'opacity-100' : 'opacity-60'}`}>
-          <img src={homeLogo} alt="" className="w-8 h-8 sm:w-10 sm:h-10 object-contain" onError={e => { e.target.style.display = 'none' }} />
-          <span className="text-xs font-medium">{game.homeTeam?.abbrName}</span>
-        </div>
-
-        {game.simmed && <span className="absolute top-2 right-2 text-xs text-gray-500">SIM</span>}
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`grid grid-cols-[1fr_auto_1fr] items-center gap-4 px-3 py-2 border-t border-line hover:bg-surface ${i % 2 ? 'bg-surface/60' : ''}`}
+    >
+      <TeamSide team={game.awayTeam} won={awayWon} />
+      <div className="flex items-center gap-3 text-xl font-bold num">
+        <span className={`w-8 text-right ${awayWon ? '' : 'text-muted'}`}>{game.awayScore ?? '–'}</span>
+        <span className="text-muted text-xs font-normal">@</span>
+        <span className={`w-8 ${homeWon ? '' : 'text-muted'}`}>{game.homeScore ?? '–'}</span>
+      </div>
+      <div className="flex items-center justify-end gap-3">
+        {game.simmed && <span className="text-[10px] font-semibold tracking-wide border border-line rounded px-1 text-muted">SIM</span>}
+        <TeamSide team={game.homeTeam} won={homeWon} align="right" />
       </div>
     </a>
   )
@@ -79,63 +81,62 @@ export default function GamesPage() {
 
   return (
     <div>
-      <div className="flex items-center gap-3 mb-6 flex-wrap">
-        <h1 className="text-xl font-bold">Games</h1>
-
-        <select
-          className="bg-gray-800 border border-gray-700 rounded px-3 py-1 text-sm"
-          value={season ?? ''}
-          onChange={e => setSeason(Number(e.target.value))}
-        >
+      <PageHeader
+        title="Games"
+        qualifier={season != null && weekIndex != null
+          ? `Season ${season + 2026} · ${stage === 1 ? 'Regular season' : 'Playoffs'} · Week ${weekIndex + 1}`
+          : null}
+      >
+        <select className="field" value={season ?? ''} onChange={e => setSeason(Number(e.target.value))}>
           {seasons.map(s => <option key={s} value={s}>Season {s + 2026}</option>)}
         </select>
 
-        <select
-          className="bg-gray-800 border border-gray-700 rounded px-3 py-1 text-sm"
-          value={stage}
-          onChange={e => setStage(Number(e.target.value))}
-        >
+        <select className="field" value={stage} onChange={e => setStage(Number(e.target.value))}>
           <option value={1}>Regular Season</option>
           <option value={2}>Playoffs</option>
         </select>
 
         {weeks.length > 0 && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <button
               onClick={() => weekIdx > 0 && setWeekIndex(weeks[weekIdx - 1])}
               disabled={weekIdx <= 0}
-              className="px-2 py-1 bg-gray-800 rounded disabled:opacity-30"
+              aria-label="Previous week"
+              className="btn"
             >
               ‹
             </button>
-            <select
-              className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm"
-              value={weekIndex ?? ''}
-              onChange={e => setWeekIndex(Number(e.target.value))}
-            >
+            <select className="field" value={weekIndex ?? ''} onChange={e => setWeekIndex(Number(e.target.value))}>
               {weeks.map(w => <option key={w} value={w}>Week {w + 1}</option>)}
             </select>
             <button
               onClick={() => weekIdx < weeks.length - 1 && setWeekIndex(weeks[weekIdx + 1])}
               disabled={weekIdx >= weeks.length - 1}
-              className="px-2 py-1 bg-gray-800 rounded disabled:opacity-30"
+              aria-label="Next week"
+              className="btn"
             >
               ›
             </button>
           </div>
         )}
-      </div>
+      </PageHeader>
 
-      {error && <div className="text-red-400 mb-4">{error}</div>}
-      {loading && <div className="text-gray-400">Loading...</div>}
+      {error && <div className="text-bad mb-4">{error}</div>}
+      {loading && <div className="text-muted">Loading...</div>}
 
       {!loading && !error && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 relative">
-          {games.length === 0
-            ? <p className="text-gray-400 col-span-full">No games found for this week.</p>
-            : games.map(g => <GameCard key={g.gameId} game={g} />)
-          }
-        </div>
+        games.length === 0
+          ? <p className="text-muted">No games found for this week.</p>
+          : (
+            <div className="border-b border-rule max-w-3xl">
+              <div className="grid grid-cols-[1fr_auto_1fr] gap-4 px-3 py-1.5 th">
+                <span>Away</span>
+                <span>Score</span>
+                <span className="text-right">Home</span>
+              </div>
+              {games.map((g, i) => <GameRow key={g.gameId} game={g} i={i} />)}
+            </div>
+          )
       )}
     </div>
   )
