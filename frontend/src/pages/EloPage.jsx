@@ -314,8 +314,8 @@ function GamesTab({ season, week, upcoming }) {
                 <tr className="border-b border-rule">
                   <Th tip={TIPS.projElo}>Away</Th>
                   <Th tip={TIPS.projElo}>Home</Th>
-                  <Th tip={TIPS.projHome} className="text-right">Home win prob.</Th>
                   <Th tip={TIPS.projHome} className="text-right">Away win prob.</Th>
+                  <Th tip={TIPS.projHome} className="text-right">Home win prob.</Th>
                 </tr>
               </thead>
               <tbody>
@@ -323,8 +323,8 @@ function GamesTab({ season, week, upcoming }) {
                   <tr key={g.gameId} className={`border-t border-line ${i % 2 ? 'bg-surface' : 'bg-bg'}`}>
                     {side(g.awayTeam, g.awayElo, null)}
                     {side(g.homeTeam, g.homeElo, null)}
-                    <td className="px-2 py-1.5 text-right font-semibold">{pct(g.homeWinProbability)}</td>
                     <td className="px-2 py-1.5 text-right font-semibold">{pct(g.awayWinProbability)}</td>
+                    <td className="px-2 py-1.5 text-right font-semibold">{pct(g.homeWinProbability)}</td>
                   </tr>
                 ))}
               </tbody>
