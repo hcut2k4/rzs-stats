@@ -20,6 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AdminTokenUnsetTest {
 
     @Autowired MockMvc mvc;
+    @MockBean com.rzs.stats.service.EloConfigService eloConfig;
     @MockBean SyncService syncService;
     @MockBean NeonSportzClient client;
     @MockBean GameRepository gameRepository;

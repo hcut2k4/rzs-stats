@@ -23,11 +23,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AdminTokenTest {
 
     @Autowired MockMvc mvc;
+    @MockBean com.rzs.stats.service.EloConfigService eloConfig;
     @MockBean SyncService syncService;
     @MockBean NeonSportzClient client;
     @MockBean GameRepository gameRepository;
     @MockBean CacheWarmingService cacheWarmingService;
     @MockBean com.rzs.stats.service.StatsService statsService;
+    @MockBean com.rzs.stats.service.EloQueryService eloQueryService;
 
     @Test
     void rejectsAdminRequestWithoutToken() throws Exception {

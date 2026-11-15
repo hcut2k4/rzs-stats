@@ -20,14 +20,14 @@ describe('EloPage', () => {
 
   it('defaults to the latest season and week and shows ratings with ranks', async () => {
     render(<MemoryRouter><EloPage /></MemoryRouter>)
-    expect(await screen.findByText('BUFx')).toBeInTheDocument()
+    expect((await screen.findAllByText('BUFx')).length).toBeGreaterThan(0)
     expect(client.getEloRatings).toHaveBeenCalledWith(1, 22)
     expect(screen.getByText('1700')).toBeInTheDocument()
   })
 
   it('names playoff weeks in the week selector', async () => {
     render(<MemoryRouter><EloPage /></MemoryRouter>)
-    await screen.findByText('BUFx')
+    await screen.findAllByText('BUFx')
     expect(screen.getByRole('option', { name: 'Wild Card' })).toBeInTheDocument()
     expect(screen.getByRole('option', { name: 'Super Bowl' })).toBeInTheDocument()
   })
@@ -38,7 +38,7 @@ describe('EloPage', () => {
       eloA: 1700, eloB: 1300, teamAWinProbability: 0.909, teamBWinProbability: 0.091,
     })
     render(<MemoryRouter><EloPage /></MemoryRouter>)
-    await screen.findByText('BUFx')
+    await screen.findAllByText('BUFx')
     await userEvent.click(screen.getByRole('tab', { name: 'Matchup' }))
     expect(await screen.findByText('90.9%')).toBeInTheDocument()
   })

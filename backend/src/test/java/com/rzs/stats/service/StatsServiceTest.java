@@ -595,6 +595,22 @@ class StatsServiceTest {
         return t;
     }
 
+    @Test
+    void getGamesForPlayoffStageReadsStageOneGames() {
+        GameEntity playoffGame = game(1, team(1, "A"), team(2, "B"), 24, 21);
+        playoffGame.setWeekIndex(18);
+        when(gameRepository.findBySeasonIndexAndStageIndexAndWeekIndex(3, 1, 18)).thenReturn(List.of(playoffGame));
+
+        assertThat(service.getGames(3, 2, 18)).hasSize(1);
+    }
+
+    @Test
+    void getAvailableWeeksForPlayoffStageReturnsPlayoffWeeks() {
+        when(gameRepository.findDistinctPlayoffWeeks(3)).thenReturn(List.of(18, 19, 20, 22));
+
+        assertThat(service.getAvailableWeeks(3, 2)).containsExactly(18, 19, 20, 22);
+    }
+
     private static GameEntity game(int gameId, TeamEntity home, TeamEntity away, int hs, int as) {
         GameEntity g = new GameEntity();
         g.setGameId(gameId);
