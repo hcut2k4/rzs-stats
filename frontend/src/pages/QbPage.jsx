@@ -267,6 +267,33 @@ function MoverList({ title, rows, direction }) {
   )
 }
 
+const TOOLTIP_ROWS = 8
+
+// With every qualified QB plotted, an all-series tooltip overflows the viewport. Show the
+// highlighted ones when there are any, otherwise just the leaders at that week.
+export function RankTooltip({ active, payload, label, named, focus }) {
+  if (!active || !payload?.length) return null
+  const byId = new Map(named.map(s => [s.rosterId, s]))
+  const all = payload.filter(p => p.value != null)
+  const picked = focus.size ? all.filter(p => focus.has(p.dataKey)) : all
+  const shown = [...picked].sort((a, b) => a.value - b.value).slice(0, TOOLTIP_ROWS)
+  const more = picked.length - shown.length
+  if (!shown.length) return null
+  return (
+    <div className="bg-bg border border-rule rounded-[3px] px-2 py-1.5 text-xs shadow-sm">
+      <div className="font-semibold mb-1">{label}</div>
+      {shown.map(p => (
+        <div key={p.dataKey} className="flex items-center gap-2 whitespace-nowrap leading-5">
+          <span className="w-2 h-2 rounded-full shrink-0" style={{ background: p.stroke }} />
+          <span className="flex-1">{byId.get(p.dataKey)?.label ?? p.dataKey}</span>
+          <span className="num text-muted">#{p.value}</span>
+        </div>
+      ))}
+      {more > 0 && <div className="text-muted mt-1">+{more} more · click names to pin</div>}
+    </div>
+  )
+}
+
 function Movement({ data, loading, basis }) {
   const [focus, setFocus] = useState(new Set())
   const [hover, setHover] = useState(null)
@@ -308,7 +335,7 @@ function Movement({ data, loading, basis }) {
               : 'Cumulative TANY/A rank through each week of the season.'}
           </p>
           <div className="flex items-center gap-3 mb-2 text-xs text-muted">
-            <span>Click quarterbacks to highlight them. The rest fade back.</span>
+            <span>Click quarterbacks to highlight them and pin them to the hover card. The rest fade back.</span>
             <button onClick={() => setFocus(new Set())} className="text-ink font-medium hover:text-accent">Clear</button>
           </div>
           <div className="flex flex-wrap gap-1 mb-4">
@@ -336,11 +363,7 @@ function Movement({ data, loading, basis }) {
                      interval="preserveStartEnd" minTickGap={16} />
               <YAxis reversed domain={[1, maxRank]} allowDecimals={false} width={32}
                      tick={{ fill: 'rgb(var(--muted))', fontSize: 12 }} stroke="rgb(var(--line))" />
-              <RTooltip
-                contentStyle={{ background: 'rgb(var(--bg))', border: '1px solid rgb(var(--rule))', borderRadius: 3 }}
-                itemSorter={item => item.value}
-                formatter={(value, key) => [`#${value}`, series.find(s => s.rosterId === key)?.playerName ?? key]}
-              />
+              <RTooltip content={<RankTooltip named={named} focus={focus} />} />
               {named.map((s, i) => (
                 <Line
                   key={s.rosterId}
