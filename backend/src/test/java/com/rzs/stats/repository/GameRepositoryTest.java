@@ -165,6 +165,21 @@ class GameRepositoryTest {
         assertThat(gameRepository.findDistinctRegularSeasonWeeks(0, 1)).containsExactly(3);
     }
 
+    // ── findDistinctPlayoffWeeks ───────────────────────────────────────────────
+
+    @Test
+    void findDistinctPlayoffWeeks_returnsStageOneWeeksFromEighteenSorted() {
+        save(game(1, 1, 1, 17, 2));  // last regular-season week → excluded
+        save(game(2, 1, 1, 20, 2));
+        save(game(3, 1, 1, 18, 2));
+        save(game(4, 1, 1, 18, 2));  // duplicate week
+        save(game(5, 1, 1, 22, 2));
+        save(game(6, 1, 1, 19, 1));  // unplayed → excluded
+        save(game(7, 1, 0, 18, 2));  // preseason → excluded
+
+        assertThat(gameRepository.findDistinctPlayoffWeeks(1)).containsExactly(18, 20, 22);
+    }
+
     // ── findFutureRegularSeasonGames ───────────────────────────────────────────
 
     @Test

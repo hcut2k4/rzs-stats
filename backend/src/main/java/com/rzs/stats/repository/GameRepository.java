@@ -16,6 +16,10 @@ public interface GameRepository extends JpaRepository<GameEntity, Long> {
     int REGULAR_SEASON_MIN_WEEK = 0;
     int REGULAR_SEASON_MAX_WEEK = 17;
 
+    // Neon stores playoff games as stageIndex 1, weeks 18+ (wild card 18, divisional 19, conference 20, Super Bowl 22)
+    int PLAYOFF_MIN_WEEK = 18;
+    int PLAYOFF_API_STAGE = 2;
+
     Optional<GameEntity> findBySeasonIndexAndGameId(Integer seasonIndex, Integer gameId);
 
     List<GameEntity> findBySeasonIndex(Integer seasonIndex);
@@ -41,6 +45,9 @@ public interface GameRepository extends JpaRepository<GameEntity, Long> {
 
     @Query("SELECT DISTINCT g.weekIndex FROM GameEntity g WHERE g.seasonIndex = :season AND g.stageIndex = :stage AND g.weekIndex BETWEEN 0 AND 17 AND g.status >= 2 ORDER BY g.weekIndex")
     List<Integer> findDistinctRegularSeasonWeeks(@Param("season") Integer season, @Param("stage") Integer stage);
+
+    @Query("SELECT DISTINCT g.weekIndex FROM GameEntity g WHERE g.seasonIndex = :season AND g.stageIndex = 1 AND g.weekIndex >= 18 AND g.status >= 2 ORDER BY g.weekIndex")
+    List<Integer> findDistinctPlayoffWeeks(@Param("season") Integer season);
 
     @Query("SELECT g FROM GameEntity g LEFT JOIN FETCH g.homeTeam LEFT JOIN FETCH g.awayTeam WHERE g.seasonIndex = :season AND g.stageIndex = 1 AND g.weekIndex BETWEEN 0 AND 17 AND g.status < 2")
     List<GameEntity> findFutureRegularSeasonGames(@Param("season") Integer season);
