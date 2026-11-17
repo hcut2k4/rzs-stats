@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
@@ -28,7 +28,18 @@ function stubHomeData() {
     { rosterId: 99, playerName: 'Pat Mahomes', teamAbbr: 'KC', tanya: 8.42, rank: 1 },
   ])
   client.getWeeklyTrends.mockResolvedValue([])
+  client.getEloUpcoming.mockResolvedValue([
+    upcomingGame(50, 3, team(1, 'KC'), team(2, 'SF'), 0.92),   // Solid
+    upcomingGame(51, 4, team(3, 'BUF'), team(4, 'MIA'), 0.52), // Toss-up
+    upcomingGame(52, 5, team(5, 'DAL'), team(6, 'PHI'), 0.63), // Lean
+  ])
 }
+
+const upcomingGame = (gameId, week, homeTeam, awayTeam, homeWinProbability) => ({
+  gameId, week, season: 7, homeTeam, awayTeam,
+  homeElo: 1600, awayElo: 1500,
+  homeWinProbability, awayWinProbability: 1 - homeWinProbability,
+})
 
 describe('HomePage', () => {
   afterEach(() => vi.clearAllMocks())
@@ -56,6 +67,61 @@ describe('HomePage', () => {
     expect(client.getQbLeaderboard).toHaveBeenCalledWith(
       expect.objectContaining({ scope: 'season', season: 7, stage: 'regular' }),
     )
+  })
+
+  it('shows only the first two upcoming weeks in the latest season, closest first', async () => {
+    stubHomeData()
+    client.getEloUpcoming.mockResolvedValue([
+      upcomingGame(50, 3, team(1, 'KC'), team(2, 'SF'), 0.92),
+      upcomingGame(51, 4, team(3, 'BUF'), team(4, 'MIA'), 0.52),
+      upcomingGame(52, 5, team(5, 'DAL'), team(6, 'PHI'), 0.501),
+      { ...upcomingGame(53, 0, team(7, 'OLD'), team(8, 'PAST'), 0.5), season: 6 },
+    ])
+
+    render(<MemoryRouter><HomePage /></MemoryRouter>)
+
+    await waitFor(() => expect(screen.getByText('Best Games Ahead')).toBeInTheDocument())
+
+    const card = within(screen.getByRole('link', { name: /Best Games Ahead/ }))
+    expect(await card.findByText('52%')).toBeInTheDocument()
+    expect(card.getByText('Week 4')).toBeInTheDocument()
+    expect(card.getByText('Week 5')).toBeInTheDocument()
+    expect(card.queryByText('Week 6')).not.toBeInTheDocument()
+    expect(card.queryByText('DAL')).not.toBeInTheDocument()
+    expect(card.queryByText('OLD')).not.toBeInTheDocument()
+    expect(card.getAllByText(/^(Toss-up|Tilt|Lean|Likely|Solid)$/).map(n => n.textContent)).toEqual(['Toss-up', 'Solid'])
+  })
+
+  it('names the favored team and its rounded win chance', async () => {
+    stubHomeData()
+
+    render(<MemoryRouter><HomePage /></MemoryRouter>)
+
+    await screen.findByText('BUF')
+    expect(screen.getByText('52%')).toBeInTheDocument()
+    expect(screen.getByText('92%')).toBeInTheDocument()
+  })
+
+  it('shows an empty preview when nothing is left to project', async () => {
+    stubHomeData()
+    client.getEloUpcoming.mockResolvedValue([])
+
+    render(<MemoryRouter><HomePage /></MemoryRouter>)
+
+    const card = within(screen.getByRole('link', { name: /Best Games Ahead/ }))
+    expect(await card.findByText('No data yet.')).toBeInTheDocument()
+  })
+
+  it('links the best games through to the Elo page games tab', async () => {
+    stubHomeData()
+
+    render(<MemoryRouter><HomePage /></MemoryRouter>)
+
+    await waitFor(() => expect(screen.getByText('Best Games Ahead')).toBeInTheDocument())
+    const card = screen.getByRole('link', { name: /Best Games Ahead/i })
+    expect(card).toHaveAttribute('href', '/elo?tab=games')
+    expect(card.parentElement.firstElementChild).toBe(card)
+    expect(card.parentElement).toHaveClass('grid', 'lg:grid-cols-3')
   })
 
   it('links each preview card to its page', async () => {

@@ -3,13 +3,14 @@ import { Link } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts'
 import {
   getSeasons, getStandings, getAvailableWeeks, getGames,
-  getEloHistory, getEloRatings, getQbLeaderboard, getWeeklyTrends,
+  getEloHistory, getEloRatings, getEloUpcoming, getQbLeaderboard, getWeeklyTrends,
 } from '../api/client'
 import { TeamLogo } from '../components/TeamLogo'
 import PageHeader from '../components/PageHeader'
 import { seasonLabel } from '../utils/seasons'
 import { weekLabel } from '../utils/playoffRounds'
 import { COLORS } from '../utils/chartColors'
+import { lean, pct0 } from '../utils/eloLean'
 
 const pct = v => (v == null ? '–' : (v * 100).toFixed(1) + '%')
 const signed1 = v => (v == null ? '–' : (v > 0 ? '+' : '') + v.toFixed(1))
@@ -230,6 +231,46 @@ function TrendsCard({ season, weekly, loading }) {
   )
 }
 
+function BestGames({ upcoming, loading }) {
+  const season = Math.max(...upcoming.map(g => g.season))
+  const seasonGames = upcoming.filter(g => g.season === season)
+  const week = Math.min(...seasonGames.map(g => g.week))
+  const best = seasonGames
+    .filter(g => g.week === week || g.week === week + 1)
+    .map(game => ({ game, l: lean(game) }))
+    .sort((a, b) => a.l.prob - b.l.prob || a.game.week - b.game.week)
+    .slice(0, 5)
+
+  return (
+    <Card to="/elo?tab=games" title="Best Games Ahead" blurb="The closest unplayed games over the next two weeks." cta="All projected games">
+      <Rows loading={loading} empty={!best.length}>
+        <div className="flex items-center gap-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted">
+          <span className="w-12">Week</span>
+          <span className="flex-1">Away / Home</span>
+          <span className="w-10 text-right">Chance</span>
+          <span className="w-14 text-center">Outlook</span>
+        </div>
+        {best.map(({ game: g, l }) => (
+          <div key={g.gameId} className={rowClass}>
+            <span className="w-12 shrink-0 text-muted text-xs">{weekLabel(g.week >= 18 ? 2 : 1, g.week)}</span>
+            <span className="flex flex-1 items-center gap-1 whitespace-nowrap text-xs">
+              <TeamLogo abbr={g.awayTeam.abbrName} size={20} />
+              <span className={l.tossUp ? '' : !l.homeFav ? 'font-bold' : 'text-muted'}>{g.awayTeam.abbrName}</span>
+              <span className="text-muted text-[10px]">@</span>
+              <TeamLogo abbr={g.homeTeam.abbrName} size={20} />
+              <span className={l.tossUp ? '' : l.homeFav ? 'font-bold' : 'text-muted'}>{g.homeTeam.abbrName}</span>
+            </span>
+            <span className="w-10 text-right num">{pct0(l.prob)}</span>
+            <span className="w-14 rounded px-1 py-0.5 text-center text-xs font-semibold uppercase tracking-wide" style={{ backgroundColor: l.shade }}>
+              {l.tier.label}
+            </span>
+          </div>
+        ))}
+      </Rows>
+    </Card>
+  )
+}
+
 const DEFINITIONS = [
   ['PyPAT', 'Win expectancy from scoring margin, not W-L record.'],
   ['Luck', 'Wins above or below what the scoring margin predicted.'],
@@ -261,7 +302,8 @@ export default function HomePage() {
   const [ratings, setRatings] = useState([])
   const [qbs, setQbs] = useState([])
   const [weekly, setWeekly] = useState([])
-  const [pending, setPending] = useState({ standings: true, games: true, elo: true, qb: true, trends: true })
+  const [upcoming, setUpcoming] = useState([])
+  const [pending, setPending] = useState({ standings: true, games: true, elo: true, qb: true, trends: true, upcoming: true })
 
   const done = key => setPending(p => ({ ...p, [key]: false }))
 
@@ -270,7 +312,7 @@ export default function HomePage() {
     getSeasons()
       .then(s => {
         if (!live || !s.length) {
-          if (live) setPending({ standings: false, games: false, elo: false, qb: false, trends: false })
+          if (live) setPending(p => ({ ...p, standings: false, games: false, qb: false, trends: false }))
           return
         }
         const latest = s[s.length - 1]
@@ -294,7 +336,12 @@ export default function HomePage() {
 
         getWeeklyTrends(latest).then(d => { if (live) setWeekly(d) }).finally(() => live && done('trends'))
       })
-      .catch(() => live && setPending({ standings: false, games: false, elo: false, qb: false, trends: false }))
+      .catch(() => live && setPending(p => ({ ...p, standings: false, games: false, qb: false, trends: false })))
+
+    getEloUpcoming()
+      .then(u => { if (live) setUpcoming(u) })
+      .catch(() => { if (live) setUpcoming([]) })
+      .finally(() => live && done('upcoming'))
 
     getEloHistory()
       .then(h => {
@@ -316,6 +363,7 @@ export default function HomePage() {
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-8">
+        <BestGames upcoming={upcoming} loading={pending.upcoming} />
         <StandingsCard season={season} standings={standings} loading={pending.standings} />
         <GamesCard games={games} week={week} loading={pending.games} />
         <EloCard ratings={ratings} loading={pending.elo} />

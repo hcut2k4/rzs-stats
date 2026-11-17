@@ -101,9 +101,11 @@ frontend/src/
 ├── components/
 │   ├── PageHeader.jsx     # title + qualifier + takeaway + rule — every page uses it
 │   ├── TeamLogo.jsx       # TeamLogo + TeamCell (ESPN CDN logos)
+│   ├── LeanBar.jsx        # center-out diverging bar for projected games
 │   ├── Tabs.jsx, InfoTip.jsx, DivergingBar.jsx, ThemeToggle.jsx
 ├── utils/
 │   ├── heat.js            # goodBadColor / magnitudeColor / divergeColor
+│   ├── eloLean.js         # TIERS / lean() / tierShade / pct0 — shared by Elo + Home
 │   ├── seasons.js         # seasonLabel — index + 103
 │   ├── playoffRounds.js   # weekLabel
 │   ├── chartColors.js, teamLogo.js, theme.js
@@ -284,7 +286,9 @@ SoS: `oppPyPatCurr/Prev`, `oppPyPatRemainingCurr/Prev`, `oppPyPatTotalCurr/Prev`
 Routes: `/` Home, `/standings`, `/games`, `/elo`, `/qb`, `/trends`, `/about`, `/admin`. The `RZS Stats` wordmark links to `/`.
 
 ### HomePage
-Landing page at `/`. One preview card per section (Standings, Games, Elo, QBs, Trends, About) in a 3-column grid; each card is a `Link` to its page. Every card fetches independently so one failed request doesn't blank the page — top 5 by PyPAT, latest week's scores, top 5 Elo with biggest riser, top 5 QBs by TANY/A, and a mini PyPAT line chart for the top 4 teams.
+Landing page at `/`. Leads with **Best Games Ahead** — the five closest unplayed games league-wide, ranked by the favorite's win probability (closest to a coin flip first, week ascending as tiebreak), linking to `/elo?tab=games`. Below it, one preview card per section (Standings, Games, Elo, QBs, Trends, About) in a 3-column grid; each card is a `Link` to its page. Every section fetches independently so one failed request doesn't blank the page — top 5 by PyPAT, latest week's scores, top 5 Elo with biggest riser, top 5 QBs by TANY/A, and a mini PyPAT line chart for the top 4 teams.
+
+The Best Games table mirrors the Elo **Projected** table — same columns, `LeanBar`, Outlook tiers and shading — by importing the same helpers rather than restating them. **The tier thresholds, colors and `lean()` live only in [utils/eloLean.js](frontend/src/utils/eloLean.js)**; change them there and both tables move together.
 
 ### StandingsPage
 Main view. Sortable by any column (click header, click again to reverse). Default sort: PyPAT descending. Heat colors: green = good (PyPAT, Win%, Avg PF), red = bad (Avg PA, SoS), diverging blue/green = Luck. Sticky rank + team columns for mobile scroll. SoS toggle appears only for the active season. CSV + Excel export (hidden on mobile).
@@ -293,13 +297,15 @@ Main view. Sortable by any column (click header, click again to reverse). Defaul
 Game cards for a selected season/stage/week. Prev/Next navigation. Each card links to the NeonSportz recap via `nsPk` (not `gameId`). SIM badge on simmed games.
 
 ### EloPage
-Four tabs:
+Four tabs, with the active one held in the URL as `?tab=ratings|history|matchup|games` (`ratings` omits the param). Deep links work — the home page points at `/elo?tab=games` — and an unknown value falls back to Ratings. Tab switches use `replace`, so Back doesn't walk through every tab visited.
 - **Ratings**: All 32 teams by Elo, with weekly change, rank movement, a diverging bar vs 1500, and top-5 risers/droppers.
 - **History**: Rating lines across every season. Click teams to highlight. Dotted verticals mark season starts (where ratings regress toward 1500).
 - **Matchup**: Pick two teams for a win probability split bar.
 - **Games**: Per-game Elo deltas, pregame ratings, MOV multiplier; projected probabilities for unplayed games.
 
-Every column header carries a plain-language tooltip (`TIPS` map at the top of the file) — keep that pattern when adding columns.
+Every column header carries a plain-language tooltip (`TIPS` map at the top of the file) — keep that pattern when adding columns. The Projected and played tables are both sortable via the local `useSorter` hook; Projected defaults to closest-first.
+
+**Outlook tiers** rate how competitive an unplayed game should be, off the favorite's win chance: Toss-up <55%, Tilt <60%, Lean <70%, Likely <85%, Solid above. Each tier has its own color, deep at the competitive end of its band and fading to nearly white at the far end. `upsetInfo` reuses the same bands to size upsets on completed games, and deliberately returns nothing for a Toss-up — neither side was favored enough for the result to surprise.
 
 ### QbPage
 Two tabs:
