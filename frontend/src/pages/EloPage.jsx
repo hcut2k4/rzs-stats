@@ -46,7 +46,7 @@ const TIPS = {
   projElo: 'Each team\'s current Elo rating, which is used for the projection.',
   projLean: 'Which way Elo leans and by how much. The bar grows out of the center line toward the favored team, and the longer and darker it is, the bigger the edge. Sorts home favorites and away favorites to opposite ends.',
   projFav: 'The team Elo leans toward and its projected chance of winning. Sorts the closest games first.',
-  projOutlook: 'How competitive the game should be, read off the favorite\'s win chance: Toss-up under 55%, Tilt under 60%, Lean under 70%, Likely under 85%, Solid above that. Each tier has its own color \u2014 green for a toss-up, then blue, purple, orange and yellow \u2014 running deep at the competitive end of its own band and fading to nearly white at the far end. Sorts the closest games first.',
+  projOutlook: 'How competitive the game should be, read off the favorite\'s win chance: Toss-up under 55%, Tilt under 60%, Lean under 70%, Likely under 80%, Solid above that. Each tier has its own color \u2014 green for a toss-up, then blue, purple, orange and yellow \u2014 running deep at the competitive end of its own band and fading to nearly white at the far end. Sorts the closest games first.',
 }
 
 const RED = '220 38 38'
@@ -81,7 +81,7 @@ const SortTh = ({ tip, sortKey, state, onSort, className = '', children }) => (
 const UPSET_LEVELS = [
   { hi: 0.60, label: 'Slight upset', alpha: 0.12 },
   { hi: 0.70, label: 'Upset', alpha: 0.22 },
-  { hi: 0.85, label: 'Big upset', alpha: 0.32 },
+  { hi: 0.80, label: 'Big upset', alpha: 0.32 },
   { hi: Infinity, label: 'Stunner', alpha: 0.42 },
 ]
 
@@ -459,7 +459,7 @@ function GamesTab({ season, week, upcoming }) {
               </tbody>
             </table>
             <p className="text-xs text-muted px-2 py-2">
-              Projected from each team&rsquo;s current Elo. The bar leans toward the favored team and grows with the edge. Outlook rates how competitive the game should be &mdash; Toss-up under 55%, Tilt under 60%, Lean under 70%, Likely under 85%, Solid above that. Each tier has its own color &mdash; green for a toss-up, then blue, purple, orange and yellow &mdash; deep at the competitive end of its band and fading to nearly white at the far end. Click any heading to sort. Ratings change as games are played, so projections for later weeks are less certain.
+              Projected from each team&rsquo;s current Elo. The bar leans toward the favored team and grows with the edge. Outlook rates how competitive the game should be &mdash; Toss-up under 55%, Tilt under 60%, Lean under 70%, Likely under 80%, Solid above that. Each tier has its own color &mdash; green for a toss-up, then blue, purple, orange and yellow &mdash; deep at the competitive end of its band and fading to nearly white at the far end. Click any heading to sort. Ratings change as games are played, so projections for later weeks are less certain.
             </p>
           </div>
         </div>

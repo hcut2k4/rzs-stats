@@ -176,7 +176,7 @@ describe('EloPage', () => {
       homeTeam: team(gameId, 'H' + gameId), awayTeam: team(gameId + 50, 'A' + gameId),
       homeElo: 1500, awayElo: 1500, homeWinProbability, awayWinProbability: 1 - homeWinProbability,
     })
-    client.getEloUpcoming.mockResolvedValue([game(1, 0.52), game(2, 0.58), game(3, 0.66), game(4, 0.8), game(5, 0.93)])
+    client.getEloUpcoming.mockResolvedValue([game(1, 0.52), game(2, 0.58), game(3, 0.66), game(4, 0.78), game(5, 0.9)])
     render(<MemoryRouter><EloPage /></MemoryRouter>)
     await screen.findAllByText('BUFx')
     await userEvent.click(screen.getByRole('tab', { name: 'Games' }))
@@ -190,8 +190,8 @@ describe('EloPage', () => {
     expect(tiers[0]).toHaveStyle({ backgroundColor: 'rgb(22 163 74 / 0.272)' })
     expect(tiers[1]).toHaveStyle({ backgroundColor: 'rgb(37 99 235 / 0.198)' })
     expect(tiers[2]).toHaveStyle({ backgroundColor: 'rgb(147 51 234 / 0.198)' })
-    expect(tiers[3]).toHaveStyle({ backgroundColor: 'rgb(234 88 12 / 0.173)' })
-    expect(tiers[4]).toHaveStyle({ backgroundColor: 'rgb(234 179 8 / 0.223)' })
+    expect(tiers[3]).toHaveStyle({ backgroundColor: 'rgb(234 88 12 / 0.124)' })
+    expect(tiers[4]).toHaveStyle({ backgroundColor: 'rgb(234 179 8 / 0.235)' })
   })
 
   it('shades darker toward the competitive end within a single tier', async () => {

@@ -16,8 +16,8 @@ export const TIERS = [
   { label: 'Toss-up', lo: 0.50, hi: 0.55, rgb: GREEN },
   { label: 'Tilt', lo: 0.55, hi: 0.60, rgb: BLUE },
   { label: 'Lean', lo: 0.60, hi: 0.70, rgb: PURPLE },
-  { label: 'Likely', lo: 0.70, hi: 0.85, rgb: ORANGE },
-  { label: 'Solid', lo: 0.85, hi: 1, rgb: YELLOW },
+  { label: 'Likely', lo: 0.70, hi: 0.80, rgb: ORANGE },
+  { label: 'Solid', lo: 0.80, hi: 1, rgb: YELLOW },
 ]
 
 export function tierShade(prob, tier) {
