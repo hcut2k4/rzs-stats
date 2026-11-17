@@ -59,6 +59,13 @@ const STATS = [
 
 const PAGES = [
   {
+    name: 'Home',
+    bullets: [
+      'A snapshot of every page — PyPAT leaders, latest scores, top Elo, top quarterbacks',
+      'Click any card to open that page in full',
+    ],
+  },
+  {
     name: 'Standings',
     bullets: [
       'Sortable standings ranked by PyPAT by default',
