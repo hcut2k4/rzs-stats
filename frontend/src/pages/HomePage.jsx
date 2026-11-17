@@ -7,8 +7,6 @@ import {
 } from '../api/client'
 import { TeamLogo } from '../components/TeamLogo'
 import PageHeader from '../components/PageHeader'
-import LeanBar from '../components/LeanBar'
-import InfoTip from '../components/InfoTip'
 import { seasonLabel } from '../utils/seasons'
 import { weekLabel } from '../utils/playoffRounds'
 import { COLORS } from '../utils/chartColors'
@@ -233,106 +231,43 @@ function TrendsCard({ season, weekly, loading }) {
   )
 }
 
-const BEST_COUNT = 5
-
-const BEST_TIPS = {
-  when: 'The season and week the game is scheduled for.',
-  matchup: 'Away team at home team, with each side\'s current Elo rating.',
-  lean: 'Which way Elo leans and by how much. The bar grows out of the center line toward the favored team.',
-  fav: 'The team Elo leans toward and its projected chance of winning.',
-  outlook: 'How competitive the game should be, read off the favorite\'s win chance: Toss-up under 55%, Tilt under 60%, Lean under 70%, Likely under 85%, Solid above that.',
-}
-
-const BestTh = ({ tip, className = '', children }) => (
-  <th className={`th ${className}`}><InfoTip text={tip}>{children}</InfoTip></th>
-)
-
-function BestSide({ team, elo, fav }) {
-  return (
-    <span className={`flex items-center gap-2 ${fav === false ? 'opacity-60' : ''}`}>
-      <TeamLogo abbr={team.abbrName} size={20} />
-      <span className={fav === false ? 'text-muted' : 'font-semibold'}>{team.abbrName}</span>
-      <span className="text-muted">{elo?.toFixed(0)}</span>
-    </span>
-  )
-}
-
 function BestGames({ upcoming, loading }) {
-  // Closest first: the favorite's win chance is the distance from a coin flip.
-  const best = upcoming
+  const season = Math.max(...upcoming.map(g => g.season))
+  const seasonGames = upcoming.filter(g => g.season === season)
+  const week = Math.min(...seasonGames.map(g => g.week))
+  const best = seasonGames
+    .filter(g => g.week === week || g.week === week + 1)
     .map(game => ({ game, l: lean(game) }))
     .sort((a, b) => a.l.prob - b.l.prob || a.game.week - b.game.week)
-    .slice(0, BEST_COUNT)
-
-  const tossUps = best.filter(r => r.l.tossUp).length
+    .slice(0, 5)
 
   return (
-    <section className="mb-10">
-      <div className="flex items-end justify-between gap-4 flex-wrap mb-1">
-        <h2 className="font-display font-bold uppercase text-2xl leading-none">Best Games Ahead</h2>
-        <Link to="/elo?tab=games" className="text-xs font-semibold uppercase tracking-wide text-muted hover:text-accent transition-colors">
-          All projected games →
-        </Link>
-      </div>
-      <p className="text-sm text-muted mb-2">
-        The closest unplayed games by Elo.{' '}
-        {loading
-          ? 'Loading\u2026'
-          : tossUps > 0
-            ? <span className="text-ink font-medium">{tossUps} toss-up{tossUps > 1 ? 's' : ''} on the schedule.</span>
-            : <span>No toss-ups on the schedule.</span>}
-      </p>
-
-      {!loading && !best.length && (
-        <p className="text-sm text-muted border-y border-line py-3">No unplayed games left to project.</p>
-      )}
-
-      {best.length > 0 && (
-        <div className="overflow-x-auto border-y border-rule">
-          <table className="w-full text-sm num">
-            <thead>
-              <tr className="border-b border-rule">
-                <BestTh tip={BEST_TIPS.when}>When</BestTh>
-                <BestTh tip={BEST_TIPS.matchup}>Away</BestTh>
-                <BestTh tip={BEST_TIPS.matchup}>Home</BestTh>
-                <BestTh tip={BEST_TIPS.lean} className="min-w-[200px] text-center">Away ◀ Edge ▶ Home</BestTh>
-                <BestTh tip={BEST_TIPS.fav} className="text-right">Favored</BestTh>
-                <BestTh tip={BEST_TIPS.outlook}>Outlook</BestTh>
-              </tr>
-            </thead>
-            <tbody>
-              {best.map(({ game: g, l }, i) => (
-                <tr key={`${g.season}-${g.week}-${g.gameId}`} className={`border-t border-line ${i % 2 ? 'bg-surface' : 'bg-bg'}`}>
-                  <td className="px-2 py-1.5 whitespace-nowrap text-muted text-xs">
-                    {seasonLabel(g.season)} · {weekLabel(g.week >= 18 ? 2 : 1, g.week)}
-                  </td>
-                  <td className="px-2 py-1.5 whitespace-nowrap">
-                    <BestSide team={g.awayTeam} elo={g.awayElo} fav={l.tossUp ? null : !l.homeFav} />
-                  </td>
-                  <td className="px-2 py-1.5 whitespace-nowrap">
-                    <BestSide team={g.homeTeam} elo={g.homeElo} fav={l.tossUp ? null : l.homeFav} />
-                  </td>
-                  <td className="px-2 py-1.5"><LeanBar homeFav={l.homeFav} edge={l.edge} /></td>
-                  <td className="px-2 py-1.5 text-right whitespace-nowrap">
-                    <span className="font-semibold">{l.leansTo.abbrName}</span>{' '}
-                    <span className="text-muted">{pct0(l.prob)}</span>
-                  </td>
-                  <td
-                    className={`px-2 py-1.5 whitespace-nowrap text-xs uppercase tracking-wide ${l.tossUp ? 'font-bold' : 'font-semibold'}`}
-                    style={{ backgroundColor: l.shade }}
-                  >
-                    {l.tier.label}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="text-xs text-muted px-2 py-2">
-            Projected from each team&rsquo;s current Elo. Ratings change as games are played, so projections for later weeks are less certain.
-          </p>
+    <Card to="/elo?tab=games" title="Best Games Ahead" blurb="The closest unplayed games over the next two weeks." cta="All projected games">
+      <Rows loading={loading} empty={!best.length}>
+        <div className="flex items-center gap-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted">
+          <span className="w-12">Week</span>
+          <span className="flex-1">Away / Home</span>
+          <span className="w-10 text-right">Chance</span>
+          <span className="w-14 text-center">Outlook</span>
         </div>
-      )}
-    </section>
+        {best.map(({ game: g, l }) => (
+          <div key={g.gameId} className={rowClass}>
+            <span className="w-12 shrink-0 text-muted text-xs">{weekLabel(g.week >= 18 ? 2 : 1, g.week)}</span>
+            <span className="flex flex-1 items-center gap-1 whitespace-nowrap text-xs">
+              <TeamLogo abbr={g.awayTeam.abbrName} size={20} />
+              <span className={l.tossUp ? '' : !l.homeFav ? 'font-bold' : 'text-muted'}>{g.awayTeam.abbrName}</span>
+              <span className="text-muted text-[10px]">@</span>
+              <TeamLogo abbr={g.homeTeam.abbrName} size={20} />
+              <span className={l.tossUp ? '' : l.homeFav ? 'font-bold' : 'text-muted'}>{g.homeTeam.abbrName}</span>
+            </span>
+            <span className="w-10 text-right num">{pct0(l.prob)}</span>
+            <span className="w-14 rounded px-1 py-0.5 text-center text-xs font-semibold uppercase tracking-wide" style={{ backgroundColor: l.shade }}>
+              {l.tier.label}
+            </span>
+          </div>
+        ))}
+      </Rows>
+    </Card>
   )
 }
 
@@ -427,9 +362,8 @@ export default function HomePage() {
         takeaway="W-L records are noisy — one-score games are largely random. PyPAT, Elo and strength of schedule cut through that noise to show who is actually playing well and who has just been lucky."
       />
 
-      <BestGames upcoming={upcoming} loading={pending.upcoming} />
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-8">
+        <BestGames upcoming={upcoming} loading={pending.upcoming} />
         <StandingsCard season={season} standings={standings} loading={pending.standings} />
         <GamesCard games={games} week={week} loading={pending.games} />
         <EloCard ratings={ratings} loading={pending.elo} />

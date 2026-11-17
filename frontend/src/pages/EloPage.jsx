@@ -42,6 +42,7 @@ const TIPS = {
   homeProb: 'The chance the home team was expected to win before the game, based only on the two teams\' Elo ratings. 50% is a toss-up.',
   mov: 'Margin-of-victory multiplier. Bigger wins move ratings more, up to a 21-point cap. A heavy favorite winning big gets less credit than an upset winner. 1.00 is a tie.',
   result: 'Flags upsets, sized by how strong the beaten favorite was: a Tilt favorite losing is a Slight upset, then Upset, Big upset, and Stunner when a Solid favorite goes down. Games Elo rated a Toss-up are left blank, because neither side was favored enough for the result to be a surprise. The label shows the winner\'s pregame chance.',
+  projWeek: 'The week or playoff round of the unplayed game.',
   projElo: 'Each team\'s current Elo rating, which is used for the projection.',
   projLean: 'Which way Elo leans and by how much. The bar grows out of the center line toward the favored team, and the longer and darker it is, the bigger the edge. Sorts home favorites and away favorites to opposite ends.',
   projFav: 'The team Elo leans toward and its projected chance of winning. Sorts the closest games first.',
@@ -322,6 +323,7 @@ function GamesTab({ season, week, upcoming }) {
   const [games, setGames] = useState([])
   const [loading, setLoading] = useState(false)
   const played = useSorter({ key: null, asc: false })
+  const [scope, setScope] = useState('week')
   const proj = useSorter({ key: 'tier', asc: true })
 
   useEffect(() => {
@@ -330,10 +332,10 @@ function GamesTab({ season, week, upcoming }) {
     getEloGames(season, week).then(g => { setGames(g); setLoading(false) }).catch(() => setLoading(false))
   }, [season, week])
 
-  const projected = useMemo(() => upcoming.filter(u => u.season === season && u.week === week), [upcoming, season, week])
+  const projected = useMemo(() => upcoming.filter(u => u.season === season && (scope === 'season' || u.week === week)), [upcoming, season, week, scope])
 
   if (loading) return <p className="text-muted">Loading...</p>
-  if (!games.length && !projected.length) return <p className="text-muted">No games for this week.</p>
+  if (!games.length && !upcoming.some(u => u.season === season)) return <p className="text-muted">No games for this week.</p>
 
   const sortedGames = played.apply(games, {
     away: g => g.awayTeam.abbrName,
@@ -346,6 +348,7 @@ function GamesTab({ season, week, upcoming }) {
   const projRows = projected.map(game => ({ game, l: lean(game) }))
   const tossUps = projRows.filter(r => r.l.tossUp).length
   const sortedProjected = proj.apply(projRows, {
+    week: r => r.game.week,
     away: r => r.game.awayTeam.abbrName,
     home: r => r.game.homeTeam.abbrName,
     lean: r => r.game.homeWinProbability,
@@ -403,19 +406,30 @@ function GamesTab({ season, week, upcoming }) {
           <p className="text-xs text-muted px-2 py-2">Each team shows its pregame Elo and the points it gained or lost in that game. Upsets are sized by the favorite they beat &mdash; Slight upset, Upset, Big upset, Stunner &mdash; and games Elo rated a Toss-up are left blank, since neither side was favored enough to be upset. Click any heading to sort; Score sorts by margin.</p>
         </div>
       )}
-      {projected.length > 0 && (
+      {upcoming.some(u => u.season === season) && (
         <div>
-          <h2 className="font-display font-bold uppercase text-xl leading-none">Projected</h2>
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="font-display font-bold uppercase text-xl leading-none">Projected</h2>
+            <div className="flex border border-line rounded overflow-hidden">
+              {[['week', 'This week'], ['season', 'Rest of season']].map(([value, text]) => (
+                <button key={value} onClick={() => setScope(value)} aria-pressed={scope === value}
+                  className={`px-2 py-1 text-xs font-medium ${scope === value ? 'bg-ink text-bg' : 'text-muted hover:text-ink'}`}>
+                  {text}
+                </button>
+              ))}
+            </div>
+          </div>
           <p className="text-sm text-muted mt-1 mb-2">
             Who Elo favors in each unplayed game, and by how much.{' '}
             {tossUps > 0
-              ? <span className="text-ink font-medium">{tossUps} toss-up{tossUps > 1 ? 's' : ''} this week — the closest games are listed first.</span>
-              : <span>No toss-ups this week.</span>}
+              ? <span className="text-ink font-medium">{tossUps} toss-up{tossUps > 1 ? 's' : ''} {scope === 'week' ? 'this week' : 'remaining this season'}. Projections default to closest first.</span>
+              : <span>No toss-ups {scope === 'week' ? 'this week' : 'remaining this season'}.</span>}
           </p>
           <div className="overflow-x-auto border-y border-rule">
             <table className="w-full text-sm num">
               <thead>
                 <tr className="border-b border-rule">
+                  {scope === 'season' && <SortTh tip={TIPS.projWeek} sortKey="week" state={proj.sort} onSort={proj.click}>Week</SortTh>}
                   <SortTh tip={TIPS.projElo} sortKey="away" state={proj.sort} onSort={proj.click}>Away</SortTh>
                   <SortTh tip={TIPS.projElo} sortKey="home" state={proj.sort} onSort={proj.click}>Home</SortTh>
                   <SortTh tip={TIPS.projLean} sortKey="lean" state={proj.sort} onSort={proj.click} className="min-w-[200px] text-center">Away ◀ Edge ▶ Home</SortTh>
@@ -426,6 +440,7 @@ function GamesTab({ season, week, upcoming }) {
               <tbody>
                 {sortedProjected.map(({ game: g, l }, i) => (
                   <tr key={g.gameId} className={`border-t border-line ${i % 2 ? 'bg-surface' : 'bg-bg'}`}>
+                    {scope === 'season' && <td className="px-2 py-1.5 whitespace-nowrap">{label(g.week)}</td>}
                     {side(g.awayTeam, g.awayElo, null, l.tossUp ? null : !l.homeFav)}
                     {side(g.homeTeam, g.homeElo, null, l.tossUp ? null : l.homeFav)}
                     <td className="px-2 py-1.5"><LeanBar homeFav={l.homeFav} edge={l.edge} /></td>

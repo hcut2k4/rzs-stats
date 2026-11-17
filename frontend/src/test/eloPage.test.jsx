@@ -103,11 +103,70 @@ describe('EloPage', () => {
     expect(screen.getByRole('columnheader', { name: /Favored/ })).toHaveAttribute('aria-sort', 'descending')
     expect(screen.getByRole('columnheader', { name: /Outlook/ })).toHaveAttribute('aria-sort', 'none')
 
+    await userEvent.click(screen.getByText('Favored'))
+    expect(homes()).toEqual(['H11500', 'H31500', 'H41500', 'H21500'])
+    expect(screen.getByRole('columnheader', { name: /Favored/ })).toHaveAttribute('aria-sort', 'ascending')
+
+    await userEvent.click(screen.getByText('Outlook'))
+    expect(homes()).toEqual(['H21500', 'H41500', 'H31500', 'H11500'])
+    await userEvent.click(screen.getByText('Outlook'))
+    expect(homes()).toEqual(['H11500', 'H31500', 'H41500', 'H21500'])
+
     await userEvent.click(screen.getByText('Away ◀ Edge ▶ Home'))
     expect(homes()).toEqual(['H21500', 'H31500', 'H11500', 'H41500'])
 
     await userEvent.click(screen.getByText('Away'))
     expect(homes()).toEqual(['H41500', 'H31500', 'H21500', 'H11500'])
+  })
+
+  it('shows other remaining weeks only in Rest of season and sorts by week and favorite chance', async () => {
+    const game = (gameId, season, week, homeWinProbability) => ({
+      gameId, season, week,
+      homeTeam: { abbrName: 'H' + gameId }, awayTeam: { abbrName: 'A' + gameId },
+      homeElo: 1500, awayElo: 1500, homeWinProbability, awayWinProbability: 1 - homeWinProbability,
+    })
+    client.getEloUpcoming.mockResolvedValue([
+      game(1, 1, 22, 0.8), game(2, 1, 23, 0.48), game(3, 1, 24, 0.1), game(4, 2, 22, 0.51),
+    ])
+    render(<MemoryRouter><EloPage /></MemoryRouter>)
+    await screen.findAllByText('BUFx')
+    await userEvent.click(screen.getByRole('tab', { name: 'Games' }))
+    await screen.findByText('80%')
+    expect(screen.getByRole('button', { name: 'This week' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.queryByText('52%')).not.toBeInTheDocument()
+    expect(screen.queryByRole('columnheader', { name: /Week/ })).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Rest of season' }))
+    const homes = () => screen.getAllByRole('cell').map(c => c.textContent).filter(t => /^H\d1500$/.test(t))
+    expect(homes()).toEqual(['H21500', 'H11500', 'H31500'])
+    expect(screen.queryByText('H4')).not.toBeInTheDocument()
+    expect(screen.getByText('Super Bowl', { selector: 'td' })).toBeInTheDocument()
+    await userEvent.click(screen.getByText('Favored'))
+    expect(homes()).toEqual(['H31500', 'H11500', 'H21500'])
+    await userEvent.click(screen.getByText('Favored'))
+    expect(homes()).toEqual(['H21500', 'H11500', 'H31500'])
+    await userEvent.click(screen.getByRole('columnheader', { name: /^Week/ }))
+    expect(homes()).toEqual(['H31500', 'H21500', 'H11500'])
+    await userEvent.click(screen.getByRole('columnheader', { name: /^Week/ }))
+    expect(homes()).toEqual(['H11500', 'H21500', 'H31500'])
+
+    await userEvent.click(screen.getByRole('button', { name: 'This week' }))
+    expect(homes()).toEqual(['H11500'])
+    expect(screen.queryByRole('columnheader', { name: /^Week/ })).not.toBeInTheDocument()
+  })
+
+  it('offers Rest of season when the selected week has no projections', async () => {
+    client.getEloUpcoming.mockResolvedValue([{
+      gameId: 9, season: 1, week: 23,
+      homeTeam: { abbrName: 'BUF' }, awayTeam: { abbrName: 'MIA' },
+      homeElo: 1700, awayElo: 1300, homeWinProbability: 0.9, awayWinProbability: 0.1,
+    }])
+    render(<MemoryRouter><EloPage /></MemoryRouter>)
+    await screen.findAllByText('BUFx')
+    await userEvent.click(screen.getByRole('tab', { name: 'Games' }))
+    expect(screen.queryByText('90%')).not.toBeInTheDocument()
+    await userEvent.click(await screen.findByRole('button', { name: 'Rest of season' }))
+    expect(await screen.findByText('90%')).toBeInTheDocument()
   })
 
   it('rates each projection on the Outlook tiers, shading the closest games heaviest', async () => {
