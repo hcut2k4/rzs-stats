@@ -84,9 +84,9 @@ describe('HomePage', () => {
 
     const card = within(screen.getByRole('link', { name: /Best Games Ahead/ }))
     expect(await card.findByText('52%')).toBeInTheDocument()
-    expect(card.getByText('Week 4')).toBeInTheDocument()
-    expect(card.getByText('Week 5')).toBeInTheDocument()
-    expect(card.queryByText('Week 6')).not.toBeInTheDocument()
+    expect(card.getByText('Wk 4')).toBeInTheDocument()
+    expect(card.getByText('Wk 5')).toBeInTheDocument()
+    expect(card.queryByText('Wk 6')).not.toBeInTheDocument()
     expect(card.queryByText('DAL')).not.toBeInTheDocument()
     expect(card.queryByText('OLD')).not.toBeInTheDocument()
     expect(card.getAllByText(/^(Toss-up|Tilt|Lean|Likely|Solid)$/).map(n => n.textContent)).toEqual(['Toss-up', 'Solid'])

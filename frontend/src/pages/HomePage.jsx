@@ -231,6 +231,10 @@ function TrendsCard({ season, weekly, loading }) {
   )
 }
 
+const bestGrid = 'grid grid-cols-[2.25rem_minmax(0,1fr)_2.5rem_4.5rem] items-center gap-2'
+
+const shortWeek = w => (w >= 18 ? weekLabel(2, w) : `Wk ${w + 1}`)
+
 function BestGames({ upcoming, loading }) {
   const season = Math.max(...upcoming.map(g => g.season))
   const seasonGames = upcoming.filter(g => g.season === season)
@@ -244,24 +248,27 @@ function BestGames({ upcoming, loading }) {
   return (
     <Card to="/elo?tab=games" title="Best Games Ahead" blurb="The closest unplayed games over the next two weeks." cta="All projected games">
       <Rows loading={loading} empty={!best.length}>
-        <div className="flex items-center gap-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted">
-          <span className="w-12">Week</span>
-          <span className="flex-1">Away / Home</span>
-          <span className="w-10 text-right">Chance</span>
-          <span className="w-14 text-center">Outlook</span>
+        <div className={`${bestGrid} py-1 text-xs font-semibold uppercase tracking-wide text-muted`}>
+          <span>Wk</span>
+          <span>Matchup</span>
+          <span className="text-right">Fav</span>
+          <span className="text-center">Outlook</span>
         </div>
         {best.map(({ game: g, l }) => (
-          <div key={g.gameId} className={rowClass}>
-            <span className="w-12 shrink-0 text-muted text-xs">{weekLabel(g.week >= 18 ? 2 : 1, g.week)}</span>
-            <span className="flex flex-1 items-center gap-1 whitespace-nowrap text-xs">
-              <TeamLogo abbr={g.awayTeam.abbrName} size={20} />
-              <span className={l.tossUp ? '' : !l.homeFav ? 'font-bold' : 'text-muted'}>{g.awayTeam.abbrName}</span>
-              <span className="text-muted text-[10px]">@</span>
-              <TeamLogo abbr={g.homeTeam.abbrName} size={20} />
-              <span className={l.tossUp ? '' : l.homeFav ? 'font-bold' : 'text-muted'}>{g.homeTeam.abbrName}</span>
+          <div key={g.gameId} className={`${bestGrid} py-1.5 text-sm`}>
+            <span className="text-muted text-xs tabular-nums">{shortWeek(g.week)}</span>
+            <span className="flex items-center gap-1.5 min-w-0">
+              <TeamLogo abbr={g.awayTeam.abbrName} size={18} />
+              <span className={l.tossUp ? 'font-semibold' : !l.homeFav ? 'font-semibold' : 'text-muted'}>{g.awayTeam.abbrName}</span>
+              <span className="text-muted text-[10px] shrink-0">@</span>
+              <TeamLogo abbr={g.homeTeam.abbrName} size={18} />
+              <span className={l.tossUp ? 'font-semibold' : l.homeFav ? 'font-semibold' : 'text-muted'}>{g.homeTeam.abbrName}</span>
             </span>
-            <span className="w-10 text-right num">{pct0(l.prob)}</span>
-            <span className="w-14 rounded px-1 py-0.5 text-center text-xs font-semibold uppercase tracking-wide" style={{ backgroundColor: l.shade }}>
+            <span className="text-right num">{pct0(l.prob)}</span>
+            <span
+              className="rounded text-center text-[10px] font-semibold uppercase tracking-wide leading-tight px-1 py-1 whitespace-nowrap"
+              style={{ backgroundColor: l.shade }}
+            >
               {l.tier.label}
             </span>
           </div>
