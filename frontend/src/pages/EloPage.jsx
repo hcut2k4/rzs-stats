@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer } from 'recharts'
 import { getEloHistory, getEloRatings, getEloGames, getEloMatchup, getEloUpcoming } from '../api/client'
 import PageHeader from '../components/PageHeader'
@@ -6,16 +7,25 @@ import Tabs from '../components/Tabs'
 import { TeamCell, TeamLogo } from '../components/TeamLogo'
 import DivergingBar from '../components/DivergingBar'
 import InfoTip from '../components/InfoTip'
+import LeanBar from '../components/LeanBar'
 import { divergeColor } from '../utils/heat'
+import { TIERS, lean, pct0 } from '../utils/eloLean'
 import { weekLabel } from '../utils/playoffRounds'
 import { COLORS } from '../utils/chartColors'
 import { seasonLabel, seasonNumber } from '../utils/seasons'
 
 const BASE = 1500
+
+const TABS = [
+  { value: 'ratings', label: 'Ratings' },
+  { value: 'history', label: 'History' },
+  { value: 'matchup', label: 'Matchup' },
+  { value: 'games', label: 'Games' },
+]
+const TAB_VALUES = TABS.map(t => t.value)
 const label = w => weekLabel(w >= 18 ? 2 : 1, w)
 const signed = (v, d = 1) => (v > 0 ? '+' : '') + v.toFixed(d)
 const pct = v => (v * 100).toFixed(1) + '%'
-const pct0 = v => Math.round(v * 100) + '%'
 
 const TIPS = {
   rank: 'Position when all 32 teams are sorted by Elo, highest first.',
@@ -39,45 +49,6 @@ const TIPS = {
 }
 
 const RED = '220 38 38'
-const GREEN = '22 163 74'
-const BLUE = '37 99 235'
-const PURPLE = '147 51 234'
-const ORANGE = '234 88 12'
-const YELLOW = '234 179 8'
-
-const LEAN_AWAY = BLUE
-const LEAN_HOME = ORANGE
-
-const SHADE_DEEP = 0.42
-const SHADE_LIGHT = 0.05
-
-const TIERS = [
-  { label: 'Toss-up', lo: 0.50, hi: 0.55, rgb: GREEN },
-  { label: 'Tilt', lo: 0.55, hi: 0.60, rgb: BLUE },
-  { label: 'Lean', lo: 0.60, hi: 0.70, rgb: PURPLE },
-  { label: 'Likely', lo: 0.70, hi: 0.85, rgb: ORANGE },
-  { label: 'Solid', lo: 0.85, hi: 1, rgb: YELLOW },
-]
-
-function tierShade(prob, tier) {
-  const t = Math.min(Math.max((prob - tier.lo) / (tier.hi - tier.lo), 0), 1)
-  return `rgb(${tier.rgb} / ${(SHADE_DEEP + (SHADE_LIGHT - SHADE_DEEP) * t).toFixed(3)})`
-}
-
-function lean(g) {
-  const homeFav = g.homeWinProbability >= g.awayWinProbability
-  const prob = homeFav ? g.homeWinProbability : g.awayWinProbability
-  const tier = TIERS.find(t => prob < t.hi) ?? TIERS[TIERS.length - 1]
-  return {
-    homeFav,
-    prob,
-    edge: Math.min((prob - 0.5) * 2, 1),
-    tier,
-    shade: tierShade(prob, tier),
-    tossUp: tier.label === 'Toss-up',
-    leansTo: homeFav ? g.homeTeam : g.awayTeam,
-  }
-}
 
 function useSorter(initial) {
   const [sort, setSort] = useState(initial)
@@ -105,22 +76,6 @@ const SortTh = ({ tip, sortKey, state, onSort, className = '', children }) => (
     {state.key === sortKey && (state.asc ? ' ▲' : ' ▼')}
   </th>
 )
-
-function LeanBar({ homeFav, edge }) {
-  return (
-    <div className="relative h-4 w-full min-w-[140px]" aria-hidden="true">
-      <div className="absolute inset-y-0 left-1/2 w-px bg-rule" />
-      <div
-        className="absolute inset-y-0.5"
-        style={{
-          [homeFav ? 'left' : 'right']: '50%',
-          width: `${(edge * 50).toFixed(1)}%`,
-          background: `rgb(${homeFav ? LEAN_HOME : LEAN_AWAY} / ${(0.25 + edge * 0.45).toFixed(2)})`,
-        }}
-      />
-    </div>
-  )
-}
 
 const UPSET_LEVELS = [
   { hi: 0.60, label: 'Slight upset', alpha: 0.12 },
@@ -499,7 +454,14 @@ function GamesTab({ season, week, upcoming }) {
 }
 
 export default function EloPage() {
-  const [tab, setTab] = useState('ratings')
+  const [params, setParams] = useSearchParams()
+  const tab = TAB_VALUES.includes(params.get('tab')) ? params.get('tab') : 'ratings'
+  // replace: switching tabs shouldn't make Back walk through every tab visited
+  const setTab = next => setParams(prev => {
+    const p = new URLSearchParams(prev)
+    next === 'ratings' ? p.delete('tab') : p.set('tab', next)
+    return p
+  }, { replace: true })
   const [history, setHistory] = useState([])
   const [season, setSeason] = useState(null)
   const [week, setWeek] = useState(null)
@@ -575,16 +537,7 @@ export default function EloPage() {
 
       {error && <div className="text-bad mb-4">{error}</div>}
 
-      <Tabs
-        value={tab}
-        onChange={setTab}
-        tabs={[
-          { value: 'ratings', label: 'Ratings' },
-          { value: 'history', label: 'History' },
-          { value: 'matchup', label: 'Matchup' },
-          { value: 'games', label: 'Games' },
-        ]}
-      />
+      <Tabs value={tab} onChange={setTab} tabs={TABS} />
 
       {tab === 'ratings' && <RatingsTab ratings={ratings} loading={loading} />}
       {tab === 'history' && <HistoryTab history={history} teams={teams} />}

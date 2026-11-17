@@ -194,4 +194,17 @@ describe('EloPage', () => {
     expect(screen.getByText('Slight upset · 43%')).toHaveStyle({ backgroundColor: 'rgb(220 38 38 / 0.12)' })
     expect(screen.getByText('Stunner · 10%')).toHaveStyle({ backgroundColor: 'rgb(220 38 38 / 0.42)' })
   })
+
+  it('opens the Games tab directly from a ?tab=games link', async () => {
+    render(<MemoryRouter initialEntries={['/elo?tab=games']}><EloPage /></MemoryRouter>)
+    // The Games tab renders abbreviations, not displayName, so wait on the tab itself
+    expect(await screen.findByRole('tab', { name: 'Games', selected: true })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Ratings' })).toHaveAttribute('aria-selected', 'false')
+  })
+
+  it('ignores an unknown tab in the URL and falls back to Ratings', async () => {
+    render(<MemoryRouter initialEntries={['/elo?tab=bogus']}><EloPage /></MemoryRouter>)
+    await screen.findAllByText('BUFx')
+    expect(screen.getByRole('tab', { name: 'Ratings' })).toHaveAttribute('aria-selected', 'true')
+  })
 })

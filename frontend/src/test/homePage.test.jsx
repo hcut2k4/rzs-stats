@@ -28,7 +28,18 @@ function stubHomeData() {
     { rosterId: 99, playerName: 'Pat Mahomes', teamAbbr: 'KC', tanya: 8.42, rank: 1 },
   ])
   client.getWeeklyTrends.mockResolvedValue([])
+  client.getEloUpcoming.mockResolvedValue([
+    upcomingGame(50, 3, team(1, 'KC'), team(2, 'SF'), 0.92),   // Solid
+    upcomingGame(51, 4, team(3, 'BUF'), team(4, 'MIA'), 0.52), // Toss-up
+    upcomingGame(52, 5, team(5, 'DAL'), team(6, 'PHI'), 0.63), // Lean
+  ])
 }
+
+const upcomingGame = (gameId, week, homeTeam, awayTeam, homeWinProbability) => ({
+  gameId, week, season: 7, homeTeam, awayTeam,
+  homeElo: 1600, awayElo: 1500,
+  homeWinProbability, awayWinProbability: 1 - homeWinProbability,
+})
 
 describe('HomePage', () => {
   afterEach(() => vi.clearAllMocks())
@@ -56,6 +67,61 @@ describe('HomePage', () => {
     expect(client.getQbLeaderboard).toHaveBeenCalledWith(
       expect.objectContaining({ scope: 'season', season: 7, stage: 'regular' }),
     )
+  })
+
+  it('leads with the closest unplayed games, tightest first', async () => {
+    stubHomeData()
+
+    render(<MemoryRouter><HomePage /></MemoryRouter>)
+
+    await waitFor(() => expect(screen.getByText('Best Games Ahead')).toBeInTheDocument())
+
+    const outlooks = await waitFor(() => {
+      const found = screen.getAllByText(/Toss-up|Tilt|Lean|Likely|Solid/)
+      expect(found.length).toBe(3)
+      return found
+    })
+    expect(outlooks.map(n => n.textContent)).toEqual(['Toss-up', 'Lean', 'Solid'])
+  })
+
+  it('names the favored team and its rounded win chance', async () => {
+    stubHomeData()
+
+    render(<MemoryRouter><HomePage /></MemoryRouter>)
+
+    // BUF is home at 52% — the toss-up, so it leads the table.
+    // It appears twice: once as the home side, once as the favored team.
+    await waitFor(() => expect(screen.getAllByText('BUF')).toHaveLength(2))
+    expect(screen.getByText('52%')).toBeInTheDocument()
+    expect(screen.getByText('92%')).toBeInTheDocument()
+  })
+
+  it('counts the toss-ups on the schedule', async () => {
+    stubHomeData()
+
+    render(<MemoryRouter><HomePage /></MemoryRouter>)
+
+    await waitFor(() => expect(screen.getByText('1 toss-up on the schedule.')).toBeInTheDocument())
+  })
+
+  it('says so when nothing is left to project', async () => {
+    stubHomeData()
+    client.getEloUpcoming.mockResolvedValue([])
+
+    render(<MemoryRouter><HomePage /></MemoryRouter>)
+
+    await waitFor(() => expect(screen.getByText('No unplayed games left to project.')).toBeInTheDocument())
+    expect(screen.getByText('No toss-ups on the schedule.')).toBeInTheDocument()
+  })
+
+  it('links the best games through to the Elo page games tab', async () => {
+    stubHomeData()
+
+    render(<MemoryRouter><HomePage /></MemoryRouter>)
+
+    await waitFor(() => expect(screen.getByText('Best Games Ahead')).toBeInTheDocument())
+    expect(screen.getByRole('link', { name: /All projected games/i }).getAttribute('href'))
+      .toBe('/elo?tab=games')
   })
 
   it('links each preview card to its page', async () => {
