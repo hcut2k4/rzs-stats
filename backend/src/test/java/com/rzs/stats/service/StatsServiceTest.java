@@ -206,8 +206,9 @@ class StatsServiceTest {
         assertThat(standings).hasSize(1);
         assertThat(standings.get(0).getWins()).isEqualTo(0);
         assertThat(standings.get(0).getPythagoreanPat()).isEqualTo(0.0);
-        assertThat(standings.get(0).getOppPyPatCurr()).isEqualTo(0.0);
-        assertThat(standings.get(0).getOppPyPatPrev()).isEqualTo(0.0);
+        // No opponent can be rated with no games anywhere, which is no data, not a 0.0 rating
+        assertThat(standings.get(0).getOppPyPatCurr()).isNull();
+        assertThat(standings.get(0).getOppPyPatPrev()).isNull();
     }
 
     @Test
@@ -353,12 +354,14 @@ class StatsServiceTest {
     void computeStandings_oppPyPatRemainingCurr_nonNullWhenFutureGamesExist() {
         TeamEntity teamA = team(1, "A");
         TeamEntity teamB = team(2, "B");
+        TeamEntity teamZ = team(3, "Z");  // gives B games that are not against A, so B is ratable
 
         // Played game gives B some current-season stats; future game means A still faces B
-        when(teamRepository.findAll()).thenReturn(List.of(teamA, teamB));
+        when(teamRepository.findAll()).thenReturn(List.of(teamA, teamB, teamZ));
         when(gameRepository.findRegularSeasonGames(3, 1, 0, 17))
-                .thenReturn(List.of(game(1, teamA, teamB, 28, 14)));
-        when(gameRepository.findRegularSeasonGames(2, 1, 0, 17)).thenReturn(List.of());
+                .thenReturn(List.of(game(1, teamA, teamB, 28, 14), game(2, teamB, teamZ, 21, 17)));
+        when(gameRepository.findRegularSeasonGames(2, 1, 0, 17))
+                .thenReturn(List.of(game(3, teamB, teamZ, 24, 20)));
         when(gameRepository.findFutureRegularSeasonGames(3))
                 .thenReturn(List.of(futureGame(99, teamA, teamB)));
 
@@ -471,10 +474,11 @@ class StatsServiceTest {
         // When no future games, total SoS = played SoS (same set of opponents)
         TeamEntity teamA = team(1, "A");
         TeamEntity teamB = team(2, "B");
+        TeamEntity teamZ = team(3, "Z");  // gives B a game that is not against A, so B is ratable
 
-        when(teamRepository.findAll()).thenReturn(List.of(teamA, teamB));
+        when(teamRepository.findAll()).thenReturn(List.of(teamA, teamB, teamZ));
         when(gameRepository.findRegularSeasonGames(3, 1, 0, 17))
-                .thenReturn(List.of(game(1, teamA, teamB, 28, 14)));
+                .thenReturn(List.of(game(1, teamA, teamB, 28, 14), game(2, teamB, teamZ, 21, 17)));
         when(gameRepository.findRegularSeasonGames(2, 1, 0, 17)).thenReturn(List.of());
         when(gameRepository.findFutureRegularSeasonGames(3)).thenReturn(List.of());
 
@@ -593,6 +597,150 @@ class StatsServiceTest {
         t.setConference("AFC");
         t.setDivision("AFC East");
         return t;
+    }
+
+    @Test
+    void computeStandings_sosPlayedWeightsRepeatOpponentsByMeetings() {
+        // Regression: a division rival played twice must count twice in SoS Played.
+        // A plays B twice and C once. Excluding H2H, B ~0.989 and C ~0.011.
+        //   game-weighted (correct): (0.989 + 0.989 + 0.011) / 3 = 0.663
+        //   one-entry-per-opponent : (0.989 + 0.011) / 2         = 0.500
+        TeamEntity teamA = team(1, "A");
+        TeamEntity teamB = team(2, "B");
+        TeamEntity teamC = team(3, "C");
+        TeamEntity teamZ = team(4, "Z");  // foil that shapes B and C
+
+        when(teamRepository.findAll()).thenReturn(List.of(teamA, teamB, teamC, teamZ));
+        when(gameRepository.findRegularSeasonGames(3, 1, 0, 17)).thenReturn(List.of(
+                game(1, teamA, teamB, 10, 40),
+                game(2, teamB, teamA, 40, 10),   // second meeting with B
+                game(3, teamA, teamC, 40, 10),
+                game(4, teamB, teamZ, 50, 10),   // B strong excluding A
+                game(5, teamZ, teamC, 50, 10)    // C weak excluding A
+        ));
+        when(gameRepository.findRegularSeasonGames(2, 1, 0, 17)).thenReturn(List.of());
+        when(gameRepository.findFutureRegularSeasonGames(3)).thenReturn(List.of());
+
+        StandingDto a = standingFor(service.computeStandings(3), 1);
+
+        assertThat(a.getGamesPlayed()).isEqualTo(3);
+        assertThat(a.getOppPyPatCurr()).isCloseTo(0.663, within(0.01));
+        assertThat(a.getOppPyPatCurr()).isNotCloseTo(0.5, within(0.05));
+    }
+
+    @Test
+    void computeStandings_sosLeftWeightsRepeatOpponentsByMeetings() {
+        // Same weighting rule on the remaining schedule: two of A's three future games are vs B.
+        TeamEntity teamA = team(1, "A");
+        TeamEntity teamB = team(2, "B");
+        TeamEntity teamC = team(3, "C");
+        TeamEntity teamZ = team(4, "Z");
+
+        when(teamRepository.findAll()).thenReturn(List.of(teamA, teamB, teamC, teamZ));
+        when(gameRepository.findRegularSeasonGames(3, 1, 0, 17)).thenReturn(List.of(
+                game(1, teamB, teamZ, 50, 10),
+                game(2, teamZ, teamC, 50, 10)
+        ));
+        when(gameRepository.findRegularSeasonGames(2, 1, 0, 17)).thenReturn(List.of());
+        when(gameRepository.findFutureRegularSeasonGames(3)).thenReturn(List.of(
+                futureGame(91, teamA, teamB),
+                futureGame(92, teamB, teamA),   // second meeting with B
+                futureGame(93, teamA, teamC)
+        ));
+
+        StandingDto a = standingFor(service.computeStandings(3), 1);
+
+        assertThat(a.getOppPyPatRemainingCurr()).isCloseTo(0.663, within(0.01));
+        assertThat(a.getOppPyPatRemainingCurr()).isNotCloseTo(0.5, within(0.05));
+        // No games played yet, so Total is the remaining schedule
+        assertThat(a.getOppPyPatTotalCurr()).isEqualTo(a.getOppPyPatRemainingCurr());
+    }
+
+    @Test
+    void computeStandings_sosTotalIsMeanOverEveryScheduledGame() {
+        // With one value per game on both sides, the played/left weighting reproduces the
+        // mean over the whole 3-game schedule: (0.989 + 0.989 + 0.011) / 3 = 0.663,
+        // whether B's two meetings sit in the played half or the remaining half.
+        TeamEntity teamA = team(1, "A");
+        TeamEntity teamB = team(2, "B");
+        TeamEntity teamC = team(3, "C");
+        TeamEntity teamZ = team(4, "Z");
+
+        when(teamRepository.findAll()).thenReturn(List.of(teamA, teamB, teamC, teamZ));
+        when(gameRepository.findRegularSeasonGames(3, 1, 0, 17)).thenReturn(List.of(
+                game(1, teamA, teamB, 10, 40),   // one meeting with B played
+                game(4, teamB, teamZ, 50, 10),
+                game(5, teamZ, teamC, 50, 10)
+        ));
+        when(gameRepository.findRegularSeasonGames(2, 1, 0, 17)).thenReturn(List.of());
+        when(gameRepository.findFutureRegularSeasonGames(3)).thenReturn(List.of(
+                futureGame(92, teamB, teamA),   // second meeting with B still to come
+                futureGame(93, teamA, teamC)
+        ));
+
+        StandingDto a = standingFor(service.computeStandings(3), 1);
+
+        assertThat(a.getOppPyPatTotalCurr()).isCloseTo(0.663, within(0.01));
+    }
+
+    @Test
+    void computeStandings_unratableOpponentYieldsNullNotZero() {
+        // Regression: after week 1 an opponent's only game is the one against you. Strip the
+        // H2H and nothing is left to rate, which is no data -- not a 0.0 "weakest team alive"
+        // rating that then drags SoS Total down.
+        //   A played B (B has no other game -> unratable)
+        //   A's remaining: C, which beat Z 40-10 and so rates high
+        // Total must be C's rating alone, not (0.0 * 1 + C * 1) / 2.
+        TeamEntity teamA = team(1, "A");
+        TeamEntity teamB = team(2, "B");
+        TeamEntity teamC = team(3, "C");
+        TeamEntity teamZ = team(4, "Z");
+
+        when(teamRepository.findAll()).thenReturn(List.of(teamA, teamB, teamC, teamZ));
+        when(gameRepository.findRegularSeasonGames(3, 1, 0, 17)).thenReturn(List.of(
+                game(1, teamA, teamB, 27, 22),   // B's only game is this one
+                game(2, teamC, teamZ, 40, 10)
+        ));
+        when(gameRepository.findRegularSeasonGames(2, 1, 0, 17)).thenReturn(List.of());
+        when(gameRepository.findFutureRegularSeasonGames(3))
+                .thenReturn(List.of(futureGame(91, teamA, teamC)));
+
+        StandingDto a = standingFor(service.computeStandings(3), 1);
+
+        assertThat(a.getOppPyPatCurr()).isNull();
+        assertThat(a.getOppPyPatRemainingCurr()).isNotNull();
+        assertThat(a.getOppPyPatTotalCurr()).isEqualTo(a.getOppPyPatRemainingCurr());
+        assertThat(a.getOppPyPatTotalCurr()).isGreaterThan(0.80);
+    }
+
+    @Test
+    void computeStandings_totalWeightsOnlyRatedGames() {
+        // Total averages the games it could actually rate. A plays B twice (ratable) and C
+        // once (unratable), so Total is B's rating, not a value diluted by C's missing one.
+        TeamEntity teamA = team(1, "A");
+        TeamEntity teamB = team(2, "B");
+        TeamEntity teamC = team(3, "C");
+        TeamEntity teamZ = team(4, "Z");
+
+        when(teamRepository.findAll()).thenReturn(List.of(teamA, teamB, teamC, teamZ));
+        when(gameRepository.findRegularSeasonGames(3, 1, 0, 17)).thenReturn(List.of(
+                game(1, teamA, teamB, 10, 20),
+                game(2, teamB, teamA, 20, 10),
+                game(3, teamA, teamC, 30,  7),   // C's only game -> unratable
+                game(4, teamB, teamZ, 50, 10)
+        ));
+        when(gameRepository.findRegularSeasonGames(2, 1, 0, 17)).thenReturn(List.of());
+        when(gameRepository.findFutureRegularSeasonGames(3)).thenReturn(List.of());
+
+        StandingDto a = standingFor(service.computeStandings(3), 1);
+
+        double bRating = StatsService.calculatePyPat(50, 10, 1);
+        assertThat(a.getOppPyPatCurr()).isCloseTo(bRating, within(1e-4));
+        assertThat(a.getOppPyPatTotalCurr()).isCloseTo(bRating, within(1e-4));
+    }
+
+    private static StandingDto standingFor(List<StandingDto> standings, int teamId) {
+        return standings.stream().filter(s -> s.getTeamId() == teamId).findFirst().orElseThrow();
     }
 
     @Test

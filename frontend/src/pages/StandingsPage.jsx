@@ -104,8 +104,12 @@ export default function StandingsPage() {
     return sortAsc ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1)
   })
 
-  const sosPrefix = sosMode === 'curr' ? 'Curr' : 'Prev'
-  const sosSource = sosMode === 'curr' ? 'current season' : 'previous season'
+  // Current-season opponent PyPAT is noise until opponents have games that were not
+  // against you, so the toggle stays hidden and SoS reads off the prior season.
+  const sosToggleReady = standings.some(r => r.gamesPlayed >= 3)
+  const activeSosMode = sosToggleReady ? sosMode : 'prev'
+  const sosPrefix = activeSosMode === 'curr' ? 'Curr' : 'Prev'
+  const sosSource = activeSosMode === 'curr' ? 'current season' : 'previous season'
   const sosCols = isCurrentSeason
     ? [
         { key: `oppPyPat${sosPrefix}`, label: 'Played', title: `Played SoS: avg opponent-adjusted PyPAT, ${sosSource}. Lower = easier schedule.` },
@@ -194,22 +198,24 @@ export default function StandingsPage() {
           Group by conference
         </label>
 
-        <div className="flex items-center gap-2 text-sm">
-          <InfoTip text="SoS is calculated using opponent-adjusted PyPAT — each opponent's quality is measured without their games against the team being evaluated, so H2H results don't inflate their rating. Previous season is more reliable early in the current season before enough games have been played to produce accurate team ratings.">
-            <span className="text-muted">SoS opponent PyPAT</span>
-          </InfoTip>
-          <div className="flex border border-line rounded overflow-hidden">
-            {[['curr', 'This season'], ['prev', 'Prior season']].map(([mode, label]) => (
-              <button
-                key={mode}
-                onClick={() => setSosMode(mode)}
-                className={`px-2 py-1 text-xs font-medium ${sosMode === mode ? 'bg-ink text-bg' : 'text-muted hover:text-ink'}`}
-              >
-                {label}
-              </button>
-            ))}
+        {sosToggleReady && (
+          <div className="flex items-center gap-2 text-sm">
+            <InfoTip text="SoS is calculated using opponent-adjusted PyPAT — each opponent's quality is measured without their games against the team being evaluated, so H2H results don't inflate their rating. Previous season is more reliable early in the current season before enough games have been played to produce accurate team ratings.">
+              <span className="text-muted">SoS opponent PyPAT</span>
+            </InfoTip>
+            <div className="flex border border-line rounded overflow-hidden">
+              {[['curr', 'This season'], ['prev', 'Prior season']].map(([mode, label]) => (
+                <button
+                  key={mode}
+                  onClick={() => setSosMode(mode)}
+                  className={`px-2 py-1 text-xs font-medium ${activeSosMode === mode ? 'bg-ink text-bg' : 'text-muted hover:text-ink'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </PageHeader>
 
       {error && <div className="text-bad mb-4">{error}</div>}

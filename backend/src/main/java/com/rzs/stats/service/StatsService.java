@@ -42,20 +42,19 @@ public class StatsService {
 
         // Build per-team map of remaining (future) opponent IDs
         List<GameEntity> futureGames = gameRepository.findFutureRegularSeasonGames(seasonIndex);
-        Map<Integer, Set<Integer>> remainingOpps = new HashMap<>();
-        Map<Integer, Integer> remainingGameCount = new HashMap<>();
+        // One entry per remaining game, not per distinct opponent: a division rival
+        // played twice must count twice.
+        Map<Integer, List<Integer>> remainingOpps = new HashMap<>();
         for (GameEntity g : futureGames) {
             if (g.getHomeTeam() == null || g.getAwayTeam() == null) continue;
             int h = g.getHomeTeam().getTeamId(), a = g.getAwayTeam().getTeamId();
-            remainingOpps.computeIfAbsent(h, k -> new HashSet<>()).add(a);
-            remainingOpps.computeIfAbsent(a, k -> new HashSet<>()).add(h);
-            remainingGameCount.merge(h, 1, Integer::sum);
-            remainingGameCount.merge(a, 1, Integer::sum);
+            remainingOpps.computeIfAbsent(h, k -> new ArrayList<>()).add(a);
+            remainingOpps.computeIfAbsent(a, k -> new ArrayList<>()).add(h);
         }
 
         return teams.stream().map(team -> {
             TeamStats curr = statsMap.getOrDefault(team.getTeamId(), new TeamStats());
-            return buildStandingDto(team, curr, statsMap, prevStatsMap, remainingOpps, remainingGameCount);
+            return buildStandingDto(team, curr, statsMap, prevStatsMap, remainingOpps);
         }).sorted(Comparator.comparingDouble(StandingDto::getWinPct).reversed())
           .collect(Collectors.toList());
     }
@@ -63,13 +62,12 @@ public class StatsService {
     private StandingDto buildStandingDto(TeamEntity team, TeamStats curr,
                                           Map<Integer, TeamStats> currAll,
                                           Map<Integer, TeamStats> prevAll,
-                                          Map<Integer, Set<Integer>> remainingOpps,
-                                          Map<Integer, Integer> remainingGameCount) {
+                                          Map<Integer, List<Integer>> remainingOpps) {
         double pyPat = calculatePyPat(curr.pf, curr.pa, curr.games);
 
         // Played SoS: already-played opponents' PyPAT using current or previous season stats
-        double oppPyPatCurr = calculateOppPyPat(team.getTeamId(), curr.opponentIds, currAll);
-        double oppPyPatPrev = calculateOppPyPat(team.getTeamId(), curr.opponentIds, prevAll);
+        OppSos playedCurr = calculateOppPyPat(team.getTeamId(), curr.opponentIds, currAll);
+        OppSos playedPrev = calculateOppPyPat(team.getTeamId(), curr.opponentIds, prevAll);
 
         // Win Diff: actual wins minus PyPAT-expected wins
         double actualWins   = curr.wins + 0.5 * curr.ties;
@@ -77,36 +75,9 @@ public class StatsService {
         double winDiff = Math.round((actualWins - expectedWins) * 10.0) / 10.0;
 
         // Remaining SoS: future opponents' PyPAT using current or previous season stats
-        Set<Integer> remOpps = remainingOpps.getOrDefault(team.getTeamId(), Set.of());
-        Double oppPyPatRemainingCurr = remOpps.isEmpty() ? null
-                : round(calculateOppPyPat(team.getTeamId(), remOpps, currAll));
-        Double oppPyPatRemainingPrev = remOpps.isEmpty() ? null
-                : round(calculateOppPyPat(team.getTeamId(), remOpps, prevAll));
-
-        // Total SoS: game-count-weighted average of played and remaining SoS.
-        // Using a simple union of unique opponents would let weak played-only opponents
-        // drag Total below both Played and Left; weighting by game count is correct.
-        int gamesPlayed = curr.games;
-        int gamesLeft   = remainingGameCount.getOrDefault(team.getTeamId(), 0);
-        int totalGames  = gamesPlayed + gamesLeft;
-
-        Double oppPyPatTotalCurr;
-        Double oppPyPatTotalPrev;
-        if (totalGames == 0) {
-            oppPyPatTotalCurr = null;
-            oppPyPatTotalPrev = null;
-        } else if (gamesLeft == 0) {
-            oppPyPatTotalCurr = round(oppPyPatCurr);
-            oppPyPatTotalPrev = round(oppPyPatPrev);
-        } else if (gamesPlayed == 0) {
-            oppPyPatTotalCurr = oppPyPatRemainingCurr;
-            oppPyPatTotalPrev = oppPyPatRemainingPrev;
-        } else {
-            double remCurr = oppPyPatRemainingCurr != null ? oppPyPatRemainingCurr : 0.0;
-            double remPrev = oppPyPatRemainingPrev != null ? oppPyPatRemainingPrev : 0.0;
-            oppPyPatTotalCurr = round((oppPyPatCurr * gamesPlayed + remCurr * gamesLeft) / totalGames);
-            oppPyPatTotalPrev = round((oppPyPatPrev * gamesPlayed + remPrev * gamesLeft) / totalGames);
-        }
+        List<Integer> remOpps = remainingOpps.getOrDefault(team.getTeamId(), List.of());
+        OppSos leftCurr = calculateOppPyPat(team.getTeamId(), remOpps, currAll);
+        OppSos leftPrev = calculateOppPyPat(team.getTeamId(), remOpps, prevAll);
 
         StandingDto dto = new StandingDto();
         dto.setTeamId(team.getTeamId());
@@ -127,12 +98,12 @@ public class StatsService {
         dto.setWinPct(round(winPct));
         dto.setPythagoreanPat(round(pyPat));
         dto.setWinDiff(winDiff);
-        dto.setOppPyPatCurr(round(oppPyPatCurr));
-        dto.setOppPyPatPrev(round(oppPyPatPrev));
-        dto.setOppPyPatRemainingCurr(oppPyPatRemainingCurr);
-        dto.setOppPyPatRemainingPrev(oppPyPatRemainingPrev);
-        dto.setOppPyPatTotalCurr(oppPyPatTotalCurr);
-        dto.setOppPyPatTotalPrev(oppPyPatTotalPrev);
+        dto.setOppPyPatCurr(value(playedCurr));
+        dto.setOppPyPatPrev(value(playedPrev));
+        dto.setOppPyPatRemainingCurr(value(leftCurr));
+        dto.setOppPyPatRemainingPrev(value(leftPrev));
+        dto.setOppPyPatTotalCurr(value(combine(playedCurr, leftCurr)));
+        dto.setOppPyPatTotalPrev(value(combine(playedPrev, leftPrev)));
         return dto;
     }
 
@@ -151,13 +122,18 @@ public class StatsService {
         return pfExp / (pfExp + paExp);
     }
 
-    // For each opponent faced, compute their PyPat from allStats excluding H2H games.
-    // allStats already has per-team stats computed without H2H (we pass the right map).
-    private double calculateOppPyPat(int teamId, Set<Integer> opponentIds,
-                                      Map<Integer, TeamStats> allStats) {
-        if (opponentIds.isEmpty() || allStats.isEmpty()) return 0.0;
+    // An averaged SoS plus how many scheduled games actually produced a rating.
+    private record OppSos(double value, int rated) {}
 
-        List<Double> pyPats = new ArrayList<>();
+    // For each game on the schedule, compute that opponent's PyPat from allStats excluding
+    // H2H games. opponentIds holds one entry per game, so an opponent met twice is counted
+    // twice -- a division rival must not carry the same weight as a team played once.
+    // Returns null when nothing on the list could be rated: "no data" is not a 0.0 rating,
+    // and averaging a stand-in zero in would read as the weakest opponent possible.
+    private OppSos calculateOppPyPat(int teamId, Collection<Integer> opponentIds,
+                                      Map<Integer, TeamStats> allStats) {
+        double sum = 0.0;
+        int rated = 0;
         for (Integer oppId : opponentIds) {
             TeamStats oppStats = allStats.get(oppId);
             if (oppStats == null) continue;
@@ -166,10 +142,25 @@ public class StatsService {
             int[] adjusted = oppStats.statsExcluding(teamId);
             int adjPf = adjusted[0], adjPa = adjusted[1], adjGames = adjusted[2];
             if (adjGames > 0) {
-                pyPats.add(calculatePyPat(adjPf, adjPa, adjGames));
+                sum += calculatePyPat(adjPf, adjPa, adjGames);
+                rated++;
             }
         }
-        return pyPats.stream().mapToDouble(d -> d).average().orElse(0.0);
+        return rated == 0 ? null : new OppSos(sum / rated, rated);
+    }
+
+    // Total SoS: weighted by how many games each side actually rated, which makes it exactly
+    // the mean over every rated game on the schedule. Weighting by raw game counts instead
+    // would let an unratable opponent pull Total toward a value nothing measured.
+    private static OppSos combine(OppSos played, OppSos left) {
+        if (played == null) return left;
+        if (left == null) return played;
+        int rated = played.rated() + left.rated();
+        return new OppSos((played.value() * played.rated() + left.value() * left.rated()) / rated, rated);
+    }
+
+    private static Double value(OppSos sos) {
+        return sos == null ? null : round(sos.value());
     }
 
     // -------------------------------------------------------------------------
@@ -348,7 +339,8 @@ public class StatsService {
         // Map: opponentTeamId -> [opponentPF, opponentPA, gamesAgainstOpp]
         // Used to subtract H2H when computing SoS
         Map<Integer, int[]> h2h = new HashMap<>();
-        Set<Integer> opponentIds = new HashSet<>();
+        // One entry per game played, so repeat opponents are weighted by meetings
+        List<Integer> opponentIds = new ArrayList<>();
 
         void addGame(int teamScore, int oppScore, int oppTeamId) {
             pf += teamScore;

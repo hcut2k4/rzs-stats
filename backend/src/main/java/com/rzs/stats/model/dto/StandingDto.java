@@ -20,8 +20,8 @@ public class StandingDto {
 
     private double pythagoreanPat;
     private double winDiff;            // actual wins minus PyPAT-expected wins (luck)
-    private double oppPyPatCurr;       // SoS Played: avg opponent PyPAT, current season
-    private double oppPyPatPrev;       // SoS Played: avg opponent PyPAT, previous season
+    private Double oppPyPatCurr;       // SoS Played: avg opponent PyPAT, current season (null if no opponent ratable)
+    private Double oppPyPatPrev;       // SoS Played: avg opponent PyPAT, previous season (null if no opponent ratable)
     private Double oppPyPatRemainingCurr; // SoS Left: future opponents' current season PyPAT (null if none)
     private Double oppPyPatRemainingPrev; // SoS Left: future opponents' previous season PyPAT (null if none)
     private Double oppPyPatTotalCurr;     // SoS Total: all scheduled opponents, current season stats (null if no schedule)
@@ -61,10 +61,10 @@ public class StandingDto {
     public void setPythagoreanPat(double pythagoreanPat) { this.pythagoreanPat = pythagoreanPat; }
     public double getWinDiff() { return winDiff; }
     public void setWinDiff(double winDiff) { this.winDiff = winDiff; }
-    public double getOppPyPatCurr() { return oppPyPatCurr; }
-    public void setOppPyPatCurr(double oppPyPatCurr) { this.oppPyPatCurr = oppPyPatCurr; }
-    public double getOppPyPatPrev() { return oppPyPatPrev; }
-    public void setOppPyPatPrev(double oppPyPatPrev) { this.oppPyPatPrev = oppPyPatPrev; }
+    public Double getOppPyPatCurr() { return oppPyPatCurr; }
+    public void setOppPyPatCurr(Double oppPyPatCurr) { this.oppPyPatCurr = oppPyPatCurr; }
+    public Double getOppPyPatPrev() { return oppPyPatPrev; }
+    public void setOppPyPatPrev(Double oppPyPatPrev) { this.oppPyPatPrev = oppPyPatPrev; }
     public Double getOppPyPatRemainingCurr() { return oppPyPatRemainingCurr; }
     public void setOppPyPatRemainingCurr(Double oppPyPatRemainingCurr) { this.oppPyPatRemainingCurr = oppPyPatRemainingCurr; }
     public Double getOppPyPatRemainingPrev() { return oppPyPatRemainingPrev; }
