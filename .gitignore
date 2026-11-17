@@ -34,6 +34,7 @@ docker-compose.override.yml
 
 # ── Logs ──────────────────────────────────────────────────────────────────────
 backend.log
+frontend.log
 
 # ── Embedded local Postgres data ──────────────────────────────────────────────
 backend/.localdb/
