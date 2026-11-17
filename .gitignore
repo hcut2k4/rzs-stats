@@ -38,3 +38,10 @@ frontend.log
 
 # ── Embedded local Postgres data ──────────────────────────────────────────────
 backend/.localdb/
+
+# ── Claude Code ───────────────────────────────────────────────────────────────
+# Shared config (.claude/settings.json, agents, commands, skills) stays tracked.
+.claude/worktrees/
+
+# ── Local scratch ─────────────────────────────────────────────────────────────
+output.json
