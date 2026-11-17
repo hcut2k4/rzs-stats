@@ -8,18 +8,23 @@ import { COLORS } from '../utils/chartColors'
 export default function WeeklyTab({ season }) {
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(false)
   const [focus, setFocus] = useState(new Set())
   const [hover, setHover] = useState(null)
 
   useEffect(() => {
     if (season == null) return
+    let current = true
     setLoading(true)
+    setError(false)
     getWeeklyTrends(season)
-      .then(d => { setData(d); setLoading(false) })
-      .catch(() => setLoading(false))
+      .then(d => { if (current) { setData(d); setLoading(false) } })
+      .catch(() => { if (current) { setData([]); setError(true); setLoading(false) } })
+    return () => { current = false }
   }, [season])
 
   if (loading) return <p className="text-muted">Loading...</p>
+  if (error) return <p className="text-bad">Failed to load week-by-week data.</p>
   if (!data.length) return <p className="text-muted">No data available.</p>
 
   const allTeams = (data[0]?.standings.map(s => ({ id: s.teamId, name: s.displayName, abbr: s.abbrName })) ?? [])
