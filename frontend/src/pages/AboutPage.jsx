@@ -70,12 +70,11 @@ const PAGES = [
   {
     name: 'Standings',
     bullets: [
-      'Sortable standings ranked by PyPAT by default',
-      'Three SoS columns: Played (opponents so far), Left (remaining schedule), Total (full season)',
+      'Standings — every team ranked by PyPAT by default, with three SoS columns: Played (opponents so far), Left (remaining schedule), Total (full season)',
+      'Season History — W-L, PyPAT and Luck across every season; sort by any season',
+      'Week by Week — PyPAT line chart; click teams to highlight them',
       'SoS toggle: current-season or prior-season opponent PyPAT — prior season is default for the active season',
       'All columns sortable; export to CSV or Excel',
-      'Season History — W-L, PyPAT and Luck across all seasons, sortable',
-      'Week by Week — PyPAT line chart; click teams to highlight them',
     ],
   },
   {
