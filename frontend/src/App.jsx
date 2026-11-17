@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Routes, Route, NavLink } from 'react-router-dom'
+import { Routes, Route, NavLink, Link } from 'react-router-dom'
+import HomePage from './pages/HomePage'
 import StandingsPage from './pages/StandingsPage'
 import GamesPage from './pages/GamesPage'
 import TrendsPage from './pages/TrendsPage'
@@ -10,7 +11,7 @@ import QbPage from './pages/QbPage'
 import ThemeToggle from './components/ThemeToggle'
 
 const LINKS = [
-  { to: '/', label: 'Standings', end: true },
+  { to: '/standings', label: 'Standings' },
   { to: '/games', label: 'Games' },
   { to: '/elo', label: 'Elo' },
   { to: '/qb', label: 'QBs' },
@@ -35,9 +36,13 @@ export default function App() {
     <div className="min-h-screen flex flex-col">
       <header className="bg-bg border-b border-line sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 flex items-center h-14">
-          <span className="font-display font-extrabold uppercase text-2xl tracking-tight mr-6">
+          <Link
+            to="/"
+            className="font-display font-extrabold uppercase text-2xl tracking-tight mr-6 hover:opacity-80 transition-opacity"
+            aria-label="RZS Stats home"
+          >
             RZS<span className="text-accent"> Stats</span>
-          </span>
+          </Link>
           <nav className="hidden sm:flex items-center gap-1" aria-label="Main">
             {LINKS.map(l => <NavLink key={l.to} to={l.to} end={l.end} className={navClass}>{l.label}</NavLink>)}
           </nav>
@@ -66,7 +71,8 @@ export default function App() {
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-6">
         <Routes>
-          <Route path="/" element={<StandingsPage />} />
+          <Route path="/" element={<HomePage />} />
+          <Route path="/standings" element={<StandingsPage />} />
           <Route path="/games" element={<GamesPage />} />
           <Route path="/elo" element={<EloPage />} />
           <Route path="/qb" element={<QbPage />} />
