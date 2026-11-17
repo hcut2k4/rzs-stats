@@ -288,7 +288,7 @@ export default function HomePage() {
           })
           .finally(() => live && done('games'))
 
-        getQbLeaderboard({ scope: 'season', season: latest, stage: 1 })
+        getQbLeaderboard({ scope: 'season', season: latest, stage: 'regular' })
           .then(d => { if (live) setQbs(d) })
           .finally(() => live && done('qb'))
 

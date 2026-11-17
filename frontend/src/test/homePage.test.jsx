@@ -47,6 +47,17 @@ describe('HomePage', () => {
     expect(screen.getByText('24')).toBeInTheDocument()
   })
 
+  it('asks the QB leaderboard for the regular season by name, not a numeric stage', async () => {
+    stubHomeData()
+
+    render(<MemoryRouter><HomePage /></MemoryRouter>)
+
+    await waitFor(() => expect(client.getQbLeaderboard).toHaveBeenCalled())
+    expect(client.getQbLeaderboard).toHaveBeenCalledWith(
+      expect.objectContaining({ scope: 'season', season: 7, stage: 'regular' }),
+    )
+  })
+
   it('links each preview card to its page', async () => {
     stubHomeData()
 
