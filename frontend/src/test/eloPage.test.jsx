@@ -72,12 +72,87 @@ describe('EloPage', () => {
     expect(screen.queryByRole('option', { name: /projected/ })).toBeNull()
     await userEvent.click(screen.getByRole('tab', { name: 'Games' }))
     await userEvent.selectOptions(screen.getByLabelText('Week'), '23')
-    expect(await screen.findByText('90.9%')).toBeInTheDocument()
+    expect(await screen.findByText('91%')).toBeInTheDocument()
     expect(screen.getByText('Projected')).toBeInTheDocument()
     const headers = screen.getAllByRole('columnheader').map(h => h.textContent)
-    expect(headers).toEqual(['Away', 'Home', 'Away win prob.', 'Home win prob.'])
+    expect(headers).toEqual(['Away', 'Home', 'Away ◀ Edge ▶ Home', 'Favored', 'Outlook ▲'])
     const cells = screen.getAllByRole('cell').map(c => c.textContent)
-    expect(cells.slice(-2)).toEqual(['9.1%', '90.9%'])
+    expect(cells.slice(-2)).toEqual(['BUF 91%', 'Solid'])
+  })
+
+  it('sorts projected games by win probability by default and on any heading', async () => {
+    const team = (id, abbrName) => ({ teamId: id, abbrName, displayName: abbrName + 'x' })
+    const game = (gameId, homeWinProbability) => ({
+      gameId, season: 1, week: 23,
+      homeTeam: team(gameId, 'H' + gameId), awayTeam: team(gameId + 50, 'A' + gameId),
+      homeElo: 1500, awayElo: 1500, homeWinProbability, awayWinProbability: 1 - homeWinProbability,
+    })
+    client.getEloUpcoming.mockResolvedValue([game(1, 0.52), game(2, 0.88), game(3, 0.65), game(4, 0.15)])
+    render(<MemoryRouter><EloPage /></MemoryRouter>)
+    await screen.findAllByText('BUFx')
+    await userEvent.click(screen.getByRole('tab', { name: 'Games' }))
+    await userEvent.selectOptions(screen.getByLabelText('Week'), '23')
+
+    const homes = () => screen.getAllByRole('cell').map(c => c.textContent).filter(t => /^H\d1500$/.test(t))
+    expect(await screen.findByText('88%')).toBeInTheDocument()
+    expect(homes()).toEqual(['H11500', 'H31500', 'H41500', 'H21500'])
+    expect(screen.getByRole('columnheader', { name: /Outlook/ })).toHaveAttribute('aria-sort', 'ascending')
+
+    await userEvent.click(screen.getByText('Favored'))
+    expect(homes()).toEqual(['H21500', 'H41500', 'H31500', 'H11500'])
+    expect(screen.getByRole('columnheader', { name: /Favored/ })).toHaveAttribute('aria-sort', 'descending')
+    expect(screen.getByRole('columnheader', { name: /Outlook/ })).toHaveAttribute('aria-sort', 'none')
+
+    await userEvent.click(screen.getByText('Away ◀ Edge ▶ Home'))
+    expect(homes()).toEqual(['H21500', 'H31500', 'H11500', 'H41500'])
+
+    await userEvent.click(screen.getByText('Away'))
+    expect(homes()).toEqual(['H41500', 'H31500', 'H21500', 'H11500'])
+  })
+
+  it('rates each projection on the Outlook tiers, shading the closest games heaviest', async () => {
+    const team = (id, abbrName) => ({ teamId: id, abbrName, displayName: abbrName + 'x' })
+    const game = (gameId, homeWinProbability) => ({
+      gameId, season: 1, week: 23,
+      homeTeam: team(gameId, 'H' + gameId), awayTeam: team(gameId + 50, 'A' + gameId),
+      homeElo: 1500, awayElo: 1500, homeWinProbability, awayWinProbability: 1 - homeWinProbability,
+    })
+    client.getEloUpcoming.mockResolvedValue([game(1, 0.52), game(2, 0.58), game(3, 0.66), game(4, 0.8), game(5, 0.93)])
+    render(<MemoryRouter><EloPage /></MemoryRouter>)
+    await screen.findAllByText('BUFx')
+    await userEvent.click(screen.getByRole('tab', { name: 'Games' }))
+    await userEvent.selectOptions(screen.getByLabelText('Week'), '23')
+
+    await screen.findByText('Toss-up')
+    const tiers = screen.getAllByRole('cell').filter(c => /^(Toss-up|Tilt|Lean|Likely|Solid)$/.test(c.textContent))
+    expect(tiers.map(c => c.textContent)).toEqual(['Toss-up', 'Tilt', 'Lean', 'Likely', 'Solid'])
+    expect(screen.getByText(/1 toss-up this week/)).toBeInTheDocument()
+
+    expect(tiers[0]).toHaveStyle({ backgroundColor: 'rgb(22 163 74 / 0.272)' })
+    expect(tiers[1]).toHaveStyle({ backgroundColor: 'rgb(37 99 235 / 0.198)' })
+    expect(tiers[2]).toHaveStyle({ backgroundColor: 'rgb(147 51 234 / 0.198)' })
+    expect(tiers[3]).toHaveStyle({ backgroundColor: 'rgb(234 88 12 / 0.173)' })
+    expect(tiers[4]).toHaveStyle({ backgroundColor: 'rgb(234 179 8 / 0.223)' })
+  })
+
+  it('shades darker toward the competitive end within a single tier', async () => {
+    const team = (id, abbrName) => ({ teamId: id, abbrName, displayName: abbrName + 'x' })
+    const game = (gameId, homeWinProbability) => ({
+      gameId, season: 1, week: 23,
+      homeTeam: team(gameId, 'H' + gameId), awayTeam: team(gameId + 50, 'A' + gameId),
+      homeElo: 1500, awayElo: 1500, homeWinProbability, awayWinProbability: 1 - homeWinProbability,
+    })
+    client.getEloUpcoming.mockResolvedValue([game(1, 0.505), game(2, 0.545)])
+    render(<MemoryRouter><EloPage /></MemoryRouter>)
+    await screen.findAllByText('BUFx')
+    await userEvent.click(screen.getByRole('tab', { name: 'Games' }))
+    await userEvent.selectOptions(screen.getByLabelText('Week'), '23')
+
+    await screen.findByText(/2 toss-ups this week/)
+    const tiers = screen.getAllByRole('cell').filter(c => c.textContent === 'Toss-up')
+    expect(tiers).toHaveLength(2)
+    expect(tiers[0]).toHaveStyle({ backgroundColor: 'rgb(22 163 74 / 0.383)' })
+    expect(tiers[1]).toHaveStyle({ backgroundColor: 'rgb(22 163 74 / 0.087)' })
   })
 
   it('flags upsets on completed games and leaves expected results unmarked', async () => {
@@ -92,7 +167,31 @@ describe('EloPage', () => {
     render(<MemoryRouter><EloPage /></MemoryRouter>)
     await screen.findAllByText('BUFx')
     await userEvent.click(screen.getByRole('tab', { name: 'Games' }))
-    expect(await screen.findByText('Upset · 30%')).toBeInTheDocument()
-    expect(screen.getAllByText(/Upset ·/)).toHaveLength(1)
+    expect(await screen.findByText('Big upset · 30%')).toBeInTheDocument()
+    expect(screen.getAllByText(/upset ·|Stunner ·/i)).toHaveLength(1)
+  })
+
+  it('sizes an upset by the favorite it beat and says nothing when the game was a toss-up', async () => {
+    const team = (id, abbrName) => ({ teamId: id, abbrName, displayName: abbrName + 'x' })
+    // the away team always wins, so homeWinProbability is the beaten favorite's chance
+    const game = (gameId, favChance) => ({
+      gameId, season: 1, week: 22, homeTeam: team(gameId, 'H' + gameId), awayTeam: team(gameId + 50, 'A' + gameId),
+      homePregameElo: 1500, awayPregameElo: 1500, homeWinProbability: favChance, awayWinProbability: 1 - favChance,
+      homeScore: 10, awayScore: 20, margin: 10, movMultiplier: 1, pointsMoved: 10,
+      homePostgameElo: 1510, awayPostgameElo: 1490,
+    })
+    client.getEloGames.mockResolvedValue([game(1, 0.52), game(2, 0.57), game(3, 0.65), game(4, 0.78), game(5, 0.9)])
+    render(<MemoryRouter><EloPage /></MemoryRouter>)
+    await screen.findAllByText('BUFx')
+    await userEvent.click(screen.getByRole('tab', { name: 'Games' }))
+
+    expect(await screen.findByText('Stunner · 10%')).toBeInTheDocument()
+    expect(screen.getByText('Slight upset · 43%')).toBeInTheDocument()
+    expect(screen.getByText('Upset · 35%')).toBeInTheDocument()
+    expect(screen.getByText('Big upset · 22%')).toBeInTheDocument()
+    expect(screen.queryByText(/48%/)).toBeNull()
+
+    expect(screen.getByText('Slight upset · 43%')).toHaveStyle({ backgroundColor: 'rgb(220 38 38 / 0.12)' })
+    expect(screen.getByText('Stunner · 10%')).toHaveStyle({ backgroundColor: 'rgb(220 38 38 / 0.42)' })
   })
 })

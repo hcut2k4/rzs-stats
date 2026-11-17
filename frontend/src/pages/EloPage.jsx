@@ -15,6 +15,7 @@ const BASE = 1500
 const label = w => weekLabel(w >= 18 ? 2 : 1, w)
 const signed = (v, d = 1) => (v > 0 ? '+' : '') + v.toFixed(d)
 const pct = v => (v * 100).toFixed(1) + '%'
+const pct0 = v => Math.round(v * 100) + '%'
 
 const TIPS = {
   rank: 'Position when all 32 teams are sorted by Elo, highest first.',
@@ -30,20 +31,118 @@ const TIPS = {
   score: 'Final score, away team first.',
   homeProb: 'The chance the home team was expected to win before the game, based only on the two teams\' Elo ratings. 50% is a toss-up.',
   mov: 'Margin-of-victory multiplier. Bigger wins move ratings more, up to a 21-point cap. A heavy favorite winning big gets less credit than an upset winner. 1.00 is a tie.',
-  result: 'Flags upsets: games won by the team Elo gave less than a 50% chance beforehand. The label shows the winner\'s pregame chance, and the darker the shade, the bigger the upset.',
-  projHome: 'Projected chance the home team wins, using both teams\' current Elo ratings. 50% is a toss-up. These games have not been played yet.',
+  result: 'Flags upsets, sized by how strong the beaten favorite was: a Tilt favorite losing is a Slight upset, then Upset, Big upset, and Stunner when a Solid favorite goes down. Games Elo rated a Toss-up are left blank, because neither side was favored enough for the result to be a surprise. The label shows the winner\'s pregame chance.',
   projElo: 'Each team\'s current Elo rating, which is used for the projection.',
+  projLean: 'Which way Elo leans and by how much. The bar grows out of the center line toward the favored team, and the longer and darker it is, the bigger the edge. Sorts home favorites and away favorites to opposite ends.',
+  projFav: 'The team Elo leans toward and its projected chance of winning. Sorts the closest games first.',
+  projOutlook: 'How competitive the game should be, read off the favorite\'s win chance: Toss-up under 55%, Tilt under 60%, Lean under 70%, Likely under 85%, Solid above that. Each tier has its own color \u2014 green for a toss-up, then blue, purple, orange and yellow \u2014 running deep at the competitive end of its own band and fading to nearly white at the far end. Sorts the closest games first.',
 }
 
-const UPSET = '234 88 12'
+const RED = '220 38 38'
+const GREEN = '22 163 74'
+const BLUE = '37 99 235'
+const PURPLE = '147 51 234'
+const ORANGE = '234 88 12'
+const YELLOW = '234 179 8'
+
+const LEAN_AWAY = BLUE
+const LEAN_HOME = ORANGE
+
+const SHADE_DEEP = 0.42
+const SHADE_LIGHT = 0.05
+
+const TIERS = [
+  { label: 'Toss-up', lo: 0.50, hi: 0.55, rgb: GREEN },
+  { label: 'Tilt', lo: 0.55, hi: 0.60, rgb: BLUE },
+  { label: 'Lean', lo: 0.60, hi: 0.70, rgb: PURPLE },
+  { label: 'Likely', lo: 0.70, hi: 0.85, rgb: ORANGE },
+  { label: 'Solid', lo: 0.85, hi: 1, rgb: YELLOW },
+]
+
+function tierShade(prob, tier) {
+  const t = Math.min(Math.max((prob - tier.lo) / (tier.hi - tier.lo), 0), 1)
+  return `rgb(${tier.rgb} / ${(SHADE_DEEP + (SHADE_LIGHT - SHADE_DEEP) * t).toFixed(3)})`
+}
+
+function lean(g) {
+  const homeFav = g.homeWinProbability >= g.awayWinProbability
+  const prob = homeFav ? g.homeWinProbability : g.awayWinProbability
+  const tier = TIERS.find(t => prob < t.hi) ?? TIERS[TIERS.length - 1]
+  return {
+    homeFav,
+    prob,
+    edge: Math.min((prob - 0.5) * 2, 1),
+    tier,
+    shade: tierShade(prob, tier),
+    tossUp: tier.label === 'Toss-up',
+    leansTo: homeFav ? g.homeTeam : g.awayTeam,
+  }
+}
+
+function useSorter(initial) {
+  const [sort, setSort] = useState(initial)
+  const click = key => setSort(s => (s.key === key ? { key, asc: !s.asc } : { key, asc: false }))
+  const apply = (rows, getters) => {
+    if (!sort.key) return rows
+    const get = getters[sort.key]
+    return [...rows].sort((a, b) => {
+      const av = get(a)
+      const bv = get(b)
+      if (typeof av === 'string') return sort.asc ? av.localeCompare(bv) : bv.localeCompare(av)
+      return sort.asc ? av - bv : bv - av
+    })
+  }
+  return { sort, click, apply }
+}
+
+const SortTh = ({ tip, sortKey, state, onSort, className = '', children }) => (
+  <th
+    className={`th cursor-pointer hover:text-ink ${className}`}
+    onClick={() => onSort(sortKey)}
+    aria-sort={state.key === sortKey ? (state.asc ? 'ascending' : 'descending') : 'none'}
+  >
+    <InfoTip text={tip}>{children}</InfoTip>
+    {state.key === sortKey && (state.asc ? ' ▲' : ' ▼')}
+  </th>
+)
+
+function LeanBar({ homeFav, edge }) {
+  return (
+    <div className="relative h-4 w-full min-w-[140px]" aria-hidden="true">
+      <div className="absolute inset-y-0 left-1/2 w-px bg-rule" />
+      <div
+        className="absolute inset-y-0.5"
+        style={{
+          [homeFav ? 'left' : 'right']: '50%',
+          width: `${(edge * 50).toFixed(1)}%`,
+          background: `rgb(${homeFav ? LEAN_HOME : LEAN_AWAY} / ${(0.25 + edge * 0.45).toFixed(2)})`,
+        }}
+      />
+    </div>
+  )
+}
+
+const UPSET_LEVELS = [
+  { hi: 0.60, label: 'Slight upset', alpha: 0.12 },
+  { hi: 0.70, label: 'Upset', alpha: 0.22 },
+  { hi: 0.85, label: 'Big upset', alpha: 0.32 },
+  { hi: Infinity, label: 'Stunner', alpha: 0.42 },
+]
 
 function upsetInfo(g) {
   if (g.homeScore === g.awayScore) return null
   const homeWon = g.homeScore > g.awayScore
   const chance = homeWon ? g.homeWinProbability : g.awayWinProbability
-  if (chance >= 0.5) return null
-  const winner = homeWon ? g.homeTeam : g.awayTeam
-  return { chance, winner, shade: `rgb(${UPSET} / ${(0.08 + ((0.5 - chance) / 0.5) * 0.4).toFixed(2)})` }
+  const favChance = homeWon ? g.awayWinProbability : g.homeWinProbability
+  if (favChance < TIERS[0].hi) return null
+  const level = UPSET_LEVELS.find(l => favChance < l.hi)
+  return {
+    chance,
+    favChance,
+    winner: homeWon ? g.homeTeam : g.awayTeam,
+    label: level.label,
+    shade: `rgb(${RED} / ${level.alpha.toFixed(2)})`,
+  }
 }
 
 const Th = ({ tip, className = '', children }) => (
@@ -267,6 +366,8 @@ function MatchupTab({ ratedTeams }) {
 function GamesTab({ season, week, upcoming }) {
   const [games, setGames] = useState([])
   const [loading, setLoading] = useState(false)
+  const played = useSorter({ key: null, asc: false })
+  const proj = useSorter({ key: 'tier', asc: true })
 
   useEffect(() => {
     if (season == null || week == null) return
@@ -274,15 +375,34 @@ function GamesTab({ season, week, upcoming }) {
     getEloGames(season, week).then(g => { setGames(g); setLoading(false) }).catch(() => setLoading(false))
   }, [season, week])
 
+  const projected = useMemo(() => upcoming.filter(u => u.season === season && u.week === week), [upcoming, season, week])
+
   if (loading) return <p className="text-muted">Loading...</p>
-  const projected = upcoming.filter(u => u.season === season && u.week === week)
   if (!games.length && !projected.length) return <p className="text-muted">No games for this week.</p>
 
-  const side = (team, elo, delta) => (
+  const sortedGames = played.apply(games, {
+    away: g => g.awayTeam.abbrName,
+    home: g => g.homeTeam.abbrName,
+    margin: g => g.margin,
+    homeProb: g => g.homeWinProbability,
+    mov: g => g.movMultiplier,
+    upset: g => { const u = upsetInfo(g); return u ? u.favChance : 0 },
+  })
+  const projRows = projected.map(game => ({ game, l: lean(game) }))
+  const tossUps = projRows.filter(r => r.l.tossUp).length
+  const sortedProjected = proj.apply(projRows, {
+    away: r => r.game.awayTeam.abbrName,
+    home: r => r.game.homeTeam.abbrName,
+    lean: r => r.game.homeWinProbability,
+    prob: r => r.l.prob,
+    tier: r => r.l.prob,
+  })
+
+  const side = (team, elo, delta, fav = null) => (
     <td className="px-2 py-1.5 whitespace-nowrap">
-      <div className="flex items-center gap-2">
+      <div className={`flex items-center gap-2 ${fav === false ? 'opacity-60' : ''}`}>
         <TeamLogo abbr={team.abbrName} size={20} />
-        <span className="font-semibold">{team.abbrName}</span>
+        <span className={fav === false ? 'text-muted' : 'font-semibold'}>{team.abbrName}</span>
         <span className="text-muted">{elo.toFixed(0)}</span>
         {delta != null && <span className={delta >= 0 ? 'text-good' : 'text-bad'}>{signed(delta)}</span>}
       </div>
@@ -296,16 +416,16 @@ function GamesTab({ season, week, upcoming }) {
           <table className="w-full text-sm num">
             <thead>
               <tr className="border-b border-rule">
-                <Th tip={TIPS.away}>Away</Th>
-                <Th tip={TIPS.home}>Home</Th>
-                <Th tip={TIPS.score} className="text-right">Score</Th>
-                <Th tip={TIPS.homeProb} className="text-right">Home win prob.</Th>
-                <Th tip={TIPS.mov} className="text-right">MOV mult.</Th>
-                <Th tip={TIPS.result}>Result</Th>
+                <SortTh tip={TIPS.away} sortKey="away" state={played.sort} onSort={played.click}>Away</SortTh>
+                <SortTh tip={TIPS.home} sortKey="home" state={played.sort} onSort={played.click}>Home</SortTh>
+                <SortTh tip={TIPS.score} sortKey="margin" state={played.sort} onSort={played.click} className="text-right">Score</SortTh>
+                <SortTh tip={TIPS.homeProb} sortKey="homeProb" state={played.sort} onSort={played.click} className="text-right">Home win prob.</SortTh>
+                <SortTh tip={TIPS.mov} sortKey="mov" state={played.sort} onSort={played.click} className="text-right">MOV mult.</SortTh>
+                <SortTh tip={TIPS.result} sortKey="upset" state={played.sort} onSort={played.click}>Result</SortTh>
               </tr>
             </thead>
             <tbody>
-              {games.map((g, i) => (
+              {sortedGames.map((g, i) => (
                 <tr key={g.gameId} className={`border-t border-line ${i % 2 ? 'bg-surface' : 'bg-bg'}`}>
                   {side(g.awayTeam, g.awayPregameElo, g.awayPostgameElo - g.awayPregameElo)}
                   {side(g.homeTeam, g.homePregameElo, g.homePostgameElo - g.homePregameElo)}
@@ -317,7 +437,7 @@ function GamesTab({ season, week, upcoming }) {
                     return upset
                       ? <td className="px-2 py-1.5 whitespace-nowrap font-semibold" style={{ backgroundColor: upset.shade }}
                           title={`${upset.winner.displayName} had a ${pct(upset.chance)} chance before the game`}>
-                          Upset · {Math.round(upset.chance * 100)}%
+                          {upset.label} · {Math.round(upset.chance * 100)}%
                         </td>
                       : <td className="px-2 py-1.5" />
                   })()}
@@ -325,34 +445,52 @@ function GamesTab({ season, week, upcoming }) {
               ))}
             </tbody>
           </table>
-          <p className="text-xs text-muted px-2 py-2">Each team shows its pregame Elo and the points it gained or lost in that game. Upset means the winner had under a 50% chance beforehand; darker shading is a bigger upset.</p>
+          <p className="text-xs text-muted px-2 py-2">Each team shows its pregame Elo and the points it gained or lost in that game. Upsets are sized by the favorite they beat &mdash; Slight upset, Upset, Big upset, Stunner &mdash; and games Elo rated a Toss-up are left blank, since neither side was favored enough to be upset. Click any heading to sort; Score sorts by margin.</p>
         </div>
       )}
       {projected.length > 0 && (
         <div>
-          <h2 className="font-display font-bold uppercase text-xl mb-1">Projected</h2>
+          <h2 className="font-display font-bold uppercase text-xl leading-none">Projected</h2>
+          <p className="text-sm text-muted mt-1 mb-2">
+            Who Elo favors in each unplayed game, and by how much.{' '}
+            {tossUps > 0
+              ? <span className="text-ink font-medium">{tossUps} toss-up{tossUps > 1 ? 's' : ''} this week — the closest games are listed first.</span>
+              : <span>No toss-ups this week.</span>}
+          </p>
           <div className="overflow-x-auto border-y border-rule">
             <table className="w-full text-sm num">
               <thead>
                 <tr className="border-b border-rule">
-                  <Th tip={TIPS.projElo}>Away</Th>
-                  <Th tip={TIPS.projElo}>Home</Th>
-                  <Th tip={TIPS.projHome} className="text-right">Away win prob.</Th>
-                  <Th tip={TIPS.projHome} className="text-right">Home win prob.</Th>
+                  <SortTh tip={TIPS.projElo} sortKey="away" state={proj.sort} onSort={proj.click}>Away</SortTh>
+                  <SortTh tip={TIPS.projElo} sortKey="home" state={proj.sort} onSort={proj.click}>Home</SortTh>
+                  <SortTh tip={TIPS.projLean} sortKey="lean" state={proj.sort} onSort={proj.click} className="min-w-[200px] text-center">Away ◀ Edge ▶ Home</SortTh>
+                  <SortTh tip={TIPS.projFav} sortKey="prob" state={proj.sort} onSort={proj.click} className="text-right">Favored</SortTh>
+                  <SortTh tip={TIPS.projOutlook} sortKey="tier" state={proj.sort} onSort={proj.click}>Outlook</SortTh>
                 </tr>
               </thead>
               <tbody>
-                {projected.map((g, i) => (
+                {sortedProjected.map(({ game: g, l }, i) => (
                   <tr key={g.gameId} className={`border-t border-line ${i % 2 ? 'bg-surface' : 'bg-bg'}`}>
-                    {side(g.awayTeam, g.awayElo, null)}
-                    {side(g.homeTeam, g.homeElo, null)}
-                    <td className="px-2 py-1.5 text-right font-semibold">{pct(g.awayWinProbability)}</td>
-                    <td className="px-2 py-1.5 text-right font-semibold">{pct(g.homeWinProbability)}</td>
+                    {side(g.awayTeam, g.awayElo, null, l.tossUp ? null : !l.homeFav)}
+                    {side(g.homeTeam, g.homeElo, null, l.tossUp ? null : l.homeFav)}
+                    <td className="px-2 py-1.5"><LeanBar homeFav={l.homeFav} edge={l.edge} /></td>
+                    <td className="px-2 py-1.5 text-right whitespace-nowrap">
+                      <span className="font-semibold">{l.leansTo.abbrName}</span>{' '}
+                      <span className="text-muted">{pct0(l.prob)}</span>
+                    </td>
+                    <td
+                      className={`px-2 py-1.5 whitespace-nowrap text-xs uppercase tracking-wide ${l.tossUp ? 'font-bold' : 'font-semibold'}`}
+                      style={{ backgroundColor: l.shade }}
+                    >
+                      {l.tier.label}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            <p className="text-xs text-muted px-2 py-2">Unplayed games, projected from each team's current Elo. Ratings change as games are played, so projections for later weeks are less certain.</p>
+            <p className="text-xs text-muted px-2 py-2">
+              Projected from each team&rsquo;s current Elo. The bar leans toward the favored team and grows with the edge. Outlook rates how competitive the game should be &mdash; Toss-up under 55%, Tilt under 60%, Lean under 70%, Likely under 85%, Solid above that. Each tier has its own color &mdash; green for a toss-up, then blue, purple, orange and yellow &mdash; deep at the competitive end of its band and fading to nearly white at the far end. Click any heading to sort. Ratings change as games are played, so projections for later weeks are less certain.
+            </p>
           </div>
         </div>
       )}
