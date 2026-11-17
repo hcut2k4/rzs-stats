@@ -158,6 +158,7 @@ public class SyncService {
         }
     }
 
+    @CacheEvict(cacheResolver = CacheNames.ALL, allEntries = true)
     @Transactional
     public VerboseSyncResult syncVerbose() {
         List<String> log = new ArrayList<>();

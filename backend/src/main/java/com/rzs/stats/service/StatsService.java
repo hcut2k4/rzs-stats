@@ -66,8 +66,8 @@ public class StatsService {
         double pyPat = calculatePyPat(curr.pf, curr.pa, curr.games);
 
         // Played SoS: already-played opponents' PyPAT using current or previous season stats
-        double oppPyPatCurr = calculateOppPyPat(team.getTeamId(), curr.opponentIds, currAll);
-        double oppPyPatPrev = calculateOppPyPat(team.getTeamId(), curr.opponentIds, prevAll);
+        OppSos playedCurr = calculateOppPyPat(team.getTeamId(), curr.opponentIds, currAll);
+        OppSos playedPrev = calculateOppPyPat(team.getTeamId(), curr.opponentIds, prevAll);
 
         // Win Diff: actual wins minus PyPAT-expected wins
         double actualWins   = curr.wins + 0.5 * curr.ties;
@@ -76,34 +76,8 @@ public class StatsService {
 
         // Remaining SoS: future opponents' PyPAT using current or previous season stats
         List<Integer> remOpps = remainingOpps.getOrDefault(team.getTeamId(), List.of());
-        double remPyPatCurr = calculateOppPyPat(team.getTeamId(), remOpps, currAll);
-        double remPyPatPrev = calculateOppPyPat(team.getTeamId(), remOpps, prevAll);
-        Double oppPyPatRemainingCurr = remOpps.isEmpty() ? null : round(remPyPatCurr);
-        Double oppPyPatRemainingPrev = remOpps.isEmpty() ? null : round(remPyPatPrev);
-
-        // Total SoS: game-count-weighted average of played and remaining SoS.
-        // Both sides already average one value per game, so this is exactly the mean
-        // over the full schedule. A union of unique opponents would instead let weak
-        // played-only opponents drag Total below both Played and Left.
-        int gamesPlayed = curr.games;
-        int gamesLeft   = remOpps.size();
-        int totalGames  = gamesPlayed + gamesLeft;
-
-        Double oppPyPatTotalCurr;
-        Double oppPyPatTotalPrev;
-        if (totalGames == 0) {
-            oppPyPatTotalCurr = null;
-            oppPyPatTotalPrev = null;
-        } else if (gamesLeft == 0) {
-            oppPyPatTotalCurr = round(oppPyPatCurr);
-            oppPyPatTotalPrev = round(oppPyPatPrev);
-        } else if (gamesPlayed == 0) {
-            oppPyPatTotalCurr = oppPyPatRemainingCurr;
-            oppPyPatTotalPrev = oppPyPatRemainingPrev;
-        } else {
-            oppPyPatTotalCurr = round((oppPyPatCurr * gamesPlayed + remPyPatCurr * gamesLeft) / totalGames);
-            oppPyPatTotalPrev = round((oppPyPatPrev * gamesPlayed + remPyPatPrev * gamesLeft) / totalGames);
-        }
+        OppSos leftCurr = calculateOppPyPat(team.getTeamId(), remOpps, currAll);
+        OppSos leftPrev = calculateOppPyPat(team.getTeamId(), remOpps, prevAll);
 
         StandingDto dto = new StandingDto();
         dto.setTeamId(team.getTeamId());
@@ -124,12 +98,12 @@ public class StatsService {
         dto.setWinPct(round(winPct));
         dto.setPythagoreanPat(round(pyPat));
         dto.setWinDiff(winDiff);
-        dto.setOppPyPatCurr(round(oppPyPatCurr));
-        dto.setOppPyPatPrev(round(oppPyPatPrev));
-        dto.setOppPyPatRemainingCurr(oppPyPatRemainingCurr);
-        dto.setOppPyPatRemainingPrev(oppPyPatRemainingPrev);
-        dto.setOppPyPatTotalCurr(oppPyPatTotalCurr);
-        dto.setOppPyPatTotalPrev(oppPyPatTotalPrev);
+        dto.setOppPyPatCurr(value(playedCurr));
+        dto.setOppPyPatPrev(value(playedPrev));
+        dto.setOppPyPatRemainingCurr(value(leftCurr));
+        dto.setOppPyPatRemainingPrev(value(leftPrev));
+        dto.setOppPyPatTotalCurr(value(combine(playedCurr, leftCurr)));
+        dto.setOppPyPatTotalPrev(value(combine(playedPrev, leftPrev)));
         return dto;
     }
 
@@ -148,14 +122,18 @@ public class StatsService {
         return pfExp / (pfExp + paExp);
     }
 
+    // An averaged SoS plus how many scheduled games actually produced a rating.
+    private record OppSos(double value, int rated) {}
+
     // For each game on the schedule, compute that opponent's PyPat from allStats excluding
     // H2H games. opponentIds holds one entry per game, so an opponent met twice is counted
     // twice -- a division rival must not carry the same weight as a team played once.
-    private double calculateOppPyPat(int teamId, Collection<Integer> opponentIds,
+    // Returns null when nothing on the list could be rated: "no data" is not a 0.0 rating,
+    // and averaging a stand-in zero in would read as the weakest opponent possible.
+    private OppSos calculateOppPyPat(int teamId, Collection<Integer> opponentIds,
                                       Map<Integer, TeamStats> allStats) {
-        if (opponentIds.isEmpty() || allStats.isEmpty()) return 0.0;
-
-        List<Double> pyPats = new ArrayList<>();
+        double sum = 0.0;
+        int rated = 0;
         for (Integer oppId : opponentIds) {
             TeamStats oppStats = allStats.get(oppId);
             if (oppStats == null) continue;
@@ -164,10 +142,25 @@ public class StatsService {
             int[] adjusted = oppStats.statsExcluding(teamId);
             int adjPf = adjusted[0], adjPa = adjusted[1], adjGames = adjusted[2];
             if (adjGames > 0) {
-                pyPats.add(calculatePyPat(adjPf, adjPa, adjGames));
+                sum += calculatePyPat(adjPf, adjPa, adjGames);
+                rated++;
             }
         }
-        return pyPats.stream().mapToDouble(d -> d).average().orElse(0.0);
+        return rated == 0 ? null : new OppSos(sum / rated, rated);
+    }
+
+    // Total SoS: weighted by how many games each side actually rated, which makes it exactly
+    // the mean over every rated game on the schedule. Weighting by raw game counts instead
+    // would let an unratable opponent pull Total toward a value nothing measured.
+    private static OppSos combine(OppSos played, OppSos left) {
+        if (played == null) return left;
+        if (left == null) return played;
+        int rated = played.rated() + left.rated();
+        return new OppSos((played.value() * played.rated() + left.value() * left.rated()) / rated, rated);
+    }
+
+    private static Double value(OppSos sos) {
+        return sos == null ? null : round(sos.value());
     }
 
     // -------------------------------------------------------------------------

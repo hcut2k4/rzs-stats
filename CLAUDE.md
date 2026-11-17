@@ -152,7 +152,9 @@ Average PyPAT of opponents, with three key refinements:
      - Because both sides average one value per game, this is exactly the mean over the full schedule
      - **NOT a union average** — that approach lets weak played-only opponents drag Total below both Played and Left
 
-4. **Toggle (active season only)**: Current-season vs prior-season opponent PyPAT. Prior season is the default — early in a season, current-season sample sizes are too small to be meaningful.
+4. **Toggle (active season only, 3+ games played)**: Current-season vs prior-season opponent PyPAT. Prior season is the default — early in a season, current-season sample sizes are too small to be meaningful. The toggle is hidden until some team has played 3 games, because before that an opponent's only games are the ones against you and nothing survives the H2H exclusion.
+
+5. **Unratable opponents are null, never 0.0**: If an opponent has no games left after H2H exclusion, they contribute nothing. If *no* opponent on a column could be rated, the column is `null` — "no data", which is not the same as a 0.0 rating. Each column is weighted by the games it actually rated, so Total stays the mean over every rated game.
 
 ---
 
@@ -389,7 +391,7 @@ Omitting this causes 1 + 2N queries per load (289 queries for 144-game season �
 - **Game status**: ≥2 = completed and counted; <2 = unplayed/future
 - **Tied games**: Each team gets 0.5 wins toward record and expected wins
 - **PyPAT rounding**: stored to 4 decimal places (`Math.round(val * 10000.0) / 10000.0`)
-- **All values are nullable** for SoS fields — null means no data (no games played yet, no future opponents)
+- **All values are nullable** for SoS fields, including SoS Played — null means no data (no games played yet, no future opponents, or no opponent ratable after H2H exclusion)
 
 ---
 

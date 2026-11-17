@@ -26,6 +26,7 @@ const STATS = [
       'More accurate than opponent win% — PyPAT reflects true team quality',
       'Each opponent\'s PyPAT is recalculated with the subject team removed, eliminating circular bias',
       'Weighted per game, not per opponent — a division rival played twice counts twice',
+      'Blank until an opponent has games that were not against you — early in a season there is nothing to measure',
       'Toggle on Standings between current-season and prior-season opponent PyPAT — prior season is the default for the active season, where small sample sizes make current-season data less reliable',
     ],
   },
