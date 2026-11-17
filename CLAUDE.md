@@ -139,17 +139,20 @@ Scale: 0–1. 0.5 = break-even. A team with 0.70 PyPAT would be expected to win 
 Positive = won more games than scoring margin predicted (lucky). Negative = deserved more wins. Normalizes over time — a strong predictor of regression or rebound.
 
 ### Strength of Schedule (SoS)
-Average PyPAT of opponents, with two key refinements:
+Average PyPAT of opponents, with three key refinements:
 
-1. **H2H exclusion**: Each opponent's PyPAT is recalculated *removing games vs. the subject team*. Prevents circular bias — without this, strong teams would artificially lower their own SoS.
+1. **Game-weighted, not opponent-weighted**: The average runs over one entry *per game on the schedule*, so a division rival played twice contributes twice. Averaging distinct opponents instead under-weights division rivals (14 unique opponents across a 17-game schedule) and was worth up to 5 points of SoS and 12 places of ranking.
 
-2. **Three columns**:
+2. **H2H exclusion**: Each opponent's PyPAT is recalculated *removing games vs. the subject team*. Prevents circular bias — without this, strong teams would artificially lower their own SoS.
+
+3. **Three columns**:
    - **SoS Played**: Opponents faced so far
    - **SoS Left**: Remaining opponents (from unplayed games)
    - **SoS Total**: Game-count-weighted average: `(SoS_Played × gamesPlayed + SoS_Left × gamesLeft) / totalGames`
+     - Because both sides average one value per game, this is exactly the mean over the full schedule
      - **NOT a union average** — that approach lets weak played-only opponents drag Total below both Played and Left
 
-3. **Toggle (active season only)**: Current-season vs prior-season opponent PyPAT. Prior season is the default — early in a season, current-season sample sizes are too small to be meaningful.
+4. **Toggle (active season only)**: Current-season vs prior-season opponent PyPAT. Prior season is the default — early in a season, current-season sample sizes are too small to be meaningful.
 
 ---
 
