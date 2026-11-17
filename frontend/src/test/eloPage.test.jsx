@@ -26,6 +26,42 @@ describe('EloPage', () => {
     expect(screen.getByText('1700')).toBeInTheDocument()
   })
 
+  it('sorts the ratings table on any heading', async () => {
+    const r = (teamId, abbrName, elo, rank, change, rankChange, gamesCounted) => ({
+      teamId, abbrName, displayName: abbrName + 'x', elo, rank, change, prevRank: rank, rankChange, gamesCounted,
+    })
+    client.getEloRatings.mockResolvedValue([
+      r(1, 'AAA', 1600, 1, -8, 0, 20),
+      r(2, 'BBB', 1400, 3, 12, -1, 5),
+      r(3, 'CCC', 1500, 2, 3, 1, 12),
+    ])
+    render(<MemoryRouter><EloPage /></MemoryRouter>)
+    await screen.findAllByText('AAAx')
+    const elos = () => screen.getAllByRole('cell').map(c => c.textContent).filter(t => /^1\d00$/.test(t))
+    const head = name => screen.getByRole('columnheader', { name: new RegExp('^' + name) })
+
+    expect(elos()).toEqual(['1600', '1400', '1500'])
+
+    await userEvent.click(head('Elo'))
+    expect(elos()).toEqual(['1600', '1500', '1400'])
+    expect(head('Elo')).toHaveAttribute('aria-sort', 'descending')
+    await userEvent.click(head('Elo'))
+    expect(elos()).toEqual(['1400', '1500', '1600'])
+    expect(head('Elo')).toHaveAttribute('aria-sort', 'ascending')
+
+    await userEvent.click(head('Change'))
+    expect(elos()).toEqual(['1400', '1500', '1600'])
+
+    await userEvent.click(head('Games'))
+    expect(elos()).toEqual(['1600', '1500', '1400'])
+
+    await userEvent.click(head('Rank move'))
+    expect(elos()).toEqual(['1500', '1600', '1400'])
+
+    await userEvent.click(head('Team'))
+    expect(elos()).toEqual(['1500', '1400', '1600'])
+  })
+
   it('names playoff weeks in the week selector', async () => {
     render(<MemoryRouter><EloPage /></MemoryRouter>)
     await screen.findAllByText('BUFx')
@@ -85,7 +121,8 @@ describe('EloPage', () => {
     const game = (gameId, homeWinProbability) => ({
       gameId, season: 1, week: 23,
       homeTeam: team(gameId, 'H' + gameId), awayTeam: team(gameId + 50, 'A' + gameId),
-      homeElo: 1500, awayElo: 1500, homeWinProbability, awayWinProbability: 1 - homeWinProbability,
+      homeElo: 1600 - gameId * 10, awayElo: 1400 + gameId * 10,
+      homeWinProbability, awayWinProbability: 1 - homeWinProbability,
     })
     client.getEloUpcoming.mockResolvedValue([game(1, 0.52), game(2, 0.88), game(3, 0.65), game(4, 0.15)])
     render(<MemoryRouter><EloPage /></MemoryRouter>)
@@ -93,30 +130,33 @@ describe('EloPage', () => {
     await userEvent.click(screen.getByRole('tab', { name: 'Games' }))
     await userEvent.selectOptions(screen.getByLabelText('Week'), '23')
 
-    const homes = () => screen.getAllByRole('cell').map(c => c.textContent).filter(t => /^H\d1500$/.test(t))
+    const homes = () => screen.getAllByRole('cell').map(c => c.textContent).filter(t => /^H\d1\d{3}$/.test(t)).map(t => t.slice(0, 2))
     expect(await screen.findByText('88%')).toBeInTheDocument()
-    expect(homes()).toEqual(['H11500', 'H31500', 'H41500', 'H21500'])
+    expect(homes()).toEqual(['H1', 'H3', 'H4', 'H2'])
     expect(screen.getByRole('columnheader', { name: /Outlook/ })).toHaveAttribute('aria-sort', 'ascending')
 
     await userEvent.click(screen.getByText('Favored'))
-    expect(homes()).toEqual(['H21500', 'H41500', 'H31500', 'H11500'])
+    expect(homes()).toEqual(['H2', 'H4', 'H3', 'H1'])
     expect(screen.getByRole('columnheader', { name: /Favored/ })).toHaveAttribute('aria-sort', 'descending')
     expect(screen.getByRole('columnheader', { name: /Outlook/ })).toHaveAttribute('aria-sort', 'none')
 
     await userEvent.click(screen.getByText('Favored'))
-    expect(homes()).toEqual(['H11500', 'H31500', 'H41500', 'H21500'])
+    expect(homes()).toEqual(['H1', 'H3', 'H4', 'H2'])
     expect(screen.getByRole('columnheader', { name: /Favored/ })).toHaveAttribute('aria-sort', 'ascending')
 
     await userEvent.click(screen.getByText('Outlook'))
-    expect(homes()).toEqual(['H21500', 'H41500', 'H31500', 'H11500'])
+    expect(homes()).toEqual(['H2', 'H4', 'H3', 'H1'])
     await userEvent.click(screen.getByText('Outlook'))
-    expect(homes()).toEqual(['H11500', 'H31500', 'H41500', 'H21500'])
+    expect(homes()).toEqual(['H1', 'H3', 'H4', 'H2'])
 
     await userEvent.click(screen.getByText('Away ◀ Edge ▶ Home'))
-    expect(homes()).toEqual(['H21500', 'H31500', 'H11500', 'H41500'])
+    expect(homes()).toEqual(['H2', 'H3', 'H1', 'H4'])
 
     await userEvent.click(screen.getByText('Away'))
-    expect(homes()).toEqual(['H41500', 'H31500', 'H21500', 'H11500'])
+    expect(homes()).toEqual(['H4', 'H3', 'H2', 'H1'])
+
+    await userEvent.click(screen.getByText('Home'))
+    expect(homes()).toEqual(['H1', 'H2', 'H3', 'H4'])
   })
 
   it('shows other remaining weeks only in Rest of season and sorts by week and favorite chance', async () => {

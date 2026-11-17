@@ -29,6 +29,7 @@ const pct = v => (v * 100).toFixed(1) + '%'
 
 const TIPS = {
   rank: 'Position when all 32 teams are sorted by Elo, highest first.',
+  team: 'Team name. Sorts alphabetically.',
   elo: 'The team\'s Elo rating. Higher means a stronger team. 1500 is the average rating every team started from.',
   vs1500: 'How far the rating is from the 1500 average. Blue bars to the right are above average, orange bars to the left are below average.',
   change: 'Elo points gained or lost since the previous week. Zero usually means the team was on a bye.',
@@ -36,14 +37,14 @@ const TIPS = {
   games: 'Number of games counted toward this rating so far, regular season and playoffs, across all seasons.',
   risers: 'The five teams whose rating rose the most since the previous week.',
   droppers: 'The five teams whose rating fell the most since the previous week.',
-  away: 'Away team, its Elo going into the game, and the Elo points it gained (green) or lost (red) from the result.',
-  home: 'Home team, its Elo going into the game, and the Elo points it gained (green) or lost (red) from the result.',
+  away: 'Away team, its Elo going into the game, and the Elo points it gained (green) or lost (red) from the result. Sorts by Elo.',
+  home: 'Home team, its Elo going into the game, and the Elo points it gained (green) or lost (red) from the result. Sorts by Elo.',
   score: 'Final score, away team first.',
   homeProb: 'The chance the home team was expected to win before the game, based only on the two teams\' Elo ratings. 50% is a toss-up.',
   mov: 'Margin-of-victory multiplier. Bigger wins move ratings more, up to a 21-point cap. A heavy favorite winning big gets less credit than an upset winner. 1.00 is a tie.',
   result: 'Flags upsets, sized by how strong the beaten favorite was: a Tilt favorite losing is a Slight upset, then Upset, Big upset, and Stunner when a Solid favorite goes down. Games Elo rated a Toss-up are left blank, because neither side was favored enough for the result to be a surprise. The label shows the winner\'s pregame chance.',
   projWeek: 'The week or playoff round of the unplayed game.',
-  projElo: 'Each team\'s current Elo rating, which is used for the projection.',
+  projElo: 'Each team\'s current Elo rating, which is used for the projection. Sorts by Elo.',
   projLean: 'Which way Elo leans and by how much. The bar grows out of the center line toward the favored team, and the longer and darker it is, the bigger the edge. Sorts home favorites and away favorites to opposite ends.',
   projFav: 'The team Elo leans toward and its projected chance of winning. Sorts the closest games first.',
   projOutlook: 'How competitive the game should be, read off the favorite\'s win chance: Toss-up under 55%, Tilt under 60%, Lean under 70%, Likely under 80%, Solid above that. Each tier has its own color \u2014 green for a toss-up, then blue, purple, orange and yellow \u2014 running deep at the competitive end of its own band and fading to nearly white at the far end. Sorts the closest games first.',
@@ -101,10 +102,6 @@ function upsetInfo(g) {
   }
 }
 
-const Th = ({ tip, className = '', children }) => (
-  <th className={`th ${className}`}><InfoTip text={tip}>{children}</InfoTip></th>
-)
-
 function RankMove({ change }) {
   if (!change) return <span className="text-muted">–</span>
   return change > 0
@@ -136,27 +133,37 @@ function Movers({ ratings }) {
 }
 
 function RatingsTab({ ratings, loading }) {
+  const sort = useSorter({ key: null, asc: false })
   if (loading) return <p className="text-muted">Loading...</p>
   if (!ratings.length) return <p className="text-muted">No ratings available.</p>
   const maxDev = Math.max(...ratings.map(r => Math.abs(r.elo - BASE)))
   const maxChange = Math.max(...ratings.map(r => Math.abs(r.change)))
+  const sorted = sort.apply(ratings, {
+    rank: r => r.rank,
+    team: r => r.displayName,
+    elo: r => r.elo,
+    vs1500: r => r.elo - BASE,
+    change: r => r.change,
+    rankMove: r => r.rankChange,
+    games: r => r.gamesCounted,
+  })
   return (
     <div>
       <div className="overflow-x-auto border-y border-rule">
         <table className="w-full text-sm num">
           <thead>
             <tr className="border-b border-rule">
-              <Th tip={TIPS.rank} className="w-10">#</Th>
-              <th className="th">Team</th>
-              <Th tip={TIPS.elo} className="text-right">Elo</Th>
-              <Th tip={TIPS.vs1500} className="min-w-[160px]">vs 1500</Th>
-              <Th tip={TIPS.change} className="text-right">Change</Th>
-              <Th tip={TIPS.rankMove} className="text-right">Rank move</Th>
-              <Th tip={TIPS.games} className="text-right">Games</Th>
+              <SortTh tip={TIPS.rank} sortKey="rank" state={sort.sort} onSort={sort.click} className="w-10">#</SortTh>
+              <SortTh tip={TIPS.team} sortKey="team" state={sort.sort} onSort={sort.click}>Team</SortTh>
+              <SortTh tip={TIPS.elo} sortKey="elo" state={sort.sort} onSort={sort.click} className="text-right">Elo</SortTh>
+              <SortTh tip={TIPS.vs1500} sortKey="vs1500" state={sort.sort} onSort={sort.click} className="min-w-[160px]">vs 1500</SortTh>
+              <SortTh tip={TIPS.change} sortKey="change" state={sort.sort} onSort={sort.click} className="text-right">Change</SortTh>
+              <SortTh tip={TIPS.rankMove} sortKey="rankMove" state={sort.sort} onSort={sort.click} className="text-right">Rank move</SortTh>
+              <SortTh tip={TIPS.games} sortKey="games" state={sort.sort} onSort={sort.click} className="text-right">Games</SortTh>
             </tr>
           </thead>
           <tbody>
-            {ratings.map((r, i) => (
+            {sorted.map((r, i) => (
               <tr key={r.teamId} className={`border-t border-line ${i % 2 ? 'bg-surface' : 'bg-bg'}`}>
                 <td className="px-2 py-1.5">{r.rank}</td>
                 <td className="px-2 py-1.5 font-semibold whitespace-nowrap"><TeamCell abbr={r.abbrName} name={r.displayName} /></td>
@@ -338,8 +345,8 @@ function GamesTab({ season, week, upcoming }) {
   if (!games.length && !upcoming.some(u => u.season === season)) return <p className="text-muted">No games for this week.</p>
 
   const sortedGames = played.apply(games, {
-    away: g => g.awayTeam.abbrName,
-    home: g => g.homeTeam.abbrName,
+    away: g => g.awayPregameElo,
+    home: g => g.homePregameElo,
     margin: g => g.margin,
     homeProb: g => g.homeWinProbability,
     mov: g => g.movMultiplier,
@@ -349,8 +356,8 @@ function GamesTab({ season, week, upcoming }) {
   const tossUps = projRows.filter(r => r.l.tossUp).length
   const sortedProjected = proj.apply(projRows, {
     week: r => r.game.week,
-    away: r => r.game.awayTeam.abbrName,
-    home: r => r.game.homeTeam.abbrName,
+    away: r => r.game.awayElo,
+    home: r => r.game.homeElo,
     lean: r => r.game.homeWinProbability,
     prob: r => r.l.prob,
     tier: r => r.l.prob,
