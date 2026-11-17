@@ -1,9 +1,8 @@
 import { useState } from 'react'
-import { Routes, Route, NavLink, Link } from 'react-router-dom'
+import { Routes, Route, NavLink, Link, Navigate } from 'react-router-dom'
 import HomePage from './pages/HomePage'
 import StandingsPage from './pages/StandingsPage'
 import GamesPage from './pages/GamesPage'
-import TrendsPage from './pages/TrendsPage'
 import AdminPage from './pages/AdminPage'
 import AboutPage from './pages/AboutPage'
 import EloPage from './pages/EloPage'
@@ -15,7 +14,6 @@ const LINKS = [
   { to: '/games', label: 'Games' },
   { to: '/elo', label: 'Elo' },
   { to: '/qb', label: 'QBs' },
-  { to: '/trends', label: 'Trends' },
   { to: '/about', label: 'About' },
 ]
 
@@ -76,7 +74,7 @@ export default function App() {
           <Route path="/games" element={<GamesPage />} />
           <Route path="/elo" element={<EloPage />} />
           <Route path="/qb" element={<QbPage />} />
-          <Route path="/trends" element={<TrendsPage />} />
+          <Route path="/trends" element={<Navigate to="/standings?tab=history" replace />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/about" element={<AboutPage />} />
         </Routes>

@@ -74,6 +74,8 @@ const PAGES = [
       'Three SoS columns: Played (opponents so far), Left (remaining schedule), Total (full season)',
       'SoS toggle: current-season or prior-season opponent PyPAT — prior season is default for the active season',
       'All columns sortable; export to CSV or Excel',
+      'Season History — W-L, PyPAT and Luck across all seasons, sortable',
+      'Week by Week — PyPAT line chart; click teams to highlight them',
     ],
   },
   {
@@ -101,13 +103,6 @@ const PAGES = [
       'Movement — biggest risers and fallers, plus a rank-by-week chart you can track season by season or across every season',
       'Regular season, playoffs or both; export to CSV or Excel',
       'Click any quarterback to open his player page on NeonSportz',
-    ],
-  },
-  {
-    name: 'Trends',
-    bullets: [
-      'Season History — W-L, PyPAT, Luck across all seasons, sortable',
-      'Week by Week — PyPAT line chart; click teams to highlight them',
     ],
   },
 ]

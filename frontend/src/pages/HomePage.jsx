@@ -187,10 +187,10 @@ function TrendsCard({ season, weekly, loading }) {
 
   return (
     <Card
-      to="/trends"
+      to="/standings?tab=weekly"
       title="Trends"
       blurb={season == null ? 'Season history and weekly progression.' : `${seasonLabel(season)} PyPAT, week by week.`}
-      cta="All trends"
+      cta="Week by week"
     >
       <Rows loading={loading} empty={chartData.length < 2}>
         <div className="h-36 py-2">

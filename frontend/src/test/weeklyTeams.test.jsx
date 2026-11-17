@@ -2,7 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import * as client from '../api/client'
-import TrendsPage from '../pages/TrendsPage'
+import StandingsPage from '../pages/StandingsPage'
 
 vi.mock('../api/client')
 
@@ -13,12 +13,12 @@ const team = (teamId, displayName) => ({ teamId, displayName, abbrName: displayN
 describe('Week by Week team list', () => {
   it('lists teams alphabetically regardless of API order', async () => {
     client.getSeasons.mockResolvedValue([0])
-    client.getSeasonTrends.mockResolvedValue([])
+    client.getStandings.mockResolvedValue([])
     client.getWeeklyTrends.mockResolvedValue([
       { weekIndex: 0, standings: [team(1, 'Wolves'), team(2, 'Aces'), team(3, 'Mavericks')] },
     ])
 
-    render(<MemoryRouter><TrendsPage /></MemoryRouter>)
+    render(<MemoryRouter><StandingsPage /></MemoryRouter>)
     fireEvent.click(await screen.findByText('Week by Week'))
 
     await waitFor(() => expect(screen.getAllByRole('button', { pressed: false }).length).toBeGreaterThan(2))
