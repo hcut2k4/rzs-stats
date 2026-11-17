@@ -134,15 +134,14 @@ describe('HomePage', () => {
     expect(href('^Games')).toBe('/games')
     expect(href('^Elo')).toBe('/elo')
     expect(href('^QBs')).toBe('/qb')
-    expect(href('^Trends')).toBe('/trends')
+    expect(href('^Trends')).toBe('/standings?tab=weekly')
     expect(href('^About')).toBe('/about')
   })
 
   it('uses the RZS Stats wordmark to return home from another page', async () => {
     stubHomeData()
-    client.getSeasonTrends.mockResolvedValue([])
 
-    render(<MemoryRouter initialEntries={['/trends']}><App /></MemoryRouter>)
+    render(<MemoryRouter initialEntries={['/about']}><App /></MemoryRouter>)
 
     await userEvent.click(screen.getByRole('link', { name: /RZS Stats home/i }))
 

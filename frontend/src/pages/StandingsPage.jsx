@@ -1,9 +1,13 @@
-import { useState, useEffect } from 'react'
-import { getSeasons, getStandings } from '../api/client'
+import { useState, useEffect, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { getSeasons, getStandings, getSeasonTrends } from '../api/client'
 import * as XLSX from 'xlsx'
 import { TeamCell } from '../components/TeamLogo'
 import PageHeader from '../components/PageHeader'
 import InfoTip from '../components/InfoTip'
+import Tabs from '../components/Tabs'
+import SeasonHistoryTab from '../components/SeasonHistoryTab'
+import WeeklyTab from '../components/WeeklyTab'
 import { goodBadColor, divergeColor } from '../utils/heat'
 import { seasonLabel, seasonNumber } from '../utils/seasons'
 
@@ -49,7 +53,22 @@ function exportExcel(standings, season) {
 
 const pct = v => v != null ? (v * 100).toFixed(1) + '%' : '—'
 
+const TABS = [
+  { value: 'standings', label: 'Standings' },
+  { value: 'history', label: 'Season History' },
+  { value: 'weekly', label: 'Week by Week' },
+]
+const TAB_VALUES = TABS.map(t => t.value)
+
 export default function StandingsPage() {
+  const [params, setParams] = useSearchParams()
+  const tab = TAB_VALUES.includes(params.get('tab')) ? params.get('tab') : 'standings'
+  // replace: switching tabs shouldn't make Back walk through every tab visited
+  const setTab = next => setParams(prev => {
+    const p = new URLSearchParams(prev)
+    next === 'standings' ? p.delete('tab') : p.set('tab', next)
+    return p
+  }, { replace: true })
   const [seasons, setSeasons] = useState([])
   const [season, setSeason] = useState(null)
   const [standings, setStandings] = useState([])
@@ -59,6 +78,9 @@ export default function StandingsPage() {
   const [sosMode, setSosMode] = useState('curr')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [history, setHistory] = useState(null)
+  const [historyError, setHistoryError] = useState(false)
+  const historyRequested = useRef(false)
 
   useEffect(() => {
     getSeasons()
@@ -83,6 +105,17 @@ export default function StandingsPage() {
       .then(data => { setStandings(data); setLoading(false) })
       .catch(() => { setError('Failed to load standings'); setLoading(false) })
   }, [season])
+
+  const loadHistory = () => {
+    historyRequested.current = true
+    setHistoryError(false)
+    getSeasonTrends().then(setHistory).catch(() => setHistoryError(true))
+  }
+
+  // Every season x every team: only fetch when someone opens the tab, and only once.
+  useEffect(() => {
+    if (tab === 'history' && !historyRequested.current) loadHistory()
+  }, [tab])
 
   const handleSort = key => {
     if (sortKey === key) setSortAsc(a => !a)
@@ -168,135 +201,162 @@ export default function StandingsPage() {
 
   const gamesLabel = standings.length ? `${Math.max(...standings.map(r => r.gamesPlayed))} games played` : null
 
+  const qualifier = {
+    standings: season != null ? `${seasonLabel(season)}${gamesLabel ? ` · ${gamesLabel}` : ''} · ranked by PyPAT` : null,
+    history: 'W-L, PyPAT and Luck across every season',
+    weekly: season != null ? `${seasonLabel(season)} · PyPAT week by week` : null,
+  }[tab]
+
   return (
     <div>
-      <PageHeader
-        title="Standings"
-        qualifier={season != null ? `${seasonLabel(season)}${gamesLabel ? ` · ${gamesLabel}` : ''} · ranked by PyPAT` : null}
-      >
-        <select
-          className="field"
-          value={season ?? ''}
-          onChange={e => {
-            const newSeason = Number(e.target.value)
-            setSeason(newSeason)
-            setSosMode(newSeason === seasons[seasons.length - 1] ? 'prev' : 'curr')
-          }}
-        >
-          {seasons.map(s => (
-            <option key={s} value={s}>Season {seasonNumber(s)}</option>
-          ))}
-        </select>
-
-        <label className="flex items-center gap-2 text-sm cursor-pointer">
-          <input
-            type="checkbox"
-            checked={groupByConf}
-            onChange={e => setGroupByConf(e.target.checked)}
-            className="accent-accent"
-          />
-          Group by conference
-        </label>
-
-        {sosToggleReady && (
-          <div className="flex items-center gap-2 text-sm">
-            <InfoTip text="SoS is calculated using opponent-adjusted PyPAT — each opponent's quality is measured without their games against the team being evaluated, so H2H results don't inflate their rating. Previous season is more reliable early in the current season before enough games have been played to produce accurate team ratings.">
-              <span className="text-muted">SoS opponent PyPAT</span>
-            </InfoTip>
-            <div className="flex border border-line rounded overflow-hidden">
-              {[['curr', 'This season'], ['prev', 'Prior season']].map(([mode, label]) => (
-                <button
-                  key={mode}
-                  onClick={() => setSosMode(mode)}
-                  className={`px-2 py-1 text-xs font-medium ${activeSosMode === mode ? 'bg-ink text-bg' : 'text-muted hover:text-ink'}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
+      <PageHeader title="Standings" qualifier={qualifier}>
+        {tab !== 'history' && (
+          <select
+            className="field"
+            aria-label="Season"
+            value={season ?? ''}
+            onChange={e => {
+              const newSeason = Number(e.target.value)
+              setSeason(newSeason)
+              setSosMode(newSeason === seasons[seasons.length - 1] ? 'prev' : 'curr')
+            }}
+          >
+            {seasons.map(s => (
+              <option key={s} value={s}>Season {seasonNumber(s)}</option>
+            ))}
+          </select>
         )}
       </PageHeader>
 
-      {error && <div className="text-bad mb-4">{error}</div>}
-      {loading && <div className="text-muted">Loading...</div>}
+      <Tabs value={tab} onChange={setTab} tabs={TABS} />
 
-      {!loading && !error && groups.map(group => (
-        <div key={group.label ?? 'all'} className="mb-8">
-          <div className="flex items-center justify-between mb-1 min-h-[1.5rem]">
-            {group.label
-              ? <h2 className="font-display font-bold uppercase text-xl">{group.label}</h2>
-              : <span />}
-            {standings.length > 0 && (
-              <div className="hidden sm:flex items-center gap-1">
-                <button onClick={() => exportCsv(sorted, season)} title="Export CSV" className="px-2 py-1 text-xs text-muted hover:text-ink">
-                  CSV
-                </button>
-                <button onClick={() => exportExcel(sorted, season)} title="Export Excel" className="px-2 py-1 text-xs text-muted hover:text-ink">
-                  Excel
-                </button>
+      {tab === 'history' && (historyError
+        ? (
+          <div className="text-bad">
+            Failed to load season history.{' '}
+            <button onClick={loadHistory} className="text-ink font-medium hover:text-accent">Retry</button>
+          </div>
+        )
+        : history === null
+          ? <p className="text-muted">Loading...</p>
+          : <SeasonHistoryTab data={history} />)}
+
+      {tab === 'weekly' && <WeeklyTab season={season} />}
+
+      {tab === 'standings' && (
+        <>
+          <div className="flex items-center gap-4 flex-wrap mb-4">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={groupByConf}
+                onChange={e => setGroupByConf(e.target.checked)}
+                className="accent-accent"
+              />
+              Group by conference
+            </label>
+
+            {sosToggleReady && (
+              <div className="flex items-center gap-2 text-sm">
+                <InfoTip text="SoS is calculated using opponent-adjusted PyPAT — each opponent's quality is measured without their games against the team being evaluated, so H2H results don't inflate their rating. Previous season is more reliable early in the current season before enough games have been played to produce accurate team ratings.">
+                  <span className="text-muted">SoS opponent PyPAT</span>
+                </InfoTip>
+                <div className="flex border border-line rounded overflow-hidden">
+                  {[['curr', 'This season'], ['prev', 'Prior season']].map(([mode, label]) => (
+                    <button
+                      key={mode}
+                      onClick={() => setSosMode(mode)}
+                      className={`px-2 py-1 text-xs font-medium ${activeSosMode === mode ? 'bg-ink text-bg' : 'text-muted hover:text-ink'}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
-          <div className="overflow-x-auto border-y border-rule">
-            <table className="w-full text-sm num">
-              <thead className="bg-bg">
-                <tr className="border-b border-line">
-                  {groupSpans.map((g, i) => (
-                    <th
-                      key={i}
-                      colSpan={g.span}
-                      className={`px-2 pt-2 text-left text-[11px] font-bold uppercase tracking-wider text-ink ${g.start ? 'border-l border-rule' : ''}`}
-                    >
-                      {g.group}
-                    </th>
-                  ))}
-                </tr>
-                <tr className="border-b border-rule">
-                  {COLS.map(col => (
-                    <th
-                      key={col.key}
-                      className={`th cursor-pointer hover:text-ink${
-                        col.stickyLeft ? ` sticky ${col.stickyLeft} z-20 bg-bg ${col.w ?? ''}` : ''
-                      }${col.groupStart ? ' border-l border-rule' : ''}`}
-                      title={col.title}
-                      onClick={() => handleSort(col.key)}
-                    >
-                      {col.label}
-                      {sortKey === col.key && (sortAsc ? ' ▲' : ' ▼')}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {group.rows.map((row, i) => (
-                  <tr key={row.teamId} className={`border-t border-line group ${i % 2 ? 'bg-surface' : 'bg-bg'}`}>
-                    {COLS.map(col => {
-                      const val = row[col.key]
-                      const heatVal = col.getValue ? col.getValue(row) : val
-                      const bgColor = cellColor(col, heatVal)
-                      return (
-                        <td
-                          key={col.key}
-                          className={`px-2 py-1.5 whitespace-nowrap${
-                            col.stickyLeft ? ` sticky ${col.stickyLeft} z-10 ${i % 2 ? 'bg-surface' : 'bg-bg'} ${col.w ?? ''}` : ''
-                          }${col.groupStart ? ' border-l border-rule' : ''}${col.key === 'displayName' ? ' font-semibold' : ''}${col.stickyLeft && col.key !== 'rank' ? ' border-r border-line' : ''}`}
-                          style={bgColor ? { backgroundColor: bgColor } : undefined}
+
+          {error && <div className="text-bad mb-4">{error}</div>}
+          {loading && <div className="text-muted">Loading...</div>}
+
+          {!loading && !error && groups.map(group => (
+            <div key={group.label ?? 'all'} className="mb-8">
+              <div className="flex items-center justify-between mb-1 min-h-[1.5rem]">
+                {group.label
+                  ? <h2 className="font-display font-bold uppercase text-xl">{group.label}</h2>
+                  : <span />}
+                {standings.length > 0 && (
+                  <div className="hidden sm:flex items-center gap-1">
+                    <button onClick={() => exportCsv(sorted, season)} title="Export CSV" className="px-2 py-1 text-xs text-muted hover:text-ink">
+                      CSV
+                    </button>
+                    <button onClick={() => exportExcel(sorted, season)} title="Export Excel" className="px-2 py-1 text-xs text-muted hover:text-ink">
+                      Excel
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="overflow-x-auto border-y border-rule">
+                <table className="w-full text-sm num">
+                  <thead className="bg-bg">
+                    <tr className="border-b border-line">
+                      {groupSpans.map((g, i) => (
+                        <th
+                          key={i}
+                          colSpan={g.span}
+                          className={`px-2 pt-2 text-left text-[11px] font-bold uppercase tracking-wider text-ink ${g.start ? 'border-l border-rule' : ''}`}
                         >
-                          {col.fmt ? col.fmt(val, i, row) : val ?? '—'}
-                        </td>
-                      )
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p className="text-xs text-muted mt-2">
-            Green = better, red = worse (lower is better for Avg PA and SoS). Luck: blue = won more than expected, orange = fewer.
-          </p>
-        </div>
-      ))}
+                          {g.group}
+                        </th>
+                      ))}
+                    </tr>
+                    <tr className="border-b border-rule">
+                      {COLS.map(col => (
+                        <th
+                          key={col.key}
+                          className={`th cursor-pointer hover:text-ink${
+                            col.stickyLeft ? ` sticky ${col.stickyLeft} z-20 bg-bg ${col.w ?? ''}` : ''
+                          }${col.groupStart ? ' border-l border-rule' : ''}`}
+                          title={col.title}
+                          onClick={() => handleSort(col.key)}
+                        >
+                          {col.label}
+                          {sortKey === col.key && (sortAsc ? ' ▲' : ' ▼')}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {group.rows.map((row, i) => (
+                      <tr key={row.teamId} className={`border-t border-line group ${i % 2 ? 'bg-surface' : 'bg-bg'}`}>
+                        {COLS.map(col => {
+                          const val = row[col.key]
+                          const heatVal = col.getValue ? col.getValue(row) : val
+                          const bgColor = cellColor(col, heatVal)
+                          return (
+                            <td
+                              key={col.key}
+                              className={`px-2 py-1.5 whitespace-nowrap${
+                                col.stickyLeft ? ` sticky ${col.stickyLeft} z-10 ${i % 2 ? 'bg-surface' : 'bg-bg'} ${col.w ?? ''}` : ''
+                              }${col.groupStart ? ' border-l border-rule' : ''}${col.key === 'displayName' ? ' font-semibold' : ''}${col.stickyLeft && col.key !== 'rank' ? ' border-r border-line' : ''}`}
+                              style={bgColor ? { backgroundColor: bgColor } : undefined}
+                            >
+                              {col.fmt ? col.fmt(val, i, row) : val ?? '—'}
+                            </td>
+                          )
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-xs text-muted mt-2">
+                Green = better, red = worse (lower is better for Avg PA and SoS). Luck: blue = won more than expected, orange = fewer.
+              </p>
+            </div>
+          ))}
+        </>
+      )}
     </div>
   )
 }

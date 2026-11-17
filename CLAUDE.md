@@ -102,6 +102,7 @@ frontend/src/
 │   ├── PageHeader.jsx     # title + qualifier + takeaway + rule — every page uses it
 │   ├── TeamLogo.jsx       # TeamLogo + TeamCell (ESPN CDN logos)
 │   ├── LeanBar.jsx        # center-out diverging bar for projected games
+│   ├── SeasonHistoryTab.jsx, WeeklyTab.jsx   # Standings' history + week-by-week tabs
 │   ├── Tabs.jsx, InfoTip.jsx, DivergingBar.jsx, ThemeToggle.jsx
 ├── utils/
 │   ├── heat.js            # goodBadColor / magnitudeColor / divergeColor
@@ -111,11 +112,10 @@ frontend/src/
 │   ├── chartColors.js, teamLogo.js, theme.js
 └── pages/
     ├── HomePage.jsx       # landing page — live preview card per section
-    ├── StandingsPage.jsx  # main table — sortable, heatmap, SoS toggle, export
+    ├── StandingsPage.jsx  # standings / season history / week by week tabs
     ├── GamesPage.jsx      # game results by week
     ├── EloPage.jsx        # ratings / history / matchup / games tabs
     ├── QbPage.jsx         # leaderboard + movement tabs
-    ├── TrendsPage.jsx     # season history table + weekly PyPAT chart
     ├── AdminPage.jsx      # sync controls, cache warming, Elo config
     └── AboutPage.jsx      # stat definitions, resources
 ```
@@ -283,15 +283,18 @@ SoS: `oppPyPatCurr/Prev`, `oppPyPatRemainingCurr/Prev`, `oppPyPatTotalCurr/Prev`
 
 ## Frontend Pages
 
-Routes: `/` Home, `/standings`, `/games`, `/elo`, `/qb`, `/trends`, `/about`, `/admin`. The `RZS Stats` wordmark links to `/`.
+Routes: `/` Home, `/standings`, `/games`, `/elo`, `/qb`, `/about`, `/admin`. The `RZS Stats` wordmark links to `/`. `/trends` no longer has a page — it redirects to `/standings?tab=history`, so old links and bookmarks keep working.
 
 ### HomePage
-Landing page at `/`. Leads with **Best Games Ahead** — the five closest unplayed games league-wide, ranked by the favorite's win probability (closest to a coin flip first, week ascending as tiebreak), linking to `/elo?tab=games`. Below it, one preview card per section (Standings, Games, Elo, QBs, Trends, About) in a 3-column grid; each card is a `Link` to its page. Every section fetches independently so one failed request doesn't blank the page — top 5 by PyPAT, latest week's scores, top 5 Elo with biggest riser, top 5 QBs by TANY/A, and a mini PyPAT line chart for the top 4 teams.
+Landing page at `/`. Leads with **Best Games Ahead** — the five closest unplayed games league-wide, ranked by the favorite's win probability (closest to a coin flip first, week ascending as tiebreak), linking to `/elo?tab=games`. Below it, one preview card per section (Standings, Games, Elo, QBs, Trends, About) in a 3-column grid; each card is a `Link` to its page. The Trends card has no page of its own — it links to `/standings?tab=weekly`. Every section fetches independently so one failed request doesn't blank the page — top 5 by PyPAT, latest week's scores, top 5 Elo with biggest riser, top 5 QBs by TANY/A, and a mini PyPAT line chart for the top 4 teams.
 
 The Best Games table mirrors the Elo **Projected** table — same columns, `LeanBar`, Outlook tiers and shading — by importing the same helpers rather than restating them. **The tier thresholds, colors and `lean()` live only in [utils/eloLean.js](frontend/src/utils/eloLean.js)**; change them there and both tables move together.
 
 ### StandingsPage
-Main view. Sortable by any column (click header, click again to reverse). Default sort: PyPAT descending. Heat colors: green = good (PyPAT, Win%, Avg PF), red = bad (Avg PA, SoS), diverging blue/green = Luck. Sticky rank + team columns for mobile scroll. SoS toggle appears only for the active season. CSV + Excel export (hidden on mobile).
+Three tabs, with the active one held in the URL as `?tab=standings|history|weekly` (`standings` omits the param) — same contract as EloPage: deep links work, an unknown value falls back to Standings, and tab switches use `replace`. The season picker lives in the header and is shared by Standings and Week by Week; it is hidden on Season History, which spans every season. The header qualifier is per-tab. Group-by-conference and the SoS toggle are Standings-tab controls and render below the tab row, not in the header.
+- **Standings**: Sortable by any column (click header, click again to reverse). Default sort: PyPAT descending. Heat colors: green = good (PyPAT, Win%, Avg PF), red = bad (Avg PA, SoS), diverging blue/green = Luck. Sticky rank + team columns for mobile scroll. SoS toggle appears only for the active season. CSV + Excel export (hidden on mobile).
+- **Season History**: Table of all seasons, W-L + PyPAT + Luck per team. Sortable by clicking any season's column header. `/trends/season` returns every season × every team, so it is fetched only when this tab is first opened, then held in page state — never on a plain Standings visit. A failed fetch shows an error with a Retry button rather than an empty table. The tab mounts only once the data is in, so its default sort (latest season, W-L) initializes against real data.
+- **Week by Week**: Recharts line chart, cumulative PyPAT by week. Click teams to highlight them; the rest fade back. A response for a season the user has already switched away from is ignored, and a failed load shows an error instead of the previous season's chart.
 
 ### GamesPage
 Game cards for a selected season/stage/week. Prev/Next navigation. Each card links to the NeonSportz recap via `nsPk` (not `gameId`). SIM badge on simmed games.
@@ -313,11 +316,6 @@ Two tabs:
 - **Movement**: Biggest risers and fallers over a configurable window, plus a rank-by-week chart (season or all-time basis).
 
 QB names link to the player's NeonSportz page via `rosterId`.
-
-### TrendsPage
-Two tabs:
-- **Season History**: Table of all seasons, W-L + PyPAT + Luck per team. Sortable by clicking any season's column header.
-- **Week by Week**: Recharts line chart, cumulative PyPAT by week. Toggle teams on/off. Show All / Hide All buttons.
 
 ### AdminPage
 Passcode gate driven by `GET /api/admin/auth`. Sync controls (incremental + force with confirmation modal, QB sync), cache warming with live progress polling (2s interval while `inProgress=true`), Elo config editor, sync status display. Footer shows nightly sync schedule.
