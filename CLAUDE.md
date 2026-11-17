@@ -22,12 +22,14 @@ A stats dashboard for a private Madden fantasy football league (Red Zone Sports)
 ## Dev Setup
 
 ```bash
-# Start local Postgres
-docker-compose up -d postgres   # or skip: ./dev.sh falls back to an embedded Postgres when Docker is missing
+./dev.sh                    # backend + frontend together; uses Docker Postgres, or embedded if Docker is missing
+
+# Or run them separately:
+docker compose up -d postgres
 
 # Backend (from backend/)
 ./mvnw spring-boot:run      # runs on :8080
-./mvnw test                 # all unit tests
+./mvnw test                 # all backend tests
 
 # Frontend (from frontend/)
 npm run dev                 # runs on :5173, proxies /api → :8080
@@ -36,6 +38,22 @@ npm test -- --run           # vitest
 
 Local DB: `jdbc:postgresql://localhost:5432/rzs_stats`, user `postgres`, password `postgres`.
 
+**No Docker?** The `embedded-db` Maven profile runs an in-process Postgres under `backend/.localdb`:
+
+```bash
+./mvnw -Pembedded-db spring-boot:run -Dspring-boot.run.profiles=embedded-db
+```
+
+**Ports already taken?** Override both sides — the Vite proxy target is an env var:
+
+```bash
+./mvnw -Pembedded-db spring-boot:run -Dspring-boot.run.profiles=embedded-db \
+  -Dspring-boot.run.arguments=--server.port=8090
+BACKEND_URL=http://localhost:8090 npx vite --port 5180 --strictPort
+```
+
+The embedded DB starts empty. Sync from the Admin page, or `POST /api/admin/sync`, before the UI shows anything.
+
 ---
 
 ## Project Structure
@@ -43,31 +61,60 @@ Local DB: `jdbc:postgresql://localhost:5432/rzs_stats`, user `postgres`, passwor
 ```
 backend/src/main/java/com/rzs/stats/
 ├── controller/
-│   ├── StatsController.java       # public API: /api/*
-│   └── AdminController.java       # admin tools: /api/admin/*
+│   ├── StatsController.java       # public API: /api/* (standings, games, trends, elo)
+│   ├── QbController.java          # public API: /api/qb/*
+│   ├── AdminController.java       # admin tools: /api/admin/*
+│   └── AdminAuthController.java   # GET /api/admin/auth — token probe for the UI
 ├── service/
-│   ├── StatsService.java          # all stats computation (PyPAT, SoS, standings)
-│   ├── SyncService.java           # NeonSportz data sync
+│   ├── StatsService.java          # PyPAT, SoS, standings, trends
+│   ├── EloService.java            # pure Elo math (probability, MOV, regression)
+│   ├── EloHistoryService.java     # replays every game to build rating history
+│   ├── EloQueryService.java       # ratings / games / upcoming / matchup reads
+│   ├── EloConfigService.java      # persisted, tunable Elo knobs
+│   ├── QbStatsService.java        # leaderboard + movement, ranking, qualification
+│   ├── QbStatsCalculator.java     # TANY/A and RUSH+ formulas
+│   ├── QbStatsSyncService.java    # per-week QB stat sync from NeonSportz
+│   ├── QbStatsWeekWriter.java     # upserts one week of QB rows
+│   ├── SyncService.java           # NeonSportz game/team sync
 │   └── CacheWarmingService.java   # background cache population
 ├── repository/
 │   ├── GameRepository.java        # game queries (always JOIN FETCH teams)
-│   └── TeamRepository.java        # team lookups by teamId or nsId
+│   ├── TeamRepository.java        # team lookups by teamId or nsId
+│   ├── QbGameStatRepository.java  # QB rows by season/stage/week/roster
+│   └── EloConfigRepository.java
 ├── model/
-│   ├── entity/  GameEntity, TeamEntity
-│   ├── dto/     StandingDto, GameDto, TeamDto, SeasonWeekDto
-│   └── ns/      NsGame, NsTeam, NsLeague (NeonSportz API response shapes)
+│   ├── entity/  GameEntity, TeamEntity, QbGameStatEntity, EloConfigEntity
+│   ├── dto/     StandingDto, GameDto, TeamDto, SeasonWeekDto,
+│   │            EloDtos, EloConfig, QbStatDto, QbDtos
+│   └── ns/      NsGame, NsTeam, NsLeague, NsPagedResponse,
+│                NsPassingStat, NsRushingStat, NsTeamStat
 ├── client/  NeonSportzClient.java
 ├── scheduler/  SyncScheduler.java   # nightly @Scheduled cron
-└── config/  WebConfig.java          # CORS
+└── config/
+    ├── WebConfig.java              # CORS
+    ├── CacheNames.java             # the ALL cache resolver — every cache name lives here
+    └── AdminTokenFilter.java       # X-Admin-Token gate on /api/admin/**
 
 frontend/src/
-├── App.jsx                # routes + nav
-├── api/client.js          # all axios calls
+├── App.jsx                # routes + nav; wordmark links to /
+├── api/client.js          # all axios calls + admin token handling
+├── components/
+│   ├── PageHeader.jsx     # title + qualifier + takeaway + rule — every page uses it
+│   ├── TeamLogo.jsx       # TeamLogo + TeamCell (ESPN CDN logos)
+│   ├── Tabs.jsx, InfoTip.jsx, DivergingBar.jsx, ThemeToggle.jsx
+├── utils/
+│   ├── heat.js            # goodBadColor / magnitudeColor / divergeColor
+│   ├── seasons.js         # seasonLabel — index + 103
+│   ├── playoffRounds.js   # weekLabel
+│   ├── chartColors.js, teamLogo.js, theme.js
 └── pages/
+    ├── HomePage.jsx       # landing page — live preview card per section
     ├── StandingsPage.jsx  # main table — sortable, heatmap, SoS toggle, export
     ├── GamesPage.jsx      # game results by week
+    ├── EloPage.jsx        # ratings / history / matchup / games tabs
+    ├── QbPage.jsx         # leaderboard + movement tabs
     ├── TrendsPage.jsx     # season history table + weekly PyPAT chart
-    ├── AdminPage.jsx      # sync controls, cache warming
+    ├── AdminPage.jsx      # sync controls, cache warming, Elo config
     └── AboutPage.jsx      # stat definitions, resources
 ```
 
@@ -106,6 +153,36 @@ Average PyPAT of opponents, with two key refinements:
 
 ---
 
+### Elo
+Rolling team strength that carries across seasons. Config is persisted and tunable at `PUT /api/admin/elo/config` (`EloConfig` record, validated on write):
+
+| Knob | Default meaning |
+|------|-----------------|
+| `initialRating` | Every team's starting rating (1500) |
+| `k` | Step size per game; validated to 1–100 |
+| `divisor` | Logistic scale for win probability |
+| `movEnabled` / `marginCap` | Margin-of-victory multiplier, capped at `marginCap` points (21) |
+| `homeFieldAdvantage` | Rating points added to the home side for the prediction |
+| `offseasonRetention` | Fraction of distance from `initialRating` kept between seasons (0.9) |
+
+`EloHistoryService` **replays every game in order** to build history — ratings are derived, never stored per game. Playoffs count. Changing config changes all history, so the `eloHistory` cache is evicted with the rest.
+
+### TANY/A and RUSH+ (QB stats)
+Total Adjusted Net Yards per Attempt — one number for passing *and* rushing:
+
+```
+TANY/A = (passYds − sackYds + rushYds + 20×(passTD + rushTD) − 45×(INT + fumblesLost))
+         ÷ (passAtt + sacks + rushAtt)
+```
+
+Rushing counts in both numerator and denominator, so volume alone can't inflate it. RUSH+ isolates the rushing contribution: yards above 4 per carry, +20 per rush TD, −45 per estimated lost fumble. **Every estimated fumble is charged to RUSH+**, so it is read alongside TANY/A, not added to it.
+
+Sack yardage and lost fumbles are not in the per-player feed — they're estimated from team game stats (`teamSacks`, `teamFumblesLost` on `QbGameStatEntity`).
+
+**Qualification** gates the leaderboard. Default minimum attempts by scope: WEEK → 10, SEASON → `10 × team games played`, ALLTIME → 250 (`ALLTIME_MIN_ATT`), or 50 for playoffs (`ALLTIME_PLAYOFF_MIN_ATT`). Unqualified QBs are filtered out unless `includeUnqualified=true`, get no `rank`, and are excluded from heat-map ranges. `minAtt` overrides the default.
+
+---
+
 ## Data Model
 
 ### GameEntity
@@ -128,6 +205,16 @@ Unique constraint: `(seasonIndex, gameId)`. Indexes on `(seasonIndex, stageIndex
 
 Logos served from ESPN CDN: `https://a.espncdn.com/i/teamlogos/nfl/500/{ABBR}.png`
 
+### QbGameStatEntity
+One row per quarterback per game. Unique constraint: `(seasonIndex, stageIndex, weekIndex, rosterId)` — that tuple is the upsert key. Indexes on `(seasonIndex, stageIndex, weekIndex)` and `rosterId`.
+
+Per-player fields: `passAtt`, `passComp`, `passYds`, `passTd`, `passInt`, `passSacks`, `rushAtt`, `rushYds`, `rushTd`, `rushFum`, `passerRating`, `playerName`, `rosterId` (String — also the NeonSportz player-page key), `team`.
+
+Team-level fields used to *estimate* what the player feed omits: `teamPasserYards`, `teamNetPassYds`, `teamSacks`, `teamFumbles`, `teamFumblesLost`.
+
+### EloConfigEntity
+Single persisted row holding the tunable `EloConfig`. `EloConfigService.seed()` writes defaults when absent.
+
 ### StandingDto (key fields)
 Record stats: `wins`, `losses`, `ties`, `gamesPlayed`, `winPct`, `pointsFor`, `pointsAgainst`
 Advanced: `pythagoreanPat`, `winDiff` (Luck)
@@ -146,6 +233,19 @@ SoS: `oppPyPatCurr/Prev`, `oppPyPatRemainingCurr/Prev`, `oppPyPatTotalCurr/Prev`
 | GET | `/games/weeks` | `season`, `stage` (default 1) | `List<Integer>` available weeks |
 | GET | `/trends/season` | — | All seasons, all teams |
 | GET | `/trends/weekly` | `season` | Week-by-week progression for one season |
+| GET | `/elo/ratings` | `season`, `week` | `List<EloDtos.Rating>` — elo, rank, change, rankChange |
+| GET | `/elo/history` | `season` (optional) | Rating per team per week; omit `season` for all |
+| GET | `/elo/games` | `season`, `week`, `teamId` | Per-game Elo deltas and pregame ratings |
+| GET | `/elo/upcoming` | `season`, `week` | Unplayed games with projected win probability |
+| GET | `/elo/matchup` | `teamA`, `teamB`, `homeTeam` | Head-to-head win probability |
+
+### Public — `QbController (/api/qb)`
+| Method | Path | Params | Returns |
+|--------|------|--------|---------|
+| GET | `/leaderboard` | `scope`, `season`, `week`, `stage`, `minAtt`, `includeUnqualified` | `List<QbStatDto>` ranked by TANY/A |
+| GET | `/movement` | `season`, `stage`, `window`, `basis` | `QbDtos.Movement` — risers and fallers |
+
+**⚠️ Two different stage conventions.** The QB endpoints parse `stage` as a **named enum** — `regular`, `playoffs` or `both` (`Stage`, default `REGULAR`). The games endpoints take a **numeric** `stageIndex` (`0`, `1`). Passing `stage=1` to a QB endpoint is a 400. `scope` is `week` | `season` | `alltime`; `basis` is `season` | `alltime`.
 
 ### Admin — `AdminController (/api/admin)`
 | Method | Path | Notes |
@@ -156,8 +256,21 @@ SoS: `oppPyPatCurr/Prev`, `oppPyPatRemainingCurr/Prev`, `oppPyPatTotalCurr/Prev`
 | GET | `/sync/status` | `{lastSyncTime, lastSyncMessage, lastSyncSuccess}` |
 | POST | `/cache/warm` | Evict all caches, rebuild async |
 | GET | `/cache/warm/status` | `{inProgress, message, completedAt, success}` |
+| POST | `/sync/qb` | Sync QB game stats from NeonSportz |
+| GET | `/sync/qb/status` | QB sync progress + last result |
+| GET | `/elo/config` | Current `EloConfig` |
+| PUT | `/elo/config` | Update Elo knobs — validated, rejects out-of-range values |
+| GET | `/auth` | Token probe — 200 if the supplied token is valid (or none is required) |
 | GET | `/debug` | League info + game counts by season/stage |
 | GET | `/debug/api` | Raw API response for a season/week |
+
+### Admin authentication
+`AdminTokenFilter` gates `/api/admin/**` on the `X-Admin-Token` header, compared with `MessageDigest.isEqual` (constant-time).
+
+- Token comes from `rzs.admin-token` / the `ADMIN_TOKEN` env var.
+- **Unset = the filter is disabled and admin routes are wide open.** That's the local-dev default; always set `ADMIN_TOKEN` in any deployed environment.
+- `OPTIONS` is exempt so CORS preflight still works.
+- The frontend keeps the token in `localStorage` under `rzs-admin-token` and attaches it to `/admin` calls only ([api/client.js](frontend/src/api/client.js)). AdminPage calls `/api/admin/auth` to decide whether to show the passcode gate.
 
 ---
 
@@ -174,16 +287,32 @@ Main view. Sortable by any column (click header, click again to reverse). Defaul
 ### GamesPage
 Game cards for a selected season/stage/week. Prev/Next navigation. Each card links to the NeonSportz recap via `nsPk` (not `gameId`). SIM badge on simmed games.
 
+### EloPage
+Four tabs:
+- **Ratings**: All 32 teams by Elo, with weekly change, rank movement, a diverging bar vs 1500, and top-5 risers/droppers.
+- **History**: Rating lines across every season. Click teams to highlight. Dotted verticals mark season starts (where ratings regress toward 1500).
+- **Matchup**: Pick two teams for a win probability split bar.
+- **Games**: Per-game Elo deltas, pregame ratings, MOV multiplier; projected probabilities for unplayed games.
+
+Every column header carries a plain-language tooltip (`TIPS` map at the top of the file) — keep that pattern when adding columns.
+
+### QbPage
+Two tabs:
+- **Leaderboard**: Every QB by TANY/A. Column *presets* (efficiency / classic / rushing / all) control which of `ALL_COLS` render. Regular / Playoffs / Both toggle, `minAtt` input, "show unqualified" checkbox. Unqualified rows render at 50% opacity with no rank. CSV + Excel export.
+- **Movement**: Biggest risers and fallers over a configurable window, plus a rank-by-week chart (season or all-time basis).
+
+QB names link to the player's NeonSportz page via `rosterId`.
+
 ### TrendsPage
 Two tabs:
 - **Season History**: Table of all seasons, W-L + PyPAT + Luck per team. Sortable by clicking any season's column header.
 - **Week by Week**: Recharts line chart, cumulative PyPAT by week. Toggle teams on/off. Show All / Hide All buttons.
 
 ### AdminPage
-Sync controls (incremental + force with confirmation modal), cache warming with live progress polling (2s interval while `inProgress=true`), sync status display. Footer shows nightly sync schedule.
+Passcode gate driven by `GET /api/admin/auth`. Sync controls (incremental + force with confirmation modal, QB sync), cache warming with live progress polling (2s interval while `inProgress=true`), Elo config editor, sync status display. Footer shows nightly sync schedule.
 
 ### AboutPage
-Three-column card grids for stat definitions (PyPAT, Luck, SoS) and page descriptions. Data sync banner. Resource links (videos, blog posts, external references).
+Card grids for stat definitions (PyPAT, Luck, SoS, Elo, TANY/A, RUSH+) and per-page descriptions. Data sync banner. Resource links (videos, blog posts, external references). **Adding a stat or a page means adding it here too** — this page is the user-facing contract for what every number means.
 
 ---
 
@@ -191,9 +320,9 @@ Three-column card grids for stat definitions (PyPAT, Luck, SoS) and page descrip
 
 **Caffeine** — max 500 entries, 24h write-through TTL.
 
-Cache names: `standings`, `games`, `weeks`, `seasons`, `seasonTrends`, `weeklyTrends`, `seasonGames`
+Cache names: `standings`, `games`, `weeks`, `seasons`, `seasonTrends`, `weeklyTrends`, `seasonGames`, `eloHistory`, `qbStats`
 
-All seven caches are evicted together on sync, force-sync, or cache warm. `seasonGames` is cached directly on `GameRepository.findRegularSeasonGames()` (Spring Data JPA repos support `@Cacheable`) so all callers share the same cache regardless of call site.
+The list lives in one place — [config/CacheNames.java](backend/src/main/java/com/rzs/stats/config/CacheNames.java), as the `allStatsCaches` resolver. **A new cache must be added there**, or it silently survives eviction and serves stale data after a sync. All nine are evicted together on sync, force-sync, or cache warm. `seasonGames` is cached directly on `GameRepository.findRegularSeasonGames()` (Spring Data JPA repos support `@Cacheable`) so all callers share the same cache regardless of call site.
 
 **After a deploy or Railway restart**, caches are cold. Hit `POST /api/admin/cache/warm` from the Admin page; poll `/api/admin/cache/warm/status` for progress. Target: <60s for a full warm.
 
@@ -212,7 +341,10 @@ NeonSportzClient paginates via `next` links until null. SyncService:
 
 `nsPk` is the NeonSportz URL key (e.g. `11263917`). `gameId` is an external ref ID (e.g. `544735511`) used only for deduplication — never for URLs.
 
-Scheduled: `0 0 4 * * *` America/New_York (4 AM ET, respects DST).
+Scheduled: `0 0 4 * * *` America/New_York (4 AM ET, respects DST), overridable via `SYNC_CRON`.
+
+### QB stat sync is separate
+`QbStatsSyncService` runs on its own trigger (`POST /api/admin/sync/qb`) and walks season/stage/week, with `QbStatsWeekWriter` upserting one week at a time. A fresh database that has games synced can still have **zero QB rows** — the QB leaderboard will come back `[]` until the QB sync runs. Worth remembering when a local environment looks half-empty.
 
 ---
 
@@ -235,6 +367,8 @@ Omitting this causes 1 + 2N queries per load (289 queries for 144-game season �
   `jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}`
 - Railway's default `DATABASE_URL` is a postgres:// URL — Spring rejects it
 - `ALLOWED_ORIGINS`: set to the frontend Railway URL
+- `ADMIN_TOKEN`: **must be set**, or every `/api/admin/**` route is unauthenticated
+- `SYNC_CRON`: optional override of the nightly schedule
 - Auto-deploys on push to master
 
 **Frontend**:
@@ -258,11 +392,24 @@ Omitting this causes 1 + 2N queries per load (289 queries for 144-game season �
 
 ## Testing
 
-Backend tests in `StatsServiceTest.java` — all unit tests using Mockito for repositories. Key patterns:
-- `team(id, name)` helper creates `TeamEntity`
-- `game(id, home, away, homeScore, awayScore)` creates completed game
-- `futureGame(id, home, away)` creates unplayed game
+Backend tests in `backend/src/test/java/com/rzs/stats/`, run with `./mvnw test`:
 
-Every bug fix should have a regression test that verifies the exact invariant that was broken (e.g., `sosTotalBetweenPlayedAndLeft` test for the SoS Total < min(Played, Left) bug).
+| Area | Tests |
+|------|-------|
+| Stats | `StatsServiceTest`, `StatsControllerTest`, `StatsCacheTest` |
+| Elo | `EloServiceTest`, `EloHistoryServiceTest`, `EloControllerTest`, `EloPersistenceTest` |
+| QB | `QbStatsCalculatorTest`, `QbStatsServiceTest`, `QbStatsSyncServiceTest`, `QbControllerTest`, `QbStatsPersistenceTest` |
+| Sync & admin | `SyncServiceTest`, `SyncSchedulerTest`, `AdminControllerTest`, `CacheWarmingServiceTest` |
+| Auth | `AdminTokenTest`, `AdminTokenUnsetTest` — both the gated and the open case |
+| Repository | `GameRepositoryTest` |
 
-Frontend tests in `frontend/src/test/` — Vitest + Testing Library. Run with `npm test -- --run`.
+Service tests use Mockito for repositories. Key `StatsServiceTest` helpers:
+- `team(id, name)` creates `TeamEntity`
+- `game(id, home, away, homeScore, awayScore)` creates a completed game
+- `futureGame(id, home, away)` creates an unplayed game
+
+Persistence tests (`*PersistenceTest`) use a real DB rather than mocks — that's where unique constraints and upsert behavior get verified.
+
+Every bug fix should have a regression test that verifies the exact invariant that was broken (e.g., `sosTotalBetweenPlayedAndLeft` for the SoS Total < min(Played, Left) bug).
+
+Frontend tests in `frontend/src/test/` — Vitest + Testing Library. Run with `npm test -- --run`. Tests that render a page must wrap it in a `MemoryRouter`; pages are mocked at the `api/client` boundary with `vi.mock('../api/client')`.
