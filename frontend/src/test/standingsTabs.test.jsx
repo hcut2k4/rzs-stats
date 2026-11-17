@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
 import { MemoryRouter, useLocation, useNavigationType } from 'react-router-dom'
@@ -227,6 +227,32 @@ describe('Standings tabs', () => {
 
     await screen.findByText('Season 110')
     expect(screen.queryByText('Failed to load standings')).not.toBeInTheDocument()
+  })
+
+  it('shows an error on Week by Week when the season list fails to load', async () => {
+    stub()
+    client.getSeasons.mockRejectedValue(new Error('boom'))
+
+    renderAt('/standings?tab=weekly')
+
+    expect(await screen.findByText('Failed to load seasons')).toBeInTheDocument()
+    expect(screen.queryByText('No data available.')).not.toBeInTheDocument()
+  })
+
+  it('ignores a slow standings response for a season the user switched away from', async () => {
+    stub()
+    let resolveSlow
+    client.getStandings
+      .mockReturnValueOnce(new Promise(r => { resolveSlow = r }))
+      .mockResolvedValueOnce([row(2, 'Wolves', 0.5)])
+    renderAt('/standings')
+
+    await userEvent.selectOptions(await screen.findByLabelText('Season'), '6')
+    await screen.findByText(/Wolves/)
+    await act(async () => { resolveSlow([row(1, 'Aces', 0.5)]) })
+
+    expect(screen.queryByText(/Aces/)).not.toBeInTheDocument()
+    expect(screen.getByText(/Wolves/)).toBeInTheDocument()
   })
 })
 

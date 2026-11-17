@@ -99,11 +99,13 @@ export default function StandingsPage() {
 
   useEffect(() => {
     if (season == null) return
+    let current = true
     setLoading(true)
     setError(null)
     getStandings(season)
-      .then(data => { setStandings(data); setLoading(false) })
-      .catch(() => { setError('Failed to load standings'); setLoading(false) })
+      .then(data => { if (current) { setStandings(data); setLoading(false) } })
+      .catch(() => { if (current) { setError('Failed to load standings'); setLoading(false) } })
+    return () => { current = false }
   }, [season])
 
   const loadHistory = () => {
@@ -241,7 +243,9 @@ export default function StandingsPage() {
           ? <p className="text-muted">Loading...</p>
           : <SeasonHistoryTab data={history} />)}
 
-      {tab === 'weekly' && <WeeklyTab season={season} />}
+      {tab === 'weekly' && (season == null && error
+        ? <p className="text-bad">{error}</p>
+        : <WeeklyTab season={season} />)}
 
       {tab === 'standings' && (
         <>
