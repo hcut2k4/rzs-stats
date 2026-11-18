@@ -58,6 +58,33 @@ async function showMovement() {
 }
 
 describe('QB exports', () => {
+  it('drops loaded rows and their export when the new stage has no weeks', async () => {
+    await show()
+    fireEvent.click(screen.getByRole('button', { name: 'Week', exact: true }))
+    await screen.findByText('Max White')
+    let resolveStale
+    client.getAvailableWeeks.mockImplementation((season, stage) => Promise.resolve(stage === 2 ? [] : [0, 18]))
+    client.getQbLeaderboard.mockReturnValueOnce(new Promise(resolve => { resolveStale = resolve }))
+    fireEvent.click(screen.getByRole('button', { name: 'Playoffs', exact: true }))
+    await waitFor(() => expect(screen.queryByText('Max White')).toBeNull())
+    expect(screen.queryByText('Loading...')).toBeNull()
+    await act(async () => resolveStale([qb]))
+    expect(screen.queryByText('Max White')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'AI', exact: true })).toBeNull()
+  })
+
+  it('stops loading when week scope is chosen and there are no weeks to show', async () => {
+    let resolveSeason
+    client.getAvailableWeeks.mockResolvedValue([])
+    client.getQbLeaderboard.mockReturnValueOnce(new Promise(resolve => { resolveSeason = resolve }))
+    render(<MemoryRouter><QbPage /></MemoryRouter>)
+    await screen.findByText('Loading...')
+    fireEvent.click(screen.getByRole('button', { name: 'Week', exact: true }))
+    await waitFor(() => expect(screen.queryByText('Loading...')).toBeNull())
+    await act(async () => resolveSeason([qb]))
+    expect(screen.queryByText('Loading...')).toBeNull()
+  })
+
   it('exports the active preset with a plain QB and Team column', async () => {
     const spec = await show()
     expect(toRows(spec)[0]).toEqual(['#', 'Move', 'QB', 'Team', 'GP', 'Att', 'TANY/A', 'ANY/A', 'RUSH+'])

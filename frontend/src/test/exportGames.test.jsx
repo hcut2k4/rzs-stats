@@ -121,6 +121,19 @@ describe('Games exports', () => {
     expect(specs.get('Games').api.params).toEqual({ season: 5, stage: 2, week: 19 })
   })
 
+  it('stops loading and drops stale games when the new stage has no weeks', async () => {
+    await showGames()
+    const pending = deferred()
+    client.getAvailableWeeks.mockImplementation((season, stage) => Promise.resolve(stage === 2 ? [] : [0, 1]))
+    client.getGames.mockReturnValueOnce(pending.promise)
+    fireEvent.change(screen.getByDisplayValue('Regular Season'), { target: { value: '2' } })
+    await screen.findByText('No games found for this week.')
+    expect(screen.queryByText('Loading...')).toBeNull()
+    await act(async () => pending.resolve([game]))
+    expect(screen.getByText('No games found for this week.')).toBeTruthy()
+    expect(screen.queryByText('Loading...')).toBeNull()
+  })
+
   it('ignores an older stage response after playoff rows have resolved', async () => {
     const old = deferred()
     const playoff = { ...game, gameId: 13, homeScore: 35 }

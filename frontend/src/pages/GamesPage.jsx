@@ -75,7 +75,11 @@ export default function GamesPage() {
   }, [season, stage])
 
   useEffect(() => {
-    if (season == null || weekIndex == null) return
+    if (season == null || weekIndex == null) {
+      setLoading(false)
+      setData(d => (d.params ? { games: [], params: null } : d))
+      return
+    }
     let current = true
     setLoading(true)
     setError(null)

@@ -90,7 +90,7 @@ const ALL_COLS = [
   { key: 'rank', desc: 'TANY/A rank among qualified quarterbacks; unqualified quarterbacks have an empty rank.', value: row => row.rank, z: '0', tx: (_, i, row) => row.rank ?? '', label: '#', fmt: (_, i, row) => row.rank ?? i + 1, stickyLeft: 'left-0', w: 'w-10', presets: ['efficiency', 'classic', 'rushing', 'all'], sortable: false },
   { key: 'rankChange', desc: 'Change in rank over the comparison window; positive means a rise, and no change or no prior rank is empty.', tx: signedMove, value: row => row.rankChange, label: 'Move', presets: ['efficiency', 'classic', 'rushing', 'all'], fmt: v => <Move value={v} /> },
   {
-    key: 'playerName', desc: 'Quarterback name.', tx: v => v, label: 'QB', stickyLeft: 'left-10', presets: ['efficiency', 'classic', 'rushing', 'all'],
+    key: 'playerName', desc: 'Quarterback name.', tx: v => v, align: 'left', label: 'QB', stickyLeft: 'left-10', presets: ['efficiency', 'classic', 'rushing', 'all'],
     fmt: (v, _, row) => (
       <a
         href={neonPlayerUrl(row.rosterId)}
@@ -167,7 +167,7 @@ function Leaderboard({ rows, preset, sortKey, sortAsc, onSort, scope, params }) 
   const sort = `${ALL_COLS.find(c => c.key === sortKey)?.label} (${sortKey}) ${sortAsc ? 'ascending' : 'descending'}`
   const exportCols = [...cols]
   exportCols.splice(exportCols.findIndex(c => c.key === 'playerName') + 1, 0, {
-    key: 'teamAbbr', label: 'Team', desc: 'Team abbreviation.', tx: v => v ?? '',
+    key: 'teamAbbr', label: 'Team', desc: 'Team abbreviation.', tx: v => v ?? '', align: 'left',
   })
   const exportSpec = {
     name: 'QB Leaderboard',
@@ -486,7 +486,11 @@ export default function QbPage() {
   useEffect(() => {
     if (tab !== 'leaderboard') return
     if (scope !== 'alltime' && season == null) return
-    if (scope === 'week' && week == null) return
+    if (scope === 'week' && week == null) {
+      setLoading(false)
+      setLeaderboard(l => (l.rows.length ? { rows: [], params: {} } : l))
+      return
+    }
     setLoading(true)
     setError(null)
     let current = true

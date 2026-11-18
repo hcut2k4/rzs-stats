@@ -5,6 +5,7 @@ import SeasonHistoryTab from '../components/SeasonHistoryTab'
 import WeeklyTab from '../components/WeeklyTab'
 import * as client from '../api/client'
 import { aiText, buildWorkbook, csvText, toRows } from '../utils/exportTable'
+import { divergeColor, goodBadColor } from '../utils/heat'
 
 vi.mock('../api/client')
 const { specs } = vi.hoisted(() => ({ specs: new Map() }))
@@ -18,6 +19,16 @@ const weeks = [{ weekIndex: 0, standings: [wolves, aces] }, { weekIndex: 1, stan
 beforeEach(() => { vi.resetAllMocks(); specs.clear(); client.getWeeklyTrends.mockResolvedValue(weeks) })
 
 describe('Season History export', () => {
+  it('carries the on-screen heat colors into the image columns', () => {
+    render(<MemoryRouter><SeasonHistoryTab data={history} /></MemoryRouter>)
+    const spec = specs.get('Season History')
+    const [wl, pypat, luck] = spec.cols.slice(-3)
+    expect(wl.color(aces)).toBe(goodBadColor(0.7, [0.6, 0.7]))
+    expect(pypat.color(aces)).toBe(goodBadColor(0.65, [0.55, 0.65]))
+    expect(luck.color(aces)).toBe(divergeColor(0.9))
+    expect(wl.color(team(9, 'Nobody'))).toBeUndefined()
+  })
+
   it('exports unique grouped headers, records, typed rates and empty missing seasons', () => {
     render(<MemoryRouter><SeasonHistoryTab data={history} /></MemoryRouter>)
     const spec = specs.get('Season History')
