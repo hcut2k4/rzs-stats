@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceArea, ReferenceLine, ResponsiveContainer } from 'recharts'
 import { getSeasons, getEfficiency } from '../api/client'
@@ -8,6 +8,7 @@ import ExportMenu from '../components/ExportMenu'
 import { TeamCell } from '../components/TeamLogo'
 import { SortTh, useSorter } from '../components/SortTh'
 import { goodBadColor, divergeColor } from '../utils/heat'
+import { copyChartImage } from '../utils/chartImage'
 import { teamLogoUrl } from '../utils/teamLogo'
 import { seasonLabel, seasonNumber } from '../utils/seasons'
 
@@ -154,7 +155,15 @@ function QuadrantLabel({ viewBox, lines, right, bottom }) {
   )
 }
 
-function TiersChart({ rows }) {
+function TiersChart({ rows, name, qualifier }) {
+  const [busy, setBusy] = useState(false)
+  const [status, setStatus] = useState(null)
+  const timer = useRef()
+  const mounted = useRef(true)
+  useEffect(() => {
+    mounted.current = true
+    return () => { mounted.current = false; clearTimeout(timer.current) }
+  }, [])
   const [logoSize, setLogoSize] = useState(44)
   const points = rows
     .filter(r => r.offense.pointsPerDrive != null && r.defense.pointsPerDrive != null)
@@ -173,28 +182,52 @@ function TiersChart({ rows }) {
   }
   const xScale = scale('x')
   const yScale = scale('y')
+  const exportChart = async () => {
+    clearTimeout(timer.current)
+    setBusy(true)
+    let message
+    try {
+      const result = await copyChartImage({ name: `${name} chart`, qualifier, points, league, xScale, yScale })
+      message = result === 'toobig' ? 'Too big' : result === 'copied' ? 'Copied' : 'Saved'
+    } catch {
+      message = 'Failed'
+    }
+    if (!mounted.current) return
+    setBusy(false)
+    setStatus(message)
+    timer.current = setTimeout(() => setStatus(null), 1600)
+  }
   const axis = { type: 'number', tick: { fill: 'rgb(var(--muted))', fontSize: 12 }, stroke: 'rgb(var(--line))', tickFormatter: v => v.toFixed(1) }
   return (
-    <figure className="mb-6">
-      <div className="h-[480px] sm:h-[600px]" role="img" aria-label="Scatter of offense points per drive against defense points per drive allowed, one team logo per point, split into four quadrants at the league average. Teams in the upper right, with good offense and good defense, are best.">
-        <ResponsiveContainer width="100%" height="100%" onResize={width => setLogoSize(width < 520 ? 28 : 44)}>
-          <ScatterChart margin={{ top: 12, right: 24, bottom: 28, left: 8 }}>
-            <CartesianGrid strokeDasharray="2 4" stroke="rgb(var(--line))" />
-            <XAxis {...axis} dataKey="x" domain={xScale.domain} ticks={xScale.ticks} label={{ value: 'Offense points per drive → better', position: 'insideBottom', offset: -16, fill: 'rgb(var(--muted))', fontSize: 12 }} />
-            <YAxis {...axis} dataKey="y" domain={yScale.domain} ticks={yScale.ticks} reversed label={{ value: 'Defense points allowed per drive → better', angle: -90, position: 'insideLeft', offset: 12, fill: 'rgb(var(--muted))', fontSize: 12, style: { textAnchor: 'middle' } }} />
-            <ReferenceArea x1={xScale.domain[0]} x2={league} y1={yScale.domain[0]} y2={league} fill="none" stroke="none" label={<QuadrantLabel lines={['Bad offense', 'Good defense']} />} />
-            <ReferenceArea x1={league} x2={xScale.domain[1]} y1={yScale.domain[0]} y2={league} fill="none" stroke="none" label={<QuadrantLabel lines={['Good offense', 'Good defense']} right />} />
-            <ReferenceArea x1={xScale.domain[0]} x2={league} y1={league} y2={yScale.domain[1]} fill="none" stroke="none" label={<QuadrantLabel lines={['Bad offense', 'Bad defense']} bottom />} />
-            <ReferenceArea x1={league} x2={xScale.domain[1]} y1={league} y2={yScale.domain[1]} fill="none" stroke="none" label={<QuadrantLabel lines={['Good offense', 'Bad defense']} right bottom />} />
-            <ReferenceLine x={league} stroke="rgb(var(--muted))" strokeDasharray="4 4" />
-            <ReferenceLine y={league} stroke="rgb(var(--muted))" strokeDasharray="4 4" />
-            <Tooltip content={<ChartTip />} cursor={false} />
-            <Scatter data={points} shape={<LogoDot logoSize={logoSize} />} isAnimationActive={false} />
-          </ScatterChart>
-        </ResponsiveContainer>
+    <>
+      <div className="flex justify-end mb-2">
+        <button type="button" disabled={busy} onClick={exportChart}
+          className="px-2 py-1 text-xs text-muted hover:text-ink" title="Copy an image of this chart">
+          {status ?? 'PNG'}
+        </button>
+        <span className="sr-only" aria-live="polite">{status}</span>
       </div>
-      <figcaption className="text-xs text-muted mt-1">Dashed lines mark the league average points per drive, which is the same for offense and defense. Good offense is to the right and good defense is up, so the best teams sit in the upper right.</figcaption>
-    </figure>
+      <figure className="mb-6">
+        <div className="h-[480px] sm:h-[600px]" role="img" aria-label="Scatter of offense points per drive against defense points per drive allowed, one team logo per point, split into four quadrants at the league average. Teams in the upper right, with good offense and good defense, are best.">
+          <ResponsiveContainer width="100%" height="100%" onResize={width => setLogoSize(width < 520 ? 28 : 44)}>
+            <ScatterChart margin={{ top: 12, right: 24, bottom: 28, left: 8 }}>
+              <CartesianGrid strokeDasharray="2 4" stroke="rgb(var(--line))" />
+              <XAxis {...axis} dataKey="x" domain={xScale.domain} ticks={xScale.ticks} label={{ value: 'Offense points per drive → better', position: 'insideBottom', offset: -16, fill: 'rgb(var(--muted))', fontSize: 12 }} />
+              <YAxis {...axis} dataKey="y" domain={yScale.domain} ticks={yScale.ticks} reversed label={{ value: 'Defense points allowed per drive → better', angle: -90, position: 'insideLeft', offset: 12, fill: 'rgb(var(--muted))', fontSize: 12, style: { textAnchor: 'middle' } }} />
+              <ReferenceArea x1={xScale.domain[0]} x2={league} y1={yScale.domain[0]} y2={league} fill="none" stroke="none" label={<QuadrantLabel lines={['Bad offense', 'Good defense']} />} />
+              <ReferenceArea x1={league} x2={xScale.domain[1]} y1={yScale.domain[0]} y2={league} fill="none" stroke="none" label={<QuadrantLabel lines={['Good offense', 'Good defense']} right />} />
+              <ReferenceArea x1={xScale.domain[0]} x2={league} y1={league} y2={yScale.domain[1]} fill="none" stroke="none" label={<QuadrantLabel lines={['Bad offense', 'Bad defense']} bottom />} />
+              <ReferenceArea x1={league} x2={xScale.domain[1]} y1={league} y2={yScale.domain[1]} fill="none" stroke="none" label={<QuadrantLabel lines={['Good offense', 'Bad defense']} right bottom />} />
+              <ReferenceLine x={league} stroke="rgb(var(--muted))" strokeDasharray="4 4" />
+              <ReferenceLine y={league} stroke="rgb(var(--muted))" strokeDasharray="4 4" />
+              <Tooltip content={<ChartTip />} cursor={false} />
+              <Scatter data={points} shape={<LogoDot logoSize={logoSize} />} isAnimationActive={false} />
+            </ScatterChart>
+          </ResponsiveContainer>
+        </div>
+        <figcaption className="text-xs text-muted mt-1">Dashed lines mark the league average points per drive, which is the same for offense and defense. Good offense is to the right and good defense is up, so the best teams sit in the upper right.</figcaption>
+      </figure>
+    </>
   )
 }
 
@@ -230,7 +263,7 @@ function OverviewTab({ rows, request }) {
   )
   return (
     <div>
-      <TiersChart rows={rows} />
+      <TiersChart rows={rows} name={spec.name} qualifier={spec.qualifier} />
       <div className="flex justify-end mb-2"><ExportMenu spec={spec} /></div>
       <div className="overflow-x-auto border-y border-rule">
         <table className="w-full text-sm num">

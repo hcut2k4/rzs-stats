@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { chooseScale, copyImage } from '../utils/tableImage'
+import { copyChartImage } from '../utils/chartImage'
 
 let ctx, calls, canvases, downloads, write, png
 const spec = () => ({
@@ -194,5 +195,104 @@ describe('copyImage', () => {
     expect(texts).toContain('Season 108')
     expect(texts).toContain(`${window.location.host} · ${new Date().toISOString().slice(0, 10)}`)
     expect(texts).toContain('—')
+  })
+})
+
+const chartSpec = () => ({
+  name: 'Efficiency Overview chart', qualifier: 'Season 108',
+  points: [{ x: 3, y: 1, abbr: 'PHI' }, { x: 1, y: 3, abbr: 'DAL' }],
+  league: 2,
+  xScale: { domain: [0.5, 3.5], ticks: [0.5, 1, 1.5, 2, 2.5, 3, 3.5] },
+  yScale: { domain: [0.5, 3.5], ticks: [0.5, 1, 1.5, 2, 2.5, 3, 3.5] },
+})
+
+describe('chart PNG export', () => {
+  let images
+  beforeEach(() => {
+    images = []
+    vi.stubGlobal('Image', class {
+      constructor() { images.push(this) }
+    })
+    for (const method of ['beginPath', 'moveTo', 'lineTo', 'stroke', 'setLineDash', 'save', 'translate', 'rotate', 'restore', 'drawImage']) ctx[method] = vi.fn()
+  })
+  const load = () => images.forEach(image => image.onload())
+
+  it('writes a PNG promise before any logo loads and draws the complete light chart', async () => {
+    const result = copyChartImage(chartSpec())
+    expect(write).toHaveBeenCalledTimes(1)
+    const promise = write.mock.calls[0][0][0].data['image/png']
+    expect(promise).toBeInstanceOf(Promise)
+    expect(HTMLCanvasElement.prototype.toBlob).not.toHaveBeenCalled()
+    expect(images.map(image => image.crossOrigin)).toEqual(['anonymous', 'anonymous'])
+    expect(images[0].src).toBe('https://a.espncdn.com/i/teamlogos/nfl/500/phi.png')
+    load()
+    await expect(result).resolves.toBe('copied')
+    await expect(promise).resolves.toBe(png)
+    expect(ctx.drawImage).toHaveBeenCalledTimes(2)
+    const first = ctx.drawImage.mock.calls[0]
+    const second = ctx.drawImage.mock.calls[1]
+    expect(first[1]).toBeGreaterThan(second[1])
+    expect(first[2]).toBeLessThan(second[2])
+    const texts = calls.filter(call => call.type === 'fillText').map(call => call.args[0])
+    expect(texts).toEqual(expect.arrayContaining([
+      'RZS Stats — Efficiency Overview chart', 'Season 108',
+      `${window.location.host} · ${new Date().toISOString().slice(0, 10)}`,
+      'Offense points per drive → better', 'Defense points allowed per drive → better',
+      'Good offense', 'Bad offense', 'Good defense', 'Bad defense',
+      '0.5', '1.0', '1.5', '2.0', '2.5', '3.0', '3.5',
+    ]))
+    expect(calls).toContainEqual({ type: 'fillRect', args: [0, 0, 900, 720], style: '#ffffff' })
+    expect(ctx.setLineDash).toHaveBeenCalledWith([2, 4])
+    expect(ctx.setLineDash).toHaveBeenCalledWith([4, 4])
+    expect(ctx.stroke).toHaveBeenCalledTimes(18)
+    expect(downloads).toHaveLength(0)
+  })
+
+  it.each(['unsupported', 'denied'])('downloads a distinctly named chart when clipboard is %s', async failure => {
+    if (failure === 'unsupported') vi.stubGlobal('ClipboardItem', undefined)
+    else write.mockRejectedValue(new Error('denied'))
+    const result = copyChartImage(chartSpec())
+    load()
+    await expect(result).resolves.toBe('downloaded')
+    expect(downloads[0].download).toBe('efficiency-overview-chart-season-108.png')
+    expect(URL.createObjectURL).toHaveBeenCalledWith(png)
+  })
+
+  it('draws an abbreviation at the point when a logo fails', async () => {
+    const result = copyChartImage(chartSpec())
+    images[0].onerror()
+    images[1].onload()
+    await expect(result).resolves.toBe('copied')
+    expect(ctx.drawImage).toHaveBeenCalledTimes(1)
+    expect(calls).toContainEqual(expect.objectContaining({ type: 'fillText', args: ['PHI', 80 + 2.5 / 3 * 790, 70 + 0.5 / 3 * 570] }))
+  })
+
+  it('uses abbreviations after three seconds for logos that never load', async () => {
+    const result = copyChartImage(chartSpec())
+    await vi.advanceTimersByTimeAsync(3000)
+    await expect(result).resolves.toBe('copied')
+    expect(ctx.drawImage).not.toHaveBeenCalled()
+    expect(calls.filter(call => call.type === 'fillText').map(call => call.args[0])).toEqual(expect.arrayContaining(['PHI', 'DAL']))
+  })
+
+  it('rejects an oversized chart before allocating dimensions or loading logos', async () => {
+    const widthSetter = vi.spyOn(HTMLCanvasElement.prototype, 'width', 'set')
+    const heightSetter = vi.spyOn(HTMLCanvasElement.prototype, 'height', 'set')
+    await expect(copyChartImage({ ...chartSpec(), qualifier: 'x'.repeat(20000) })).resolves.toBe('toobig')
+    expect(widthSetter).not.toHaveBeenCalled()
+    expect(heightSetter).not.toHaveBeenCalled()
+    expect(images).toHaveLength(0)
+    expect(downloads).toHaveLength(0)
+  })
+
+  it.each(['null', 'tainted'])('reports %s encoding as too big without throwing', async failure => {
+    HTMLCanvasElement.prototype.toBlob.mockImplementation(callback => {
+      if (failure === 'tainted') throw new DOMException('Tainted canvas', 'SecurityError')
+      callback(null)
+    })
+    const result = copyChartImage(chartSpec())
+    load()
+    await expect(result).resolves.toBe('toobig')
+    expect(downloads).toHaveLength(0)
   })
 })

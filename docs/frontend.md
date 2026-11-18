@@ -86,3 +86,5 @@ The conventions text (`CONVENTIONS` in `exportTable.js`) was checked against the
 
 ### The image export
 `tableImage.js` draws the table on a canvas rather than capturing the DOM, so sticky columns, horizontal scroll and cross-origin logos cannot clip or taint it. It is always light-themed (heat colors are low-alpha tints that composite over white) and has no logos. Size is checked on width, height and area before the canvas is allocated: it tries 2x, then 1x, then reports `Too big` (iOS Safari's ~16.7M px canvas is the binding limit). The clipboard write is issued before any `await`, because Safari drops the click's permission across one. Browsers without `ClipboardItem` image support (Firefox) get a PNG download instead.
+
+Chart PNGs are canvas-drawn, with team logos when CORS allows and abbreviations otherwise.
