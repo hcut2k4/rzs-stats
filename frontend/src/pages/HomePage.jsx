@@ -7,10 +7,11 @@ import {
 } from '../api/client'
 import { TeamLogo } from '../components/TeamLogo'
 import PageHeader from '../components/PageHeader'
+import ExportMenu from '../components/ExportMenu'
 import { seasonLabel } from '../utils/seasons'
 import { weekLabel } from '../utils/playoffRounds'
 import { COLORS } from '../utils/chartColors'
-import { lean, pct0 } from '../utils/eloLean'
+import { lean, pct0, TIERS } from '../utils/eloLean'
 
 const pct = v => (v == null ? '–' : (v * 100).toFixed(1) + '%')
 const signed1 = v => (v == null ? '–' : (v > 0 ? '+' : '') + v.toFixed(1))
@@ -274,8 +275,35 @@ function BestGames({ upcoming, loading }) {
     .sort((a, b) => a.l.prob - b.l.prob || a.game.week - b.game.week)
     .slice(0, 5)
 
+  const exportSpec = {
+    name: 'Best Games Ahead',
+    qualifier: `${seasonLabel(season)} · ${shortWeek(week)}–${shortWeek(week + 1)} · ${best.length} games · closest first`,
+    description: 'The five closest unplayed games in the next two weeks of the latest season. Games are ranked by the favorite’s win probability, closest to a coin flip first.',
+    rows: best,
+    cols: [
+      { label: 'Week', desc: 'The scheduled week or playoff round.', text: ({ game }) => shortWeek(game.week) },
+      { label: 'Away', desc: 'The visiting team abbreviation.', text: ({ game }) => game.awayTeam.abbrName },
+      { label: 'Home', desc: 'The home team abbreviation.', text: ({ game }) => game.homeTeam.abbrName },
+      { label: 'Favored', desc: 'The abbreviation of the team with the higher win probability; the home team wins a tie.', text: ({ l }) => l.leansTo.abbrName },
+      { label: 'Favored Win Prob', desc: 'The favored team’s Elo win probability.', text: ({ l }) => pct0(l.prob), value: ({ l }) => l.prob, z: '0%' },
+      { label: 'Outlook', desc: `The tier of the favorite’s win probability: ${TIERS.map((t, i) => `${t.label} ${i === TIERS.length - 1 ? `at least ${pct0(t.lo)}` : `below ${pct0(t.hi)}`}`).join('; ')}.`, text: ({ l }) => l.tier.label, color: ({ l }) => l.shade },
+    ],
+    api: {
+      path: '/elo/upcoming', params: {},
+      note: 'This card shows the 5 closest games in the next two weeks of the latest season, computed client-side from the full upcoming list. To reproduce it, fetch /api/elo/upcoming, keep the latest season and the earliest unplayed week plus the following week, sort by closeness (|home win prob - 0.5|), then week ascending for ties, and take 5 games.',
+      fields: {
+        Week: 'week formatted as a week label or playoff round.',
+        Away: 'awayTeam.abbrName', Home: 'homeTeam.abbrName',
+        Favored: 'homeTeam.abbrName when homeWinProbability >= awayWinProbability; otherwise awayTeam.abbrName.',
+        'Favored Win Prob': 'max(homeWinProbability, awayWinProbability).',
+        Outlook: 'Apply the documented probability tiers to the favored win probability.',
+      },
+    },
+  }
+
   return (
     <Card to="/elo?tab=games" title="Best Games Ahead" blurb="The closest unplayed games over the next two weeks." cta="All projected games">
+      {!loading && best.length > 0 && <div className="flex justify-end"><ExportMenu spec={exportSpec} /></div>}
       <Rows loading={loading} empty={!best.length}>
         <div className={`${bestGrid} py-1 text-xs font-semibold uppercase tracking-wide text-muted`}>
           <span>Wk</span>

@@ -11,7 +11,7 @@ The Best Games table mirrors the Elo **Projected** table — same columns, `Lean
 
 ### StandingsPage
 Three tabs, with the active one held in the URL as `?tab=standings|history|weekly` (`standings` omits the param) — same contract as EloPage: deep links work, an unknown value falls back to Standings, and tab switches use `replace`. The season picker lives in the header and is shared by Standings and Week by Week; it is hidden on Season History, which spans every season. The header qualifier is per-tab. Group-by-conference and the SoS toggle are Standings-tab controls and render below the tab row, not in the header.
-- **Standings**: Sortable by any column (click header, click again to reverse). Default sort: PyPAT descending. Heat colors: green = good (PyPAT, Win%, Avg PF), red = bad (Avg PA, SoS), diverging blue/green = Luck. Sticky rank + team columns for mobile scroll. SoS toggle appears only for the active season. CSV + Excel export (hidden on mobile). A standings response for a season the user has already switched away from is ignored. If the season list itself fails to load, the error shows on Week by Week too rather than "No data available."
+- **Standings**: Sortable by any column (click header, click again to reverse). Default sort: PyPAT descending. Heat colors: green = good (PyPAT, Win%, Avg PF), red = bad (Avg PA, SoS), diverging blue/green = Luck. Sticky rank + team columns for mobile scroll. SoS toggle appears only for the active season. Exports via `ExportMenu` (visible on mobile). Each conference block exports only its own teams. A standings response for a season the user has already switched away from is ignored. If the season list itself fails to load, the error shows on Week by Week too rather than "No data available."
 - **Season History**: Table of all seasons, W-L + PyPAT + Luck per team. Sortable by clicking any season's column header. `/trends/season` returns every season × every team, so it is fetched only when this tab is first opened, then held in page state — never on a plain Standings visit. A failed fetch shows an error with a Retry button rather than an empty table. The tab mounts only once the data is in, so its default sort (latest season, W-L) initializes against real data.
 - **Week by Week**: Recharts line chart, cumulative PyPAT by week. Click teams to highlight them; the rest fade back. A response for a season the user has already switched away from is ignored, and a failed load shows an error instead of the previous season's chart.
 
@@ -36,7 +36,7 @@ Every column header carries a plain-language tooltip (`TIPS` map at the top of t
 
 ### QbPage
 Two tabs:
-- **Leaderboard**: Every QB by TANY/A. Column *presets* (efficiency / classic / rushing / all) control which of `ALL_COLS` render. Regular / Playoffs / Both toggle, `minAtt` input, "show unqualified" checkbox. Unqualified rows render at 50% opacity with no rank. CSV + Excel export.
+- **Leaderboard**: Every QB by TANY/A. Column *presets* (efficiency / classic / rushing / all) control which of `ALL_COLS` render. Regular / Playoffs / Both toggle, `minAtt` input, "show unqualified" checkbox. Unqualified rows render at 50% opacity with no rank. Exports follow the active preset's columns; an unqualified QB exports an empty `#`.
 - **Movement**: Biggest risers and fallers over a configurable window, plus a rank-by-week chart (season or all-time basis).
 
 QB names link to the player's NeonSportz page via `rosterId`.
@@ -56,3 +56,28 @@ Card grids for stat definitions (PyPAT, Luck, SoS, Elo, TANY/A, RUSH+) and per-p
 - **Tied games**: Each team gets 0.5 wins toward record and expected wins
 - **PyPAT rounding**: stored to 4 decimal places (`Math.round(val * 10000.0) / 10000.0`)
 - **All values are nullable** for SoS fields, including SoS Played — null means no data (no games played yet, no future opponents, or no opponent ratable after H2H exclusion)
+
+## Exports
+
+Every table and data list renders `<ExportMenu spec={...} />` ([components/ExportMenu.jsx](../frontend/src/components/ExportMenu.jsx)): four inline buttons, XLSX / CSV / PNG / AI, visible on mobile. **A new table or data list gets one.** All logic lives in [utils/exportTable.js](../frontend/src/utils/exportTable.js) (CSV, XLSX, AI text) and [utils/tableImage.js](../frontend/src/utils/tableImage.js) (PNG); pages only build a spec.
+
+```js
+{ name, qualifier, description, notes, rows,
+  cols: [{ label, group, desc, text, value, z, color, align, keepText }],
+  api: { path, params, fields, note } }
+```
+
+- **Build it from the page's own state**: `rows` is exactly what is on screen (filtered, sorted, preset-reduced) and `qualifier` describes that slice, so never reuse a header phrase that stops being true after a re-sort.
+- **Pages with a `COLS` array** call `specCols(COLS, cellColor)`. A column whose `fmt` returns JSX **must declare `tx`**, the plain-text version; a `tx` column with no `value` is text-only. `exportLabel` replaces `label` in the CSV/AI header where the on-screen header leans on a group band (`SoS Played`, not `Played`). **Pages without one** (all of EloPage) declare an export-only spec beside the table instead of refactoring the table to render from it.
+- **Missing is decided from `value()` before formatting**, never recovered from text: on-screen formatters render null as an em-dash, which must not reach a CSV. A null, undefined or NaN value is an empty cell; zero-denominator rates need an explicit `value` returning null so they are empty, not 0. `keepText` is for text that carries meaning, such as `n/a` for TD:INT.
+- **Excel gets a typed number only when a column has both `value` and `z`** (a SheetJS format such as `0.0%`); a bare number would show `0.681` where the site shows `68.1%`. Without `z` the cell is the text.
+- **Every column needs a `desc`**: the AI export prints it as the column definition. Reuse the tooltip / `TIPS` / `METRICS` text rather than writing a second copy.
+- **`api.params` must come from the same response as `rows`.** Store the resolved params with the rows when a response lands and guard against out-of-order responses (see StandingsPage); never read them from live UI state. `preset`, sort and other client-only state go in `api.note`, not in params.
+
+### The AI export
+A markdown block meant to be pasted into an AI chat: a league primer, what the table is, one definition per column, the full dataset as a fenced CSV, then the public REST API: the exact `GET` URL that produced the table, how each derived column maps to the raw API fields, a list of related endpoints, and the conventions an assistant gets wrong without being told. The base URL is `window.location.origin`, so a dev build emits `localhost`. The API is unauthenticated, so an assistant can re-fetch fresh data itself.
+
+The conventions text (`CONVENTIONS` in `exportTable.js`) was checked against the backend and must be re-checked when an endpoint changes. The easy mistakes: `/api/games` takes a **numeric** `stage` (`2` = playoffs), while `/api/qb/*` and `/api/efficiency` take a **named** one (`regular|playoffs|both`; a number is a 400); `season` is a 0-based index and `/api/games` also requires `week`.
+
+### The image export
+`tableImage.js` draws the table on a canvas rather than capturing the DOM, so sticky columns, horizontal scroll and cross-origin logos cannot clip or taint it. It is always light-themed (heat colors are low-alpha tints that composite over white) and has no logos. Size is checked on width, height and area before the canvas is allocated: it tries 2x, then 1x, then reports `Too big` (iOS Safari's ~16.7M px canvas is the binding limit). The clipboard write is issued before any `await`, because Safari drops the click's permission across one. Browsers without `ClipboardItem` image support (Firefox) get a PNG download instead.

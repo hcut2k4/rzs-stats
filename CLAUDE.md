@@ -61,6 +61,7 @@ Setup details, ports, database credentials, and overrides: [Operations](docs/ope
 ### Frontend consistency
 
 - Update `AboutPage` whenever adding a stat or page; it is the user-facing contract for every number.
+- Every table or data list renders an `ExportMenu` (Excel, CSV, image, AI); see [Frontend](docs/frontend.md#exports).
 - Tier thresholds, colors and `lean()` live only in `utils/eloLean.js`; Home and Elo share them.
 
 ## Security and deployment

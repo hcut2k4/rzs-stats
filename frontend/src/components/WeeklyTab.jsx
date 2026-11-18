@@ -3,10 +3,13 @@ import { getWeeklyTrends } from '../api/client'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts'
+import ExportMenu from './ExportMenu'
+import { seasonLabel } from '../utils/seasons'
+import { weekLabel } from '../utils/playoffRounds'
 import { COLORS } from '../utils/chartColors'
 
 export default function WeeklyTab({ season }) {
-  const [data, setData] = useState([])
+  const [{ data, dataSeason }, setData] = useState({ data: [], dataSeason: null })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(false)
   const [focus, setFocus] = useState(new Set())
@@ -18,8 +21,8 @@ export default function WeeklyTab({ season }) {
     setLoading(true)
     setError(false)
     getWeeklyTrends(season)
-      .then(d => { if (current) { setData(d); setLoading(false) } })
-      .catch(() => { if (current) { setData([]); setError(true); setLoading(false) } })
+      .then(d => { if (current) { setData({ data: d, dataSeason: season }); setLoading(false) } })
+      .catch(() => { if (current) { setData({ data: [], dataSeason: season }); setError(true); setLoading(false) } })
     return () => { current = false }
   }, [season])
 
@@ -34,6 +37,22 @@ export default function WeeklyTab({ season }) {
     d.standings.forEach(s => { point[s.displayName] = s.pythagoreanPat })
     return point
   })
+
+  const spec = {
+    name: 'Week by Week',
+    qualifier: `${seasonLabel(dataSeason)} · cumulative PyPAT by week`,
+    description: 'One row per team in chart legend order, with cumulative PyPAT at each week.',
+    rows: allTeams,
+    cols: [
+      { label: 'Team', desc: 'Team name.', text: team => team.name, align: 'left' },
+      ...data.map(d => {
+        const value = team => d.standings.find(r => r.teamId === team.id)?.pythagoreanPat
+        const label = d.weekIndex >= 18 ? weekLabel(2, d.weekIndex) : `Wk ${d.weekIndex + 1}`
+        return { label, desc: `Cumulative PythagoreanPAT win expectancy through ${label} of ${seasonLabel(dataSeason)}, based on all scoring through that week.`, value, text: team => value(team) == null ? '' : (value(team) * 100).toFixed(1) + '%', z: '0.0%' }
+      }),
+    ],
+    api: { path: '/trends/weekly', params: { season: dataSeason }, fields: { Team: 'standings[].displayName', 'Week columns': 'Match standings[].teamId within each weekIndex; value is standings[].pythagoreanPat.' }, note: 'Highlighting teams only changes chart emphasis; all chart teams are included.' },
+  }
 
   const toggleTeam = name =>
     setFocus(prev => { const n = new Set(prev); n.has(name) ? n.delete(name) : n.add(name); return n })
@@ -64,6 +83,7 @@ export default function WeeklyTab({ season }) {
           </button>
         ))}
       </div>
+      {allTeams.length > 0 && <div className="flex justify-end mb-2"><ExportMenu spec={spec} /></div>}
       <ResponsiveContainer width="100%" height={420}>
         <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
           <CartesianGrid strokeDasharray="2 4" stroke="rgb(var(--line))" />
