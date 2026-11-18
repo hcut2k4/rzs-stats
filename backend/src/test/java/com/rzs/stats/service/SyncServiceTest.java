@@ -28,12 +28,13 @@ class SyncServiceTest {
     @Mock TeamRepository teamRepository;
     @Mock GameRepository gameRepository;
     @Mock com.rzs.stats.repository.QbGameStatRepository qbRepository;
+    @Mock com.rzs.stats.repository.TeamGameStatRepository teamStatRepository;
 
     SyncService service;
 
     @BeforeEach
     void setUp() {
-        service = new SyncService(client, teamRepository, gameRepository, qbRepository);
+        service = new SyncService(client, teamRepository, gameRepository, qbRepository, teamStatRepository);
     }
 
     // ── sync() ─────────────────────────────────────────────────────────────────

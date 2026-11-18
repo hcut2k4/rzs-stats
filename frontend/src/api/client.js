@@ -43,3 +43,5 @@ export const getQbLeaderboard = (params) => api.get('/qb/leaderboard', { params 
 export const getQbMovement = (params) => api.get('/qb/movement', { params }).then(r => r.data)
 export const triggerQbSync = () => api.post('/admin/sync/qb').then(r => r.data)
 export const getQbSyncStatus = () => api.get('/admin/sync/qb/status').then(r => r.data)
+
+export const getEfficiency = (season, stage) => api.get('/efficiency', { params: { season, stage } }).then(r => r.data)

@@ -2,10 +2,10 @@
 
 ## Frontend Pages
 
-Routes: `/` Home, `/standings`, `/games`, `/elo`, `/qb`, `/about`, `/admin`. The `RZS Stats` wordmark links to `/`. `/trends` no longer has a page — it redirects to `/standings?tab=history`, so old links and bookmarks keep working.
+Routes: `/` Home, `/standings`, `/efficiency`, `/games`, `/elo`, `/qb`, `/about`, `/admin`. The `RZS Stats` wordmark links to `/`. `/trends` no longer has a page — it redirects to `/standings?tab=history`, so old links and bookmarks keep working.
 
 ### HomePage
-Landing page at `/`. Leads with **Best Games Ahead** — the five closest unplayed games league-wide, ranked by the favorite's win probability (closest to a coin flip first, week ascending as tiebreak), linking to `/elo?tab=games`. Below it, one preview card per section (Standings, Games, Elo, QBs, Trends, About) in a 3-column grid; each card is a `Link` to its page. The Trends card has no page of its own — it links to `/standings?tab=weekly`. Every section fetches independently so one failed request doesn't blank the page — top 5 by PyPAT, latest week's scores, top 5 Elo with biggest riser, top 5 QBs by TANY/A, and a mini PyPAT line chart for the top 4 teams.
+Landing page at `/`. Leads with **Best Games Ahead** — the five closest unplayed games league-wide, ranked by the favorite's win probability (closest to a coin flip first, week ascending as tiebreak), linking to `/elo?tab=games`. Below it, one preview card per section (Standings, Efficiency, Games, Elo, QBs, Trends, About) in a 3-column grid; each card is a `Link` to its page. The Trends card has no page of its own — it links to `/standings?tab=weekly`. Every section fetches independently so one failed request doesn't blank the page — top 5 by PyPAT, latest week's scores, top 5 Elo with biggest riser, top 5 QBs by TANY/A, and a mini PyPAT line chart for the top 4 teams.
 
 The Best Games table mirrors the Elo **Projected** table — same columns, `LeanBar`, Outlook tiers and shading — by importing the same helpers rather than restating them. **The tier thresholds, colors and `lean()` live only in [utils/eloLean.js](../frontend/src/utils/eloLean.js)**; change them there and both tables move together.
 
@@ -14,6 +14,13 @@ Three tabs, with the active one held in the URL as `?tab=standings|history|weekl
 - **Standings**: Sortable by any column (click header, click again to reverse). Default sort: PyPAT descending. Heat colors: green = good (PyPAT, Win%, Avg PF), red = bad (Avg PA, SoS), diverging blue/green = Luck. Sticky rank + team columns for mobile scroll. SoS toggle appears only for the active season. CSV + Excel export (hidden on mobile). A standings response for a season the user has already switched away from is ignored. If the season list itself fails to load, the error shows on Week by Week too rather than "No data available."
 - **Season History**: Table of all seasons, W-L + PyPAT + Luck per team. Sortable by clicking any season's column header. `/trends/season` returns every season × every team, so it is fetched only when this tab is first opened, then held in page state — never on a plain Standings visit. A failed fetch shows an error with a Retry button rather than an empty table. The tab mounts only once the data is in, so its default sort (latest season, W-L) initializes against real data.
 - **Week by Week**: Recharts line chart, cumulative PyPAT by week. Click teams to highlight them; the rest fade back. A response for a season the user has already switched away from is ignored, and a failed load shows an error instead of the previous season's chart.
+
+### EfficiencyPage
+Three tabs, with the active one held in the URL as `?tab=overview|offense|defense` (`overview` omits the param; an unknown value falls back to it; switches use `replace`). The header holds the season picker and a Regular / Playoffs / Both toggle, which maps to the named `stage` enum like the QB page. Data comes from one `GET /api/efficiency` call per season and stage; a response for a season or stage the user has switched away from is ignored.
+- **Overview**: Recharts scatter of offense Pts/Drive (x) against defense Pts/Drive allowed (y, reversed so up is good), with team logos as markers and dashed league-average lines, over a sortable table led by Net Pts/Drive.
+- **Offense / Defense**: One `SideTab`, driven by the `METRICS` array. The Defense tab reads each row's `defense` side and flips which direction is good, so heat colors always mean green = better. Team column is sticky.
+
+Sorting uses the shared `useSorter` / `SortTh` in [components/SortTh.jsx](../frontend/src/components/SortTh.jsx); nulls always sort last. Every header carries a tooltip. An empty response shows "No team stats yet", because these rows only exist after the player and team stat sync has run.
 
 ### GamesPage
 Game cards for a selected season/stage/week. Prev/Next navigation. Each card links to the NeonSportz recap via `nsPk` (not `gameId`). SIM badge on simmed games.

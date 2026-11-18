@@ -125,8 +125,8 @@ function AdminTools() {
 
   const handleQbSync = async () => {
     if (!window.confirm(
-      'Re-pull every QB game stat line from the passing, rushing and team endpoints for all seasons.\n\n' +
-      'This is roughly 280 API requests and runs in the background.\n\nProceed?'
+      'Re-pull every QB and team game stat line from the passing, rushing, kicking, punting and team endpoints for all seasons.\n\n' +
+      'This is several hundred API requests, grows with league history, and runs in the background.\n\nProceed?'
     )) return
     setQbSyncing(true)
     try {
@@ -239,9 +239,9 @@ function AdminTools() {
 
       <div className="mt-6 border border-line rounded p-5 space-y-3">
         <div>
-          <p className="text-sm font-medium text-ink">Re-sync QB Stats</p>
+          <p className="text-sm font-medium text-ink">Re-sync Player & Team Stats</p>
           <p className="text-xs text-muted mt-1">
-            Re-pulls every QB game line for all seasons from the passing, rushing and team endpoints.
+            Re-pulls every QB and team game line for all seasons from the passing, rushing, kicking, punting and team endpoints.
             Nightly sync only fetches new weeks, so use this after a schema or allocation change.
           </p>
         </div>
@@ -264,7 +264,7 @@ function AdminTools() {
           disabled={qbSyncing || syncing}
           className="btn w-full justify-center py-2"
         >
-          {qbSyncing ? 'Syncing QB stats...' : 'Re-sync QB Stats'}
+          {qbSyncing ? 'Syncing player & team stats...' : 'Re-sync Player & Team Stats'}
         </button>
       </div>
 

@@ -27,6 +27,7 @@ function stubHomeData() {
   client.getQbLeaderboard.mockResolvedValue([
     { rosterId: 99, playerName: 'Pat Mahomes', teamAbbr: 'KC', tanya: 8.42, rank: 1 },
   ])
+  client.getEfficiency.mockResolvedValue([])
   client.getWeeklyTrends.mockResolvedValue([])
   client.getEloUpcoming.mockResolvedValue([
     upcomingGame(50, 3, team(1, 'KC'), team(2, 'SF'), 0.92),   // Solid
@@ -146,5 +147,39 @@ describe('HomePage', () => {
     await userEvent.click(screen.getByRole('link', { name: /RZS Stats home/i }))
 
     await waitFor(() => expect(screen.getByText('Pat Mahomes')).toBeInTheDocument())
+  })
+  it('previews the top efficiency teams with signed net points per drive and links to Efficiency', async () => {
+    stubHomeData()
+    client.getEfficiency.mockResolvedValue([
+      { ...team(1, 'KC', 'Chiefs'), netPointsPerDrive: 0.4 },
+      { ...team(2, 'SF', '49ers'), netPointsPerDrive: -0.25 },
+      { ...team(3, 'BUF', 'Bills'), netPointsPerDrive: -0.3 },
+      { ...team(4, 'MIA', 'Dolphins'), netPointsPerDrive: -0.4 },
+      { ...team(5, 'DAL', 'Cowboys'), netPointsPerDrive: -0.5 },
+      { ...team(6, 'PHI', 'Eagles'), netPointsPerDrive: -0.6 },
+    ])
+    render(<MemoryRouter><HomePage /></MemoryRouter>)
+    const link = screen.getByRole('link', { name: /^Efficiency/ })
+    const card = within(link)
+    expect(await card.findByText('+0.40')).toBeInTheDocument()
+    expect(card.getByText('-0.25')).toBeInTheDocument()
+    expect(card.getByText('Chiefs')).toBeInTheDocument()
+    expect(card.getByText('49ers')).toBeInTheDocument()
+    expect(card.queryByText('Eagles')).not.toBeInTheDocument()
+    expect(link).toHaveAttribute('href', '/efficiency')
+    expect(client.getEfficiency).toHaveBeenCalledWith(7, 'regular')
+  })
+
+  it('keeps the other previews visible when efficiency fails to load', async () => {
+    stubHomeData()
+    client.getEfficiency.mockRejectedValue(new Error('Unavailable'))
+    render(<MemoryRouter><HomePage /></MemoryRouter>)
+    const card = within(screen.getByRole('link', { name: /^Efficiency/ }))
+    expect(await card.findByText('No data yet.')).toBeInTheDocument()
+    expect(await screen.findByText('Pat Mahomes')).toBeInTheDocument()
+    expect(screen.getByText('71.0%')).toBeInTheDocument()
+    expect(screen.getByText('1623')).toBeInTheDocument()
+    expect(screen.getByText('24')).toBeInTheDocument()
+    expect(screen.getByText('52%')).toBeInTheDocument()
   })
 })

@@ -28,6 +28,7 @@ class StatsControllerTest {
     @MockBean com.rzs.stats.repository.EloConfigRepository eloConfigs;
     @Autowired MockMvc mvc;
     @MockBean StatsService statsService;
+    @MockBean com.rzs.stats.service.TeamEfficiencyService efficiencyService;
 
     @Test
     void getStandings_returns200WithList() throws Exception {
@@ -217,5 +218,69 @@ class StatsControllerTest {
         mvc.perform(get("/api/trends/weekly").param("season", "4"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].seasonIndex").value(4));
+    }
+    @Test
+    void efficiencyReturnsNamedSidesAndDefaultsToRegularSeason() throws Exception {
+        var offense = new com.rzs.stats.model.dto.TeamEfficiencyDto.Side(10, 50, 2.5, 0.5, 5.0, 0.6, 0.4, 0.7, 0.1, 0.05);
+        var defense = new com.rzs.stats.model.dto.TeamEfficiencyDto.Side(12, 60, 1.5, 0.3, 4.0, 0.5, 0.3, 0.6, 0.2, 0.08);
+        var dto = new com.rzs.stats.model.dto.TeamEfficiencyDto(1, "Eagles", "PHI", "Philadelphia", "NFC", "East", "000000", 1,
+                2, offense, defense, 1.0);
+        when(efficiencyService.efficiency(4, com.rzs.stats.service.QbStatsService.Stage.REGULAR)).thenReturn(List.of(dto));
+        var result = mvc.perform(get("/api/efficiency").param("season", "4"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].teamId").value(1))
+                .andExpect(jsonPath("$[0].displayName").value("Eagles"))
+                .andExpect(jsonPath("$[0].abbrName").value("PHI"))
+                .andExpect(jsonPath("$[0].games").value(2))
+                .andExpect(jsonPath("$[0].netPointsPerDrive").value(1.0));
+        String[] fields = {"drives", "plays", "pointsPerDrive", "pointsPerPlay", "yardsPerPlay", "seriesRate",
+                "thirdDownRate", "redZoneTdRate", "giveawayRate", "sackRate"};
+        double[] off = {10, 50, 2.5, 0.5, 5.0, 0.6, 0.4, 0.7, 0.1, 0.05};
+        double[] def = {12, 60, 1.5, 0.3, 4.0, 0.5, 0.3, 0.6, 0.2, 0.08};
+        for (int i = 0; i < fields.length; i++) {
+            result.andExpect(jsonPath("$[0].offense." + fields[i]).value(org.hamcrest.Matchers.is(off[i]), Double.class));
+            result.andExpect(jsonPath("$[0].defense." + fields[i]).value(org.hamcrest.Matchers.is(def[i]), Double.class));
+        }
+        verify(efficiencyService).efficiency(4, com.rzs.stats.service.QbStatsService.Stage.REGULAR);
+    }
+
+    @Test
+    void efficiencyAcceptsCaseInsensitiveStageNames() throws Exception {
+        mvc.perform(get("/api/efficiency").param("season", "4").param("stage", "Playoffs"))
+                .andExpect(status().isOk());
+        verify(efficiencyService).efficiency(4, com.rzs.stats.service.QbStatsService.Stage.PLAYOFFS);
+    }
+
+    @Test
+    void efficiencyRejectsNumericAndUnknownStages() throws Exception {
+        for (String stage : List.of("1", "unknown")) {
+            mvc.perform(get("/api/efficiency").param("season", "4").param("stage", stage))
+                    .andExpect(status().isBadRequest());
+        }
+        verifyNoInteractions(efficiencyService);
+    }
+
+    @Test
+    void efficiencyRequiresANonnegativeSeason() throws Exception {
+        mvc.perform(get("/api/efficiency").param("season", "-1")).andExpect(status().isBadRequest());
+        mvc.perform(get("/api/efficiency")).andExpect(status().isBadRequest());
+        verifyNoInteractions(efficiencyService);
+    }
+
+    @Test
+    void efficiencySerializesUndefinedRatesAsExplicitNulls() throws Exception {
+        var side = new com.rzs.stats.model.dto.TeamEfficiencyDto.Side(0, 0, null, null, null, null, null, null, null, null);
+        var dto = new com.rzs.stats.model.dto.TeamEfficiencyDto(1, "Eagles", "PHI", null, null, null, null, null, 1, side, side, null);
+        when(efficiencyService.efficiency(0, com.rzs.stats.service.QbStatsService.Stage.REGULAR)).thenReturn(List.of(dto));
+        var result = mvc.perform(get("/api/efficiency").param("season", "0"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].netPointsPerDrive").value(org.hamcrest.Matchers.nullValue()));
+        for (String name : List.of("offense", "defense")) {
+            for (String field : List.of("pointsPerDrive", "pointsPerPlay", "yardsPerPlay", "seriesRate", "thirdDownRate",
+                    "redZoneTdRate", "giveawayRate", "sackRate")) {
+                result.andExpect(jsonPath("$[0]." + name, org.hamcrest.Matchers.hasKey(field)))
+                        .andExpect(jsonPath("$[0]." + name + "." + field).value(org.hamcrest.Matchers.nullValue()));
+            }
+        }
     }
 }

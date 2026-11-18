@@ -4,11 +4,15 @@ import com.rzs.stats.client.NeonSportzClient;
 import com.rzs.stats.model.entity.QbGameStatEntity;
 import com.rzs.stats.model.entity.GameEntity;
 import com.rzs.stats.model.entity.TeamEntity;
+import com.rzs.stats.model.entity.TeamGameStatEntity;
+import com.rzs.stats.model.ns.NsKickingStat;
+import com.rzs.stats.model.ns.NsPuntingStat;
 import com.rzs.stats.model.ns.NsPassingStat;
 import com.rzs.stats.model.ns.NsRushingStat;
 import com.rzs.stats.model.ns.NsTeamStat;
 import com.rzs.stats.repository.GameRepository;
 import com.rzs.stats.repository.QbGameStatRepository;
+import com.rzs.stats.repository.TeamGameStatRepository;
 import com.rzs.stats.repository.TeamRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,15 +28,17 @@ public class QbStatsSyncService {
     private final GameRepository games;
     private final TeamRepository teams;
     private final QbGameStatRepository repository;
+    private final TeamGameStatRepository teamRepository;
     private final QbStatsWeekWriter writer;
     private volatile Status status = new Status(false, null, null, null);
 
     public QbStatsSyncService(NeonSportzClient client, GameRepository games, TeamRepository teams,
-                              QbGameStatRepository repository, QbStatsWeekWriter writer) {
+                              QbGameStatRepository repository, TeamGameStatRepository teamRepository, QbStatsWeekWriter writer) {
         this.client = client;
         this.games = games;
         this.teams = teams;
         this.repository = repository;
+        this.teamRepository = teamRepository;
         this.writer = writer;
     }
 
@@ -59,17 +65,21 @@ public class QbStatsSyncService {
                 int latest = weeks.stream().mapToInt(Integer::intValue).max().orElse(-1);
                 for (int week : weeks) {
                     if (!full && !(season == current && week == latest)
-                            && repository.existsBySeasonIndexAndStageIndexAndWeekIndex(season, 1, week)) continue;
+                            && repository.existsBySeasonIndexAndStageIndexAndWeekIndex(season, 1, week)
+                            && teamRepository.existsBySeasonIndexAndStageIndexAndWeekIndex(season, 1, week)) continue;
                     status = new Status(true, "Syncing QB season " + season + ", week " + week, null, null);
                     List<NsPassingStat> passing = client.fetchPassingStats(season, 1, week);
                     List<NsRushingStat> rushing = client.fetchRushingStats(season, 1, week);
                     List<NsTeamStat> teamStats = client.fetchTeamsStats(season, 1, week);
+                    List<NsKickingStat> kicking = client.fetchKickingStats(season, 1, week);
+                    List<NsPuntingStat> punting = client.fetchPuntingStats(season, 1, week);
                     Set<String> completedTeams = new HashSet<>();
                     completed.stream().filter(g -> g.getWeekIndex() == week).forEach(g -> {
                         if (g.getHomeTeam() != null) completedTeams.add(g.getHomeTeam().getAbbrName());
                         if (g.getAwayTeam() != null) completedTeams.add(g.getAwayTeam().getAbbrName());
                     });
-                    writer.replaceWeek(season, 1, week, buildRows(season, week, passing, rushing, teamStats, byAbbr, completedTeams));
+                    writer.replaceWeek(season, 1, week, buildRows(season, week, passing, rushing, teamStats, byAbbr, completedTeams),
+                            buildTeamRows(season, week, passing, rushing, teamStats, kicking, punting, byAbbr, completedTeams));
                     weeksSynced++;
                 }
             }
@@ -117,6 +127,60 @@ public class QbStatsSyncService {
             row.setTeamFumblesLost(context.offTotalFumLost);
         }
         return new ArrayList<>(rows.values());
+    }
+
+    List<TeamGameStatEntity> buildTeamRows(int season, int week, List<NsPassingStat> passing, List<NsRushingStat> rushing,
+                                           List<NsTeamStat> teamStats, List<NsKickingStat> kicking, List<NsPuntingStat> punting,
+                                           Map<String, TeamEntity> teams, Set<String> completedTeams) {
+        Map<String, Integer> passAtt = new HashMap<>();
+        Map<String, Integer> rushAtt = new HashMap<>();
+        Map<String, Integer> punts = new HashMap<>();
+        Map<String, int[]> kicks = new HashMap<>();
+        passing.forEach(p -> passAtt.merge(p.team__abbrName, p.passTotalAtt, Integer::sum));
+        rushing.forEach(r -> rushAtt.merge(r.team__abbrName, r.rushTotalAtt, Integer::sum));
+        punting.forEach(p -> punts.merge(p.team__abbrName, p.puntTotalAtt, Integer::sum));
+        for (NsKickingStat k : kicking) {
+            int[] sums = kicks.computeIfAbsent(k.team__abbrName, a -> new int[4]);
+            sums[0] += k.fGTotalAtt;
+            sums[1] += k.fGTotalMade;
+            sums[2] += k.xPTotalAtt;
+            sums[3] += k.xPTotalMade;
+        }
+        List<TeamGameStatEntity> rows = new ArrayList<>();
+        for (NsTeamStat t : teamStats) {
+            String abbr = t.team__abbrName;
+            if (!completedTeams.contains(abbr)) continue;
+            TeamGameStatEntity row = new TeamGameStatEntity();
+            row.setTeam(Objects.requireNonNull(teams.get(abbr), "Unknown team " + abbr));
+            row.setSeasonIndex(season);
+            row.setStageIndex(1);
+            row.setWeekIndex(week);
+            row.setPassAtt(passAtt.getOrDefault(abbr, 0));
+            row.setRushAtt(rushAtt.getOrDefault(abbr, 0));
+            row.setPunts(punts.getOrDefault(abbr, 0));
+            int[] k = kicks.getOrDefault(abbr, new int[4]);
+            row.setFgAtt(k[0]);
+            row.setFgMade(k[1]);
+            row.setXpAtt(k[2]);
+            row.setXpMade(k[3]);
+            row.setSacks(t.offTotalSacks);
+            row.setTotalYds(t.offTotalTotalYds);
+            row.setFirstDowns(t.offTotal1stDowns);
+            row.setThirdAtt(t.offTotal3rdDownAtt);
+            row.setThirdConv(t.offTotal3rdDownConv);
+            row.setFourthAtt(t.offTotal4thDownAtt);
+            row.setFourthConv(t.offTotal4thDownConv);
+            row.setRedZones(t.offTotalRedZones);
+            row.setRedZoneTds(t.offTotalRedZoneTDs);
+            row.setPassTds(t.offTotalPassTDs);
+            row.setRushTds(t.offTotalRushTDs);
+            row.setIntsLost(t.offTotalIntsLost);
+            row.setFumLost(t.offTotalFumLost);
+            row.setTwoPtAtt(t.offTotal2PtAtt);
+            row.setTwoPtConv(t.offTotal2PtConv);
+            rows.add(row);
+        }
+        return rows;
     }
 
     private QbGameStatEntity newRow(String id, String name, String abbr, Map<String, TeamEntity> teams, int season, int week) {

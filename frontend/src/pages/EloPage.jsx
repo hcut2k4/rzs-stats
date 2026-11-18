@@ -7,6 +7,7 @@ import Tabs from '../components/Tabs'
 import { TeamCell, TeamLogo } from '../components/TeamLogo'
 import DivergingBar from '../components/DivergingBar'
 import InfoTip from '../components/InfoTip'
+import { SortTh, useSorter } from '../components/SortTh'
 import LeanBar from '../components/LeanBar'
 import { divergeColor } from '../utils/heat'
 import { TIERS, lean, pct0 } from '../utils/eloLean'
@@ -51,33 +52,6 @@ const TIPS = {
 }
 
 const RED = '220 38 38'
-
-function useSorter(initial) {
-  const [sort, setSort] = useState(initial)
-  const click = key => setSort(s => (s.key === key ? { key, asc: !s.asc } : { key, asc: false }))
-  const apply = (rows, getters) => {
-    if (!sort.key) return rows
-    const get = getters[sort.key]
-    return [...rows].sort((a, b) => {
-      const av = get(a)
-      const bv = get(b)
-      if (typeof av === 'string') return sort.asc ? av.localeCompare(bv) : bv.localeCompare(av)
-      return sort.asc ? av - bv : bv - av
-    })
-  }
-  return { sort, click, apply }
-}
-
-const SortTh = ({ tip, sortKey, state, onSort, className = '', children }) => (
-  <th
-    className={`th cursor-pointer hover:text-ink ${className}`}
-    onClick={() => onSort(sortKey)}
-    aria-sort={state.key === sortKey ? (state.asc ? 'ascending' : 'descending') : 'none'}
-  >
-    <InfoTip text={tip}>{children}</InfoTip>
-    {state.key === sortKey && (state.asc ? ' ▲' : ' ▼')}
-  </th>
-)
 
 const UPSET_LEVELS = [
   { hi: 0.60, label: 'Slight upset', alpha: 0.12 },

@@ -1,6 +1,7 @@
 package com.rzs.stats.service;
 
 import com.rzs.stats.repository.QbGameStatRepository;
+import com.rzs.stats.repository.TeamGameStatRepository;
 import com.rzs.stats.config.CacheNames;
 import com.rzs.stats.client.NeonSportzClient;
 import com.rzs.stats.model.entity.GameEntity;
@@ -35,14 +36,17 @@ public class SyncService {
     private final TeamRepository teamRepository;
     private final GameRepository gameRepository;
     private final QbGameStatRepository qbRepository;
+    private final TeamGameStatRepository teamStatRepository;
 
     private Instant lastSyncTime;
     private String lastSyncMessage;
     private boolean lastSyncSuccess;
 
-    public SyncService(NeonSportzClient client, TeamRepository teamRepository, GameRepository gameRepository, QbGameStatRepository qbRepository) {
+    public SyncService(NeonSportzClient client, TeamRepository teamRepository, GameRepository gameRepository, QbGameStatRepository qbRepository,
+                       TeamGameStatRepository teamStatRepository) {
         this.client = client;
         this.qbRepository = qbRepository;
+        this.teamStatRepository = teamStatRepository;
         this.teamRepository = teamRepository;
         this.gameRepository = gameRepository;
     }
@@ -351,6 +355,7 @@ public class SyncService {
         if (!existing.isEmpty() && existing.stream().noneMatch(t -> apiTeamIds.contains(t.getTeamId()))) {
             log.warn("No stored team matches the API's teams — league was replaced; purging games and teams");
             qbRepository.deleteAllInBatch();
+            teamStatRepository.deleteAllInBatch();
             gameRepository.deleteAllInBatch();
             teamRepository.deleteAllInBatch();
         }

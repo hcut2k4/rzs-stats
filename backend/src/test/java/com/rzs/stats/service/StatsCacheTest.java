@@ -31,6 +31,7 @@ class StatsCacheTest {
     @Autowired StatsService statsService;
     @Autowired SyncService syncService;
     @Autowired CacheManager cacheManager;
+    @Autowired QbStatsWeekWriter weekWriter;
 
     @BeforeEach
     void setUp() {
@@ -192,5 +193,22 @@ class StatsCacheTest {
         statsService.getAvailableWeeks(0, 1);
 
         verify(gameRepository, times(1)).findDistinctRegularSeasonWeeks(anyInt(), anyInt());
+    }
+    @Test
+    void syncAndForceSyncEvictTeamEfficiency() {
+        for (boolean force : List.of(false, true)) {
+            cacheManager.getCache("teamEfficiency").put("sentinel", "old");
+            if (force) syncService.syncForce(); else syncService.sync();
+            org.assertj.core.api.Assertions.assertThat(cacheManager.getCache("teamEfficiency").get("sentinel")).isNull();
+        }
+    }
+
+    @Test
+    void replacingAWeekEvictsQuarterbacksAndTeamEfficiency() {
+        for (String name : List.of("qbStats", "teamEfficiency")) cacheManager.getCache(name).put("sentinel", "old");
+        weekWriter.replaceWeek(0, 1, 0, List.of(), List.of());
+        for (String name : List.of("qbStats", "teamEfficiency")) {
+            org.assertj.core.api.Assertions.assertThat(cacheManager.getCache(name).get("sentinel")).isNull();
+        }
     }
 }

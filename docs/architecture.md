@@ -17,21 +17,25 @@ backend/src/main/java/com/rzs/stats/
 │   ├── EloConfigService.java      # persisted, tunable Elo knobs
 │   ├── QbStatsService.java        # leaderboard + movement, ranking, qualification
 │   ├── QbStatsCalculator.java     # TANY/A and RUSH+ formulas
-│   ├── QbStatsSyncService.java    # per-week QB stat sync from NeonSportz
-│   ├── QbStatsWeekWriter.java     # upserts one week of QB rows
+│   ├── QbStatsSyncService.java    # per-week QB + team stat sync from NeonSportz
+│   ├── QbStatsWeekWriter.java     # replaces one week of QB and team rows in one transaction
+│   ├── TeamEfficiencyService.java # Pts/Drive, Pts/Play, Series % — offense and defense per team
+│   ├── TeamEfficiencyCalculator.java # drives, plays and offensive-points formulas
 │   ├── SyncService.java           # NeonSportz game/team sync
 │   └── CacheWarmingService.java   # background cache population
 ├── repository/
 │   ├── GameRepository.java        # game queries (always JOIN FETCH teams)
 │   ├── TeamRepository.java        # team lookups by teamId or nsId
 │   ├── QbGameStatRepository.java  # QB rows by season/stage/week/roster
+│   ├── TeamGameStatRepository.java # team box-score rows by season/stage/week
 │   └── EloConfigRepository.java
 ├── model/
-│   ├── entity/  GameEntity, TeamEntity, QbGameStatEntity, EloConfigEntity
+│   ├── entity/  GameEntity, TeamEntity, QbGameStatEntity, TeamGameStatEntity, EloConfigEntity
 │   ├── dto/     StandingDto, GameDto, TeamDto, SeasonWeekDto,
-│   │            EloDtos, EloConfig, QbStatDto, QbDtos
+│   │            EloDtos, EloConfig, QbStatDto, QbDtos, TeamEfficiencyDto
 │   └── ns/      NsGame, NsTeam, NsLeague, NsPagedResponse,
-│                NsPassingStat, NsRushingStat, NsTeamStat
+│                NsPassingStat, NsRushingStat, NsTeamStat,
+│                NsKickingStat, NsPuntingStat
 ├── client/  NeonSportzClient.java
 ├── scheduler/  SyncScheduler.java   # nightly @Scheduled cron
 └── config/
@@ -47,7 +51,7 @@ frontend/src/
 │   ├── TeamLogo.jsx       # TeamLogo + TeamCell (ESPN CDN logos)
 │   ├── LeanBar.jsx        # center-out diverging bar for projected games
 │   ├── SeasonHistoryTab.jsx, WeeklyTab.jsx   # Standings' history + week-by-week tabs
-│   ├── Tabs.jsx, InfoTip.jsx, DivergingBar.jsx, ThemeToggle.jsx
+│   ├── Tabs.jsx, SortTh.jsx, InfoTip.jsx, DivergingBar.jsx, ThemeToggle.jsx
 ├── utils/
 │   ├── heat.js            # goodBadColor / magnitudeColor / divergeColor
 │   ├── eloLean.js         # TIERS / lean() / tierShade / pct0 — shared by Elo + Home
@@ -57,6 +61,7 @@ frontend/src/
 └── pages/
     ├── HomePage.jsx       # landing page — live preview card per section
     ├── StandingsPage.jsx  # standings / season history / week by week tabs
+    ├── EfficiencyPage.jsx # overview chart + offense / defense tables
     ├── GamesPage.jsx      # game results by week
     ├── EloPage.jsx        # ratings / history / matchup / games tabs
     ├── QbPage.jsx         # leaderboard + movement tabs
@@ -93,6 +98,9 @@ Per-player fields: `passAtt`, `passComp`, `passYds`, `passTd`, `passInt`, `passS
 
 Team-level fields used to *estimate* what the player feed omits: `teamPasserYards`, `teamNetPassYds`, `teamSacks`, `teamFumbles`, `teamFumblesLost`.
 
+### TeamGameStatEntity
+One row per team per game, table `team_game_stats`. Unique constraint: `(seasonIndex, stageIndex, weekIndex, team_id)`; index on `(seasonIndex, stageIndex, weekIndex)`. Raw counts only — `passAtt`, `rushAtt`, `sacks`, `totalYds`, `firstDowns`, `thirdAtt/Conv`, `fourthAtt/Conv`, `redZones`, `redZoneTds`, `passTds`, `rushTds`, `intsLost`, `fumLost`, `punts`, `fgAtt/Made`, `xpAtt/Made`, `twoPtAtt/Conv`. Pass and rush attempts, kicks and punts are summed across every player on the team; the rest come from `/stats/teams/`. Plays, drives and points are derived at read time by `TeamEfficiencyCalculator`, so a formula change never needs a re-sync.
+
 ### EloConfigEntity
 Single persisted row holding the tunable `EloConfig`. `EloConfigService.seed()` writes defaults when absent.
 
@@ -110,6 +118,7 @@ SoS: `oppPyPatCurr/Prev`, `oppPyPatRemainingCurr/Prev`, `oppPyPatTotalCurr/Prev`
 | GET | `/standings` | `season` | `List<StandingDto>` sorted by win% |
 | GET | `/games` | `season`, `stage` (default 1), `week` | `List<GameDto>` |
 | GET | `/games/weeks` | `season`, `stage` (default 1) | `List<Integer>` available weeks |
+| GET | `/efficiency` | `season`, `stage` (`regular` default, `playoffs`, `both`) | `List<TeamEfficiencyDto>` sorted by net points per drive |
 | GET | `/trends/season` | — | All seasons, all teams |
 | GET | `/trends/weekly` | `season` | Week-by-week progression for one season |
 | GET | `/elo/ratings` | `season`, `week` | `List<EloDtos.Rating>` — elo, rank, change, rankChange |
@@ -135,7 +144,7 @@ SoS: `oppPyPatCurr/Prev`, `oppPyPatRemainingCurr/Prev`, `oppPyPatTotalCurr/Prev`
 | GET | `/sync/status` | `{lastSyncTime, lastSyncMessage, lastSyncSuccess}` |
 | POST | `/cache/warm` | Evict all caches, rebuild async |
 | GET | `/cache/warm/status` | `{inProgress, message, completedAt, success}` |
-| POST | `/sync/qb` | Sync QB game stats from NeonSportz |
+| POST | `/sync/qb` | Sync QB and team game stats from NeonSportz |
 | GET | `/sync/qb/status` | QB sync progress + last result |
 | GET | `/elo/config` | Current `EloConfig` |
 | PUT | `/elo/config` | Update Elo knobs — validated, rejects out-of-range values |
@@ -155,9 +164,9 @@ SoS: `oppPyPatCurr/Prev`, `oppPyPatRemainingCurr/Prev`, `oppPyPatTotalCurr/Prev`
 
 **Caffeine** — max 500 entries, 24h write-through TTL.
 
-Cache names: `standings`, `games`, `weeks`, `seasons`, `seasonTrends`, `weeklyTrends`, `seasonGames`, `eloHistory`, `qbStats`
+Cache names: `standings`, `games`, `weeks`, `seasons`, `seasonTrends`, `weeklyTrends`, `seasonGames`, `eloHistory`, `qbStats`, `teamEfficiency`
 
-The list lives in one place — [config/CacheNames.java](../backend/src/main/java/com/rzs/stats/config/CacheNames.java), as the `allStatsCaches` resolver. **A new cache must be added there**, or it silently survives eviction and serves stale data after a sync. All nine are evicted together on sync, force-sync, or cache warm. `seasonGames` is cached directly on `GameRepository.findRegularSeasonGames()` (Spring Data JPA repos support `@Cacheable`) so all callers share the same cache regardless of call site.
+The list lives in one place — [config/CacheNames.java](../backend/src/main/java/com/rzs/stats/config/CacheNames.java), as the `allStatsCaches` resolver. **A new cache must be added there**, or it silently survives eviction and serves stale data after a sync. All ten are evicted together on sync, force-sync, or cache warm. `seasonGames` is cached directly on `GameRepository.findRegularSeasonGames()` (Spring Data JPA repos support `@Cacheable`) so all callers share the same cache regardless of call site.
 
 ## Data Sync
 
@@ -172,8 +181,8 @@ NeonSportzClient paginates via `next` links until null. SyncService:
 
 `nsPk` is the NeonSportz URL key (e.g. `11263917`). `gameId` is an external ref ID (e.g. `544735511`) used only for deduplication — never for URLs.
 
-### QB stat sync is separate
-`QbStatsSyncService` runs on its own trigger (`POST /api/admin/sync/qb`) and walks season/stage/week, with `QbStatsWeekWriter` upserting one week at a time. A fresh database that has games synced can still have **zero QB rows** — the QB leaderboard will come back `[]` until the QB sync runs. Worth remembering when a local environment looks half-empty.
+### QB and team stat sync is separate
+`QbStatsSyncService` runs on its own trigger (`POST /api/admin/sync/qb`) and walks season/stage/week, with `QbStatsWeekWriter` replacing one week of QB rows and team rows together in one transaction. Each week reads five paginated feeds (passing, rushing, teams, kicking, punting) at 100 rows a page, so a week is at least five requests and more when a feed spans pages (rushing usually does); a 429 is waited out and retried up to six times. The incremental run skips a week only when both QB and team rows exist, so the first run after deploying team stats backfills history by itself. A fresh database that has games synced can still have **zero QB rows** — the QB leaderboard and the Efficiency page will come back empty until this sync runs. Worth remembering when a local environment looks half-empty.
 
 ## N+1 Prevention
 
