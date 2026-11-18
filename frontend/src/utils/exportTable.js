@@ -30,12 +30,16 @@ export function toRows(spec) {
   return [headers(spec.cols), ...spec.rows.map((row, i) => spec.cols.map(col => cellText(col, row, i)))]
 }
 
-export function csvText(spec) {
-  return toRows(spec).map(row => row.map(cell => /[,"\r\n]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell).join(',')).join('\n')
+const quoteCell = cell => /[,"\r\n]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell
+// A spreadsheet runs a cell that starts with = + - @ as a formula, so a player named "=HYPERLINK(...)" would execute. Importers also skip leading whitespace and fold full-width lookalikes, so look past both. Plain signed numbers like -20 or +0.4 must stay numbers.
+const neutralize = cell => /^[\s\x00-\x1f]*[=+\-@\uFF1D\uFF0B\uFF0D\uFF20]/.test(cell) && !/^[+-]?\d[\d,]*(\.\d+)?%?$/.test(cell) ? `'${cell}` : cell
+
+export function csvText(spec, { spreadsheetSafe = false } = {}) {
+  return toRows(spec).map(row => row.map(cell => quoteCell(spreadsheetSafe ? neutralize(cell) : cell)).join(',')).join('\n')
 }
 
 export function exportCsv(spec) {
-  downloadBlob(new Blob(['\uFEFF', csvText(spec)], { type: 'text/csv' }), `${fileStem(spec)}.csv`)
+  downloadBlob(new Blob(['\uFEFF', csvText(spec, { spreadsheetSafe: true })], { type: 'text/csv' }), `${fileStem(spec)}.csv`)
 }
 
 export function buildWorkbook(spec) {

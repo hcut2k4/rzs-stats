@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { Link, MemoryRouter, useLocation } from 'react-router-dom'
 import ExportMenu from '../components/ExportMenu'
 import { copyImage } from '../utils/tableImage'
+import * as tableExport from '../utils/exportTable'
 
 vi.mock('../utils/tableImage', () => ({ copyImage: vi.fn() }))
 const spec = { name: 'Table', qualifier: 'Season 108', description: 'Data', rows: [], cols: [], api: { path: '/standings', params: { season: 5 } } }
@@ -46,6 +47,24 @@ it.each([['copied', 'Copied'], ['downloaded', 'Saved'], ['toobig', 'Too big']])(
   expect(copyImage).toHaveBeenCalledWith(spec)
   const button = await screen.findByRole('button', { name: label })
   if (result === 'toobig') expect(button.title).toContain('use CSV/AI')
+})
+
+it('uses the image override for PNG', async () => {
+  const imageSpec = { name: 'Image grid', rows: [], cols: [] }
+  copyImage.mockResolvedValue('copied')
+  render(<ExportMenu spec={{ ...spec, imageSpec }} />)
+  fireEvent.click(screen.getByRole('button', { name: 'PNG' }))
+  expect(copyImage).toHaveBeenCalledWith(imageSpec)
+  await screen.findByRole('button', { name: 'Copied' })
+})
+
+it.each([['XLSX', 'exportExcel'], ['CSV', 'exportCsv'], ['AI', 'copyAi']])('keeps the original spec for %s with an image override', async (label, method) => {
+  const original = { ...spec, imageSpec: { name: 'Image grid', rows: [], cols: [] } }
+  const exporter = vi.spyOn(tableExport, method).mockResolvedValue('copied')
+  render(<ExportMenu spec={original} />)
+  fireEvent.click(screen.getByRole('button', { name: label }))
+  expect(exporter).toHaveBeenCalledWith(original)
+  await screen.findByRole('button', { name: 'Copied' })
 })
 
 it('reports thrown errors', async () => {

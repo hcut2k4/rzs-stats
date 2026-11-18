@@ -72,6 +72,41 @@ describe('table exports', () => {
     expect(toRows({ rows: [{}, {}], cols })).toEqual([['#'], ['1'], ['2']])
   })
 
+  describe('spreadsheet formula injection', () => {
+    const risky = ['=1+1', '+SUM(1)', '-2+3', '@cmd', '\t=1', '-20', '+0.4', '68.1%', '1,234', 'Plain Name']
+    const formulaSpec = { ...spec, rows: risky, cols: [{ label: 'Name', desc: 'd', text: r => r }] }
+    const readText = blob => new Promise(resolve => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.readAsText(blob) })
+
+    it('prefixes text that a spreadsheet would run as a formula, and leaves plain signed numbers alone', () => {
+      expect(csvText(formulaSpec, { spreadsheetSafe: true }).split('\n')).toEqual([
+        'Name', "'=1+1", "'+SUM(1)", "'-2+3", "'@cmd", "'\t=1", '-20', '+0.4', '68.1%', '"1,234"', 'Plain Name',
+      ])
+    })
+
+    it('also catches formulas hidden behind leading whitespace, control characters or full-width lookalikes', () => {
+      const hidden = [' =1+1', '  @SUM(1)', '\u00a0+1', '\u0001=1', '\uFF1D1+1', '\uFF0B1', '\uFF20x']
+      const safe = csvText({ ...formulaSpec, rows: hidden }, { spreadsheetSafe: true }).split('\n').slice(1)
+      expect(safe).toEqual(hidden.map(cell => `'${cell}`))
+      expect(csvText({ ...formulaSpec, rows: ['\n=1+1'] }, { spreadsheetSafe: true })).toBe("Name\n\"'\n=1+1\"")
+      expect(csvText({ ...formulaSpec, rows: ['fine = ok', 'a-b', ' '] }, { spreadsheetSafe: true })).toBe('Name\nfine = ok\na-b\n ')
+    })
+
+    it('downloads the neutralized CSV but keeps the AI text raw', async () => {
+      exportCsv(formulaSpec)
+      const downloaded = await readText(URL.createObjectURL.mock.calls[0][0])
+      expect(downloaded).toContain("'=1+1")
+      expect(downloaded).not.toMatch(/(^|\n)=1\+1/)
+      expect(csvText(formulaSpec)).toContain('\n=1+1\n')
+      expect(aiText(formulaSpec, 'http://x')).toContain('\n=1+1\n')
+    })
+
+    it('keeps formula-looking names as text cells in the workbook', () => {
+      const sheet = buildWorkbook(formulaSpec).Sheets[buildWorkbook(formulaSpec).SheetNames[0]]
+      expect(sheet.A2).toMatchObject({ t: 's', v: '=1+1' })
+      expect(sheet.A2.f).toBeUndefined()
+    })
+  })
+
   it('downloads CSV with a UTF-8 BOM and the shared filename', async () => {
     exportCsv(spec)
     const blob = URL.createObjectURL.mock.calls[0][0]

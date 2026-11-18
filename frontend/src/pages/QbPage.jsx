@@ -87,7 +87,7 @@ const EST_TIP = 'Estimated. Madden does not expose individual sack yardage or lo
 
 // Column order defines the table; `presets` controls which views show it.
 const ALL_COLS = [
-  { key: 'rank', desc: 'TANY/A rank among qualified quarterbacks; unqualified quarterbacks have an empty rank.', value: row => row.rank, z: '0', tx: (_, i, row) => row.rank ?? '', label: '#', fmt: (_, i, row) => row.rank ?? i + 1, stickyLeft: 'left-0', w: 'w-10', presets: ['efficiency', 'classic', 'rushing', 'all'], sortable: false },
+  { key: 'rank', desc: 'TANY/A rank among qualified quarterbacks; unqualified quarterbacks have an empty rank.', value: row => row.rank, z: '0', tx: (_, i, row) => row.rank ?? '', label: '#', fmt: (_, i, row) => row.rank ?? '', stickyLeft: 'left-0', w: 'w-10', presets: ['efficiency', 'classic', 'rushing', 'all'], sortable: false },
   { key: 'rankChange', desc: 'Change in rank over the comparison window; positive means a rise, and no change or no prior rank is empty.', tx: signedMove, value: row => row.rankChange, label: 'Move', presets: ['efficiency', 'classic', 'rushing', 'all'], fmt: v => <Move value={v} /> },
   {
     key: 'playerName', desc: 'Quarterback name.', tx: v => v, align: 'left', label: 'QB', stickyLeft: 'left-10', presets: ['efficiency', 'classic', 'rushing', 'all'],
@@ -366,6 +366,21 @@ function Movement({ data, loading, params }) {
       rankCol, tanyaCol,
     ],
     api: { path: '/qb/movement', params, note: 'Data is the series array in the response, flattened from series[].ranks; QB and Team come from playerName and teamAbbr on each series.' },
+  }
+  if (historySpec.rows.length > 0) {
+    // A shared rank scale keeps the same rank the same color across weeks.
+    const allRanks = historySpec.rows.map(r => r.rank)
+    historySpec.imageSpec = {
+      name: historySpec.name, qualifier: `${qualifier} · rank by week`, rows: series,
+      cols: [
+        ...playerCols.map(({ label, text }) => ({ label, text, align: 'left' })),
+        ...points.map((p, i) => ({
+          label: pointLabel(p.season, p.week, basis === 'alltime'),
+          text: s => String(chartData[i][s.rosterId] ?? ''),
+          color: s => goodBadColor(chartData[i][s.rosterId], allRanks, 'lower'),
+        })),
+      ],
+    }
   }
 
   const toggle = id =>

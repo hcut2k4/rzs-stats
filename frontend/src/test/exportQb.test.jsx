@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import QbPage from '../pages/QbPage'
 import * as client from '../api/client'
 import { aiText, buildWorkbook, csvText, toRows } from '../utils/exportTable'
+import { chooseScale } from '../utils/tableImage'
 
 globalThis.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} }
 
@@ -71,6 +72,19 @@ describe('QB exports', () => {
     await act(async () => resolveStale([qb]))
     expect(screen.queryByText('Max White')).toBeNull()
     expect(screen.queryByRole('button', { name: 'AI', exact: true })).toBeNull()
+  })
+
+  it('shows the same blank rank on screen as in every export for an unqualified QB', async () => {
+    client.getQbLeaderboard.mockResolvedValue([qb, { ...other, rank: null, qualified: false, rankChange: null }])
+    await show()
+    fireEvent.click(screen.getByLabelText('Show unqualified'))
+    await waitFor(() => expect(leaderboardSpec().api.params.includeUnqualified).toBe(true))
+    const spec = leaderboardSpec()
+    const rankCells = screen.getAllByRole('row').slice(-2).map(row => within(row).getAllByRole('cell')[0].textContent)
+    expect(rankCells).toEqual(['1', ''])
+    expect(values(spec).map(r => r['#'])).toEqual(['1', ''])
+    expect(toRows(spec).slice(1).map(r => r[0])).toEqual(['1', ''])
+    expect(csvText(spec).split('\n').slice(1).map(l => l.split(',')[0])).toEqual(['1', ''])
   })
 
   it('stops loading when week scope is chosen and there are no weeks to show', async () => {
@@ -219,5 +233,76 @@ describe('QB exports', () => {
       expect(specs.get(name).api.params.window).toBe(4)
       expect(specs.get(name).qualifier).toContain('Last 4')
     }
+  })
+
+  it('exports a PNG rank grid in chart order across seasons while keeping the tidy data exports', async () => {
+    const series = [
+      { ...other, ranks: [{ season: 5, week: 18, rank: 4, tanya: 6 }, { season: 4, week: 0, rank: 1, tanya: 7 }] },
+      { ...qb, ranks: [{ season: 5, week: 0, rank: 4, tanya: 7 }, { season: 5, week: 18, rank: 1, tanya: 8 }] },
+    ]
+    client.getQbMovement.mockResolvedValue({ ...movement, series })
+    await showMovement()
+    fireEvent.click(screen.getByRole('button', { name: 'All-time', exact: true }))
+    await waitFor(() => expect(specs.get('QB rank history').api.params.basis).toBe('alltime'))
+    const spec = specs.get('QB rank history')
+    const image = spec.imageSpec
+    expect(image.name).toBe(spec.name)
+    expect(image.qualifier).toBe(`${spec.qualifier} · rank by week`)
+    expect(image.rows).toEqual(series)
+    expect(image.rows).toHaveLength(2)
+    expect(image.cols).toHaveLength(2 + 3)
+    expect(image.cols.slice(0, 2).map(c => c.align)).toEqual(['left', 'left'])
+    expect(toRows(image)).toEqual([
+      ['QB', 'Team', 'S107 W1', 'S108 W1', 'S108 WC'],
+      ['Caleb Williams', 'CHI', '1', '', '4'],
+      ['Max White', 'MIA', '', '4', '1'],
+    ])
+    for (const row of image.rows) {
+      for (const col of image.cols.slice(2)) {
+        if (col.text(row)) expect(col.color(row)).toBeDefined()
+        else expect(col.color(row)).toBeUndefined()
+      }
+    }
+    expect(image.cols[2].color(series[0])).toBe(image.cols[4].color(series[1]))
+    expect(toRows(spec)).toEqual([
+      ['QB', 'Team', 'Season', 'Week', 'Week index', 'Rank', 'TANY/A'],
+      ['Caleb Williams', 'CHI', '5', 'S108 WC', '18', '4', '6.00'],
+      ['Caleb Williams', 'CHI', '4', 'S107 W1', '0', '1', '7.00'],
+      ['Max White', 'MIA', '5', 'S108 W1', '0', '4', '7.00'],
+      ['Max White', 'MIA', '5', 'S108 WC', '18', '1', '8.00'],
+    ])
+    expect(spec.description).toBe('One row per player per point in the series exactly as charted, including rank and cumulative TANY/A; highlighting does not remove points.')
+    expect(spec.api).toEqual({
+      path: '/qb/movement', params: { season: 5, stage: 'regular', window: 1, basis: 'alltime' },
+      note: 'Data is the series array in the response, flattened from series[].ranks; QB and Team come from playerName and teamAbbr on each series.',
+    })
+    const { imageSpec, ...tidySpec } = spec
+    expect(csvText(spec)).toBe(csvText(tidySpec))
+    expect(buildWorkbook(spec)).toEqual(buildWorkbook(tidySpec))
+    expect(aiText(spec)).toBe(aiText(tidySpec))
+  })
+
+  it('fits a 40-player, 66-point PNG grid within canvas limits at a readable scale', async () => {
+    const series = Array.from({ length: 40 }, (_, i) => ({
+      rosterId: String(i), playerName: `Quarterback ${i}`, teamAbbr: 'MIA',
+      ranks: Array.from({ length: 66 }, (_, j) => ({ season: Math.floor(j / 18), week: j % 18, rank: i + 1, tanya: 8 })),
+    }))
+    client.getQbMovement.mockResolvedValue({ risers: [], fallers: [], series })
+    await showMovement()
+    fireEvent.click(screen.getByRole('button', { name: 'All-time', exact: true }))
+    await waitFor(() => expect(specs.get('QB rank history').api.params.basis).toBe('alltime'))
+    const { imageSpec } = specs.get('QB rank history')
+    expect(imageSpec.rows).toHaveLength(40)
+    expect(imageSpec.cols).toHaveLength(68)
+    expect(chooseScale(imageSpec.cols.length * 60, imageSpec.rows.length * 24 + 130)).toBe(1)
+    expect(chooseScale(7 * 60, 1084 * 24 + 130)).toBeNull()
+  })
+
+  it('does not offer a history export when there are no player points', async () => {
+    client.getQbMovement.mockResolvedValue({ risers: [], fallers: [], series: [{ ...qb, ranks: [] }] })
+    await show()
+    fireEvent.click(screen.getByRole('tab', { name: 'Movement' }))
+    await screen.findByRole('heading', { name: 'Rank by week' })
+    expect(specs.has('QB rank history')).toBe(false)
   })
 })

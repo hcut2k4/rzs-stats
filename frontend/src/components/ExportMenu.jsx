@@ -26,7 +26,7 @@ export default function ExportMenu({ spec, className = '' }) {
     setBusy(true)
     let message
     try {
-      const result = label === 'PNG' ? copyImage(spec) : label === 'AI' ? copyAi(spec) : label === 'XLSX' ? exportExcel(spec) : exportCsv(spec)
+      const result = label === 'PNG' ? copyImage(spec.imageSpec ?? spec) : label === 'AI' ? copyAi(spec) : label === 'XLSX' ? exportExcel(spec) : exportCsv(spec)
       const outcome = await result
       message = outcome === 'toobig' ? 'Too big' : outcome === 'copied' ? 'Copied' : 'Saved'
     } catch {

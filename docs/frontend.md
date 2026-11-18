@@ -74,6 +74,11 @@ Every table and data list renders `<ExportMenu spec={...} />` ([components/Expor
 - **Every column needs a `desc`**: the AI export prints it as the column definition. Reuse the tooltip / `TIPS` / `METRICS` text rather than writing a second copy.
 - **`api.params` must come from the same response as `rows`.** Store the resolved params with the rows when a response lands and guard against out-of-order responses (see StandingsPage); never read them from live UI state. `preset`, sort and other client-only state go in `api.note`, not in params.
 
+### CSV safety and the image shape
+Excel runs a cell that starts with `=`, `+`, `-` or `@` as a formula, so the **downloaded CSV** prefixes such text cells with `'` (plain signed numbers like `-20` and `+0.4` are left alone). The AI text and the XLSX stay raw: the AI block is not opened in a spreadsheet, and an XLSX stores names as text cells.
+
+A spec may carry an optional `imageSpec`, used **only by the PNG button**, for data whose tidy long-form shape is too tall to draw. QB rank history is one row per player per week (over 1,000 rows all-time), so its CSV/XLSX/AI keep that shape while its image is a player-by-week grid of ranks.
+
 ### The AI export
 A markdown block meant to be pasted into an AI chat: a league primer, what the table is, one definition per column, the full dataset as a fenced CSV, then the public REST API: the exact `GET` URL that produced the table, how each derived column maps to the raw API fields, a list of related endpoints, and the conventions an assistant gets wrong without being told. The base URL is `window.location.origin`, so a dev build emits `localhost`. The API is unauthenticated, so an assistant can re-fetch fresh data itself.
 
