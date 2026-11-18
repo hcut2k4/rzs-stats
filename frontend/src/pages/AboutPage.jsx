@@ -57,6 +57,41 @@ const STATS = [
       'Every estimated fumble is charged here, so RUSH+ is read alongside TANY/A, not added to it.',
     ],
   },
+  {
+    name: 'Points per Drive',
+    def: 'Points an offense scored, or a defense allowed, per possession.',
+    bullets: [
+      'Counts only the offense\'s own points: touchdowns, field goals and the extra points after its touchdowns. Pick-sixes and return scores are not charged to either side',
+      'Drives are estimated: touchdowns + field goal attempts + punts + turnovers + failed fourth downs. End-of-half kneel-downs are the only possessions this misses',
+      'Net Pts/Drive is offense minus defense. Higher is better on offense, lower is better on defense',
+    ],
+  },
+  {
+    name: 'Points per Play',
+    def: 'Offensive points per play, our stand-in for EPA per play.',
+    bullets: [
+      'Plays = pass attempts + rush attempts + sacks taken',
+      'Same offensive points as Points per Drive, but divided by plays instead of possessions, so a fast, short-drive offense can rate differently on the two',
+    ],
+  },
+  {
+    name: 'Series %',
+    def: 'How often a series keeps the chains moving or scores.',
+    bullets: [
+      '(first downs + touchdowns) ÷ (first downs + drives): each first down and each drive\'s last series counts as a series',
+      'Modeled on Drive Success Rate. Higher is better on offense, lower on defense',
+    ],
+  },
+  {
+    name: 'Efficiency rates',
+    def: 'Supporting rates on the Efficiency page.',
+    bullets: [
+      '3rd %: third downs converted ÷ attempted',
+      'RZ TD %: red-zone trips that ended in a touchdown',
+      'TO/Drive: interceptions plus lost fumbles per drive; on defense, takeaways',
+      'Sack %: sacks ÷ dropbacks; on defense, the share of opposing dropbacks sacked',
+    ],
+  },
 ]
 
 const PAGES = [
@@ -75,6 +110,14 @@ const PAGES = [
       'Week by Week — PyPAT line chart; click teams to highlight them',
       'SoS toggle: current-season or prior-season opponent PyPAT — prior season is default for the active season',
       'All columns sortable; export to CSV or Excel',
+    ],
+  },
+  {
+    name: 'Efficiency',
+    bullets: [
+      'Overview — a chart of offense against defense points per drive, plus net points per drive for every team',
+      'Offense and Defense — points, yards, series, third-down, red-zone, turnover and sack rates, heat-colored within each column',
+      'Regular season, playoffs or both. Needs the player and team stat sync; the page says so when it is empty',
     ],
   },
   {

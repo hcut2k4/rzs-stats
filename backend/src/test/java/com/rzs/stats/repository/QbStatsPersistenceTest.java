@@ -62,9 +62,9 @@ class QbStatsPersistenceTest {
 
     @Test
     void replacingWeekUpdatesUniquePlayerGameAndPreservesOtherWeeks() {
-        writer.replaceWeek(0, 1, 0, List.of(row(0, 100)));
-        writer.replaceWeek(0, 1, 1, List.of(row(1, 200)));
-        writer.replaceWeek(0, 1, 0, List.of(row(0, 300)));
+        writer.replaceWeek(0, 1, 0, List.of(row(0, 100)), List.of());
+        writer.replaceWeek(0, 1, 1, List.of(row(1, 200)), List.of());
+        writer.replaceWeek(0, 1, 0, List.of(row(0, 300)), List.of());
         repository.flush();
         assertThat(repository.findInScope(0, 0, 17)).extracting(QbGameStatEntity::getPassYds).containsExactly(300, 200);
         assertThat(repository.existsBySeasonIndexAndStageIndexAndWeekIndex(0, 1, 0)).isTrue();

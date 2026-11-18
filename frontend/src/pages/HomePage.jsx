@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts'
 import {
   getSeasons, getStandings, getAvailableWeeks, getGames,
-  getEloHistory, getEloRatings, getEloUpcoming, getQbLeaderboard, getWeeklyTrends,
+  getEloHistory, getEloRatings, getEfficiency, getEloUpcoming, getQbLeaderboard, getWeeklyTrends,
 } from '../api/client'
 import { TeamLogo } from '../components/TeamLogo'
 import PageHeader from '../components/PageHeader'
@@ -136,6 +136,35 @@ function EloCard({ ratings, loading }) {
             Biggest riser: <span className="text-ink font-semibold">{riser.abbrName}</span> {signed1(riser.change)}
           </p>
         )}
+      </Rows>
+    </Card>
+  )
+}
+
+function EfficiencyCard({ season, rows, loading }) {
+  const top = rows.slice(0, 5)
+
+  return (
+    <Card
+      to="/efficiency"
+      title="Efficiency"
+      blurb={season == null ? 'Points per drive, offense minus defense.' : `${seasonLabel(season)} teams by net points per drive.`}
+      cta="Team efficiency"
+    >
+      <Rows loading={loading} empty={!top.length}>
+        <div className="flex items-center gap-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted">
+          <span className="w-4">#</span>
+          <span className="flex-1">Team</span>
+          <span className="w-14 text-right">Net PPD</span>
+        </div>
+        {top.map((r, i) => (
+          <div key={r.teamId} className={rowClass}>
+            <span className="w-4 text-muted num">{i + 1}</span>
+            <TeamLogo abbr={r.abbrName} size={20} />
+            <span className="flex-1 font-semibold truncate">{r.displayName}</span>
+            <span className="w-14 text-right num font-semibold">{r.netPointsPerDrive == null ? '\u2014' : (r.netPointsPerDrive > 0 ? '+' : '') + r.netPointsPerDrive.toFixed(2)}</span>
+          </div>
+        ))}
       </Rows>
     </Card>
   )
@@ -308,9 +337,10 @@ export default function HomePage() {
   const [week, setWeek] = useState(null)
   const [ratings, setRatings] = useState([])
   const [qbs, setQbs] = useState([])
+  const [efficiency, setEfficiency] = useState([])
   const [weekly, setWeekly] = useState([])
   const [upcoming, setUpcoming] = useState([])
-  const [pending, setPending] = useState({ standings: true, games: true, elo: true, qb: true, trends: true, upcoming: true })
+  const [pending, setPending] = useState({ standings: true, games: true, elo: true, qb: true, efficiency: true, trends: true, upcoming: true })
 
   const done = key => setPending(p => ({ ...p, [key]: false }))
 
@@ -319,7 +349,7 @@ export default function HomePage() {
     getSeasons()
       .then(s => {
         if (!live || !s.length) {
-          if (live) setPending(p => ({ ...p, standings: false, games: false, qb: false, trends: false }))
+          if (live) setPending(p => ({ ...p, standings: false, games: false, qb: false, efficiency: false, trends: false }))
           return
         }
         const latest = s[s.length - 1]
@@ -341,9 +371,14 @@ export default function HomePage() {
           .then(d => { if (live) setQbs(d) })
           .finally(() => live && done('qb'))
 
+        getEfficiency(latest, 'regular')
+          .then(d => { if (live) setEfficiency(d) })
+          .catch(() => { if (live) setEfficiency([]) })
+          .finally(() => live && done('efficiency'))
+
         getWeeklyTrends(latest).then(d => { if (live) setWeekly(d) }).finally(() => live && done('trends'))
       })
-      .catch(() => live && setPending(p => ({ ...p, standings: false, games: false, qb: false, trends: false })))
+      .catch(() => live && setPending(p => ({ ...p, standings: false, games: false, qb: false, efficiency: false, trends: false })))
 
     getEloUpcoming()
       .then(u => { if (live) setUpcoming(u) })
@@ -372,6 +407,7 @@ export default function HomePage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-8">
         <BestGames upcoming={upcoming} loading={pending.upcoming} />
         <StandingsCard season={season} standings={standings} loading={pending.standings} />
+        <EfficiencyCard season={season} rows={efficiency} loading={pending.efficiency} />
         <GamesCard games={games} week={week} loading={pending.games} />
         <EloCard ratings={ratings} loading={pending.elo} />
         <QbCard season={season} qbs={qbs} loading={pending.qb} />

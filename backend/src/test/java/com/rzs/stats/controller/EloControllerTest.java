@@ -34,7 +34,7 @@ class EloControllerTest {
         var configService = new EloConfigService(configs);
         var engine = new EloService();
         var queries = new EloQueryService(new EloHistoryService(games, configService, engine), engine, games);
-        mvc = MockMvcBuilders.standaloneSetup(new StatsController(null, queries),
+        mvc = MockMvcBuilders.standaloneSetup(new StatsController(null, queries, null),
                 new AdminController(null, null, games, null, configService, null)).build();
     }
 

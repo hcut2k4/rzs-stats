@@ -3,12 +3,18 @@ package com.rzs.stats.controller;
 import com.rzs.stats.model.dto.GameDto;
 import com.rzs.stats.model.dto.SeasonWeekDto;
 import com.rzs.stats.model.dto.StandingDto;
+import com.rzs.stats.model.dto.TeamEfficiencyDto;
+import com.rzs.stats.service.QbStatsService.Stage;
 import com.rzs.stats.service.StatsService;
+import com.rzs.stats.service.TeamEfficiencyService;
 import com.rzs.stats.service.EloQueryService;
 import com.rzs.stats.model.dto.EloDtos;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Locale;
 
 @RestController
 @RequestMapping("/api")
@@ -18,9 +24,24 @@ public class StatsController {
 
     private final EloQueryService elo;
 
-    public StatsController(StatsService statsService, EloQueryService elo) {
+    private final TeamEfficiencyService efficiency;
+
+    public StatsController(StatsService statsService, EloQueryService elo, TeamEfficiencyService efficiency) {
         this.statsService = statsService;
         this.elo = elo;
+        this.efficiency = efficiency;
+    }
+
+    @GetMapping("/efficiency")
+    public List<TeamEfficiencyDto> getEfficiency(@RequestParam int season, @RequestParam(defaultValue = "REGULAR") String stage) {
+        if (season < 0) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid season");
+        Stage parsed;
+        try {
+            parsed = Stage.valueOf(stage.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid Stage");
+        }
+        return efficiency.efficiency(season, parsed);
     }
 
     @GetMapping("/elo/ratings")

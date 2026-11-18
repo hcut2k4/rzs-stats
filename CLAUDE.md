@@ -56,7 +56,7 @@ Setup details, ports, database credentials, and overrides: [Operations](docs/ope
 ### Missing data and sync
 
 - SoS values are nullable, including SoS Played; null means no data and is not 0.0.
-- QB sync is separate (`POST /api/admin/sync/qb`); the QB leaderboard stays empty until it runs.
+- QB sync is separate (`POST /api/admin/sync/qb`); the QB leaderboard and the Efficiency page stay empty until it runs.
 
 ### Frontend consistency
 

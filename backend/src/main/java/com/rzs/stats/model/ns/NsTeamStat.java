@@ -8,4 +8,17 @@ public class NsTeamStat {
     public int offTotalPassYds;
     public int offTotalSacks;
     public int offTotalFumLost;
+    public int offTotalIntsLost;
+    public int offTotalTotalYds;
+    public int offTotal1stDowns;
+    public int offTotalPassTDs;
+    public int offTotalRushTDs;
+    public int offTotal3rdDownAtt;
+    public int offTotal3rdDownConv;
+    public int offTotal4thDownAtt;
+    public int offTotal4thDownConv;
+    public int offTotalRedZones;
+    public int offTotalRedZoneTDs;
+    public int offTotal2PtAtt;
+    public int offTotal2PtConv;
 }

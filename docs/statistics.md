@@ -73,3 +73,23 @@ Rushing counts in both numerator and denominator, so volume alone can't inflate 
 Sack yardage and lost fumbles are not in the per-player feed — they're estimated from team game stats (`teamSacks`, `teamFumblesLost` on `QbGameStatEntity`).
 
 **Qualification** gates the leaderboard. Default minimum attempts by scope: WEEK → 10, SEASON → `10 × team games played`, ALLTIME → 250 (`ALLTIME_MIN_ATT`), or 50 for playoffs (`ALLTIME_PLAYOFF_MIN_ATT`). Unqualified QBs are filtered out unless `includeUnqualified=true`, get no `rank`, and are excluded from heat-map ranges. `minAtt` overrides the default.
+
+### Team efficiency (Pts/Drive, Pts/Play, Series %)
+Play-by-play does not exist in the feed, so these are rebuilt from per-game box-score totals. Season figures sum the components across games first and divide once, so they are never averages of per-game rates. Any rate with a zero denominator is `null`, not 0.
+
+```
+plays   = passAtt (every passer) + rushAtt (every rusher) + sacks taken
+offTD   = passTD + rushTD
+drives  = offTD + FGA + punts + INT + fumbles lost + (4th-down att - conv)
+offPts  = 6*offTD + 3*FGM + (XPM + 2*2PtConv) * min(1, offTD / (XPA + 2PtAtt))
+
+Pts/Drive = offPts / drives          Pts/Play = offPts / plays
+Series %  = (1D + offTD) / (1D + drives)
+Net Pts/Drive = offense Pts/Drive - defense Pts/Drive
+```
+
+- **Offensive points only.** Each touchdown earns one PAT try, so tries beyond our own touchdowns followed defensive or return scores. The PAT points are scaled down to the share that followed offensive touchdowns. Rebuilding the whole scoreboard from the feeds (offensive and defensive touchdowns, field goals, PATs, safeties) matched 109 of 116 sampled team-games exactly; the misses fit kick and punt return touchdowns, which no feed reports, so those points are never charged to either side.
+- **Drives are estimated** from how each one ended. End-of-half kneel-downs and clock-outs are not visible in the box score and are not counted.
+- **Defense** is the same formulas applied to the opponent's row in the same game. A game counts only when both teams have a row, which skips forfeits and concessions.
+- `3rd %`, `RZ TD %`, `TO/Drive` and `Sack %` (sacks / (pass attempts + sacks)) complete the table. On defense, turnovers and sacks become takeaways and sacks made.
+- Raw only: no opponent adjustment yet.

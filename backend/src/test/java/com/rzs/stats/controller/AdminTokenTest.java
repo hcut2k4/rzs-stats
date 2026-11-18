@@ -30,6 +30,7 @@ class AdminTokenTest {
     @MockBean GameRepository gameRepository;
     @MockBean CacheWarmingService cacheWarmingService;
     @MockBean com.rzs.stats.service.StatsService statsService;
+    @MockBean com.rzs.stats.service.TeamEfficiencyService efficiencyService;
     @MockBean com.rzs.stats.service.EloQueryService eloQueryService;
 
     @Test
