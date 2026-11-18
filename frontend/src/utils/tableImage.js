@@ -104,7 +104,15 @@ export async function copyImage(spec) {
   try {
     const canvas = drawTable(spec)
     if (!canvas) return 'toobig'
-    const blobPromise = new Promise(resolve => canvas.toBlob(resolve, 'image/png')).catch(() => null)
+    return copyPng(spec, new Promise(resolve => canvas.toBlob(resolve, 'image/png')))
+  } catch {
+    return 'toobig'
+  }
+}
+
+export async function copyPng(spec, blob) {
+  const blobPromise = Promise.resolve(blob).catch(() => null)
+  try {
     if (window.ClipboardItem && navigator.clipboard?.write) {
       try {
         // Safari drops the click's clipboard permission across an await, so write() is the first async step.
@@ -114,9 +122,9 @@ export async function copyImage(spec) {
         // fall through to the download
       }
     }
-    const blob = await blobPromise
-    if (!blob) return 'toobig'
-    downloadBlob(blob, `${fileStem(spec)}.png`)
+    const result = await blobPromise
+    if (!result) return 'toobig'
+    downloadBlob(result, `${fileStem(spec)}.png`)
     return 'downloaded'
   } catch {
     return 'toobig'

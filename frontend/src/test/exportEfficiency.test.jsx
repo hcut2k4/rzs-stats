@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import EfficiencyPage from '../pages/EfficiencyPage'
 import * as client from '../api/client'
@@ -16,6 +16,7 @@ const teams = [
   { teamId: 2, displayName: 'Wolves', abbrName: 'WOL', games: 2, offense: side(1), defense: side(3, { giveawayRate: 0.05, sackRate: 0.01 }), netPointsPerDrive: -2 },
 ]
 const headers = ['Team', 'G', 'Drives/G', 'Plays/G', 'Pts/Drive', 'Pts/Play', 'Yds/Play', 'Series %', '3rd %', 'RZ TD %', 'TO/Drive', 'Sack %']
+afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals() })
 beforeEach(() => { vi.resetAllMocks(); specs.clear(); client.getSeasons.mockResolvedValue([6, 7]); client.getEfficiency.mockResolvedValue(teams) })
 async function show(tab = 'Overview') {
   render(<MemoryRouter initialEntries={[`/efficiency?tab=${tab.toLowerCase()}`]}><EfficiencyPage /></MemoryRouter>)
@@ -24,6 +25,42 @@ async function show(tab = 'Overview') {
 }
 
 describe('Efficiency exports', () => {
+  it.each(['Copied', 'Saved', 'Too big'])('exports the Overview chart and announces %s before restoring PNG', async message => {
+    const spec = await show()
+    const ctx = Object.fromEntries(['scale', 'fillRect', 'fillText', 'beginPath', 'moveTo', 'lineTo', 'stroke', 'setLineDash', 'save', 'translate', 'rotate', 'restore', 'drawImage'].map(method => [method, vi.fn()]))
+    ctx.measureText = text => ({ width: text.length * 7 })
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(ctx)
+    let encode
+    vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(callback => { encode = callback })
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    vi.stubGlobal('Image', class {
+      set src(value) { queueMicrotask(() => this.onload()) }
+    })
+    vi.stubGlobal('ClipboardItem', message === 'Saved' ? undefined : class {
+      constructor(data) { this.data = data }
+    })
+    vi.stubGlobal('navigator', { clipboard: { write: vi.fn().mockResolvedValue(undefined) } })
+    vi.stubGlobal('URL', class extends URL {
+      static createObjectURL = vi.fn(() => 'blob:chart')
+      static revokeObjectURL = vi.fn()
+    })
+    vi.useFakeTimers()
+    const button = screen.getByTitle('Copy an image of this chart')
+    expect(button).toHaveTextContent('PNG')
+    fireEvent.click(button)
+    expect(button).toBeDisabled()
+    await act(async () => {})
+    expect(ctx.fillText).toHaveBeenCalledWith('RZS Stats — Efficiency Overview chart', 10, 19)
+    expect(ctx.fillText).toHaveBeenCalledWith(spec.qualifier, 10, 40)
+    await act(async () => { encode(message === 'Too big' ? null : new Blob(['png'], { type: 'image/png' })) })
+    expect(button).toBeEnabled()
+    expect(button).toHaveTextContent(message)
+    expect(document.querySelector('[aria-live="polite"]')).toHaveTextContent(message)
+    await act(async () => { vi.advanceTimersByTime(1600) })
+    expect(button).toHaveTextContent('PNG')
+    expect(document.querySelector('[aria-live="polite"]')).toBeEmptyDOMElement()
+  })
+
   it.each(['Overview', 'Offense', 'Defense'])('exports %s headers, definitions, notes and exact API provenance', async tab => {
     const spec = await show(tab)
     expect(toRows(spec)[0]).toEqual(tab === 'Overview' ? ['#', 'Team', 'G', 'Net Pts/Drive', 'Off Pts/Drive', 'Def Pts/Drive', 'Off Pts/Play', 'Def Pts/Play'] : headers)
