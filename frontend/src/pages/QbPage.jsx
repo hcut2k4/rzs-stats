@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer } from 'recharts'
-import * as XLSX from 'xlsx'
+import ExportMenu from '../components/ExportMenu'
+import { specCols } from '../utils/exportTable'
 import { getSeasons, getAvailableWeeks, getQbLeaderboard, getQbMovement } from '../api/client'
 import { TeamLogo } from '../components/TeamLogo'
 import PageHeader from '../components/PageHeader'
@@ -13,6 +14,8 @@ import { seasonLabel, seasonNumber } from '../utils/seasons'
 const n2 = v => v != null ? v.toFixed(2) : '—'
 const n1 = v => v != null ? v.toFixed(1) : '—'
 const signed2 = v => v != null ? (v > 0 ? '+' : '') + v.toFixed(2) : '—'
+const signedMove = v => v == null || v === 0 ? '' : (v > 0 ? '+' : '') + v
+const stageLabel = stage => stage === 'regular' ? 'Regular season' : stage === 'playoffs' ? 'Playoffs' : 'Both'
 const pct1 = v => v != null ? (v * 100).toFixed(1) + '%' : '—'
 
 const SUFFIXES = new Set(['jr', 'sr', 'ii', 'iii', 'iv', 'v'])
@@ -84,10 +87,10 @@ const EST_TIP = 'Estimated. Madden does not expose individual sack yardage or lo
 
 // Column order defines the table; `presets` controls which views show it.
 const ALL_COLS = [
-  { key: 'rank', label: '#', fmt: (_, i, row) => row.rank ?? i + 1, stickyLeft: 'left-0', w: 'w-10', presets: ['efficiency', 'classic', 'rushing', 'all'], sortable: false },
-  { key: 'rankChange', label: 'Move', presets: ['efficiency', 'classic', 'rushing', 'all'], fmt: v => <Move value={v} /> },
+  { key: 'rank', desc: 'TANY/A rank among qualified quarterbacks; unqualified quarterbacks have an empty rank.', value: row => row.rank, z: '0', tx: (_, i, row) => row.rank ?? '', label: '#', fmt: (_, i, row) => row.rank ?? '', stickyLeft: 'left-0', w: 'w-10', presets: ['efficiency', 'classic', 'rushing', 'all'], sortable: false },
+  { key: 'rankChange', desc: 'Change in rank over the comparison window; positive means a rise, and no change or no prior rank is empty.', tx: signedMove, value: row => row.rankChange, label: 'Move', presets: ['efficiency', 'classic', 'rushing', 'all'], fmt: v => <Move value={v} /> },
   {
-    key: 'playerName', label: 'QB', stickyLeft: 'left-10', presets: ['efficiency', 'classic', 'rushing', 'all'],
+    key: 'playerName', desc: 'Quarterback name.', tx: v => v, align: 'left', label: 'QB', stickyLeft: 'left-10', presets: ['efficiency', 'classic', 'rushing', 'all'],
     fmt: (v, _, row) => (
       <a
         href={neonPlayerUrl(row.rosterId)}
@@ -102,26 +105,26 @@ const ALL_COLS = [
       </a>
     ),
   },
-  { key: 'gamesPlayed', label: 'GP', presets: ['efficiency', 'classic', 'rushing', 'all'], group: 'Volume', groupStart: true },
-  { key: 'passAtt', label: 'Att', presets: ['efficiency', 'classic', 'rushing', 'all'], group: 'Volume' },
-  { key: 'tanya', label: 'TANY/A', fmt: n2, heat: 'higher', presets: ['efficiency', 'classic', 'rushing', 'all'], group: 'Efficiency', groupStart: true, title: TANYA_TIP },
-  { key: 'anya', label: 'ANY/A', fmt: n2, heat: 'higher', presets: ['efficiency', 'all'], group: 'Efficiency', title: 'Adjusted Net Yards per Attempt — passing only, no fumble term. The classic benchmark.' },
-  { key: 'rushValue', label: 'RUSH+', fmt: signed2, heat: 'higher', presets: ['efficiency', 'rushing', 'all'], group: 'Efficiency', title: RUSHPLUS_TIP },
-  { key: 'passerRating', label: 'Rating', fmt: n1, heat: 'higher', presets: ['classic', 'all'], group: 'Efficiency' },
-  { key: 'passComp', label: 'Cmp', presets: ['classic', 'all'], group: 'Passing', groupStart: true },
-  { key: 'passYds', label: 'Yds', heat: 'higher', presets: ['classic', 'all'], group: 'Passing' },
-  { key: 'passTd', label: 'TD', heat: 'higher', presets: ['classic', 'all'], group: 'Passing' },
-  { key: 'passInt', label: 'INT', heat: 'lower', presets: ['classic', 'all'], group: 'Passing' },
-  { key: 'tdPct', label: 'TD%', fmt: pct1, heat: 'higher', presets: ['classic', 'all'], group: 'Passing' },
-  { key: 'intPct', label: 'INT%', fmt: pct1, heat: 'lower', presets: ['classic', 'all'], group: 'Passing' },
-  { key: 'tdToInt', label: 'TD:INT', fmt: v => v != null ? v.toFixed(1) : 'n/a', heat: 'higher', presets: ['classic', 'all'], group: 'Passing' },
-  { key: 'passSacks', label: 'Sk', heat: 'lower', presets: ['classic', 'all'], group: 'Pressure', groupStart: true },
-  { key: 'sackYardsLost', label: '~SkYd', fmt: n1, heat: 'lower', presets: ['classic', 'all'], group: 'Pressure', title: EST_TIP },
-  { key: 'fumblesLost', label: '~FL', fmt: n1, heat: 'lower', presets: ['classic', 'all'], group: 'Pressure', title: EST_TIP },
-  { key: 'rushAtt', label: 'Att', presets: ['rushing', 'all'], group: 'Rushing', groupStart: true },
-  { key: 'rushYds', label: 'Yds', heat: 'higher', presets: ['rushing', 'all'], group: 'Rushing' },
-  { key: 'rushYdsPerAtt', label: 'YPC', fmt: n1, heat: 'higher', presets: ['rushing', 'all'], group: 'Rushing' },
-  { key: 'rushTd', label: 'TD', heat: 'higher', presets: ['rushing', 'all'], group: 'Rushing' },
+  { key: 'gamesPlayed', desc: 'Number of games played by the quarterback.', value: row => row.gamesPlayed, z: '0', label: 'GP', presets: ['efficiency', 'classic', 'rushing', 'all'], group: 'Volume', groupStart: true },
+  { key: 'passAtt', desc: 'Number of pass attempts.', value: row => row.passAtt, z: '0', label: 'Att', presets: ['efficiency', 'classic', 'rushing', 'all'], group: 'Volume' },
+  { key: 'tanya', value: row => row.tanya, z: '0.00', label: 'TANY/A', fmt: n2, heat: 'higher', presets: ['efficiency', 'classic', 'rushing', 'all'], group: 'Efficiency', groupStart: true, title: TANYA_TIP },
+  { key: 'anya', value: row => row.anya, z: '0.00', label: 'ANY/A', fmt: n2, heat: 'higher', presets: ['efficiency', 'all'], group: 'Efficiency', title: 'Adjusted Net Yards per Attempt — passing only, no fumble term. The classic benchmark.' },
+  { key: 'rushValue', value: row => row.rushValue, z: '+0.00;-0.00;0.00', label: 'RUSH+', fmt: signed2, heat: 'higher', presets: ['efficiency', 'rushing', 'all'], group: 'Efficiency', title: RUSHPLUS_TIP },
+  { key: 'passerRating', desc: 'Passer rating calculated from completion rate, yards per attempt, touchdown rate and interception rate.', value: row => row.passerRating, z: '0.0', label: 'Rating', fmt: n1, heat: 'higher', presets: ['classic', 'all'], group: 'Efficiency' },
+  { key: 'passComp', desc: 'Number of completed passes.', value: row => row.passComp, z: '0', label: 'Cmp', presets: ['classic', 'all'], group: 'Passing', groupStart: true },
+  { key: 'passYds', desc: 'Yards gained on completed passes.', value: row => row.passYds, z: '0', label: 'Yds', heat: 'higher', presets: ['classic', 'all'], group: 'Passing' },
+  { key: 'passTd', desc: 'Number of passing touchdowns.', value: row => row.passTd, z: '0', label: 'TD', heat: 'higher', presets: ['classic', 'all'], group: 'Passing' },
+  { key: 'passInt', desc: 'Number of interceptions thrown.', value: row => row.passInt, z: '0', label: 'INT', heat: 'lower', presets: ['classic', 'all'], group: 'Passing' },
+  { key: 'tdPct', desc: 'Passing touchdowns divided by pass attempts; empty when there are no attempts.', value: row => row.tdPct, z: '0.0%', label: 'TD%', fmt: pct1, heat: 'higher', presets: ['classic', 'all'], group: 'Passing' },
+  { key: 'intPct', desc: 'Interceptions divided by pass attempts; empty when there are no attempts.', value: row => row.intPct, z: '0.0%', label: 'INT%', fmt: pct1, heat: 'lower', presets: ['classic', 'all'], group: 'Passing' },
+  { key: 'tdToInt', desc: 'Passing touchdowns divided by interceptions; n/a means no interceptions.', value: row => row.tdToInt, z: '0.0', keepText: true, label: 'TD:INT', fmt: v => v != null ? v.toFixed(1) : 'n/a', heat: 'higher', presets: ['classic', 'all'], group: 'Passing' },
+  { key: 'passSacks', desc: 'Number of sacks taken.', value: row => row.passSacks, z: '0', label: 'Sk', heat: 'lower', presets: ['classic', 'all'], group: 'Pressure', groupStart: true },
+  { key: 'sackYardsLost', value: row => row.sackYardsLost, z: '0.0', label: '~SkYd', fmt: n1, heat: 'lower', presets: ['classic', 'all'], group: 'Pressure', title: EST_TIP },
+  { key: 'fumblesLost', value: row => row.fumblesLost, z: '0.0', label: '~FL', fmt: n1, heat: 'lower', presets: ['classic', 'all'], group: 'Pressure', title: EST_TIP },
+  { key: 'rushAtt', desc: 'Number of rushing attempts by the quarterback.', value: row => row.rushAtt, z: '0', label: 'Att', presets: ['rushing', 'all'], group: 'Rushing', groupStart: true },
+  { key: 'rushYds', desc: 'Yards gained rushing by the quarterback.', value: row => row.rushYds, z: '0', label: 'Yds', heat: 'higher', presets: ['rushing', 'all'], group: 'Rushing' },
+  { key: 'rushYdsPerAtt', desc: 'Rushing yards divided by rushing attempts; empty when there are no attempts.', value: row => row.rushYdsPerAtt, z: '0.0', label: 'YPC', fmt: n1, heat: 'higher', presets: ['rushing', 'all'], group: 'Rushing' },
+  { key: 'rushTd', desc: 'Number of rushing touchdowns by the quarterback.', value: row => row.rushTd, z: '0', label: 'TD', heat: 'higher', presets: ['rushing', 'all'], group: 'Rushing' },
 ]
 
 function Move({ value }) {
@@ -135,41 +138,7 @@ function Move({ value }) {
   )
 }
 
-export function buildQbRows(rows) {
-  const headers = ['Rank', 'QB', 'Team', 'GP', 'Att', 'TANY/A', 'ANY/A', 'RUSH+', 'Rating', 'Cmp', 'Yds', 'TD', 'INT',
-    'TD%', 'INT%', 'TD:INT', 'Sacks', 'Est Sack Yds', 'Est Fumbles Lost', 'Rush Att', 'Rush Yds', 'YPC', 'Rush TD']
-  const body = rows.map((r, i) => [
-    r.rank ?? '', r.playerName, r.teamAbbr, r.gamesPlayed, r.passAtt,
-    n2(r.tanya), n2(r.anya), signed2(r.rushValue), n1(r.passerRating),
-    r.passComp, r.passYds, r.passTd, r.passInt,
-    pct1(r.tdPct), pct1(r.intPct), r.tdToInt != null ? r.tdToInt.toFixed(1) : 'n/a',
-    r.passSacks, n1(r.sackYardsLost), n1(r.fumblesLost),
-    r.rushAtt, r.rushYds, n1(r.rushYdsPerAtt), r.rushTd,
-  ])
-  return [headers, ...body]
-}
-
-function exportCsv(rows, label) {
-  const csv = buildQbRows(rows).map(row => row.map(cell => {
-    const s = String(cell ?? '')
-    return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s
-  }).join(',')).join('\n')
-  const blob = new Blob([csv], { type: 'text/csv' })
-  const a = document.createElement('a')
-  a.href = URL.createObjectURL(blob)
-  a.download = `qb-stats-${label}.csv`
-  a.click()
-  URL.revokeObjectURL(a.href)
-}
-
-function exportExcel(rows, label) {
-  const ws = XLSX.utils.aoa_to_sheet(buildQbRows(rows))
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, 'QB Stats')
-  XLSX.writeFile(wb, `qb-stats-${label}.xlsx`)
-}
-
-function Leaderboard({ rows, preset, sortKey, sortAsc, onSort, scopeLabel, scope, minAtt }) {
+function Leaderboard({ rows, preset, sortKey, sortAsc, onSort, scope, params }) {
   const cols = ALL_COLS.filter(c => c.presets.includes(preset))
     .filter(c => c.key !== 'rankChange' || scope !== 'week')
 
@@ -193,15 +162,37 @@ function Leaderboard({ rows, preset, sortKey, sortAsc, onSort, scopeLabel, scope
     return undefined
   }
 
+  const minimum = params.minAtt ?? (params.scope === 'week' ? '10' : params.scope === 'alltime' ? (params.stage === 'playoffs' ? '50' : '250') : '10 × team games played')
+  const slice = params.scope === 'alltime' ? 'All-time' : params.scope === 'week' ? `${seasonLabel(params.season)} · ${weekOptionLabel(params.week)}` : `${seasonLabel(params.season)} · Season`
+  const sort = `${ALL_COLS.find(c => c.key === sortKey)?.label} (${sortKey}) ${sortAsc ? 'ascending' : 'descending'}`
+  const exportCols = [...cols]
+  exportCols.splice(exportCols.findIndex(c => c.key === 'playerName') + 1, 0, {
+    key: 'teamAbbr', label: 'Team', desc: 'Team abbreviation.', tx: v => v ?? '', align: 'left',
+  })
+  const exportSpec = {
+    name: 'QB Leaderboard',
+    qualifier: `${slice} · ${stageLabel(params.stage)} · minimum attempts: ${minimum} · unqualified ${params.includeUnqualified ? 'shown' : 'hidden'} · ${PRESETS.find(p => p.value === preset).label} preset · sorted by ${sort}`,
+    description: 'One row per QB, sorted as shown. Qualification defaults to 10 pass attempts for a week, 10 × team games played for a season, or 250 career attempts (50 for all-time playoffs); minAtt overrides the default. Unqualified QBs appear only with Show unqualified enabled and export an empty #.',
+    rows,
+    cols: specCols(exportCols, cellColor),
+    api: {
+      path: '/qb/leaderboard', params,
+      note: `Client presentation: preset=${preset}; sorted by ${sort}.`,
+      fields: {
+        YPC: 'rushYdsPerAtt = rushYds / rushAtt; empty with no rushing attempts',
+        'TD%': 'tdPct = passTd / passAtt, a fraction displayed as a percentage',
+        'INT%': 'intPct = passInt / passAtt, a fraction displayed as a percentage',
+        'TD:INT': 'tdToInt = passTd / passInt; n/a when passInt is zero',
+        '~SkYd': 'sackYardsLost, estimated from team sack yardage by share of sacks taken',
+        '~FL': 'fumblesLost, estimated from team lost fumbles by share of team fumbles',
+      },
+    },
+  }
+
   return (
     <>
       <div className="flex items-center justify-end mb-1 min-h-[1.5rem]">
-        {rows.length > 0 && (
-          <div className="hidden sm:flex items-center gap-1">
-            <button onClick={() => exportCsv(rows, scopeLabel)} title="Export CSV" className="px-2 py-1 text-xs text-muted hover:text-ink">CSV</button>
-            <button onClick={() => exportExcel(rows, scopeLabel)} title="Export Excel" className="px-2 py-1 text-xs text-muted hover:text-ink">Excel</button>
-          </div>
-        )}
+        {rows.length > 0 && <ExportMenu spec={exportSpec} />}
       </div>
       <div className="overflow-x-auto border-y border-rule">
         <table className="w-full text-sm num">
@@ -324,12 +315,13 @@ export function RankTooltip({ active, payload, label, named, focus }) {
   )
 }
 
-function Movement({ data, loading, basis }) {
+function Movement({ data, loading, params }) {
   const [focus, setFocus] = useState(new Set())
   const [hover, setHover] = useState(null)
   if (loading) return <div className="text-muted">Loading...</div>
   if (!data) return null
 
+  const basis = params.basis
   const series = data.series ?? []
   const points = [...new Map(series.flatMap(s => (s.ranks ?? []).map(p => [`${p.season}:${p.week}`, p]))).values()]
     .sort((a, b) => a.season - b.season || a.week - b.week)
@@ -344,6 +336,53 @@ function Movement({ data, loading, basis }) {
   const maxRank = Math.max(1, ...series.flatMap(s => (s.ranks ?? []).map(p => p.rank)))
   const named = chartNames(series)
 
+  const qualifier = `${basis === 'alltime' ? 'All-time' : seasonLabel(params.season)} · ${stageLabel(params.stage)} · basis: ${basis} · window: ${WINDOWS.find(w => w.value === params.window)?.label} (${params.window})`
+  const playerCols = [
+    { label: 'QB', desc: 'Quarterback name.', text: r => r.playerName },
+    { label: 'Team', desc: 'Team abbreviation.', text: r => r.teamAbbr },
+  ]
+  const rankCol = { label: 'Rank', desc: 'TANY/A rank at this point among qualified quarterbacks.', text: r => r.rank ?? '', value: r => r.rank, z: '0' }
+  const tanyaCol = { label: 'TANY/A', desc: TANYA_TIP, text: r => n2(r.tanya), value: r => r.tanya, z: '0.00' }
+  const moversSpec = {
+    name: 'QB Movement', qualifier,
+    description: 'Top risers followed by bottom fallers over the selected comparison window, one row per QB; only the top/bottom few are returned, not the full series.',
+    rows: [...(data.risers ?? []).map(r => ({ ...r, direction: 'Riser' })), ...(data.fallers ?? []).map(r => ({ ...r, direction: 'Faller' }))],
+    cols: [
+      { label: 'Direction', desc: 'Riser for a rank gain or Faller for a rank loss.', text: r => r.direction },
+      { label: 'Move', desc: 'Signed rank change over the comparison window; positive means a rise.', text: r => signedMove(r.rankChange), value: r => r.rankChange },
+      ...playerCols, rankCol, tanyaCol,
+    ],
+    api: { path: '/qb/movement', params, note: 'risers followed by fallers from the response.' },
+  }
+  const historySpec = {
+    name: 'QB rank history', qualifier,
+    description: 'One row per player per point in the series exactly as charted, including rank and cumulative TANY/A; highlighting does not remove points.',
+    rows: series.flatMap(s => (s.ranks ?? []).map(p => ({ ...p, playerName: s.playerName, teamAbbr: s.teamAbbr }))),
+    cols: [
+      ...playerCols,
+      { label: 'Season', desc: 'Numeric zero-based season index; display season is index + 103.', text: r => r.season, value: r => r.season, z: '0' },
+      { label: 'Week', desc: 'Week label as shown on the chart, including season for the all-time basis.', text: r => pointLabel(r.season, r.week, basis === 'alltime') },
+      { label: 'Week index', desc: 'Numeric zero-based week index; playoffs begin at 18.', text: r => r.week, value: r => r.week, z: '0' },
+      rankCol, tanyaCol,
+    ],
+    api: { path: '/qb/movement', params, note: 'Data is the series array in the response, flattened from series[].ranks; QB and Team come from playerName and teamAbbr on each series.' },
+  }
+  if (historySpec.rows.length > 0) {
+    // A shared rank scale keeps the same rank the same color across weeks.
+    const allRanks = historySpec.rows.map(r => r.rank)
+    historySpec.imageSpec = {
+      name: historySpec.name, qualifier: `${qualifier} · rank by week`, rows: series,
+      cols: [
+        ...playerCols.map(({ label, text }) => ({ label, text, align: 'left' })),
+        ...points.map((p, i) => ({
+          label: pointLabel(p.season, p.week, basis === 'alltime'),
+          text: s => String(chartData[i][s.rosterId] ?? ''),
+          color: s => goodBadColor(chartData[i][s.rosterId], allRanks, 'lower'),
+        })),
+      ],
+    }
+  }
+
   const toggle = id =>
     setFocus(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
   const emphasised = id => focus.has(id) || hover === id
@@ -351,6 +390,7 @@ function Movement({ data, loading, basis }) {
 
   return (
     <div className="space-y-8">
+      {moversSpec.rows.length > 0 && <div className="flex justify-end"><ExportMenu spec={moversSpec} /></div>}
       <div className="grid sm:grid-cols-2 gap-6">
         <MoverList title="Risers" rows={data.risers ?? []} direction="up" />
         <MoverList title="Fallers" rows={data.fallers ?? []} direction="down" />
@@ -358,6 +398,7 @@ function Movement({ data, loading, basis }) {
 
       {series.length > 0 && (
         <div>
+          <div className="flex justify-end">{historySpec.rows.length > 0 && <ExportMenu spec={historySpec} />}</div>
           <h3 className="font-display font-bold uppercase text-lg mb-1">Rank by week</h3>
           <p className="text-xs text-muted mb-2">
             {basis === 'alltime'
@@ -426,7 +467,7 @@ export default function QbPage() {
   const [preset, setPreset] = useState('efficiency')
   const [minAtt, setMinAtt] = useState('')
   const [includeUnqualified, setIncludeUnqualified] = useState(false)
-  const [rows, setRows] = useState([])
+  const [leaderboard, setLeaderboard] = useState({ rows: [], params: {} })
   const [movement, setMovement] = useState(null)
   const [basis, setBasis] = useState('season')
   const [moverWindow, setMoverWindow] = useState(1)
@@ -460,20 +501,27 @@ export default function QbPage() {
   useEffect(() => {
     if (tab !== 'leaderboard') return
     if (scope !== 'alltime' && season == null) return
-    if (scope === 'week' && week == null) return
+    if (scope === 'week' && week == null) {
+      setLoading(false)
+      setLeaderboard(l => (l.rows.length ? { rows: [], params: {} } : l))
+      return
+    }
     setLoading(true)
     setError(null)
-    getQbLeaderboard({
+    let current = true
+    const params = {
       scope,
-      season: scope === 'alltime' ? undefined : season,
-      week: scope === 'week' ? week : undefined,
+      ...(scope !== 'alltime' ? { season } : {}),
+      ...(scope === 'week' ? { week } : {}),
       stage,
-      minAtt: minAtt === '' ? undefined : Number(minAtt),
+      ...(minAtt !== '' ? { minAtt: Number(minAtt) } : {}),
       includeUnqualified,
-    })
-      .then(setRows)
-      .catch(() => setError('Failed to load QB stats'))
-      .finally(() => setLoading(false))
+    }
+    getQbLeaderboard(params)
+      .then(rows => { if (current) setLeaderboard({ rows, params }) })
+      .catch(() => { if (current) setError('Failed to load QB stats') })
+      .finally(() => { if (current) setLoading(false) })
+    return () => { current = false }
   }, [tab, scope, season, week, stage, minAtt, includeUnqualified])
 
   useEffect(() => {
@@ -481,10 +529,13 @@ export default function QbPage() {
     if (basis === 'season' && season == null) return
     setLoading(true)
     setError(null)
-    getQbMovement({ season, stage, basis, window: moverWindow })
-      .then(setMovement)
-      .catch(() => setError('Failed to load movement'))
-      .finally(() => setLoading(false))
+    let current = true
+    const params = { ...(season != null ? { season } : {}), stage, basis, window: moverWindow }
+    getQbMovement(params)
+      .then(data => { if (current) setMovement({ data, params }) })
+      .catch(() => { if (current) setError('Failed to load movement') })
+      .finally(() => { if (current) setLoading(false) })
+    return () => { current = false }
   }, [tab, season, stage, basis, moverWindow])
 
   const handleSort = key => {
@@ -492,19 +543,13 @@ export default function QbPage() {
     else { setSortKey(key); setSortAsc(false) }
   }
 
-  const sorted = [...rows].sort((a, b) => {
+  const sorted = [...leaderboard.rows].sort((a, b) => {
     const av = a[sortKey]
     const bv = b[sortKey]
     if (av == null) return 1
     if (bv == null) return -1
     return sortAsc ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1)
   })
-
-  const scopeLabel = scope === 'alltime'
-    ? 'all-time'
-    : scope === 'week'
-      ? `${seasonNumber(season)}-week-${week != null ? week + 1 : ''}`
-      : `season-${seasonNumber(season)}`
 
   const qualifier = scope === 'alltime'
     ? 'All seasons · min 250 attempts'
@@ -645,12 +690,12 @@ export default function QbPage() {
           sortKey={sortKey}
           sortAsc={sortAsc}
           onSort={handleSort}
-          scopeLabel={scopeLabel}
+          params={leaderboard.params}
           scope={scope}
         />
       )}
 
-      {!loading && !error && tab === 'movement' && <Movement data={movement} loading={false} basis={basis} />}
+      {!loading && !error && tab === 'movement' && <Movement data={movement?.data} params={movement?.params} loading={false} />}
     </div>
   )
 }

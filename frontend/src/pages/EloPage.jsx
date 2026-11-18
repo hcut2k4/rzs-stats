@@ -9,6 +9,7 @@ import DivergingBar from '../components/DivergingBar'
 import InfoTip from '../components/InfoTip'
 import { SortTh, useSorter } from '../components/SortTh'
 import LeanBar from '../components/LeanBar'
+import ExportMenu from '../components/ExportMenu'
 import { divergeColor } from '../utils/heat'
 import { TIERS, lean, pct0 } from '../utils/eloLean'
 import { weekLabel } from '../utils/playoffRounds'
@@ -16,6 +17,9 @@ import { COLORS } from '../utils/chartColors'
 import { seasonLabel, seasonNumber } from '../utils/seasons'
 
 const BASE = 1500
+const ELO_NOTES = ['Elo measures long-term strength from every game, playoffs included. Every team starts at 1500 and 10% of the gap back to 1500 is lost between seasons. Change is versus the previous week.']
+const sliceLabel = params => `${params.season == null ? 'All seasons' : seasonLabel(params.season)} · ${params.week == null ? 'All weeks' : label(params.week)}`
+const sortLabel = (sort, labels, fallback) => sort.key ? `sorted by ${labels[sort.key]} ${sort.asc ? 'ascending' : 'descending'}` : fallback
 
 const TABS = [
   { value: 'ratings', label: 'Ratings' },
@@ -83,8 +87,21 @@ function RankMove({ change }) {
     : <span className="text-bad font-semibold">▼ {-change}</span>
 }
 
-function Movers({ ratings }) {
+function Movers({ ratings, params }) {
   const sorted = [...ratings].sort((a, b) => b.change - a.change)
+  const risers = sorted.slice(0, 5)
+  const droppers = sorted.slice(-5).reverse()
+  const spec = {
+    name: 'Elo Movers', qualifier: `${sliceLabel(params)} · risers by Change descending, droppers by Change ascending`,
+    description: 'The biggest weekly Elo risers followed by the biggest droppers.', notes: ELO_NOTES,
+    rows: [...risers.map(r => ({ ...r, direction: 'Riser' })), ...droppers.map(r => ({ ...r, direction: 'Dropper' }))],
+    cols: [
+      { label: 'Direction', desc: `${TIPS.risers} ${TIPS.droppers}`, text: r => r.direction },
+      { label: 'Team', desc: TIPS.team, text: r => r.displayName },
+      { label: 'Change', desc: TIPS.change, text: r => signed(r.change), value: r => r.change, z: '+0.0;-0.0;0.0' },
+    ],
+    api: { path: '/elo/ratings', params, note: 'Sort by change; take the first five descending for risers, then the first five ascending for droppers.' },
+  }
   const list = (rows, title, tip) => (
     <div>
       <h3 className="th mb-1"><InfoTip text={tip}>{title}</InfoTip></h3>
@@ -100,13 +117,14 @@ function Movers({ ratings }) {
   )
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-8 max-w-3xl">
-      {list(sorted.slice(0, 5), 'Biggest risers this week', TIPS.risers)}
-      {list(sorted.slice(-5).reverse(), 'Biggest droppers this week', TIPS.droppers)}
+      <div className="sm:col-span-2 flex justify-end"><ExportMenu spec={spec} /></div>
+      {list(risers, 'Biggest risers this week', TIPS.risers)}
+      {list(droppers, 'Biggest droppers this week', TIPS.droppers)}
     </div>
   )
 }
 
-function RatingsTab({ ratings, loading }) {
+function RatingsTab({ ratings, loading, params }) {
   const sort = useSorter({ key: null, asc: false })
   if (loading) return <p className="text-muted">Loading...</p>
   if (!ratings.length) return <p className="text-muted">No ratings available.</p>
@@ -121,8 +139,24 @@ function RatingsTab({ ratings, loading }) {
     rankMove: r => r.rankChange,
     games: r => r.gamesCounted,
   })
+  const spec = {
+    name: 'Elo Ratings', qualifier: `${sliceLabel(params)} · ${sortLabel(sort.sort, { rank: '#', team: 'Team', elo: 'Elo', vs1500: 'vs 1500', change: 'Change', rankMove: 'Rank move', games: 'Games' }, 'sorted by # ascending (API order)')}`,
+    description: 'Team Elo ratings, weekly changes and rank movement. Elo is rolling strength that carries across seasons.', notes: ELO_NOTES,
+    rows: sorted,
+    cols: [
+      { label: '#', desc: TIPS.rank, text: r => String(r.rank), value: r => r.rank, z: '0' },
+      { label: 'Team', desc: TIPS.team, text: r => r.displayName },
+      { label: 'Elo', desc: TIPS.elo, text: r => r.elo.toFixed(0), value: r => r.elo, z: '0' },
+      { label: 'vs 1500', desc: TIPS.vs1500, text: r => signed(r.elo - BASE, 0), value: r => r.elo - BASE, z: '+0;-0;0' },
+      { label: 'Change', desc: TIPS.change, text: r => signed(r.change), value: r => r.change, z: '+0.0;-0.0;0.0', color: r => divergeColor(r.change, maxChange || 1) },
+      { label: 'Rank move', desc: TIPS.rankMove, text: r => r.rankChange == null ? '–' : signed(r.rankChange, 0), value: r => r.rankChange, z: '+0;-0;0' },
+      { label: 'Games', desc: TIPS.games, text: r => String(r.gamesCounted), value: r => r.gamesCounted, z: '0' },
+    ],
+    api: { path: '/elo/ratings', params, fields: { 'vs 1500': 'elo - 1500', 'Rank move': 'rankChange' }, note: 'Rows use the selected client-side sort; default is API ranking order.' },
+  }
   return (
     <div>
+      <div className="flex justify-end mb-2"><ExportMenu spec={spec} /></div>
       <div className="overflow-x-auto border-y border-rule">
         <table className="w-full text-sm num">
           <thead>
@@ -152,14 +186,14 @@ function RatingsTab({ ratings, loading }) {
         </table>
       </div>
       <p className="text-xs text-muted mt-2">
-        Elo measures long-term strength from every game, playoffs included. Every team starts at 1500 and 10% of the gap back to 1500 is lost between seasons. Change is versus the previous week.
+        {ELO_NOTES[0]}
       </p>
-      <Movers ratings={ratings} />
+      <Movers ratings={ratings} params={params} />
     </div>
   )
 }
 
-function HistoryTab({ history, teams }) {
+function HistoryTab({ history, teams, params }) {
   const [focus, setFocus] = useState(new Set())
   const [hover, setHover] = useState(null)
 
@@ -184,9 +218,25 @@ function HistoryTab({ history, teams }) {
   const anyEmphasis = focus.size > 0 || hover != null
   const toggle = id => setFocus(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
   const seasonOf = key => seasonLabel(Number(key.split('-')[0]))
+  const spec = {
+    name: 'Elo History', qualifier: `${sliceLabel(params)} · teams by abbreviation ascending · week points in chart order`,
+    description: 'One row per chart team, with end-of-week Elo at every season and week point. Highlighting teams only changes chart emphasis.',
+    notes: [...ELO_NOTES, 'Dotted verticals mark season starts, where ratings regress toward 1500.'],
+    rows: teams,
+    cols: [
+      { label: 'Team', desc: TIPS.team, text: r => r.displayName },
+      ...data.map(point => ({
+        label: `S${seasonNumber(point.season)} ${point.week < 18 ? `W${point.week + 1}` : label(point.week)}`,
+        desc: 'End-of-week Elo. Ratings regress toward 1500 at each season start.',
+        text: r => point[r.teamId]?.toFixed(0) ?? '–', value: r => point[r.teamId], z: '0',
+      })),
+    ],
+    api: { path: '/elo/history', params, fields: { Team: 'teamId joined to /elo/ratings for displayName', 'Week points': 'Pivot by teamId and season/week; each value is endElo.' }, note: 'All chart teams are included; highlighting does not filter rows.' },
+  }
 
   return (
     <div>
+      {teams.length > 0 && <div className="flex justify-end mb-2"><ExportMenu spec={spec} /></div>}
       <div className="flex items-center gap-3 mb-2 text-xs text-muted">
         <span title="Each line is one team's Elo after every week. Click a team below to highlight it. Dotted vertical lines mark the start of a season, where ratings are pulled 10% back toward 1500.">Click teams to highlight them. The rest fade back. Dotted lines mark season starts.</span>
         <button onClick={() => setFocus(new Set())} className="text-ink font-medium hover:text-accent">Clear</button>
@@ -301,7 +351,7 @@ function MatchupTab({ ratedTeams }) {
 }
 
 function GamesTab({ season, week, upcoming }) {
-  const [games, setGames] = useState([])
+  const [{ rows: games, params: gamesParams }, setGames] = useState({ rows: [], params: {} })
   const [loading, setLoading] = useState(false)
   const played = useSorter({ key: null, asc: false })
   const [scope, setScope] = useState('week')
@@ -309,8 +359,11 @@ function GamesTab({ season, week, upcoming }) {
 
   useEffect(() => {
     if (season == null || week == null) return
+    let current = true
+    const params = { season, week }
     setLoading(true)
-    getEloGames(season, week).then(g => { setGames(g); setLoading(false) }).catch(() => setLoading(false))
+    getEloGames(season, week).then(g => { if (current) { setGames({ rows: g, params }); setLoading(false) } }).catch(() => { if (current) { setGames({ rows: [], params }); setLoading(false) } })
+    return () => { current = false }
   }, [season, week])
 
   const projected = useMemo(() => upcoming.filter(u => u.season === season && (scope === 'season' || u.week === week)), [upcoming, season, week, scope])
@@ -337,6 +390,44 @@ function GamesTab({ season, week, upcoming }) {
     tier: r => r.l.prob,
   })
 
+  const playedSpec = {
+    name: 'Elo Played Games', qualifier: `${sliceLabel(gamesParams)} · ${sortLabel(played.sort, { away: 'Away', home: 'Home', margin: 'Score (margin)', homeProb: 'Home Win Prob', mov: 'MOV Mult', upset: 'Result' }, 'API game order')}`,
+    description: 'Completed games with pregame Elo, rating changes and upset results.', notes: ELO_NOTES,
+    rows: sortedGames,
+    cols: [
+      { label: 'Away', desc: TIPS.away, text: g => g.awayTeam.abbrName },
+      { label: 'Away Elo', desc: 'Away team Elo before the game.', text: g => g.awayPregameElo.toFixed(0), value: g => g.awayPregameElo, z: '0' },
+      { label: 'Away Elo Change', desc: 'Away team postgame Elo minus pregame Elo.', text: g => signed(g.awayPostgameElo - g.awayPregameElo), value: g => g.awayPostgameElo - g.awayPregameElo, z: '+0.0;-0.0;0.0' },
+      { label: 'Home', desc: TIPS.home, text: g => g.homeTeam.abbrName },
+      { label: 'Home Elo', desc: 'Home team Elo before the game.', text: g => g.homePregameElo.toFixed(0), value: g => g.homePregameElo, z: '0' },
+      { label: 'Home Elo Change', desc: 'Home team postgame Elo minus pregame Elo.', text: g => signed(g.homePostgameElo - g.homePregameElo), value: g => g.homePostgameElo - g.homePregameElo, z: '+0.0;-0.0;0.0' },
+      { label: 'Away Score', desc: TIPS.score, text: g => String(g.awayScore), value: g => g.awayScore, z: '0' },
+      { label: 'Home Score', desc: TIPS.score, text: g => String(g.homeScore), value: g => g.homeScore, z: '0' },
+      { label: 'Home Win Prob', desc: TIPS.homeProb, text: g => pct(g.homeWinProbability), value: g => g.homeWinProbability, z: '0.0%' },
+      { label: 'MOV Mult', desc: TIPS.mov, text: g => g.movMultiplier.toFixed(2), value: g => g.movMultiplier, z: '0.00' },
+      { label: 'Result', desc: TIPS.result, text: g => { const u = upsetInfo(g); return u ? `${u.label} · ${pct0(u.chance)}` : '' }, color: g => upsetInfo(g)?.shade },
+    ],
+    api: { path: '/elo/games', params: gamesParams, fields: { 'Away Elo Change': 'awayPostgameElo - awayPregameElo', 'Home Elo Change': 'homePostgameElo - homePregameElo', Result: 'Compare scores to find winner; use winner pregame probability and beaten favorite probability to determine upset tier.' }, note: 'Rows use the selected client-side sort; Score sorts by margin.' },
+  }
+  const projectedSpec = {
+    name: 'Elo Projected', qualifier: `${seasonLabel(season)} · ${scope === 'season' ? 'Rest of season' : label(week)} · ${sortLabel(proj.sort, { week: 'Week', away: 'Away', home: 'Home', lean: 'Edge (home win probability)', prob: 'Favored Win Prob', tier: 'Outlook (favored win probability)' })}`,
+    description: 'Unplayed games in the selected week or remaining season, projected from current Elo.',
+    notes: [...ELO_NOTES, 'Ratings change as games are played, so projections for later weeks are less certain.'],
+    rows: sortedProjected,
+    cols: [
+      ...(scope === 'season' ? [{ label: 'Week', desc: TIPS.projWeek, text: r => label(r.game.week) }] : []),
+      { label: 'Away', desc: TIPS.projElo, text: r => r.game.awayTeam.abbrName },
+      { label: 'Away Elo', desc: TIPS.projElo, text: r => r.game.awayElo.toFixed(0), value: r => r.game.awayElo, z: '0' },
+      { label: 'Home', desc: TIPS.projElo, text: r => r.game.homeTeam.abbrName },
+      { label: 'Home Elo', desc: TIPS.projElo, text: r => r.game.homeElo.toFixed(0), value: r => r.game.homeElo, z: '0' },
+      { label: 'Edge', desc: `${TIPS.projLean} How far the favorite's win chance is above 50%, scaled so 1 means certain: (favorite probability - 0.5) * 2.`, text: r => String(r.l.edge), value: r => r.l.edge, z: '0.00' },
+      { label: 'Favored', desc: TIPS.projFav, text: r => r.l.leansTo.abbrName },
+      { label: 'Favored Win Prob', desc: TIPS.projFav, text: r => pct0(r.l.prob), value: r => r.l.prob, z: '0%' },
+      { label: 'Outlook', desc: TIPS.projOutlook, text: r => r.l.tier.label, color: r => r.l.shade },
+    ],
+    api: { path: '/elo/upcoming', params: {}, fields: { Edge: 'min((max(homeWinProbability, awayWinProbability) - 0.5) * 2, 1)', Favored: 'abbrName of the team with the larger win probability; home wins ties.', 'Favored Win Prob': 'max(homeWinProbability, awayWinProbability)', Outlook: 'Favorite probability tier: <55% Toss-up, <60% Tilt, <70% Lean, <80% Likely, otherwise Solid.' }, note: `With no season the endpoint returns the latest season's unplayed games. This view shows ${scope === 'week' ? `week ${week + 1} only (add week=${week} to reproduce it)` : 'the rest of the season'}. Sort is client-side.` },
+  }
+
   const side = (team, elo, delta, fav = null) => (
     <td className="px-2 py-1.5 whitespace-nowrap">
       <div className={`flex items-center gap-2 ${fav === false ? 'opacity-60' : ''}`}>
@@ -351,40 +442,43 @@ function GamesTab({ season, week, upcoming }) {
   return (
     <div className="space-y-8">
       {games.length > 0 && (
-        <div className="overflow-x-auto border-y border-rule">
-          <table className="w-full text-sm num">
-            <thead>
-              <tr className="border-b border-rule">
-                <SortTh tip={TIPS.away} sortKey="away" state={played.sort} onSort={played.click}>Away</SortTh>
-                <SortTh tip={TIPS.home} sortKey="home" state={played.sort} onSort={played.click}>Home</SortTh>
-                <SortTh tip={TIPS.score} sortKey="margin" state={played.sort} onSort={played.click} className="text-right">Score</SortTh>
-                <SortTh tip={TIPS.homeProb} sortKey="homeProb" state={played.sort} onSort={played.click} className="text-right">Home win prob.</SortTh>
-                <SortTh tip={TIPS.mov} sortKey="mov" state={played.sort} onSort={played.click} className="text-right">MOV mult.</SortTh>
-                <SortTh tip={TIPS.result} sortKey="upset" state={played.sort} onSort={played.click}>Result</SortTh>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedGames.map((g, i) => (
-                <tr key={g.gameId} className={`border-t border-line ${i % 2 ? 'bg-surface' : 'bg-bg'}`}>
-                  {side(g.awayTeam, g.awayPregameElo, g.awayPostgameElo - g.awayPregameElo)}
-                  {side(g.homeTeam, g.homePregameElo, g.homePostgameElo - g.homePregameElo)}
-                  <td className="px-2 py-1.5 text-right">{g.awayScore}–{g.homeScore}</td>
-                  <td className="px-2 py-1.5 text-right">{pct(g.homeWinProbability)}</td>
-                  <td className="px-2 py-1.5 text-right">{g.movMultiplier.toFixed(2)}</td>
-                  {(() => {
-                    const upset = upsetInfo(g)
-                    return upset
-                      ? <td className="px-2 py-1.5 whitespace-nowrap font-semibold" style={{ backgroundColor: upset.shade }}
-                          title={`${upset.winner.displayName} had a ${pct(upset.chance)} chance before the game`}>
-                          {upset.label} · {Math.round(upset.chance * 100)}%
-                        </td>
-                      : <td className="px-2 py-1.5" />
-                  })()}
+        <div>
+          <div className="flex justify-end mb-2"><ExportMenu spec={playedSpec} /></div>
+          <div className="overflow-x-auto border-y border-rule">
+            <table className="w-full text-sm num">
+              <thead>
+                <tr className="border-b border-rule">
+                  <SortTh tip={TIPS.away} sortKey="away" state={played.sort} onSort={played.click}>Away</SortTh>
+                  <SortTh tip={TIPS.home} sortKey="home" state={played.sort} onSort={played.click}>Home</SortTh>
+                  <SortTh tip={TIPS.score} sortKey="margin" state={played.sort} onSort={played.click} className="text-right">Score</SortTh>
+                  <SortTh tip={TIPS.homeProb} sortKey="homeProb" state={played.sort} onSort={played.click} className="text-right">Home win prob.</SortTh>
+                  <SortTh tip={TIPS.mov} sortKey="mov" state={played.sort} onSort={played.click} className="text-right">MOV mult.</SortTh>
+                  <SortTh tip={TIPS.result} sortKey="upset" state={played.sort} onSort={played.click}>Result</SortTh>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="text-xs text-muted px-2 py-2">Each team shows its pregame Elo and the points it gained or lost in that game. Upsets are sized by the favorite they beat &mdash; Slight upset, Upset, Big upset, Stunner &mdash; and games Elo rated a Toss-up are left blank, since neither side was favored enough to be upset. Click any heading to sort; Score sorts by margin.</p>
+              </thead>
+              <tbody>
+                {sortedGames.map((g, i) => (
+                  <tr key={g.gameId} className={`border-t border-line ${i % 2 ? 'bg-surface' : 'bg-bg'}`}>
+                    {side(g.awayTeam, g.awayPregameElo, g.awayPostgameElo - g.awayPregameElo)}
+                    {side(g.homeTeam, g.homePregameElo, g.homePostgameElo - g.homePregameElo)}
+                    <td className="px-2 py-1.5 text-right">{g.awayScore}–{g.homeScore}</td>
+                    <td className="px-2 py-1.5 text-right">{pct(g.homeWinProbability)}</td>
+                    <td className="px-2 py-1.5 text-right">{g.movMultiplier.toFixed(2)}</td>
+                    {(() => {
+                      const upset = upsetInfo(g)
+                      return upset
+                        ? <td className="px-2 py-1.5 whitespace-nowrap font-semibold" style={{ backgroundColor: upset.shade }}
+                            title={`${upset.winner.displayName} had a ${pct(upset.chance)} chance before the game`}>
+                            {upset.label} · {Math.round(upset.chance * 100)}%
+                          </td>
+                        : <td className="px-2 py-1.5" />
+                    })()}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="text-xs text-muted px-2 py-2">Each team shows its pregame Elo and the points it gained or lost in that game. Upsets are sized by the favorite they beat &mdash; Slight upset, Upset, Big upset, Stunner &mdash; and games Elo rated a Toss-up are left blank, since neither side was favored enough to be upset. Click any heading to sort; Score sorts by margin.</p>
+          </div>
         </div>
       )}
       {upcoming.some(u => u.season === season) && (
@@ -406,6 +500,7 @@ function GamesTab({ season, week, upcoming }) {
               ? <span className="text-ink font-medium">{tossUps} toss-up{tossUps > 1 ? 's' : ''} {scope === 'week' ? 'this week' : 'remaining this season'}. Projections default to closest first.</span>
               : <span>No toss-ups {scope === 'week' ? 'this week' : 'remaining this season'}.</span>}
           </p>
+          {sortedProjected.length > 0 && <div className="flex justify-end mb-2"><ExportMenu spec={projectedSpec} /></div>}
           <div className="overflow-x-auto border-y border-rule">
             <table className="w-full text-sm num">
               <thead>
@@ -458,37 +553,45 @@ export default function EloPage() {
     next === 'ratings' ? p.delete('tab') : p.set('tab', next)
     return p
   }, { replace: true })
-  const [history, setHistory] = useState([])
+  const [{ rows: history, params: historyParams }, setHistory] = useState({ rows: [], params: {} })
   const [season, setSeason] = useState(null)
   const [week, setWeek] = useState(null)
-  const [ratings, setRatings] = useState([])
+  const [{ rows: ratings, params: ratingsParams }, setRatings] = useState({ rows: [], params: {} })
   const [upcoming, setUpcoming] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
   useEffect(() => {
+    let current = true
     getEloHistory()
       .then(h => {
-        setHistory(h)
+        if (!current) return
+        setHistory({ rows: h, params: {} })
         if (h.length) {
           const last = h.reduce((m, r) => (r.season > m.season || (r.season === m.season && r.week > m.week) ? r : m))
           setSeason(last.season)
           setWeek(last.week)
         } else setLoading(false)
       })
-      .catch(() => { setError('Failed to load Elo ratings'); setLoading(false) })
+      .catch(() => { if (current) { setError('Failed to load Elo ratings'); setLoading(false) } })
+    return () => { current = false }
   }, [])
 
   useEffect(() => {
-    getEloUpcoming().then(setUpcoming).catch(() => setUpcoming([]))
+    let current = true
+    getEloUpcoming().then(rows => { if (current) setUpcoming(rows) }).catch(() => { if (current) setUpcoming([]) })
+    return () => { current = false }
   }, [])
 
   useEffect(() => {
     if (season == null || week == null) return
+    let current = true
+    const params = { season, week }
     setLoading(true)
     getEloRatings(season, week)
-      .then(r => { setRatings(r); setLoading(false) })
-      .catch(() => { setError('Failed to load Elo ratings'); setLoading(false) })
+      .then(r => { if (current) { setRatings({ rows: r, params }); setLoading(false) } })
+      .catch(() => { if (current) { setError('Failed to load Elo ratings'); setLoading(false) } })
+    return () => { current = false }
   }, [season, week])
 
   const seasons = useMemo(() => [...new Set(history.map(r => r.season))].sort((a, b) => a - b), [history])
@@ -535,8 +638,8 @@ export default function EloPage() {
 
       <Tabs value={tab} onChange={setTab} tabs={TABS} />
 
-      {tab === 'ratings' && <RatingsTab ratings={ratings} loading={loading} />}
-      {tab === 'history' && <HistoryTab history={history} teams={teams} />}
+      {tab === 'ratings' && <RatingsTab ratings={ratings} loading={loading} params={ratingsParams} />}
+      {tab === 'history' && <HistoryTab history={history} teams={teams} params={historyParams} />}
       {tab === 'matchup' && <MatchupTab ratedTeams={teams} />}
       {tab === 'games' && <GamesTab season={season} week={week} upcoming={upcoming} />}
     </div>

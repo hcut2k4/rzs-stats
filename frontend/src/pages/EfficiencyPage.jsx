@@ -4,6 +4,7 @@ import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceA
 import { getSeasons, getEfficiency } from '../api/client'
 import PageHeader from '../components/PageHeader'
 import Tabs from '../components/Tabs'
+import ExportMenu from '../components/ExportMenu'
 import { TeamCell } from '../components/TeamLogo'
 import { SortTh, useSorter } from '../components/SortTh'
 import { goodBadColor, divergeColor } from '../utils/heat'
@@ -87,6 +88,42 @@ const TIPS = {
 
 const flip = better => (better === 'higher' ? 'lower' : 'higher')
 
+const EFFICIENCY_NOTES = [
+  'Season figures sum components across games then divide once, so they are never averages of per-game rates. Do not average the column.',
+  'A rate with a zero denominator is null/empty, not 0.',
+  'Drives are estimated from how drives ended and exclude end-of-half kneel-downs and clock-outs.',
+  "Only the offense's own points count, so return and defensive touchdowns are charged to neither side.",
+  "Defense is the same formulas applied to the opponent's row in the same game, and a game counts only when both teams have a row.",
+  'No opponent adjustment yet (raw).',
+]
+
+function efficiencySpec(rows, cols, request, tab, sortLabel, sort) {
+  return {
+    name: `Efficiency ${tab}`,
+    qualifier: `${seasonLabel(request.season)} · ${STAGES.find(s => s.value === request.stage).label} · ${Math.max(...rows.map(r => r.games))} games played · ${tab} · sorted by ${sortLabel} ${sort.asc ? 'ascending' : 'descending'}`,
+    description: 'One row per team with season efficiency rebuilt from game box-score totals.',
+    notes: EFFICIENCY_NOTES,
+    rows, cols,
+    api: { path: '/efficiency', params: request, fields: Object.fromEntries(cols.map(c => [c.label, c.field])) },
+  }
+}
+
+function sideSpec(side, rows, columns, all, getters, request, sort) {
+  const cols = [
+    { label: 'Team', desc: TIPS.team, text: r => r.displayName, field: 'displayName', align: 'left' },
+    { label: 'G', desc: TIPS.games, text: r => String(r.games), value: r => r.games, z: '0', field: 'games' },
+    { label: 'Drives/G', desc: TIPS.drivesPg, text: r => perGame(r[side].drives, r.games), value: getters.drivesPg, z: '0.0', field: `${side}.drives / games` },
+    { label: 'Plays/G', desc: TIPS.playsPg, text: r => perGame(r[side].plays, r.games), value: getters.playsPg, z: '0.0', field: `${side}.plays / games` },
+    ...columns.map(c => ({
+      label: c.label, desc: c.tip, text: r => c.fmt(r[side][c.key]), value: r => r[side][c.key],
+      z: c.fmt === pct ? '0.0%' : '0.00',
+      color: r => goodBadColor(r[side][c.key], all[c.key], c.better), field: `${side}.${c.key}`,
+    })),
+  ]
+  const sortLabel = { team: 'Team', games: 'G', drivesPg: 'Drives/G', playsPg: 'Plays/G' }[sort.key] ?? columns.find(c => c.key === sort.key).label
+  return efficiencySpec(rows, cols, request, side === 'defense' ? 'Defense' : 'Offense', sortLabel, sort)
+}
+
 function ChartTip({ active, payload }) {
   if (!active || !payload?.length) return null
   const t = payload[0].payload
@@ -161,7 +198,7 @@ function TiersChart({ rows }) {
   )
 }
 
-function OverviewTab({ rows }) {
+function OverviewTab({ rows, request }) {
   const { sort, click, apply } = useSorter({ key: 'net', asc: false })
   const rankOf = useMemo(() => new Map(rows.map((r, i) => [r.teamId, i + 1])), [rows])
   const maxNet = Math.max(1, ...rows.map(r => Math.abs(r.netPointsPerDrive ?? 0)))
@@ -175,12 +212,26 @@ function OverviewTab({ rows }) {
     offPpp: r => r.offense.pointsPerPlay,
     defPpp: r => r.defense.pointsPerPlay,
   })
+  const cols = [
+    { label: '#', key: 'rank', field: 'Position in the response ranked by netPointsPerDrive descending', text: r => String(rankOf.get(r.teamId)), value: r => rankOf.get(r.teamId), z: '0' },
+    { label: 'Team', key: 'team', field: 'displayName', text: r => r.displayName, align: 'left' },
+    { label: 'G', key: 'games', field: 'games', text: r => String(r.games), value: r => r.games, z: '0' },
+    { label: 'Net Pts/Drive', key: 'net', field: 'netPointsPerDrive', text: r => signed(r.netPointsPerDrive), value: r => r.netPointsPerDrive, z: '+0.00;-0.00;0.00', color: r => divergeColor(r.netPointsPerDrive, maxNet) },
+    ...[
+      ['Off Pts/Drive', 'offPpd', 'offense', 'pointsPerDrive'],
+      ['Def Pts/Drive', 'defPpd', 'defense', 'pointsPerDrive'],
+      ['Off Pts/Play', 'offPpp', 'offense', 'pointsPerPlay'],
+      ['Def Pts/Play', 'defPpp', 'defense', 'pointsPerPlay'],
+    ].map(([label, key, side, field]) => ({ label, key, field: `${side}.${field}`, text: r => n2(r[side][field]), value: r => r[side][field], z: '0.00' })),
+  ].map(c => ({ ...c, desc: TIPS[c.key] }))
+  const spec = efficiencySpec(sorted, cols, request, 'Overview', cols.find(c => c.key === sort.key).label, sort)
   const th = (key, label, className = 'text-right') => (
     <SortTh tip={TIPS[key]} sortKey={key} state={sort} onSort={click} className={className}>{label}</SortTh>
   )
   return (
     <div>
       <TiersChart rows={rows} />
+      <div className="flex justify-end mb-2"><ExportMenu spec={spec} /></div>
       <div className="overflow-x-auto border-y border-rule">
         <table className="w-full text-sm num">
           <thead>
@@ -218,7 +269,7 @@ function OverviewTab({ rows }) {
   )
 }
 
-function SideTab({ rows, side }) {
+function SideTab({ rows, side, request }) {
   const isDefense = side === 'defense'
   const { sort, click, apply } = useSorter({ key: 'pointsPerDrive', asc: isDefense })
   const columns = METRICS.map(m => ({ ...m, better: isDefense ? flip(m.better) : m.better, tip: isDefense ? m.def : m.off }))
@@ -231,8 +282,10 @@ function SideTab({ rows, side }) {
   }
   const sorted = apply(rows, getters)
   const all = Object.fromEntries(columns.map(c => [c.key, rows.map(r => r[side][c.key])]))
+  const spec = sideSpec(side, sorted, columns, all, getters, request, sort)
   return (
     <div>
+      <div className="flex justify-end mb-2"><ExportMenu spec={spec} /></div>
       <div className="overflow-x-auto border-y border-rule">
         <table className="w-full text-sm num">
           <thead>
@@ -284,7 +337,7 @@ export default function EfficiencyPage() {
   const [seasons, setSeasons] = useState([])
   const [season, setSeason] = useState(null)
   const [stage, setStage] = useState('regular')
-  const [rows, setRows] = useState([])
+  const [{ rows, request }, setData] = useState({ rows: [], request: null })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -307,8 +360,8 @@ export default function EfficiencyPage() {
     setLoading(true)
     setError(null)
     getEfficiency(season, stage)
-      .then(d => { if (live) setRows(d) })
-      .catch(() => { if (live) { setRows([]); setError('Could not load efficiency stats.') } })
+      .then(d => { if (live) setData({ rows: d, request: { season, stage } }) })
+      .catch(() => { if (live) { setData({ rows: [], request: null }); setError('Could not load efficiency stats.') } })
       .finally(() => { if (live) setLoading(false) })
     return () => { live = false }
   }, [season, stage])
@@ -353,9 +406,9 @@ export default function EfficiencyPage() {
       )}
       {!loading && !error && rows.length > 0 && (
         <>
-          {tab === 'overview' && <OverviewTab rows={rows} />}
-          {tab === 'offense' && <SideTab rows={rows} side="offense" />}
-          {tab === 'defense' && <SideTab rows={rows} side="defense" />}
+          {tab === 'overview' && <OverviewTab rows={rows} request={request} />}
+          {tab === 'offense' && <SideTab rows={rows} request={request} side="offense" />}
+          {tab === 'defense' && <SideTab rows={rows} request={request} side="defense" />}
         </>
       )}
     </div>

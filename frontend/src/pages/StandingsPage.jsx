@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { getSeasons, getStandings, getSeasonTrends } from '../api/client'
-import * as XLSX from 'xlsx'
+import ExportMenu from '../components/ExportMenu'
+import { specCols } from '../utils/exportTable'
 import { TeamCell } from '../components/TeamLogo'
 import PageHeader from '../components/PageHeader'
 import InfoTip from '../components/InfoTip'
@@ -10,46 +11,6 @@ import SeasonHistoryTab from '../components/SeasonHistoryTab'
 import WeeklyTab from '../components/WeeklyTab'
 import { goodBadColor, divergeColor } from '../utils/heat'
 import { seasonLabel, seasonNumber } from '../utils/seasons'
-
-export function buildStandingsRows(standings) {
-  const headers = ['Rank', 'Team', 'W', 'L', 'T', 'Win%', 'Avg PF', 'Avg PA', 'PyPAT%', 'Luck', 'SoS (Played, Curr)']
-  const rows = standings.map((r, i) => [
-    i + 1,
-    `${r.cityName} ${r.displayName}`,
-    r.wins,
-    r.losses,
-    r.ties,
-    r.winPct != null ? r.winPct.toFixed(3) : '',
-    r.gamesPlayed > 0 ? (r.pointsFor / r.gamesPlayed).toFixed(1) : '',
-    r.gamesPlayed > 0 ? (r.pointsAgainst / r.gamesPlayed).toFixed(1) : '',
-    r.pythagoreanPat != null ? (r.pythagoreanPat * 100).toFixed(1) + '%' : '',
-    r.winDiff != null ? (r.winDiff > 0 ? '+' : '') + r.winDiff.toFixed(1) : '',
-    r.oppPyPatCurr != null ? (r.oppPyPatCurr * 100).toFixed(1) + '%' : '',
-  ])
-  return [headers, ...rows]
-}
-
-function exportCsv(standings, season) {
-  const rows = buildStandingsRows(standings)
-  const csv = rows.map(row => row.map(cell => {
-    const s = String(cell)
-    return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s
-  }).join(',')).join('\n')
-  const blob = new Blob([csv], { type: 'text/csv' })
-  const a = document.createElement('a')
-  a.href = URL.createObjectURL(blob)
-  a.download = `standings-season-${seasonNumber(season)}.csv`
-  a.click()
-  URL.revokeObjectURL(a.href)
-}
-
-function exportExcel(standings, season) {
-  const rows = buildStandingsRows(standings)
-  const ws = XLSX.utils.aoa_to_sheet(rows)
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, seasonLabel(season))
-  XLSX.writeFile(wb, `standings-season-${seasonNumber(season)}.xlsx`)
-}
 
 const pct = v => v != null ? (v * 100).toFixed(1) + '%' : '—'
 
@@ -72,6 +33,7 @@ export default function StandingsPage() {
   const [seasons, setSeasons] = useState([])
   const [season, setSeason] = useState(null)
   const [standings, setStandings] = useState([])
+  const [standingsSeason, setStandingsSeason] = useState(null)
   const [sortKey, setSortKey] = useState('pythagoreanPat')
   const [sortAsc, setSortAsc] = useState(false)
   const [groupByConf, setGroupByConf] = useState(false)
@@ -103,7 +65,7 @@ export default function StandingsPage() {
     setLoading(true)
     setError(null)
     getStandings(season)
-      .then(data => { if (current) { setStandings(data); setLoading(false) } })
+      .then(data => { if (current) { setStandings(data); setStandingsSeason(season); setLoading(false) } })
       .catch(() => { if (current) { setError('Failed to load standings'); setLoading(false) } })
     return () => { current = false }
   }, [season])
@@ -147,32 +109,32 @@ export default function StandingsPage() {
   const sosSource = activeSosMode === 'curr' ? 'current season' : 'previous season'
   const sosCols = isCurrentSeason
     ? [
-        { key: `oppPyPat${sosPrefix}`, label: 'Played', title: `Played SoS: avg opponent-adjusted PyPAT, ${sosSource}. Lower = easier schedule.` },
-        { key: `oppPyPatRemaining${sosPrefix}`, label: 'Left', title: `Remaining SoS: future opponents' opponent-adjusted PyPAT, ${sosSource}.` },
-        { key: `oppPyPatTotal${sosPrefix}`, label: 'Total', title: `Full-season SoS: all scheduled opponents, ${sosSource}.` },
+        { key: `oppPyPat${sosPrefix}`, label: 'Played', exportLabel: 'SoS Played', title: `Played SoS: avg opponent-adjusted PyPAT, ${sosSource}. Lower = easier schedule.` },
+        { key: `oppPyPatRemaining${sosPrefix}`, label: 'Left', exportLabel: 'SoS Left', title: `Remaining SoS: future opponents' opponent-adjusted PyPAT, ${sosSource}.` },
+        { key: `oppPyPatTotal${sosPrefix}`, label: 'Total', exportLabel: 'SoS Total', title: `Full-season SoS: all scheduled opponents, ${sosSource}.` },
       ]
     : [
         { key: `oppPyPat${sosPrefix}`, label: 'SoS', title: `Strength of Schedule: avg opponent-adjusted PyPAT, ${sosSource}. Lower = easier schedule.` },
       ]
 
   const COLS = [
-    { key: 'rank',           label: '#',       fmt: (_, i) => i + 1, stickyLeft: 'left-0', w: 'w-10' },
-    { key: 'displayName',    label: 'Team',    fmt: (v, _, row) => <TeamCell abbr={row.abbrName} name={`${row.cityName} ${row.displayName}`} />, stickyLeft: 'left-10' },
-    { key: 'wins',           label: 'W', group: 'Record', groupStart: true },
-    { key: 'losses',         label: 'L', group: 'Record' },
-    { key: 'ties',           label: 'T', group: 'Record' },
-    { key: 'winPct',         label: 'Win%',    fmt: v => v.toFixed(3), heat: 'higher', group: 'Record' },
-    { key: 'pointsFor',      label: 'Avg PF', heat: 'higher', getValue: pfAvg, group: 'Scoring', groupStart: true,
+    { key: 'rank',           label: '#', desc: 'Row number in the current sort order. Not an official standing or playoff seed.', tx: (_, i) => i + 1, value: (_, i) => i + 1, z: '0', fmt: (_, i) => i + 1, stickyLeft: 'left-0', w: 'w-10' },
+    { key: 'displayName',    label: 'Team', desc: 'City plus nickname.', tx: (_, i, row) => `${row.cityName} ${row.displayName}`, fmt: (v, _, row) => <TeamCell abbr={row.abbrName} name={`${row.cityName} ${row.displayName}`} />, stickyLeft: 'left-10' },
+    { key: 'wins',           label: 'W', desc: 'Wins. A tie counts 0.5 toward expected wins.', value: r => r.wins, z: '0', group: 'Record', groupStart: true },
+    { key: 'losses',         label: 'L', desc: 'Losses.', value: r => r.losses, z: '0', group: 'Record' },
+    { key: 'ties',           label: 'T', desc: 'Ties. A tie counts 0.5 toward expected wins.', value: r => r.ties, z: '0', group: 'Record' },
+    { key: 'winPct',         label: 'Win%', desc: 'Winning percentage, 3 decimals, ties as half a win.', value: r => r.winPct, z: '0.000', fmt: v => v.toFixed(3), heat: 'higher', group: 'Record' },
+    { key: 'pointsFor',      label: 'Avg PF', desc: 'Points scored per game.', value: r => r.gamesPlayed > 0 ? pfAvg(r) : null, z: '0.0', heat: 'higher', getValue: pfAvg, group: 'Scoring', groupStart: true,
       fmt: (v, _, row) => row.gamesPlayed > 0 ? (v / row.gamesPlayed).toFixed(1) : '—' },
-    { key: 'pointsAgainst',  label: 'Avg PA', heat: 'lower',  getValue: paAvg, group: 'Scoring',
+    { key: 'pointsAgainst',  label: 'Avg PA', desc: 'Points allowed per game.', value: r => r.gamesPlayed > 0 ? paAvg(r) : null, z: '0.0', heat: 'lower',  getValue: paAvg, group: 'Scoring',
       fmt: (v, _, row) => row.gamesPlayed > 0 ? (v / row.gamesPlayed).toFixed(1) : '—' },
-    { key: 'pythagoreanPat', label: 'PyPAT',   fmt: pct, heat: 'higher', group: 'Advanced', groupStart: true,
+    { key: 'pythagoreanPat', label: 'PyPAT', desc: `PythagoreanPAT win expectancy: the share of games a team should have won given points scored and allowed, using Chase Stuart's dynamic exponent. 50.0% is break-even.`, value: r => r.pythagoreanPat, z: '0.0%', fmt: pct, heat: 'higher', group: 'Advanced', groupStart: true,
       title: 'PythagoreanPAT win expectancy' },
-    { key: 'winDiff',        label: 'Luck', group: 'Advanced',
+    { key: 'winDiff',        label: 'Luck', desc: 'Wins above PyPAT expectation. Positive = won more than scoring margin justifies, a regression risk; negative = unlucky, a rebound candidate.', value: r => r.winDiff, z: '+0.0;-0.0;0.0', group: 'Advanced',
       fmt: v => v != null ? (v > 0 ? '+' : '') + v.toFixed(1) : '—',
       heat: 'diverge',
       title: 'Wins above PyPAT expectation. Positive = lucky (regression risk).' },
-    ...sosCols.map((c, i) => ({ ...c, fmt: pct, heat: 'lower', group: 'Strength of schedule', groupStart: i === 0 })),
+    ...sosCols.map((c, i) => ({ ...c, desc: `${c.label === 'Left' ? 'Remaining schedule: future opponents' : c.label === 'Total' ? 'Full-season schedule: all scheduled opponents' : 'Played schedule: opponents already played'}. Average opponent-adjusted PyPAT using ${sosSource} quality, recalculated with the subject team's games removed so head-to-head results cannot inflate it. Weighted per game, so a division rival played twice counts twice. Lower = easier schedule. Null = no data, not 0.`, value: r => r[c.key], z: '0.0%', fmt: pct, heat: 'lower', group: 'Strength of schedule', groupStart: i === 0 })),
   ]
 
   const groupSpans = []
@@ -202,6 +164,30 @@ export default function StandingsPage() {
     : [{ label: null, rows: sorted }]
 
   const gamesLabel = standings.length ? `${Math.max(...standings.map(r => r.gamesPlayed))} games played` : null
+
+  const exportSpec = group => {
+    const sortLabel = COLS.find(col => col.key === sortKey)?.label
+    const direction = sortAsc ? 'ascending' : 'descending'
+    return {
+      name: group.label ? `Standings — ${group.label}` : 'Standings',
+      qualifier: `${seasonLabel(standingsSeason)} · ${gamesLabel} · sorted by ${sortLabel} ${direction}`,
+      description: "Season standings, one row per team. The site's premise is that one-score games are near-random, so scoring margin (PyPAT) describes a team better than its W-L record.",
+      notes: ['Green = better, red = worse (lower is better for Avg PA and SoS). Luck: blue = won more than expected, orange = fewer.'],
+      rows: group.rows,
+      cols: specCols(COLS, (col, heatVal) => cellColor(col, heatVal)),
+      api: {
+        path: '/standings', params: { season: standingsSeason },
+        note: `Returned unsorted; this table is sorted by ${sortKey} ${direction}. SoS uses ${sosSource} opponent quality.`,
+        fields: {
+          Team: 'cityName + " " + displayName',
+          'Avg PF': 'pointsFor / gamesPlayed, 1 dp; empty when no games played',
+          'Avg PA': 'pointsAgainst / gamesPlayed, 1 dp; empty when no games played',
+          PyPAT: 'pythagoreanPat × 100, 1 dp', Luck: 'winDiff',
+          ...Object.fromEntries(sosCols.map(col => [col.exportLabel ?? col.label, `${col.key} × 100, 1 dp; nullable`])),
+        },
+      },
+    }
+  }
 
   const qualifier = {
     standings: season != null ? `${seasonLabel(season)}${gamesLabel ? ` · ${gamesLabel}` : ''} · ranked by PyPAT` : null,
@@ -290,14 +276,7 @@ export default function StandingsPage() {
                   ? <h2 className="font-display font-bold uppercase text-xl">{group.label}</h2>
                   : <span />}
                 {standings.length > 0 && (
-                  <div className="hidden sm:flex items-center gap-1">
-                    <button onClick={() => exportCsv(sorted, season)} title="Export CSV" className="px-2 py-1 text-xs text-muted hover:text-ink">
-                      CSV
-                    </button>
-                    <button onClick={() => exportExcel(sorted, season)} title="Export Excel" className="px-2 py-1 text-xs text-muted hover:text-ink">
-                      Excel
-                    </button>
-                  </div>
+                  <ExportMenu spec={exportSpec(group)} />
                 )}
               </div>
               <div className="overflow-x-auto border-y border-rule">

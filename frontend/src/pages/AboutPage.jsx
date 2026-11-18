@@ -62,7 +62,7 @@ const STATS = [
     def: 'Points an offense scored, or a defense allowed, per possession.',
     bullets: [
       'Counts only the offense\'s own points: touchdowns, field goals and the extra points after its touchdowns. Pick-sixes and return scores are not charged to either side',
-      'Drives are estimated: touchdowns + field goal attempts + punts + turnovers + failed fourth downs. End-of-half kneel-downs are the only possessions this misses',
+      'Drives are estimated: touchdowns + field goal attempts + punts + turnovers + failed fourth downs. End-of-half kneel-downs and clock-outs are not visible in the box score, so those possessions are missed',
       'Net Pts/Drive is offense minus defense. Higher is better on offense, lower is better on defense',
     ],
   },
@@ -79,7 +79,7 @@ const STATS = [
     def: 'How often a series keeps the chains moving or scores.',
     bullets: [
       '(first downs + touchdowns) ÷ (first downs + drives): each first down and each drive\'s last series counts as a series',
-      'Modeled on Drive Success Rate. Higher is better on offense, lower on defense',
+      'Higher is better on offense, lower on defense',
     ],
   },
   {
@@ -100,6 +100,7 @@ const PAGES = [
     bullets: [
       'A snapshot of every page — PyPAT leaders, latest scores, top Elo, top quarterbacks',
       'Click any card to open that page in full',
+      'The Best Games Ahead card exports like any other table',
     ],
   },
   {
@@ -109,7 +110,7 @@ const PAGES = [
       'Season History — W-L, PyPAT and Luck across every season; sort by any season',
       'Week by Week — PyPAT line chart; click teams to highlight them',
       'SoS toggle: current-season or prior-season opponent PyPAT — prior season is default for the active season',
-      'All columns sortable; export to CSV or Excel',
+      'All columns sortable; every table here exports to Excel, CSV, an image or an AI-ready text block',
     ],
   },
   {
@@ -118,6 +119,7 @@ const PAGES = [
       'Overview — a chart of offense against defense points per drive, plus net points per drive for every team',
       'Offense and Defense — points, yards, series, third-down, red-zone, turnover and sack rates, heat-colored within each column',
       'Regular season, playoffs or both. Needs the player and team stat sync; the page says so when it is empty',
+      'Overview, Offense and Defense each export to Excel, CSV, an image or an AI-ready text block',
     ],
   },
   {
@@ -126,6 +128,7 @@ const PAGES = [
       'Game results by season and week',
       'Filter by regular season or playoffs',
       'Links to full recaps on NeonSportz',
+      'Export the week\'s results to Excel, CSV, an image or an AI-ready text block',
     ],
   },
   {
@@ -135,6 +138,7 @@ const PAGES = [
       'History — rating trends across every season; click teams to highlight them',
       'Matchup — pick any two teams for a predicted win probability',
       'Games — game-by-game Elo changes, pregame ratings, and projected win chances for unplayed games',
+      'Every table and rating history exports to Excel, CSV, an image or an AI-ready text block',
     ],
   },
   {
@@ -143,10 +147,18 @@ const PAGES = [
       'Leaderboard — every quarterback ranked by TANY/A, by week, season or all-time',
       'Column presets for efficiency, classic box score and rushing; all columns sortable',
       'Movement — biggest risers and fallers, plus a rank-by-week chart you can track season by season or across every season',
-      'Regular season, playoffs or both; export to CSV or Excel',
+      'Regular season, playoffs or both; the leaderboard, movers and rank history export to Excel, CSV, an image or an AI-ready text block',
       'Click any quarterback to open his player page on NeonSportz',
     ],
   },
+]
+
+const EXPORTS = [
+  'Every table and data list has four buttons: XLSX, CSV, PNG and AI. They export exactly what you see: the current sort, filters and columns',
+  'XLSX and CSV download the data. PNG copies an image of the whole table to your clipboard, or downloads it if your browser cannot copy images (Firefox). A table too large to draw as an image says so; CSV and AI always carry every row',
+  'AI copies a text block you can paste into ChatGPT, Claude or Gemini: a short league primer, what the table is, a definition of every column, the complete data, and the link to fetch it again',
+  'The API behind that link is public: no key and no login. An assistant that can browse can pull fresh numbers itself, so you do not have to copy the table again',
+  'Empty cells mean no data, which is not zero',
 ]
 
 const RESOURCES = [
@@ -193,6 +205,11 @@ export default function AboutPage() {
             <Bullets items={bullets} />
           </div>
         ))}
+      </div>
+
+      <h2 className="th mb-3">Exports</h2>
+      <div className="border-t border-line pt-3 mb-10 max-w-3xl">
+        <Bullets items={EXPORTS} />
       </div>
 
       <p className="text-sm text-muted border-y border-line py-3 mb-10">

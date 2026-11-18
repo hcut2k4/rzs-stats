@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { getSeasons, getAvailableWeeks, getGames } from '../api/client'
 import { TeamLogo } from '../components/TeamLogo'
 import PageHeader from '../components/PageHeader'
+import ExportMenu from '../components/ExportMenu'
 import { weekLabel } from '../utils/playoffRounds'
 import { seasonLabel, seasonNumber } from '../utils/seasons'
 
@@ -47,7 +48,7 @@ export default function GamesPage() {
   const [stage, setStage] = useState(1)
   const [weeks, setWeeks] = useState([])
   const [weekIndex, setWeekIndex] = useState(null)
-  const [games, setGames] = useState([])
+  const [{ games, params }, setData] = useState({ games: [], params: null })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
@@ -62,24 +63,60 @@ export default function GamesPage() {
 
   useEffect(() => {
     if (season == null) return
+    let current = true
     getAvailableWeeks(season, stage)
       .then(w => {
+        if (!current) return
         setWeeks(w)
         setWeekIndex(w.length ? w[w.length - 1] : null)
       })
-      .catch(() => setWeeks([]))
+      .catch(() => { if (current) setWeeks([]) })
+    return () => { current = false }
   }, [season, stage])
 
   useEffect(() => {
-    if (season == null || weekIndex == null) return
+    if (season == null || weekIndex == null) {
+      setLoading(false)
+      setData(d => (d.params ? { games: [], params: null } : d))
+      return
+    }
+    let current = true
     setLoading(true)
     setError(null)
     getGames(season, stage, weekIndex)
-      .then(data => { setGames(data); setLoading(false) })
-      .catch(() => { setError('Failed to load games'); setLoading(false) })
+      .then(games => { if (current) { setData({ games, params: { season, stage, week: weekIndex } }); setLoading(false) } })
+      .catch(() => { if (current) { setError('Failed to load games'); setLoading(false) } })
+    return () => { current = false }
   }, [season, stage, weekIndex])
 
   const weekIdx = weeks.indexOf(weekIndex)
+  const exportSpec = params && {
+    name: 'Games',
+    qualifier: `${seasonLabel(params.season)} · ${params.stage === 1 ? 'Regular season' : 'Playoffs'} · ${weekLabel(params.stage, params.week)} · ${games.length} games`,
+    description: 'One row per game in the selected season, stage and week, in displayed order.',
+    rows: games,
+    cols: [
+      { label: 'Away', desc: 'The visiting team name.', text: g => g.awayTeam?.displayName ?? '' },
+      { label: 'Away Score', desc: 'Points scored by the visiting team; empty when unplayed.', text: g => String(g.awayScore ?? ''), value: g => g.awayScore, z: '0' },
+      { label: 'Home Score', desc: 'Points scored by the home team; empty when unplayed.', text: g => String(g.homeScore ?? ''), value: g => g.homeScore, z: '0' },
+      { label: 'Home', desc: 'The home team name.', text: g => g.homeTeam?.displayName ?? '' },
+      { label: 'Winner', desc: 'The winning team name, Tie for a completed tie, or empty when unplayed.', text: g => g.status < 2 ? '' : g.awayScore === g.homeScore ? 'Tie' : (g.awayScore > g.homeScore ? g.awayTeam : g.homeTeam)?.displayName ?? '' },
+      { label: 'Status', desc: 'Final means the game is completed; otherwise it is Unplayed.', text: g => g.status >= 2 ? 'Final' : 'Unplayed' },
+      { label: 'Simmed', desc: 'Yes means the game was simulated.', text: g => g.simmed ? 'Yes' : 'No' },
+      { label: 'NeonSportz URL', desc: 'The link to the game on NeonSportz.', text: g => `https://neonsportz.com/leagues/RZS/games/${g.nsPk ?? g.gameId}` },
+    ],
+    api: {
+      path: '/games', params,
+      fields: {
+        Away: 'awayTeam.displayName', Home: 'homeTeam.displayName',
+        'Away Score': 'awayScore; null means unplayed.', 'Home Score': 'homeScore; null means unplayed.',
+        Winner: 'For status >= 2, compare awayScore and homeScore; equal scores mean Tie. Otherwise empty.',
+        Status: 'status >= 2 means completed (Final); otherwise Unplayed.',
+        Simmed: 'simmed is mapped to Yes or No.',
+        'NeonSportz URL': 'https://neonsportz.com/leagues/RZS/games/ followed by nsPk, falling back to gameId only when nsPk is null. gameId is the deduplication identity.',
+      },
+    },
+  }
 
   return (
     <div>
@@ -131,6 +168,7 @@ export default function GamesPage() {
           ? <p className="text-muted">No games found for this week.</p>
           : (
             <div className="border-b border-rule max-w-3xl">
+              <div className="flex justify-end"><ExportMenu spec={exportSpec} /></div>
               <div className="grid grid-cols-[1fr_auto_1fr] gap-4 px-3 py-1.5 th">
                 <span>Away</span>
                 <span>Score</span>
