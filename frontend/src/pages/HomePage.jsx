@@ -282,8 +282,8 @@ function BestGames({ upcoming, loading }) {
     rows: best,
     cols: [
       { label: 'Week', desc: 'The scheduled week or playoff round.', text: ({ game }) => shortWeek(game.week) },
-      { label: 'Away', desc: 'The visiting team abbreviation.', text: ({ game }) => game.awayTeam.abbrName },
-      { label: 'Home', desc: 'The home team abbreviation.', text: ({ game }) => game.homeTeam.abbrName },
+      { label: 'Away', desc: 'The visiting team abbreviation.', logo: ({ game }) => game.awayTeam.abbrName, text: ({ game }) => game.awayTeam.abbrName },
+      { label: 'Home', desc: 'The home team abbreviation.', logo: ({ game }) => game.homeTeam.abbrName, text: ({ game }) => game.homeTeam.abbrName },
       { label: 'Favored', desc: 'The abbreviation of the team with the higher win probability; the home team wins a tie.', text: ({ l }) => l.leansTo.abbrName },
       { label: 'Favored Win Prob', desc: 'The favored team’s Elo win probability.', text: ({ l }) => pct0(l.prob), value: ({ l }) => l.prob, z: '0%' },
       { label: 'Outlook', desc: `The tier of the favorite’s win probability: ${TIERS.map((t, i) => `${t.label} ${i === TIERS.length - 1 ? `at least ${pct0(t.lo)}` : `below ${pct0(t.hi)}`}`).join('; ')}.`, text: ({ l }) => l.tier.label, color: ({ l }) => l.shade },

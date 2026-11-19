@@ -63,6 +63,7 @@ describe('table exports', () => {
 
   it('uses exportLabel for headers and AI column names without touching label', () => {
     const cols = specCols([{ key: 'n', label: 'Played', exportLabel: 'SoS Played', desc: 'd' }, { key: 'n', label: 'Plain', desc: 'd' }])
+    expect(cols[0].image.label).toBe('Played')
     expect(toRows({ rows: [{ n: 1 }], cols })[0]).toEqual(['SoS Played', 'Plain'])
   })
 

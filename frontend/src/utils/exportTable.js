@@ -15,6 +15,7 @@ export function downloadBlob(blob, filename) {
 export function specCols(cols, cellColor) {
   return cols.map(col => ({
     label: col.exportLabel ?? col.label, group: col.group, desc: col.desc ?? col.title,
+    logo: col.logo, image: col.exportLabel ? { label: col.label, ...col.image } : col.image, imageHidden: col.imageHidden,
     align: col.align, z: col.z, keepText: col.keepText,
     value: col.value ?? (col.tx ? undefined : row => col.getValue ? col.getValue(row) : row[col.key]),
     text: (row, i) => String(col.tx ? col.tx(row[col.key], i, row) : col.fmt ? col.fmt(row[col.key], i, row) : row[col.key] ?? ''),

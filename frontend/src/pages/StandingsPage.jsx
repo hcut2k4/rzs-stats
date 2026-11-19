@@ -119,7 +119,7 @@ export default function StandingsPage() {
 
   const COLS = [
     { key: 'rank',           label: '#', desc: 'Row number in the current sort order. Not an official standing or playoff seed.', tx: (_, i) => i + 1, value: (_, i) => i + 1, z: '0', fmt: (_, i) => i + 1, stickyLeft: 'left-0', w: 'w-10' },
-    { key: 'displayName',    label: 'Team', desc: 'City plus nickname.', tx: (_, i, row) => `${row.cityName} ${row.displayName}`, fmt: (v, _, row) => <TeamCell abbr={row.abbrName} name={`${row.cityName} ${row.displayName}`} />, stickyLeft: 'left-10' },
+    { key: 'displayName',    label: 'Team', logo: r => r.abbrName, desc: 'City plus nickname.', tx: (_, i, row) => `${row.cityName} ${row.displayName}`, fmt: (v, _, row) => <TeamCell abbr={row.abbrName} name={`${row.cityName} ${row.displayName}`} />, stickyLeft: 'left-10' },
     { key: 'wins',           label: 'W', desc: 'Wins. A tie counts 0.5 toward expected wins.', value: r => r.wins, z: '0', group: 'Record', groupStart: true },
     { key: 'losses',         label: 'L', desc: 'Losses.', value: r => r.losses, z: '0', group: 'Record' },
     { key: 'ties',           label: 'T', desc: 'Ties. A tie counts 0.5 toward expected wins.', value: r => r.ties, z: '0', group: 'Record' },

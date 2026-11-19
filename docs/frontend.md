@@ -63,7 +63,7 @@ Every table and data list renders `<ExportMenu spec={...} />` ([components/Expor
 
 ```js
 { name, qualifier, description, notes, rows,
-  cols: [{ label, group, desc, text, value, z, color, align, keepText }],
+  cols: [{ label, group, desc, text, value, z, color, align, keepText, logo, bar, image, imageHidden }],
   api: { path, params, fields, note } }
 ```
 
@@ -85,6 +85,6 @@ A markdown block meant to be pasted into an AI chat: a league primer, what the t
 The conventions text (`CONVENTIONS` in `exportTable.js`) was checked against the backend and must be re-checked when an endpoint changes. The easy mistakes: `/api/games` takes a **numeric** `stage` (`2` = playoffs), while `/api/qb/*` and `/api/efficiency` take a **named** one (`regular|playoffs|both`; a number is a 400); `season` is a 0-based index and `/api/games` also requires `week`.
 
 ### The image export
-`tableImage.js` draws the table on a canvas rather than capturing the DOM, so sticky columns, horizontal scroll and cross-origin logos cannot clip or taint it. It is always light-themed (heat colors are low-alpha tints that composite over white) and has no logos. Size is checked on width, height and area before the canvas is allocated: it tries 2x, then 1x, then reports `Too big` (iOS Safari's ~16.7M px canvas is the binding limit). The clipboard write is issued before any `await`, because Safari drops the click's permission across one. Browsers without `ClipboardItem` image support (Firefox) get a PNG download instead.
+`tableImage.js` draws the table on a canvas rather than capturing the DOM, so sticky columns, horizontal scroll and cross-origin logos cannot clip or taint it. It is always light-themed (heat colors are low-alpha tints that composite over white) and loads optional column `logo(row, i)` abbreviations through a shared session cache using anonymous CORS and a 3-second timeout. Failed logos leave text without a gap. Optional `bar(row, i)` returns `{ value, max, color, text }` for centered diverging bars; `text: false` hides the number. Lean bars share the screen’s colors and scaling. Columns with `value` align right by default; other columns align left. `align` overrides both headers and cells. PNG-only `image` column overrides and `imageHidden` retain data-only fields in CSV/XLSX/AI. Missing cells render as an em dash. Long qualifiers wrap above the table, and group bands reserve enough width for their headings. Size is checked on width, height and area before the canvas is allocated: it tries 2x, then 1x, then reports `Too big` (iOS Safari's ~16.7M px canvas is the binding limit). Drawing is asynchronous to preload logos; the clipboard receives a blob promise synchronously before any `await`, because Safari drops the click's permission across one. Browsers without `ClipboardItem` image support (Firefox) get a PNG download instead.
 
 Chart PNGs are canvas-drawn, with team logos when CORS allows and abbreviations otherwise.

@@ -167,7 +167,7 @@ function Leaderboard({ rows, preset, sortKey, sortAsc, onSort, scope, params }) 
   const sort = `${ALL_COLS.find(c => c.key === sortKey)?.label} (${sortKey}) ${sortAsc ? 'ascending' : 'descending'}`
   const exportCols = [...cols]
   exportCols.splice(exportCols.findIndex(c => c.key === 'playerName') + 1, 0, {
-    key: 'teamAbbr', label: 'Team', desc: 'Team abbreviation.', tx: v => v ?? '', align: 'left',
+    key: 'teamAbbr', label: 'Team', logo: r => r.teamAbbr, desc: 'Team abbreviation.', tx: v => v ?? '', align: 'left',
   })
   const exportSpec = {
     name: 'QB Leaderboard',
@@ -339,7 +339,7 @@ function Movement({ data, loading, params }) {
   const qualifier = `${basis === 'alltime' ? 'All-time' : seasonLabel(params.season)} · ${stageLabel(params.stage)} · basis: ${basis} · window: ${WINDOWS.find(w => w.value === params.window)?.label} (${params.window})`
   const playerCols = [
     { label: 'QB', desc: 'Quarterback name.', text: r => r.playerName },
-    { label: 'Team', desc: 'Team abbreviation.', text: r => r.teamAbbr },
+    { label: 'Team', desc: 'Team abbreviation.', text: r => r.teamAbbr, logo: r => r.teamAbbr },
   ]
   const rankCol = { label: 'Rank', desc: 'TANY/A rank at this point among qualified quarterbacks.', text: r => r.rank ?? '', value: r => r.rank, z: '0' }
   const tanyaCol = { label: 'TANY/A', desc: TANYA_TIP, text: r => n2(r.tanya), value: r => r.tanya, z: '0.00' }
@@ -373,10 +373,10 @@ function Movement({ data, loading, params }) {
     historySpec.imageSpec = {
       name: historySpec.name, qualifier: `${qualifier} · rank by week`, rows: series,
       cols: [
-        ...playerCols.map(({ label, text }) => ({ label, text, align: 'left' })),
+        ...playerCols.map(col => ({ ...col, align: 'left' })),
         ...points.map((p, i) => ({
           label: pointLabel(p.season, p.week, basis === 'alltime'),
-          text: s => String(chartData[i][s.rosterId] ?? ''),
+          text: s => String(chartData[i][s.rosterId] ?? ''), value: s => chartData[i][s.rosterId],
           color: s => goodBadColor(chartData[i][s.rosterId], allRanks, 'lower'),
         })),
       ],
