@@ -11,7 +11,7 @@ import { SortTh, useSorter } from '../components/SortTh'
 import LeanBar from '../components/LeanBar'
 import ExportMenu from '../components/ExportMenu'
 import { divergeColor } from '../utils/heat'
-import { TIERS, lean, pct0, LEAN_HOME, LEAN_AWAY } from '../utils/eloLean'
+import { TIERS, UPSET_LEVELS, lean, pct0, LEAN_HOME, LEAN_AWAY } from '../utils/eloLean'
 import { weekLabel } from '../utils/playoffRounds'
 import { COLORS } from '../utils/chartColors'
 import { seasonLabel, seasonNumber } from '../utils/seasons'
@@ -56,13 +56,6 @@ const TIPS = {
 }
 
 const RED = '220 38 38'
-
-const UPSET_LEVELS = [
-  { hi: 0.60, label: 'Slight upset', alpha: 0.12 },
-  { hi: 0.70, label: 'Upset', alpha: 0.22 },
-  { hi: 0.80, label: 'Big upset', alpha: 0.32 },
-  { hi: Infinity, label: 'Stunner', alpha: 0.42 },
-]
 
 function upsetInfo(g) {
   if (g.homeScore === g.awayScore) return null

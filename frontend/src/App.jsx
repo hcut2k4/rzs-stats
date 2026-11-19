@@ -5,6 +5,7 @@ import StandingsPage from './pages/StandingsPage'
 import GamesPage from './pages/GamesPage'
 import AdminPage from './pages/AdminPage'
 import AboutPage from './pages/AboutPage'
+import ChangelogPage from './pages/ChangelogPage'
 import EloPage from './pages/EloPage'
 import QbPage from './pages/QbPage'
 import EfficiencyPage from './pages/EfficiencyPage'
@@ -80,6 +81,7 @@ export default function App() {
           <Route path="/trends" element={<Navigate to="/standings?tab=history" replace />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/changelog" element={<ChangelogPage />} />
         </Routes>
       </main>
 

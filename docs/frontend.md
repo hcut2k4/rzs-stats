@@ -2,7 +2,7 @@
 
 ## Frontend Pages
 
-Routes: `/` Home, `/standings`, `/efficiency`, `/games`, `/elo`, `/qb`, `/about`, `/admin`. The `RZS Stats` wordmark links to `/`. `/trends` no longer has a page — it redirects to `/standings?tab=history`, so old links and bookmarks keep working.
+Routes: `/` Home, `/standings`, `/efficiency`, `/games`, `/elo`, `/qb`, `/about`, `/changelog`, `/admin`. The `RZS Stats` wordmark links to `/`. `/trends` no longer has a page — it redirects to `/standings?tab=history`, so old links and bookmarks keep working.
 
 ### HomePage
 Landing page at `/`. Leads with **Best Games Ahead** — the five closest unplayed games league-wide, ranked by the favorite's win probability (closest to a coin flip first, week ascending as tiebreak), linking to `/elo?tab=games`. Below it, one preview card per section (Standings, Efficiency, Games, Elo, QBs, Trends, About) in a 3-column grid; each card is a `Link` to its page. The Trends card has no page of its own — it links to `/standings?tab=weekly`. Every section fetches independently so one failed request doesn't blank the page — top 5 by PyPAT, latest week's scores, top 5 Elo with biggest riser, top 5 QBs by TANY/A, and a mini PyPAT line chart for the top 4 teams.
@@ -46,6 +46,9 @@ Passcode gate driven by `GET /api/admin/auth`. Sync controls (incremental + forc
 
 ### AboutPage
 Card grids for stat definitions (PyPAT, Luck, SoS, Elo, TANY/A, RUSH+) and per-page descriptions. Data sync banner. Resource links (videos, blog posts, external references). **Adding a stat or a page means adding it here too** — this page is the user-facing contract for what every number means.
+
+### ChangelogPage
+Dated updates at `/changelog`, linked near the top of About. Feature jump anchors and linked screenshots accompany the release copy. The Elo tier scale and upset ladder use the shared definitions in `utils/eloLean.js`.
 
 ## Indexing & Display Conventions
 
