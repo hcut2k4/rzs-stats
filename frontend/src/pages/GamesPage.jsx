@@ -96,14 +96,14 @@ export default function GamesPage() {
     description: 'One row per game in the selected season, stage and week, in displayed order.',
     rows: games,
     cols: [
-      { label: 'Away', desc: 'The visiting team name.', text: g => g.awayTeam?.displayName ?? '' },
+      { label: 'Away', desc: 'The visiting team name.', logo: g => g.awayTeam?.abbrName, text: g => g.awayTeam?.displayName ?? '' },
       { label: 'Away Score', desc: 'Points scored by the visiting team; empty when unplayed.', text: g => String(g.awayScore ?? ''), value: g => g.awayScore, z: '0' },
       { label: 'Home Score', desc: 'Points scored by the home team; empty when unplayed.', text: g => String(g.homeScore ?? ''), value: g => g.homeScore, z: '0' },
-      { label: 'Home', desc: 'The home team name.', text: g => g.homeTeam?.displayName ?? '' },
+      { label: 'Home', desc: 'The home team name.', logo: g => g.homeTeam?.abbrName, text: g => g.homeTeam?.displayName ?? '' },
       { label: 'Winner', desc: 'The winning team name, Tie for a completed tie, or empty when unplayed.', text: g => g.status < 2 ? '' : g.awayScore === g.homeScore ? 'Tie' : (g.awayScore > g.homeScore ? g.awayTeam : g.homeTeam)?.displayName ?? '' },
       { label: 'Status', desc: 'Final means the game is completed; otherwise it is Unplayed.', text: g => g.status >= 2 ? 'Final' : 'Unplayed' },
       { label: 'Simmed', desc: 'Yes means the game was simulated.', text: g => g.simmed ? 'Yes' : 'No' },
-      { label: 'NeonSportz URL', desc: 'The link to the game on NeonSportz.', text: g => `https://neonsportz.com/leagues/RZS/games/${g.nsPk ?? g.gameId}` },
+      { label: 'NeonSportz URL', imageHidden: true, desc: 'The link to the game on NeonSportz.', text: g => `https://neonsportz.com/leagues/RZS/games/${g.nsPk ?? g.gameId}` },
     ],
     api: {
       path: '/games', params,

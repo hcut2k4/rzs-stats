@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { chooseScale, copyImage } from '../utils/tableImage'
-import { copyChartImage } from '../utils/chartImage'
+import { chooseScale } from '../utils/tableImage'
+let copyImage, copyChartImage
 
 let ctx, calls, canvases, downloads, write, png
 const spec = () => ({
@@ -9,11 +9,14 @@ const spec = () => ({
   cols: [
     { label: 'Team', text: row => row.team },
     { label: 'Wins', text: row => row.wins },
-    { label: 'Rating', text: row => row.rating },
+    { label: 'Rating', text: row => row.rating, value: row => row.rating },
   ],
 })
 
-beforeEach(() => {
+beforeEach(async () => {
+  vi.resetModules()
+  ;({ copyImage } = await import('../utils/tableImage'))
+  ;({ copyChartImage } = await import('../utils/chartImage'))
   vi.useFakeTimers()
   calls = []
   canvases = []
@@ -89,7 +92,7 @@ describe('copyImage', () => {
     expect(item).toBeInstanceOf(window.ClipboardItem)
     expect(Object.keys(item.data)).toEqual(['image/png'])
     expect(item.data['image/png']).toBeInstanceOf(Promise)
-    expect(HTMLCanvasElement.prototype.toBlob).toHaveBeenCalledWith(expect.any(Function), 'image/png')
+    await vi.waitFor(() => expect(HTMLCanvasElement.prototype.toBlob).toHaveBeenCalledWith(expect.any(Function), 'image/png'))
     finish(png)
     await expect(item.data['image/png']).resolves.toBe(png)
     await expect(result).resolves.toBe('copied')
@@ -117,7 +120,7 @@ describe('copyImage', () => {
     const heightSetter = vi.spyOn(HTMLCanvasElement.prototype, 'height', 'set')
     const large = { ...spec(), rows: Array.from({ length: 2000 }, () => ({})), cols: Array.from({ length: 30 }, () => ({ label: 'Metric', text: () => '12345' })) }
     await expect(copyImage(large)).resolves.toBe('toobig')
-    expect(write).not.toHaveBeenCalled()
+    expect(write).toHaveBeenCalledTimes(1)
     expect(widthSetter).not.toHaveBeenCalled()
     expect(heightSetter).not.toHaveBeenCalled()
     expect(HTMLCanvasElement.prototype.toBlob).not.toHaveBeenCalled()
@@ -180,6 +183,72 @@ describe('copyImage', () => {
     const cells = calls.filter(call => call.type === 'fillText' && call.args[2] === 92)
     expect(cells.map(call => call.align)).toEqual(['right', 'left', 'right', 'left'])
     expect(canvases[0].height).toBe((54 + 26 + 24 + 26) * 2)
+  })
+  it.each(['loaded', 'failed', 'drawing failed'])('draws a logo or falls back without a gap when %s', async state => {
+    const images = []
+    vi.stubGlobal('Image', class { constructor() { images.push(this) } })
+    ctx.drawImage = vi.fn(() => { if (state === 'drawing failed') throw new Error('decode') })
+    const table = spec()
+    table.cols[0].logo = () => 'PHI'
+    const result = copyImage(table)
+    expect(write).toHaveBeenCalledTimes(1)
+    expect(HTMLCanvasElement.prototype.toBlob).not.toHaveBeenCalled()
+    expect(images[0].crossOrigin).toBe('anonymous')
+    if (state === 'failed') images[0].onerror()
+    else images[0].onload()
+    await expect(result).resolves.toBe('copied')
+    expect(ctx.drawImage).toHaveBeenCalledTimes(state === 'failed' ? 0 : 1)
+    expect(calls).toContainEqual(expect.objectContaining({ type: 'fillText', args: ['Eagles', state === 'loaded' ? 36 : 10, 92] }))
+    await copyImage(table)
+    expect(images).toHaveLength(1)
+  })
+  it('draws centered bars growing toward each favored side with formatted numbers', async () => {
+    const table = spec()
+    table.rows = [{ edge: 0.04983821822268974 }, { edge: -0.5 }]
+    table.cols = [{ label: 'Edge', text: r => r.edge.toFixed(2), value: r => r.edge, align: 'center', bar: r => ({ value: r.edge, max: 1, color: 'orange' }) }]
+    await copyImage(table)
+    const bars = calls.filter(c => c.type === 'fillRect' && c.style === 'orange')
+    expect(bars[0].args).toEqual([80, 86, table.rows[0].edge * 70, 12])
+    expect(bars[1].args).toEqual([45, 110, 35, 12])
+    expect(calls).toContainEqual(expect.objectContaining({ type: 'fillText', args: ['0.05', 80, 92], align: 'center' }))
+  })
+  it('keeps missing values tidy and applies PNG-only columns without changing the spec', async () => {
+    const table = spec()
+    table.cols = [
+      { label: 'Raw', image: { label: 'Display' }, text: () => NaN },
+      { label: 'Hidden', text: () => 'secret', imageHidden: true },
+      { label: 'Missing', value: () => null, text: () => 'null' },
+    ]
+    await copyImage(table)
+    const texts = calls.filter(c => c.type === 'fillText').map(c => c.args[0])
+    expect(texts).toContain('Display')
+    expect(texts.filter(t => t === '—')).toHaveLength(2)
+    expect(texts).not.toContain('secret')
+    expect(table.cols[0].label).toBe('Raw')
+  })
+  it('aligns headers and rows by column type regardless of position', async () => {
+    const table = spec()
+    table.cols = [
+      { label: 'Number', value: () => 1, text: () => '1' },
+      { label: 'Away', text: () => 'PHI' },
+      { label: 'Home', text: () => 'DAL' },
+      { label: 'Center', align: 'center', text: () => 'x' },
+    ]
+    await copyImage(table)
+    for (const y of [67, 92]) {
+      expect(calls.filter(c => c.type === 'fillText' && c.args[2] === y).map(c => c.align)).toEqual(['right', 'left', 'left', 'center'])
+    }
+  })
+  it('wraps a long qualifier above the group band without widening the table', async () => {
+    const table = spec()
+    table.qualifier = 'sorted by win probability ascending · '.repeat(20).trim()
+    table.cols[1].group = 'A longer group heading than its cells'
+    await copyImage(table)
+    expect(canvases[0].width / 2).toBeLessThan(1000)
+    const band = calls.find(c => c.type === 'fillText' && c.args[0] === table.cols[1].group)
+    const qualifier = calls.filter(c => c.type === 'fillText' && c.args[1] === 10 && c.args[2] >= 40 && c.args[2] < band.args[2])
+    expect(qualifier.length).toBeGreaterThan(1)
+    expect(qualifier.every(c => c.args[2] < band.args[2] - 13)).toBe(true)
   })
   it('measures every value and draws the title, qualifier, host and date on a light ground', async () => {
     const table = spec()

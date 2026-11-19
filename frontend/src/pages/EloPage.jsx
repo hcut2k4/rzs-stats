@@ -11,7 +11,7 @@ import { SortTh, useSorter } from '../components/SortTh'
 import LeanBar from '../components/LeanBar'
 import ExportMenu from '../components/ExportMenu'
 import { divergeColor } from '../utils/heat'
-import { TIERS, lean, pct0 } from '../utils/eloLean'
+import { TIERS, lean, pct0, LEAN_HOME, LEAN_AWAY } from '../utils/eloLean'
 import { weekLabel } from '../utils/playoffRounds'
 import { COLORS } from '../utils/chartColors'
 import { seasonLabel, seasonNumber } from '../utils/seasons'
@@ -97,7 +97,7 @@ function Movers({ ratings, params }) {
     rows: [...risers.map(r => ({ ...r, direction: 'Riser' })), ...droppers.map(r => ({ ...r, direction: 'Dropper' }))],
     cols: [
       { label: 'Direction', desc: `${TIPS.risers} ${TIPS.droppers}`, text: r => r.direction },
-      { label: 'Team', desc: TIPS.team, text: r => r.displayName },
+      { label: 'Team', desc: TIPS.team, text: r => r.displayName, logo: r => r.abbrName },
       { label: 'Change', desc: TIPS.change, text: r => signed(r.change), value: r => r.change, z: '+0.0;-0.0;0.0' },
     ],
     api: { path: '/elo/ratings', params, note: 'Sort by change; take the first five descending for risers, then the first five ascending for droppers.' },
@@ -145,9 +145,9 @@ function RatingsTab({ ratings, loading, params }) {
     rows: sorted,
     cols: [
       { label: '#', desc: TIPS.rank, text: r => String(r.rank), value: r => r.rank, z: '0' },
-      { label: 'Team', desc: TIPS.team, text: r => r.displayName },
+      { label: 'Team', desc: TIPS.team, text: r => r.displayName, logo: r => r.abbrName },
       { label: 'Elo', desc: TIPS.elo, text: r => r.elo.toFixed(0), value: r => r.elo, z: '0' },
-      { label: 'vs 1500', desc: TIPS.vs1500, text: r => signed(r.elo - BASE, 0), value: r => r.elo - BASE, z: '+0;-0;0' },
+      { label: 'vs 1500', desc: TIPS.vs1500, text: r => signed(r.elo - BASE, 0), barWidth: 120, bar: r => ({ value: r.elo - BASE, max: maxDev, color: r.elo >= BASE ? 'rgb(37 99 235 / 0.55)' : 'rgb(234 88 12 / 0.55)', text: false }), value: r => r.elo - BASE, z: '+0;-0;0' },
       { label: 'Change', desc: TIPS.change, text: r => signed(r.change), value: r => r.change, z: '+0.0;-0.0;0.0', color: r => divergeColor(r.change, maxChange || 1) },
       { label: 'Rank move', desc: TIPS.rankMove, text: r => r.rankChange == null ? '–' : signed(r.rankChange, 0), value: r => r.rankChange, z: '+0;-0;0' },
       { label: 'Games', desc: TIPS.games, text: r => String(r.gamesCounted), value: r => r.gamesCounted, z: '0' },
@@ -395,12 +395,12 @@ function GamesTab({ season, week, upcoming }) {
     description: 'Completed games with pregame Elo, rating changes and upset results.', notes: ELO_NOTES,
     rows: sortedGames,
     cols: [
-      { label: 'Away', desc: TIPS.away, text: g => g.awayTeam.abbrName },
-      { label: 'Away Elo', desc: 'Away team Elo before the game.', text: g => g.awayPregameElo.toFixed(0), value: g => g.awayPregameElo, z: '0' },
-      { label: 'Away Elo Change', desc: 'Away team postgame Elo minus pregame Elo.', text: g => signed(g.awayPostgameElo - g.awayPregameElo), value: g => g.awayPostgameElo - g.awayPregameElo, z: '+0.0;-0.0;0.0' },
-      { label: 'Home', desc: TIPS.home, text: g => g.homeTeam.abbrName },
-      { label: 'Home Elo', desc: 'Home team Elo before the game.', text: g => g.homePregameElo.toFixed(0), value: g => g.homePregameElo, z: '0' },
-      { label: 'Home Elo Change', desc: 'Home team postgame Elo minus pregame Elo.', text: g => signed(g.homePostgameElo - g.homePregameElo), value: g => g.homePostgameElo - g.homePregameElo, z: '+0.0;-0.0;0.0' },
+      { label: 'Away', desc: TIPS.away, text: g => g.awayTeam.abbrName, logo: g => g.awayTeam.abbrName, image: { text: g => `${g.awayTeam.abbrName} ${g.awayPregameElo.toFixed(0)} ${signed(g.awayPostgameElo - g.awayPregameElo)}` } },
+      { label: 'Away Elo', imageHidden: true, desc: 'Away team Elo before the game.', text: g => g.awayPregameElo.toFixed(0), value: g => g.awayPregameElo, z: '0' },
+      { label: 'Away Elo Change', imageHidden: true, desc: 'Away team postgame Elo minus pregame Elo.', text: g => signed(g.awayPostgameElo - g.awayPregameElo), value: g => g.awayPostgameElo - g.awayPregameElo, z: '+0.0;-0.0;0.0' },
+      { label: 'Home', desc: TIPS.home, text: g => g.homeTeam.abbrName, logo: g => g.homeTeam.abbrName, image: { text: g => `${g.homeTeam.abbrName} ${g.homePregameElo.toFixed(0)} ${signed(g.homePostgameElo - g.homePregameElo)}` } },
+      { label: 'Home Elo', imageHidden: true, desc: 'Home team Elo before the game.', text: g => g.homePregameElo.toFixed(0), value: g => g.homePregameElo, z: '0' },
+      { label: 'Home Elo Change', imageHidden: true, desc: 'Home team postgame Elo minus pregame Elo.', text: g => signed(g.homePostgameElo - g.homePregameElo), value: g => g.homePostgameElo - g.homePregameElo, z: '+0.0;-0.0;0.0' },
       { label: 'Away Score', desc: TIPS.score, text: g => String(g.awayScore), value: g => g.awayScore, z: '0' },
       { label: 'Home Score', desc: TIPS.score, text: g => String(g.homeScore), value: g => g.homeScore, z: '0' },
       { label: 'Home Win Prob', desc: TIPS.homeProb, text: g => pct(g.homeWinProbability), value: g => g.homeWinProbability, z: '0.0%' },
@@ -416,13 +416,13 @@ function GamesTab({ season, week, upcoming }) {
     rows: sortedProjected,
     cols: [
       ...(scope === 'season' ? [{ label: 'Week', desc: TIPS.projWeek, text: r => label(r.game.week) }] : []),
-      { label: 'Away', desc: TIPS.projElo, text: r => r.game.awayTeam.abbrName },
-      { label: 'Away Elo', desc: TIPS.projElo, text: r => r.game.awayElo.toFixed(0), value: r => r.game.awayElo, z: '0' },
-      { label: 'Home', desc: TIPS.projElo, text: r => r.game.homeTeam.abbrName },
-      { label: 'Home Elo', desc: TIPS.projElo, text: r => r.game.homeElo.toFixed(0), value: r => r.game.homeElo, z: '0' },
-      { label: 'Edge', desc: `${TIPS.projLean} How far the favorite's win chance is above 50%, scaled so 1 means certain: (favorite probability - 0.5) * 2.`, text: r => String(r.l.edge), value: r => r.l.edge, z: '0.00' },
-      { label: 'Favored', desc: TIPS.projFav, text: r => r.l.leansTo.abbrName },
-      { label: 'Favored Win Prob', desc: TIPS.projFav, text: r => pct0(r.l.prob), value: r => r.l.prob, z: '0%' },
+      { label: 'Away', desc: TIPS.projElo, text: r => r.game.awayTeam.abbrName, logo: r => r.game.awayTeam.abbrName, image: { text: r => `${r.game.awayTeam.abbrName} ${r.game.awayElo.toFixed(0)}` } },
+      { label: 'Away Elo', imageHidden: true, desc: TIPS.projElo, text: r => r.game.awayElo.toFixed(0), value: r => r.game.awayElo, z: '0' },
+      { label: 'Home', desc: TIPS.projElo, text: r => r.game.homeTeam.abbrName, logo: r => r.game.homeTeam.abbrName, image: { text: r => `${r.game.homeTeam.abbrName} ${r.game.homeElo.toFixed(0)}` } },
+      { label: 'Home Elo', imageHidden: true, desc: TIPS.projElo, text: r => r.game.homeElo.toFixed(0), value: r => r.game.homeElo, z: '0' },
+      { label: 'Edge', desc: `${TIPS.projLean} How far the favorite's win chance is above 50%, scaled so 1 means certain: (favorite probability - 0.5) * 2.`, text: r => r.l.edge.toFixed(2), align: 'center', image: { label: 'Away ◀ Edge ▶ Home' }, bar: r => ({ value: r.l.homeFav ? r.l.edge : -r.l.edge, max: 1, color: `rgb(${r.l.homeFav ? LEAN_HOME : LEAN_AWAY} / ${(0.25 + r.l.edge * 0.45).toFixed(2)})`, text: false }), value: r => r.l.edge, z: '0.00' },
+      { label: 'Favored', desc: TIPS.projFav, text: r => r.l.leansTo.abbrName, image: { text: r => `${r.l.leansTo.abbrName} ${pct0(r.l.prob)}`, align: 'right' } },
+      { label: 'Favored Win Prob', imageHidden: true, desc: TIPS.projFav, text: r => pct0(r.l.prob), value: r => r.l.prob, z: '0%' },
       { label: 'Outlook', desc: TIPS.projOutlook, text: r => r.l.tier.label, color: r => r.l.shade },
     ],
     api: { path: '/elo/upcoming', params: {}, fields: { Edge: 'min((max(homeWinProbability, awayWinProbability) - 0.5) * 2, 1)', Favored: 'abbrName of the team with the larger win probability; home wins ties.', 'Favored Win Prob': 'max(homeWinProbability, awayWinProbability)', Outlook: 'Favorite probability tier: <55% Toss-up, <60% Tilt, <70% Lean, <80% Likely, otherwise Solid.' }, note: `With no season the endpoint returns the latest season's unplayed games. This view shows ${scope === 'week' ? `week ${week + 1} only (add week=${week} to reproduce it)` : 'the rest of the season'}. Sort is client-side.` },

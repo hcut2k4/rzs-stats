@@ -111,7 +111,7 @@ function efficiencySpec(rows, cols, request, tab, sortLabel, sort) {
 
 function sideSpec(side, rows, columns, all, getters, request, sort) {
   const cols = [
-    { label: 'Team', desc: TIPS.team, text: r => r.displayName, field: 'displayName', align: 'left' },
+    { label: 'Team', desc: TIPS.team, text: r => r.displayName, logo: r => r.abbrName, field: 'displayName', align: 'left' },
     { label: 'G', desc: TIPS.games, text: r => String(r.games), value: r => r.games, z: '0', field: 'games' },
     { label: 'Drives/G', desc: TIPS.drivesPg, text: r => perGame(r[side].drives, r.games), value: getters.drivesPg, z: '0.0', field: `${side}.drives / games` },
     { label: 'Plays/G', desc: TIPS.playsPg, text: r => perGame(r[side].plays, r.games), value: getters.playsPg, z: '0.0', field: `${side}.plays / games` },
@@ -247,7 +247,7 @@ function OverviewTab({ rows, request }) {
   })
   const cols = [
     { label: '#', key: 'rank', field: 'Position in the response ranked by netPointsPerDrive descending', text: r => String(rankOf.get(r.teamId)), value: r => rankOf.get(r.teamId), z: '0' },
-    { label: 'Team', key: 'team', field: 'displayName', text: r => r.displayName, align: 'left' },
+    { label: 'Team', key: 'team', field: 'displayName', text: r => r.displayName, logo: r => r.abbrName, align: 'left' },
     { label: 'G', key: 'games', field: 'games', text: r => String(r.games), value: r => r.games, z: '0' },
     { label: 'Net Pts/Drive', key: 'net', field: 'netPointsPerDrive', text: r => signed(r.netPointsPerDrive), value: r => r.netPointsPerDrive, z: '+0.00;-0.00;0.00', color: r => divergeColor(r.netPointsPerDrive, maxNet) },
     ...[

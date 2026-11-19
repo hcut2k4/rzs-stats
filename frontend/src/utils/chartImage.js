@@ -1,21 +1,5 @@
 import { chooseScale, copyPng } from './tableImage'
-import { teamLogoUrl } from './teamLogo'
-
-function loadLogo(abbr) {
-  return new Promise(resolve => {
-    const image = new Image()
-    const finish = value => {
-      clearTimeout(timer)
-      image.onload = image.onerror = null
-      resolve(value)
-    }
-    const timer = setTimeout(() => finish(null), 3000)
-    image.onload = () => finish(image)
-    image.onerror = () => finish(null)
-    image.crossOrigin = 'anonymous'
-    image.src = teamLogoUrl(abbr)
-  })
-}
+import { loadLogo } from './teamLogo'
 
 async function drawChart({ name, qualifier = '', points, league, xScale, yScale }) {
   const canvas = document.createElement('canvas')
