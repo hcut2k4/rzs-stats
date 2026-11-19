@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import PageHeader from '../components/PageHeader'
 
 const STATS = [
@@ -186,6 +187,7 @@ export default function AboutPage() {
   return (
     <div>
       <PageHeader title="About" qualifier="How the numbers work" />
+      <p className="text-sm text-muted mb-6">See what's new in the <Link to="/changelog" className="text-accent hover:underline">Changelog</Link>.</p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         {STATS.map(({ name, def, bullets }) => (
