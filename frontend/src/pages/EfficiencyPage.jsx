@@ -6,11 +6,13 @@ import PageHeader from '../components/PageHeader'
 import Tabs from '../components/Tabs'
 import ExportMenu from '../components/ExportMenu'
 import { TeamCell } from '../components/TeamLogo'
+import QuadrantLabel from '../components/QuadrantLabel'
 import { SortTh, useSorter } from '../components/SortTh'
 import { goodBadColor, divergeColor } from '../utils/heat'
 import { copyChartImage } from '../utils/chartImage'
 import { teamLogoUrl } from '../utils/teamLogo'
 import { seasonLabel, seasonNumber } from '../utils/seasons'
+import { DASH, METRICS, halfPointScale, leaguePointsPerDrive, n2, pct, perGame, signed, tierPoints } from '../utils/efficiencyMetrics'
 
 const TABS = [
   { value: 'overview', label: 'Overview' },
@@ -23,55 +25,6 @@ const STAGES = [
   { value: 'regular', label: 'Regular' },
   { value: 'playoffs', label: 'Playoffs' },
   { value: 'both', label: 'Both' },
-]
-
-const DASH = '—'
-const n2 = v => (v == null ? DASH : v.toFixed(2))
-const pct = v => (v == null ? DASH : (v * 100).toFixed(1) + '%')
-const signed = v => (v == null ? DASH : (v > 0 ? '+' : '') + v.toFixed(2))
-const perGame = (v, g) => (g ? (v / g).toFixed(1) : DASH)
-
-const METRICS = [
-  {
-    key: 'pointsPerDrive', label: 'Pts/Drive', fmt: n2, better: 'higher',
-    off: 'Points the offense scored per drive. Only the offense\'s own points count: touchdowns, field goals and the extra points that followed its touchdowns. Higher is better. Drives are estimated, see About.',
-    def: 'Points opposing offenses scored per drive against this defense. Defensive and return touchdowns are not charged to it. Lower is better.',
-  },
-  {
-    key: 'pointsPerPlay', label: 'Pts/Play', fmt: n2, better: 'higher',
-    off: 'Points the offense scored per play (pass attempts, rushes and sacks taken). The closest stand-in we have for EPA per play. Higher is better.',
-    def: 'Points opposing offenses scored per play against this defense. Lower is better.',
-  },
-  {
-    key: 'yardsPerPlay', label: 'Yds/Play', fmt: n2, better: 'higher',
-    off: 'Net yards gained per play. Higher is better.',
-    def: 'Net yards opposing offenses gained per play. Lower is better.',
-  },
-  {
-    key: 'seriesRate', label: 'Series %', fmt: pct, better: 'higher',
-    off: 'Share of series that kept the chains moving or scored. Every first down and every drive\'s final series counts as a series; first downs and touchdowns are the successes. Higher is better.',
-    def: 'Share of opposing series that kept the chains moving or scored. Lower is better.',
-  },
-  {
-    key: 'thirdDownRate', label: '3rd %', fmt: pct, better: 'higher',
-    off: 'Third downs converted divided by third downs attempted. Higher is better.',
-    def: 'Third downs opponents converted against this defense. Lower is better.',
-  },
-  {
-    key: 'redZoneTdRate', label: 'RZ TD %', fmt: pct, better: 'higher',
-    off: 'Red-zone trips that ended in a touchdown. Higher is better.',
-    def: 'Opposing red-zone trips that ended in a touchdown. Lower is better.',
-  },
-  {
-    key: 'giveawayRate', label: 'TO/Drive', fmt: n2, better: 'lower',
-    off: 'Interceptions plus lost fumbles per drive. Lower is better.',
-    def: 'Takeaways per opposing drive: interceptions plus fumbles recovered by this defense. Higher is better.',
-  },
-  {
-    key: 'sackRate', label: 'Sack %', fmt: pct, better: 'lower',
-    off: 'Share of dropbacks that ended in a sack taken. Lower is better.',
-    def: 'Share of opposing dropbacks this defense sacked. Higher is better.',
-  },
 ]
 
 const TIPS = {
@@ -143,18 +96,6 @@ const LogoDot = ({ cx, cy, payload, logoSize }) => (
   cx == null ? null : <image href={teamLogoUrl(payload.abbr)} x={cx - logoSize / 2} y={cy - logoSize / 2} width={logoSize} height={logoSize} />
 )
 
-// Two short lines per corner, so the labels of neighboring quadrants cannot collide on a narrow screen.
-function QuadrantLabel({ viewBox, lines, right, bottom }) {
-  if (!viewBox) return null
-  const x = right ? viewBox.x + viewBox.width - 8 : viewBox.x + 8
-  const first = bottom ? viewBox.y + viewBox.height - 8 - (lines.length - 1) * 15 : viewBox.y + 18
-  return (
-    <text textAnchor={right ? 'end' : 'start'} fill="rgb(var(--muted))" fontSize={12} fontWeight={600}>
-      {lines.map((line, i) => <tspan key={line} x={x} y={first + i * 15}>{line}</tspan>)}
-    </text>
-  )
-}
-
 function TiersChart({ rows, name, qualifier }) {
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState(null)
@@ -165,23 +106,11 @@ function TiersChart({ rows, name, qualifier }) {
     return () => { mounted.current = false; clearTimeout(timer.current) }
   }, [])
   const [logoSize, setLogoSize] = useState(44)
-  const points = rows
-    .filter(r => r.offense.pointsPerDrive != null && r.defense.pointsPerDrive != null)
-    .map(r => ({ x: r.offense.pointsPerDrive, y: r.defense.pointsPerDrive, abbr: r.abbrName, name: r.displayName }))
+  const points = tierPoints(rows)
   if (!points.length) return null
-  // Every point scored is a point allowed, so one league figure (total points over total drives) is both the offense and the defense average.
-  const totals = rows.reduce((t, r) => (r.offense.pointsPerDrive == null ? t : { points: t.points + r.offense.pointsPerDrive * r.offense.drives, drives: t.drives + r.offense.drives }), { points: 0, drives: 0 })
-  const league = totals.points / totals.drives
-  const scale = key => {
-    const vals = points.map(p => p[key])
-    const lo = Math.floor((Math.min(...vals) - 0.1) * 2) / 2
-    const hi = Math.ceil((Math.max(...vals) + 0.1) * 2) / 2
-    const ticks = []
-    for (let t = lo; t <= hi + 1e-9; t += 0.5) ticks.push(t)
-    return { domain: [lo, hi], ticks }
-  }
-  const xScale = scale('x')
-  const yScale = scale('y')
+  const league = leaguePointsPerDrive(rows)
+  const xScale = halfPointScale(points.map(p => p.x))
+  const yScale = halfPointScale(points.map(p => p.y))
   const exportChart = async () => {
     clearTimeout(timer.current)
     setBusy(true)

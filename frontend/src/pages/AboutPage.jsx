@@ -42,6 +42,24 @@ const STATS = [
     ],
   },
   {
+    name: 'Expected Wins',
+    def: 'How many games a team should have won, measured two ways, shown on each team profile.',
+    bullets: [
+      'PyPAT wins: PyPAT times games played, the wins its scoring margin justifies. Actual wins minus PyPAT wins is Luck',
+      'Elo wins: the pregame Elo win chance added up over every regular-season game, so it credits a hard schedule and home field',
+      'Projected record: current wins plus the Elo win chance of every remaining game, rounded to whole games',
+    ],
+  },
+  {
+    name: 'Percentile',
+    def: 'Where a team ranks against the rest of the league on one number, from 0 (worst) to 100 (best).',
+    bullets: [
+      'The share of other teams it beats, with ties counting half. 50 is the league median',
+      'Flipped where lower is better, such as points allowed or sacks taken, so 100 is always best',
+      'Teams with no data are left out instead of counted as zero',
+    ],
+  },
+  {
     name: 'TANY/A',
     def: 'Total Adjusted Net Yards per Attempt — measures overall QB efficiency by combining passing and rushing production.',
     bullets: [
@@ -97,6 +115,16 @@ const STATS = [
 ]
 
 const PAGES = [
+  {
+    name: 'Teams',
+    bullets: [
+      'Every team grouped by division; click one for its profile, or click a team name in any table',
+      'Profile: headline numbers with league ranks, a percentile fingerprint for offense and defense beside the league efficiency map, and actual wins against PyPAT and Elo expectations week by week',
+      'Game-by-game season arc with upset flags and Elo after every game, the remaining schedule with Elo win chances and a projected record, and the team\'s quarterbacks',
+      'Franchise history: Elo across every season with its peak and low, season-by-season results, and the all-time record against every opponent',
+      'Pick any season from the profile header; every table and list exports to Excel, CSV, an image or an AI-ready text block',
+    ],
+  },
   {
     name: 'Home',
     bullets: [

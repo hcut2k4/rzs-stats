@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { pointLabel, chartNames, weekOptionLabel, neonPlayerUrl } from '../pages/QbPage'
+import { pointLabel, chartNames, weekOptionLabel } from '../pages/QbPage'
+import { neonPlayerUrl } from '../utils/qb'
 
 describe('pointLabel', () => {
   it('numbers regular season weeks from one', () => {

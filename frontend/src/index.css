@@ -50,3 +50,13 @@ body {
     @apply px-2 py-1.5 text-left text-xs font-semibold uppercase tracking-wide text-muted whitespace-nowrap select-none;
   }
 }
+
+.team-scope {
+  --team: rgb(var(--accent));
+  --team-dark: rgb(var(--accent));
+  --team-c: var(--team);
+}
+
+.dark .team-scope {
+  --team-c: var(--team-dark);
+}
