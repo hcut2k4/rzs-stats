@@ -1,13 +1,9 @@
 import { Link } from 'react-router-dom'
 import InfoTip from '../InfoTip'
 import ExportMenu from '../ExportMenu'
-import Section, { Empty } from './Section'
+import Section, { Empty, Loading } from './Section'
 import { goodBadColor } from '../../utils/heat'
-import { neonPlayerUrl, TANYA_TIP, RUSHPLUS_TIP } from '../../pages/QbPage'
-
-const n1 = v => (v == null ? '—' : v.toFixed(1))
-const n2 = v => (v == null ? '—' : v.toFixed(2))
-const signed2 = v => (v == null ? '—' : (v > 0 ? '+' : '') + v.toFixed(2))
+import { n1, n2, signed2, neonPlayerUrl, TANYA_TIP, RUSHPLUS_TIP } from '../../utils/qb'
 
 export const QB_COLS = [
   { key: 'rank', label: 'Lg Rk', desc: 'League TANY/A rank among qualified quarterbacks. Empty when the quarterback has not thrown enough to qualify.', fmt: v => v ?? '—', z: '0' },
@@ -23,19 +19,19 @@ export const QB_COLS = [
   { key: 'rushYds', label: 'Rush Yds', desc: 'Rushing yards by the quarterback.', fmt: v => v, z: '0' },
 ]
 
-export default function QbRoom({ rows, league, spec, seasonText }) {
+export default function QbRoom({ rows, league, spec, loading }) {
   const all = Object.fromEntries(QB_COLS.filter(c => c.heat).map(c => [c.key, league.filter(r => r.qualified).map(r => r[c.key])]))
   const color = (c, r) => (c.heat && r.qualified ? goodBadColor(r[c.key], all[c.key], c.heat) : undefined)
   return (
     <Section
       id="qbs"
-      kicker={seasonText}
+      kicker="Under center"
       title="QB Room"
       summary={rows.length ? 'Every quarterback who threw a pass for this team, colored against the qualified QBs across the league.' : null}
-      actions={rows.length > 0 && <div className="flex items-center gap-3"><Link to="/qb" className="text-xs text-muted hover:text-ink">QB page →</Link><ExportMenu spec={spec} /></div>}
+      actions={rows.length > 0 && <div className="flex items-center gap-3"><Link to="/qb" className="text-xs font-semibold uppercase tracking-wide text-muted hover:text-ink">QBs →</Link><ExportMenu spec={spec} /></div>}
     >
-      {!rows.length ? <Empty>No quarterback stats for this season. QB stats fill in after the QB sync runs.</Empty> : (
-        <div className="overflow-x-auto border-y border-rule">
+      {loading ? <Loading /> : !rows.length ? <Empty>No quarterback stats for this season. QB stats fill in after the QB sync runs.</Empty> : (
+        <div className="overflow-x-auto border-y border-rule [mask-image:linear-gradient(to_right,black_85%,transparent)] sm:[mask-image:none]">
           <table className="w-full text-sm num">
             <thead>
               <tr className="border-b border-rule">

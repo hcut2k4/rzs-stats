@@ -118,8 +118,8 @@ const PAGES = [
     name: 'Teams',
     bullets: [
       'Every team grouped by division; click one for its profile, or click a team name in any table',
-      'Profile: headline numbers with league ranks, a percentile fingerprint for offense, defense and team strength, and actual wins against PyPAT and Elo expectations',
-      'Game-by-game season arc with upset flags, the remaining schedule with Elo win chances and a projected record, the team on the efficiency map, and its quarterbacks',
+      'Profile: headline numbers with league ranks, a percentile fingerprint for offense and defense beside the league efficiency map, and actual wins against PyPAT and Elo expectations week by week',
+      'Game-by-game season arc with upset flags and Elo after every game, the remaining schedule with Elo win chances and a projected record, and the team\'s quarterbacks',
       'Franchise history: Elo across every season with its peak and low, season-by-season results, and the all-time record against every opponent',
       'Pick any season from the profile header; every table and list exports to Excel, CSV, an image or an AI-ready text block',
     ],

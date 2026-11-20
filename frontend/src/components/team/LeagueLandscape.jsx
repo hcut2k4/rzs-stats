@@ -1,13 +1,15 @@
 import { Link } from 'react-router-dom'
-import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer } from 'recharts'
-import Section, { Empty } from './Section'
+import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceArea, ReferenceLine, ResponsiveContainer } from 'recharts'
+import QuadrantLabel from '../QuadrantLabel'
+import Section, { Empty, Loading } from './Section'
 import { teamLogoUrl } from '../../utils/teamLogo'
-import { n2, signed } from '../../utils/efficiencyMetrics'
+import { halfPointScale, leaguePointsPerDrive, n2, signed, tierPoints } from '../../utils/efficiencyMetrics'
+import { quadrant } from '../../utils/teamProfile'
 
-const Logo = ({ cx, cy, payload, logoSize, focus, ring }) => (
+const Logo = ({ cx, cy, payload, logoSize, focus }) => (
   cx == null ? null : (
-    <g opacity={focus ? 1 : 0.28}>
-      {focus && <circle cx={cx} cy={cy} r={logoSize / 2 + 5} fill="rgb(var(--bg))" stroke={ring} strokeWidth={3} />}
+    <g opacity={focus ? 1 : 0.45} style={focus ? undefined : { filter: 'grayscale(1)' }}>
+      {focus && <circle cx={cx} cy={cy} r={logoSize / 2 + 5} fill="rgb(var(--bg))" stroke="var(--team-c)" strokeWidth={3} />}
       <image href={teamLogoUrl(payload.abbr)} x={cx - logoSize / 2} y={cy - logoSize / 2} width={logoSize} height={logoSize} />
     </g>
   )
@@ -26,56 +28,52 @@ function Tip({ active, payload }) {
   )
 }
 
-function scale(vals) {
-  const lo = Math.floor((Math.min(...vals) - 0.1) * 2) / 2
-  const hi = Math.ceil((Math.max(...vals) + 0.1) * 2) / 2
-  const ticks = []
-  for (let t = lo; t <= hi + 1e-9; t += 0.5) ticks.push(t)
-  return { domain: [lo, hi], ticks }
-}
-
-export default function LeagueLandscape({ rows, teamId, seasonText }) {
-  const points = rows
-    .filter(r => r.offense.pointsPerDrive != null && r.defense.pointsPerDrive != null)
-    .map(r => ({ id: r.teamId, x: r.offense.pointsPerDrive, y: r.defense.pointsPerDrive, abbr: r.abbrName, name: r.displayName }))
+export default function LeagueLandscape({ rows, teamId, loading }) {
+  const points = tierPoints(rows)
   const me = points.find(p => p.id === teamId)
-  if (!me) {
+  if (loading || !me) {
     return (
-      <Section id="landscape" kicker={seasonText} title="League Landscape">
-        <Empty>No efficiency data for this team yet.</Empty>
+      <Section id="landscape" kicker="Points per drive" title="League Landscape">
+        {loading ? <Loading /> : <Empty>No efficiency data for this team yet.</Empty>}
       </Section>
     )
   }
-  // Every point scored is a point allowed, so one league figure is both averages (same as the Efficiency page).
-  const totals = rows.reduce((t, r) => (r.offense.pointsPerDrive == null ? t : { points: t.points + r.offense.pointsPerDrive * r.offense.drives, drives: t.drives + r.offense.drives }), { points: 0, drives: 0 })
-  const league = totals.points / totals.drives
-  const xs = scale(points.map(p => p.x))
-  const ys = scale(points.map(p => p.y))
-  const quadrant = `${me.x >= league ? 'Good' : 'Bad'} offense, ${me.y <= league ? 'good' : 'bad'} defense`
+  const league = leaguePointsPerDrive(rows)
+  const xs = halfPointScale(points.map(p => p.x))
+  const ys = halfPointScale(points.map(p => p.y))
+  const q = quadrant(me.x, me.y, league)
+  const where = `${q.goodOffense ? 'Good' : 'Bad'} offense, ${q.goodDefense ? 'good' : 'bad'} defense`
   const axis = { type: 'number', tick: { fill: 'rgb(var(--muted))', fontSize: 11 }, stroke: 'rgb(var(--line))', tickFormatter: v => v.toFixed(1) }
+  const area = (x1, x2, y1, y2, lines, right, bottom) => (
+    <ReferenceArea x1={x1} x2={x2} y1={y1} y2={y2} fill="none" stroke="none" label={<QuadrantLabel lines={lines} right={right} bottom={bottom} />} />
+  )
   return (
     <Section
       id="landscape"
-      kicker={seasonText}
+      kicker="Points per drive"
       title="League Landscape"
-      summary={`${quadrant}: ${n2(me.x)} points per drive scored and ${n2(me.y)} allowed, against a league average of ${n2(league)}.`}
-      actions={<Link to="/efficiency" className="text-xs text-muted hover:text-ink">Efficiency page →</Link>}
+      summary={`${where}: ${n2(me.x)} scored and ${n2(me.y)} allowed per drive, against a league average of ${n2(league)}.`}
+      actions={<Link to="/efficiency" className="text-xs font-semibold uppercase tracking-wide text-muted hover:text-ink">Efficiency →</Link>}
     >
-      <div className="h-80 sm:h-96" role="img" aria-label={`Scatter of every team's offense against defense points per drive. ${me.name} is highlighted: ${quadrant.toLowerCase()}.`}>
+      <div className="h-80 sm:h-96" role="img" aria-label={`Scatter of every team's offense against defense points per drive. ${me.name} is highlighted: ${where.toLowerCase()}.`}>
         <ResponsiveContainer width="100%" height="100%">
-          <ScatterChart margin={{ top: 10, right: 16, bottom: 22, left: 0 }}>
+          <ScatterChart margin={{ top: 8, right: 12, bottom: 22, left: 0 }}>
             <CartesianGrid strokeDasharray="2 4" stroke="rgb(var(--line))" />
-            <XAxis {...axis} dataKey="x" domain={xs.domain} ticks={xs.ticks} label={{ value: 'Offense pts/drive → better', position: 'insideBottom', offset: -12, fill: 'rgb(var(--muted))', fontSize: 11 }} />
-            <YAxis {...axis} dataKey="y" domain={ys.domain} ticks={ys.ticks} reversed label={{ value: 'Defense pts/drive → better', angle: -90, position: 'insideLeft', offset: 16, fill: 'rgb(var(--muted))', fontSize: 11, style: { textAnchor: 'middle' } }} />
+            <XAxis {...axis} dataKey="x" domain={xs.domain} ticks={xs.ticks} label={{ value: 'Offense →', position: 'insideBottom', offset: -12, fill: 'rgb(var(--muted))', fontSize: 11 }} />
+            <YAxis {...axis} dataKey="y" domain={ys.domain} ticks={ys.ticks} reversed width={36} label={{ value: 'Defense →', angle: -90, position: 'insideLeft', offset: 14, fill: 'rgb(var(--muted))', fontSize: 11, style: { textAnchor: 'middle' } }} />
+            {area(xs.domain[0], league, ys.domain[0], league, ['Bad O', 'Good D'])}
+            {area(league, xs.domain[1], ys.domain[0], league, ['Good O', 'Good D'], true)}
+            {area(xs.domain[0], league, league, ys.domain[1], ['Bad O', 'Bad D'], false, true)}
+            {area(league, xs.domain[1], league, ys.domain[1], ['Good O', 'Bad D'], true, true)}
             <ReferenceLine x={league} stroke="rgb(var(--muted))" strokeDasharray="4 4" />
             <ReferenceLine y={league} stroke="rgb(var(--muted))" strokeDasharray="4 4" />
             <Tooltip content={<Tip />} cursor={false} />
-            <Scatter data={points.filter(p => p.id !== teamId)} shape={<Logo logoSize={24} />} isAnimationActive={false} />
-            <Scatter data={[me]} shape={<Logo logoSize={40} focus ring="var(--team-c)" />} isAnimationActive={false} />
+            <Scatter data={points.filter(p => p.id !== teamId)} shape={<Logo logoSize={22} />} isAnimationActive={false} />
+            <Scatter data={[me]} shape={<Logo logoSize={36} focus />} isAnimationActive={false} />
           </ScatterChart>
         </ResponsiveContainer>
       </div>
-      <p className="text-xs text-muted mt-1">Up and to the right is better on both sides of the ball. Dashed lines mark the league average. Regular season.</p>
+      <p className="text-xs text-muted mt-1">Up and right is better. Dashed lines mark the league average. Regular season.</p>
     </Section>
   )
 }

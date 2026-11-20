@@ -46,3 +46,23 @@ export const METRICS = [
     def: 'Share of opposing dropbacks this defense sacked. Higher is better.',
   },
 ]
+
+export function tierPoints(rows) {
+  return rows
+    .filter(r => r.offense.pointsPerDrive != null && r.defense.pointsPerDrive != null)
+    .map(r => ({ id: r.teamId, x: r.offense.pointsPerDrive, y: r.defense.pointsPerDrive, abbr: r.abbrName, name: r.displayName }))
+}
+
+// Every point scored is a point allowed, so one league figure (total points over total drives) is both the offense and the defense average.
+export function leaguePointsPerDrive(rows) {
+  const totals = rows.reduce((t, r) => (r.offense.pointsPerDrive == null ? t : { points: t.points + r.offense.pointsPerDrive * r.offense.drives, drives: t.drives + r.offense.drives }), { points: 0, drives: 0 })
+  return totals.points / totals.drives
+}
+
+export function halfPointScale(vals) {
+  const lo = Math.floor((Math.min(...vals) - 0.1) * 2) / 2
+  const hi = Math.ceil((Math.max(...vals) + 0.1) * 2) / 2
+  const ticks = []
+  for (let t = lo; t <= hi + 1e-9; t += 0.5) ticks.push(t)
+  return { domain: [lo, hi], ticks }
+}

@@ -6,12 +6,13 @@ import PageHeader from '../components/PageHeader'
 import Tabs from '../components/Tabs'
 import ExportMenu from '../components/ExportMenu'
 import { TeamCell } from '../components/TeamLogo'
+import QuadrantLabel from '../components/QuadrantLabel'
 import { SortTh, useSorter } from '../components/SortTh'
 import { goodBadColor, divergeColor } from '../utils/heat'
 import { copyChartImage } from '../utils/chartImage'
 import { teamLogoUrl } from '../utils/teamLogo'
 import { seasonLabel, seasonNumber } from '../utils/seasons'
-import { DASH, METRICS, n2, pct, perGame, signed } from '../utils/efficiencyMetrics'
+import { DASH, METRICS, halfPointScale, leaguePointsPerDrive, n2, pct, perGame, signed, tierPoints } from '../utils/efficiencyMetrics'
 
 const TABS = [
   { value: 'overview', label: 'Overview' },
@@ -95,18 +96,6 @@ const LogoDot = ({ cx, cy, payload, logoSize }) => (
   cx == null ? null : <image href={teamLogoUrl(payload.abbr)} x={cx - logoSize / 2} y={cy - logoSize / 2} width={logoSize} height={logoSize} />
 )
 
-// Two short lines per corner, so the labels of neighboring quadrants cannot collide on a narrow screen.
-function QuadrantLabel({ viewBox, lines, right, bottom }) {
-  if (!viewBox) return null
-  const x = right ? viewBox.x + viewBox.width - 8 : viewBox.x + 8
-  const first = bottom ? viewBox.y + viewBox.height - 8 - (lines.length - 1) * 15 : viewBox.y + 18
-  return (
-    <text textAnchor={right ? 'end' : 'start'} fill="rgb(var(--muted))" fontSize={12} fontWeight={600}>
-      {lines.map((line, i) => <tspan key={line} x={x} y={first + i * 15}>{line}</tspan>)}
-    </text>
-  )
-}
-
 function TiersChart({ rows, name, qualifier }) {
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState(null)
@@ -117,23 +106,11 @@ function TiersChart({ rows, name, qualifier }) {
     return () => { mounted.current = false; clearTimeout(timer.current) }
   }, [])
   const [logoSize, setLogoSize] = useState(44)
-  const points = rows
-    .filter(r => r.offense.pointsPerDrive != null && r.defense.pointsPerDrive != null)
-    .map(r => ({ x: r.offense.pointsPerDrive, y: r.defense.pointsPerDrive, abbr: r.abbrName, name: r.displayName }))
+  const points = tierPoints(rows)
   if (!points.length) return null
-  // Every point scored is a point allowed, so one league figure (total points over total drives) is both the offense and the defense average.
-  const totals = rows.reduce((t, r) => (r.offense.pointsPerDrive == null ? t : { points: t.points + r.offense.pointsPerDrive * r.offense.drives, drives: t.drives + r.offense.drives }), { points: 0, drives: 0 })
-  const league = totals.points / totals.drives
-  const scale = key => {
-    const vals = points.map(p => p[key])
-    const lo = Math.floor((Math.min(...vals) - 0.1) * 2) / 2
-    const hi = Math.ceil((Math.max(...vals) + 0.1) * 2) / 2
-    const ticks = []
-    for (let t = lo; t <= hi + 1e-9; t += 0.5) ticks.push(t)
-    return { domain: [lo, hi], ticks }
-  }
-  const xScale = scale('x')
-  const yScale = scale('y')
+  const league = leaguePointsPerDrive(rows)
+  const xScale = halfPointScale(points.map(p => p.x))
+  const yScale = halfPointScale(points.map(p => p.y))
   const exportChart = async () => {
     clearTimeout(timer.current)
     setBusy(true)

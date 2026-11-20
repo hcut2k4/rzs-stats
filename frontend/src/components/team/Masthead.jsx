@@ -22,7 +22,9 @@ function Kpi({ label, value, tip, rank, rankWord = '', neutral, note, delta }) {
       <dd className="text-xs mt-1.5 flex items-center gap-2 flex-wrap num">
         {rank && <span className={`font-semibold ${neutral ? 'text-ink' : rankTone(rank.rank, rank.of)}`}>{ordinal(rank.rank)}{rankWord} of {rank.of}</span>}
         {note && <span className="text-muted">{note}</span>}
-        {delta && <span className={delta.up ? 'text-good' : 'text-bad'} title={delta.title}>{delta.up ? '▲' : '▼'} {delta.text}</span>}
+        {delta && (delta.minor
+          ? <span className="text-muted" title={delta.title}>±{delta.text}</span>
+          : <span className={delta.up ? 'text-good' : 'text-bad'} title={delta.title}>{delta.up ? '▲' : '▼'} {delta.text}</span>)}
       </dd>
     </div>
   )
@@ -31,7 +33,13 @@ function Kpi({ label, value, tip, rank, rankWord = '', neutral, note, delta }) {
 export default function Masthead({ team, season, seasons, onSeason, kpis }) {
   const wash = 'linear-gradient(100deg, color-mix(in srgb, var(--team-c) 26%, transparent) 0%, color-mix(in srgb, var(--team-c) 10%, transparent) 40%, transparent 78%)'
   return (
-    <header className="relative overflow-hidden border-y-2 border-rule mb-8 bg-surface">
+    <>
+    <nav aria-label="Breadcrumb" className="text-xs font-semibold uppercase tracking-wide text-muted mb-2">
+      <Link to="/teams" className="hover:text-ink">Teams</Link>
+      <span className="mx-1.5" aria-hidden="true">›</span>
+      <span>{team.division}</span>
+    </nav>
+    <header className="relative overflow-hidden border-y-2 border-rule mb-6 bg-surface">
       <div className="absolute inset-0" style={{ background: wash }} aria-hidden="true" />
       <div className="absolute left-0 inset-y-0 w-1.5" style={{ background: 'var(--team-c)' }} aria-hidden="true" />
       <img src={teamLogoUrl(team.abbrName)} alt="" aria-hidden="true"
@@ -46,16 +54,14 @@ export default function Masthead({ team, season, seasons, onSeason, kpis }) {
           <p className="font-display font-bold uppercase text-xl sm:text-2xl leading-none mt-2 text-muted">{team.cityName}</p>
           <h1 className="font-display font-extrabold uppercase tracking-tight text-5xl sm:text-6xl leading-[0.9]">{team.displayName}</h1>
         </div>
-        <div className="sm:ml-auto flex items-center gap-3 self-start sm:self-center">
-          <select className="field" aria-label="Season" value={season} onChange={e => onSeason(Number(e.target.value))}>
-            {[...seasons].reverse().map(s => <option key={s} value={s}>Season {seasonNumber(s)}</option>)}
-          </select>
-          <Link to="/teams" className="text-sm text-muted hover:text-ink whitespace-nowrap">All teams</Link>
-        </div>
+        <select className="field sm:ml-auto self-start sm:self-center" aria-label="Season" value={season} onChange={e => onSeason(Number(e.target.value))}>
+          {[...seasons].reverse().map(s => <option key={s} value={s}>Season {seasonNumber(s)}</option>)}
+        </select>
       </div>
       <dl className="relative grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-px bg-line border-t border-line">
         {kpis.map(k => <Kpi key={k.label} {...k} />)}
       </dl>
     </header>
+    </>
   )
 }

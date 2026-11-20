@@ -1,4 +1,5 @@
 import { upsetInfo } from './eloLean'
+import { METRICS } from './efficiencyMetrics'
 
 export const REGULAR_WEEKS = 18
 
@@ -53,6 +54,8 @@ export function percentileIn(value, values, better = 'higher') {
   }
   return Math.round(((beaten + Math.max(tied, 0) / 2) / (vals.length - 1)) * 100)
 }
+
+export const signed1 = v => (v == null ? '—' : (v > 0 ? '+' : '') + v.toFixed(1))
 
 export const actualWins = s => s.wins + s.ties / 2
 
@@ -159,11 +162,17 @@ export function headToHead(games) {
 }
 
 export function franchiseSeasons(trends, eloHistory, games, teamId) {
+  const bySeason = new Map()
+  for (const h of eloHistory) {
+    if (h.teamId !== teamId) continue
+    if (!bySeason.has(h.season)) bySeason.set(h.season, [])
+    bySeason.get(h.season).push(h)
+  }
   return trends
     .map(t => {
       const row = t.standings.find(s => s.teamId === teamId)
       if (!row) return null
-      const weeks = eloHistory.filter(h => h.teamId === teamId && h.season === t.seasonIndex)
+      const weeks = bySeason.get(t.seasonIndex) ?? []
       const final = weeks.reduce((m, h) => (m == null || h.week > m.week ? h : m), null)
       const playoffs = games.filter(g => g.season === t.seasonIndex && g.playoff)
       return {
@@ -176,7 +185,7 @@ export function franchiseSeasons(trends, eloHistory, games, teamId) {
       }
     })
     .filter(Boolean)
-    .sort((a, b) => a.season - b.season)
+    .sort((a, b) => b.season - a.season)
 }
 
 export function eloPeaks(points) {
@@ -185,4 +194,50 @@ export function eloPeaks(points) {
     peak: p.endElo > m.peak.endElo ? p : m.peak,
     trough: p.endElo < m.trough.endElo ? p : m.trough,
   }), { peak: points[0], trough: points[0] })
+}
+
+// 1 = won more than scoring margin justifies, -1 = fewer, 0 = within half a win.
+export const luckLean = winDiff => (winDiff > 0.5 ? 1 : winDiff < -0.5 ? -1 : 0)
+
+export const quadrant = (offense, defense, league) => ({ goodOffense: offense >= league, goodDefense: defense <= league })
+
+// Same default as Standings and About: the active season reads prior-season opponent quality, finished seasons their own.
+export const sosVariant = (season, latest) => (season > 0 && season === latest ? 'Prev' : 'Curr')
+
+export function projectedRecord(team, road) {
+  const remainingWins = Math.round(road.reduce((s, r) => s + r.winProb, 0))
+  return { wins: team.wins + remainingWins, losses: team.losses + road.length - remainingWins, ties: team.ties }
+}
+
+export function lastWeekRows(history, season) {
+  const rows = history.filter(h => h.season === season)
+  if (!rows.length) return []
+  const week = Math.max(...rows.map(h => h.week))
+  return rows.filter(h => h.week === week)
+}
+
+const flip = better => (better === 'higher' ? 'lower' : 'higher')
+const DEFENSE_LABELS = { giveawayRate: 'Takeaways/Drive' }
+
+const metric = (key, label, tip, value, all, better, text) => ({
+  key, label, tip, value, text, better, percentile: percentileIn(value, all, better), rank: rankIn(value, all, better),
+})
+
+export function fingerprint(team, standings, efficiency) {
+  const eff = efficiency.find(r => r.teamId === team.teamId)
+  const perGame = (r, k) => (r.gamesPlayed ? r[k] / r.gamesPlayed : null)
+  const scoring = (name, field, tip) => {
+    const value = perGame(team, field)
+    return metric(`${name}.pointsPerGame`, 'Pts/Game', tip, value, standings.map(r => perGame(r, field)), name === 'offense' ? 'higher' : 'lower', value?.toFixed(1) ?? '—')
+  }
+  const side = (name, tipKey) => METRICS.map(m => {
+    const better = name === 'defense' ? flip(m.better) : m.better
+    const value = eff?.[name][m.key] ?? null
+    const label = name === 'defense' ? DEFENSE_LABELS[m.key] ?? m.label : m.label
+    return metric(`${name}.${m.key}`, label, m[tipKey], value, efficiency.map(r => r[name][m.key]), better, m.fmt(value))
+  })
+  return [
+    { title: 'Offense', rows: [scoring('offense', 'pointsFor', 'Points scored per game. Higher is better.'), ...side('offense', 'off')] },
+    { title: 'Defense', rows: [scoring('defense', 'pointsAgainst', 'Points allowed per game. Lower is better.'), ...side('defense', 'def')] },
+  ]
 }

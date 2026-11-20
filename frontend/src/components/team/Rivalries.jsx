@@ -1,8 +1,9 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { TeamLogo } from '../TeamLogo'
 import ExportMenu from '../ExportMenu'
 import { SortTh } from '../SortTh'
-import Section, { Empty } from './Section'
+import Section, { Empty, Loading } from './Section'
 import { tallyText } from '../../utils/teamProfile'
 import { weekName } from '../../utils/playoffRounds'
 import { seasonNumber } from '../../utils/seasons'
@@ -29,11 +30,16 @@ function WinShare({ r }) {
   )
 }
 
-export default function Rivalries({ rows, sorter, spec }) {
-  if (!rows.length) {
-    return <Section id="rivalries" kicker="All-time head to head" title="Rivalries"><Empty>No games played yet.</Empty></Section>
+const PREVIEW = 10
+
+export default function Rivalries({ rows, sorter, specFor, loading }) {
+  const [all, setAll] = useState(false)
+  if (loading || !rows.length) {
+    return <Section id="rivalries" kicker="All-time head to head" title="Rivalries">{loading ? <Loading /> : <Empty>No games played yet.</Empty>}</Section>
   }
   const { sort, click } = sorter
+  const shown = all ? rows : rows.slice(0, PREVIEW)
+  const wide = 'hidden sm:table-cell'
   const th = (key, label, className = 'text-right') => <SortTh tip={RIVALRY_TIPS[key]} sortKey={key} state={sort} onSort={click} className={className}>{label}</SortTh>
   return (
     <Section
@@ -41,23 +47,23 @@ export default function Rivalries({ rows, sorter, spec }) {
       kicker="All-time head to head"
       title="Rivalries"
       summary={`Record against all ${rows.length} opponents faced, regular season and playoffs.`}
-      actions={<ExportMenu spec={spec} />}
+      actions={<ExportMenu spec={specFor(shown)} />}
     >
-      <div className="overflow-x-auto border-y border-rule max-h-[34rem] overflow-y-auto">
+      <div className="overflow-x-auto border-y border-rule">
         <table className="w-full text-sm num">
-          <thead className="sticky top-0 bg-bg z-10">
+          <thead>
             <tr className="border-b border-rule">
               {th('opp', 'Opponent', 'text-left')}
               {th('games', 'G')}
               {th('record', 'Record')}
-              <th className="th" aria-hidden="true" />
+              <th className={`th ${wide}`} aria-hidden="true" />
               {th('diff', 'Pt Diff')}
-              {th('ppg', 'PF–PA / G')}
-              {th('last', 'Last meeting', 'text-left')}
+              {th('ppg', 'PF–PA / G', `text-right ${wide}`)}
+              {th('last', 'Last meeting', `text-left ${wide}`)}
             </tr>
           </thead>
           <tbody>
-            {rows.map((r, i) => (
+            {shown.map((r, i) => (
               <tr key={r.opp.teamId} className={`border-t border-line ${i % 2 ? 'bg-surface' : 'bg-bg'}`}>
                 <td className="px-2 py-1.5 whitespace-nowrap">
                   <Link to={`/teams/${r.opp.abbrName}`} className="flex items-center gap-2 font-semibold hover:text-accent">
@@ -65,16 +71,22 @@ export default function Rivalries({ rows, sorter, spec }) {
                   </Link>
                 </td>
                 <td className="px-2 py-1.5 text-right text-muted">{r.games}</td>
-                <td className="px-2 py-1.5 text-right font-semibold">{tallyText(r)}</td>
-                <td className="px-2 py-1.5"><WinShare r={r} /></td>
+                <td className="px-2 py-1.5 text-right font-semibold whitespace-nowrap">{tallyText(r)}</td>
+                <td className={`px-2 py-1.5 ${wide}`}><WinShare r={r} /></td>
                 <td className={`px-2 py-1.5 text-right ${r.diff > 0 ? 'text-good' : r.diff < 0 ? 'text-bad' : ''}`}>{r.diff > 0 ? '+' : ''}{r.diff}</td>
-                <td className="px-2 py-1.5 text-right text-muted">{(r.pf / r.games).toFixed(1)}–{(r.pa / r.games).toFixed(1)}</td>
-                <td className="px-2 py-1.5 whitespace-nowrap text-muted">{lastMeeting(r)}</td>
+                <td className={`px-2 py-1.5 text-right text-muted ${wide}`}>{(r.pf / r.games).toFixed(1)}–{(r.pa / r.games).toFixed(1)}</td>
+                <td className={`px-2 py-1.5 whitespace-nowrap text-muted ${wide}`}>{lastMeeting(r)}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      {rows.length > PREVIEW && (
+        <button type="button" onClick={() => setAll(a => !a)} aria-expanded={all}
+          className="mt-2 text-xs uppercase tracking-wide font-semibold text-muted hover:text-ink">
+          {all ? `Show top ${PREVIEW}` : `Show all ${rows.length} opponents`}
+        </button>
+      )}
     </Section>
   )
 }

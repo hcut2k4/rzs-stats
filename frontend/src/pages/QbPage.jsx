@@ -10,10 +10,9 @@ import Tabs from '../components/Tabs'
 import { goodBadColor, divergeColor } from '../utils/heat'
 import { COLORS } from '../utils/chartColors'
 import { seasonLabel, seasonNumber } from '../utils/seasons'
+import { shortWeekName } from '../utils/playoffRounds'
+import { n1, n2, signed2, neonPlayerUrl, TANYA_TIP, RUSHPLUS_TIP } from '../utils/qb'
 
-const n2 = v => v != null ? v.toFixed(2) : '—'
-const n1 = v => v != null ? v.toFixed(1) : '—'
-const signed2 = v => v != null ? (v > 0 ? '+' : '') + v.toFixed(2) : '—'
 const signedMove = v => v == null || v === 0 ? '' : (v > 0 ? '+' : '') + v
 const stageLabel = stage => stage === 'regular' ? 'Regular season' : stage === 'playoffs' ? 'Playoffs' : 'Both'
 const pct1 = v => v != null ? (v * 100).toFixed(1) + '%' : '—'
@@ -37,17 +36,14 @@ export function chartNames(series) {
     .sort((a, b) => a.last.localeCompare(b.last) || a.first.localeCompare(b.first))
 }
 
-const ROUND_ABBR = { 18: 'WC', 19: 'DIV', 20: 'CONF', 22: 'SB' }
 const ROUND_NAME = { 18: 'Wild Card', 19: 'Divisional', 20: 'Conference', 22: 'Super Bowl' }
 
 export function weekOptionLabel(week) {
   return week >= 18 ? (ROUND_NAME[week] ?? `Playoff Week ${week + 1}`) : `Week ${week + 1}`
 }
 
-export const neonPlayerUrl = rosterId => `https://neonsportz.com/leagues/RZS/players/${rosterId}`
-
 export function pointLabel(season, week, showSeason) {
-  const w = week >= 18 ? (ROUND_ABBR[week] ?? `P${week - 17}`) : `W${week + 1}`
+  const w = shortWeekName(week)
   return showSeason ? `S${seasonNumber(season)} ${w}` : w
 }
 
@@ -81,8 +77,6 @@ const STAGES = [
   { value: 'both', label: 'Both' },
 ]
 
-export const TANYA_TIP = 'Total Adjusted Net Yards per Attempt. (PassYds − SackYds + RushYds + 20×(PassTD + RushTD) − 45×(INT + FumblesLost)) ÷ (Att + Sacks + RushAtt). Rushing counts in both the numerator and the denominator, so volume alone does not inflate it.'
-export const RUSHPLUS_TIP = 'Adjusted QB rushing production above a baseline of 4 yards per carry, including rushing touchdowns and estimated lost fumbles, normalized per passing opportunity. All estimated QB fumbles lost are charged to rushing because passing and rushing fumbles cannot be distinguished.'
 const EST_TIP = 'Estimated. Madden does not expose individual sack yardage or lost fumbles, so each is allocated from the team game total — sack yards by share of sacks taken, lost fumbles by share of team fumbles.'
 
 // Column order defines the table; `presets` controls which views show it.

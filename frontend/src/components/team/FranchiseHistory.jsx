@@ -1,15 +1,14 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ReferenceDot, ResponsiveContainer } from 'recharts'
 import InfoTip from '../InfoTip'
 import ExportMenu from '../ExportMenu'
-import Section, { Empty } from './Section'
-import { eloPeaks, recordText, tallyText } from '../../utils/teamProfile'
+import Section, { Empty, Loading } from './Section'
+import { eloPeaks, recordText, signed1, tallyText } from '../../utils/teamProfile'
+import { pct } from '../../utils/efficiencyMetrics'
 import { divergeColor, goodBadColor } from '../../utils/heat'
 import { weekName } from '../../utils/playoffRounds'
 import { seasonLabel, seasonNumber } from '../../utils/seasons'
 
 const BASE = 1500
-const pct = v => (v == null ? '—' : (v * 100).toFixed(1) + '%')
-const signed = v => (v == null ? '—' : (v > 0 ? '+' : '') + v.toFixed(1))
 
 export const HISTORY_TIPS = {
   season: 'League season number.',
@@ -34,10 +33,10 @@ function PointTip({ active, payload }) {
   )
 }
 
-export default function FranchiseHistory({ points, seasons, allTime, spec }) {
-  if (!points.length && !seasons.length) {
+export default function FranchiseHistory({ points, seasons, allTime, spec, loading }) {
+  if (loading || (!points.length && !seasons.length)) {
     return (
-      <Section id="franchise" kicker="Every season" title="Franchise History"><Empty>No history yet.</Empty></Section>
+      <Section id="franchise" kicker="Every season" title="Franchise History">{loading ? <Loading /> : <Empty>No history yet.</Empty>}</Section>
     )
   }
   const data = points.map(p => ({ ...p, key: `${p.season}-${p.week}` }))
@@ -59,8 +58,8 @@ export default function FranchiseHistory({ points, seasons, allTime, spec }) {
       summary={allTime}
       actions={seasons.length > 0 && <ExportMenu spec={spec} />}
     >
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <figure className="lg:col-span-3 min-w-0">
+      <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6">
+        <figure className="min-w-0">
           <div className="h-64 sm:h-72" role="img" aria-label={peaks ? `Elo after every week across every season. Peak ${peaks.peak.endElo.toFixed(0)} in ${seasonLabel(peaks.peak.season)}, low ${peaks.trough.endElo.toFixed(0)} in ${seasonLabel(peaks.trough.season)}.` : 'Elo history'}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data} margin={{ top: 22, right: 48, bottom: 4, left: -8 }}>
@@ -72,13 +71,13 @@ export default function FranchiseHistory({ points, seasons, allTime, spec }) {
                 <Tooltip content={<PointTip />} />
                 <Line type="monotone" dataKey="endElo" stroke="var(--team-c)" strokeWidth={2.5} dot={false} isAnimationActive={false} />
                 {peaks && <ReferenceDot x={peaks.peak.key} y={peaks.peak.endElo} r={4} fill="rgb(var(--good))" stroke="rgb(var(--bg))" label={{ value: `Peak ${peaks.peak.endElo.toFixed(0)}`, position: 'top', fill: 'rgb(var(--ink))', fontSize: 11, fontWeight: 600 }} />}
-                {peaks && peaks.trough.key !== peaks.peak.key && <ReferenceDot x={peaks.trough.key} y={peaks.trough.endElo} r={4} fill="rgb(var(--bad))" stroke="rgb(var(--bg))" label={{ value: `Low ${peaks.trough.endElo.toFixed(0)}`, position: 'bottom', fill: 'rgb(var(--ink))', fontSize: 11, fontWeight: 600 }} />}
+                {peaks && peaks.trough.key !== peaks.peak.key && <ReferenceDot x={peaks.trough.key} y={peaks.trough.endElo} r={4} fill="rgb(var(--bad))" stroke="rgb(var(--bg))" label={{ value: `Low ${peaks.trough.endElo.toFixed(0)}`, position: peaks.trough.endElo - lo < (hi - lo) * 0.15 ? 'right' : 'bottom', fill: 'rgb(var(--ink))', fontSize: 11, fontWeight: 600 }} />}
               </LineChart>
             </ResponsiveContainer>
           </div>
           <figcaption className="text-xs text-muted mt-1">Elo after every week. Dotted lines mark season starts, where ratings regress toward 1500.</figcaption>
         </figure>
-        <div className="lg:col-span-2 overflow-x-auto border-y border-rule self-start">
+        <div className="overflow-x-auto border-y border-rule self-start">
           <table className="w-full text-sm num">
             <thead>
               <tr className="border-b border-rule">
@@ -87,18 +86,18 @@ export default function FranchiseHistory({ points, seasons, allTime, spec }) {
                 <th className="th text-right"><InfoTip text={HISTORY_TIPS.pypat}>PyPAT</InfoTip></th>
                 <th className="th text-right"><InfoTip text={HISTORY_TIPS.luck}>Luck</InfoTip></th>
                 <th className="th text-right"><InfoTip text={HISTORY_TIPS.finalElo}>Elo</InfoTip></th>
-                <th className="th text-right"><InfoTip text={HISTORY_TIPS.playoffs}>Playoffs</InfoTip></th>
+                <th className="th text-right hidden sm:table-cell"><InfoTip text={HISTORY_TIPS.playoffs}>Playoffs</InfoTip></th>
               </tr>
             </thead>
             <tbody>
-              {[...seasons].reverse().map((s, i) => (
+              {seasons.map((s, i) => (
                 <tr key={s.season} className={`border-t border-line ${i % 2 ? 'bg-surface' : 'bg-bg'}`}>
                   <td className="px-2 py-1.5 font-semibold">S{seasonNumber(s.season)}</td>
                   <td className="px-2 py-1.5 text-right whitespace-nowrap">{recordText(s)}</td>
                   <td className="px-2 py-1.5 text-right" style={{ backgroundColor: goodBadColor(s.pythagoreanPat, [0.2, 0.8, ...pypats]) }}>{pct(s.pythagoreanPat)}</td>
-                  <td className="px-2 py-1.5 text-right" style={{ backgroundColor: divergeColor(s.winDiff, Math.max(2, ...lucks.map(Math.abs))) }}>{signed(s.winDiff)}</td>
-                  <td className="px-2 py-1.5 text-right">{s.finalElo?.toFixed(0) ?? '—'}{s.finalRank && <span className="text-muted text-xs"> #{s.finalRank}</span>}</td>
-                  <td className="px-2 py-1.5 text-right">{s.playoffs ? tallyText(s.playoffs) : <span className="text-muted">—</span>}</td>
+                  <td className="px-2 py-1.5 text-right" style={{ backgroundColor: divergeColor(s.winDiff, Math.max(2, ...lucks.map(Math.abs))) }}>{signed1(s.winDiff)}</td>
+                  <td className="px-2 py-1.5 text-right whitespace-nowrap">{s.finalElo?.toFixed(0) ?? '—'}{s.finalRank && <span className="text-muted text-xs"> #{s.finalRank}</span>}</td>
+                  <td className="px-2 py-1.5 text-right hidden sm:table-cell">{s.playoffs ? tallyText(s.playoffs) : <span className="text-muted">—</span>}</td>
                 </tr>
               ))}
             </tbody>

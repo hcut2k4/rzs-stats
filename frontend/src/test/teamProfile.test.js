@@ -1,5 +1,5 @@
 import {
-  eloExpectedWins, franchiseSeasons, headToHead, ordinal, percentileIn, rankIn, seasonArc, teamColor, teamGames,
+  eloExpectedWins, fingerprint, franchiseSeasons, headToHead, ordinal, percentileIn, projectedRecord, rankIn, seasonArc, sosVariant, teamColor, teamGames,
   teamUpcoming, visibleTeamColor,
 } from '../utils/teamProfile'
 
@@ -111,7 +111,7 @@ it('reads remaining games from the team side', () => {
   ])
 })
 
-it('builds one franchise row per season with final Elo and playoff record', () => {
+it('builds one franchise row per season, newest first, with final Elo and playoff record', () => {
   const row = (teamId, wins) => ({ teamId, wins, losses: 17 - wins, ties: 0, gamesPlayed: 17, pythagoreanPat: 0.5, winDiff: 0 })
   const trends = [
     { seasonIndex: 1, weekIndex: null, standings: [row(1, 12), row(2, 5)] },
@@ -126,9 +126,47 @@ it('builds one franchise row per season with final Elo and playoff record', () =
   const games = teamGames([game(1, 18, A, B, 20, 10), game(1, 19, C, A, 31, 3)], A.teamId)
   const rows = franchiseSeasons(trends, history, games, A.teamId)
   expect(rows.map(r => [r.season, r.wins, r.finalElo, r.finalRank, r.peakElo])).toEqual([
-    [0, 8, 1520, 9, 1520],
     [1, 12, 1580, 3, 1600],
+    [0, 8, 1520, 9, 1520],
   ])
-  expect(rows[0].playoffs).toBeNull()
-  expect(rows[1].playoffs).toMatchObject({ w: 1, l: 1 })
+  expect(rows[1].playoffs).toBeNull()
+  expect(rows[0].playoffs).toMatchObject({ w: 1, l: 1 })
+})
+
+describe('fingerprint', () => {
+  const side = (pointsPerDrive, sackRate) => ({ drives: 10, plays: 60, pointsPerDrive, pointsPerPlay: null, yardsPerPlay: 5, seriesRate: 0.7, thirdDownRate: 0.4, redZoneTdRate: 0.5, giveawayRate: 0.1, sackRate })
+  const standing = (teamId, pointsFor, pointsAgainst) => ({ teamId, gamesPlayed: 2, pointsFor, pointsAgainst })
+  const standings = [standing(1, 60, 20), standing(2, 40, 40), standing(3, 20, 60)]
+  const efficiency = [
+    { teamId: 1, offense: side(3, 0.02), defense: side(1, 0.10) },
+    { teamId: 2, offense: side(2, 0.05), defense: side(2, 0.05) },
+    { teamId: 3, offense: side(1, 0.08), defense: side(3, 0.02) },
+  ]
+  const groups = fingerprint(standings[0], standings, efficiency)
+  const row = (group, key) => groups.find(g => g.title === group).rows.find(r => r.key === key)
+
+  it('puts the best team at 100 whichever direction is better', () => {
+    expect(row('Offense', 'offense.pointsPerGame').percentile).toBe(100)
+    expect(row('Offense', 'offense.pointsPerDrive').percentile).toBe(100)
+    expect(row('Offense', 'offense.sackRate').percentile).toBe(100)
+    expect(row('Defense', 'defense.pointsPerGame').percentile).toBe(100)
+    expect(row('Defense', 'defense.pointsPerDrive').percentile).toBe(100)
+    expect(row('Defense', 'defense.sackRate')).toMatchObject({ percentile: 100, better: 'higher', label: 'Sack %' })
+    expect(row('Defense', 'defense.giveawayRate').label).toBe('Takeaways/Drive')
+  })
+
+  it('leaves a missing metric without a percentile', () => {
+    expect(row('Offense', 'offense.pointsPerPlay')).toMatchObject({ value: null, percentile: null, rank: null, text: '—' })
+  })
+})
+
+it('reads prior-season schedule strength only for the active season', () => {
+  expect(sosVariant(2, 2)).toBe('Prev')
+  expect(sosVariant(1, 2)).toBe('Curr')
+  expect(sosVariant(0, 0)).toBe('Curr')
+})
+
+it('projects whole remaining games and keeps existing ties', () => {
+  const road = [{ winProb: 0.6 }, { winProb: 0.7 }, { winProb: 0.3 }]
+  expect(projectedRecord({ wins: 5, losses: 3, ties: 1 }, road)).toEqual({ wins: 7, losses: 4, ties: 1 })
 })

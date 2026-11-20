@@ -1,10 +1,12 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, RouterProvider, createMemoryRouter } from 'react-router-dom'
 import * as client from '../api/client'
 import App from '../App'
 import { TeamCell } from '../components/TeamLogo'
+import TeamPage from '../pages/TeamPage'
+import { clearLoadCache } from '../utils/useLoad'
 
 vi.mock('../api/client')
 
@@ -31,6 +33,8 @@ const hist = (teamId, season, week, endElo, rank) => ({ teamId, season, week, se
 
 describe('Team profile', () => {
   beforeEach(() => {
+    clearLoadCache()
+    client.getEloRatings.mockResolvedValue([{ teamId: 1, rank: 1 }, { teamId: 2, rank: 2 }])
     client.getSeasons.mockResolvedValue([0, 1])
     client.getStandings.mockImplementation(season => Promise.resolve(
       season === 1 ? [standing(A, 2, 0, 0.6), standing(B, 0, 2, 0.4)] : [standing(A, 5, 12, 0.3, 0), standing(B, 12, 5, 0.7, 0)]))
@@ -61,7 +65,7 @@ describe('Team profile', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Aces' })).toBeInTheDocument()
     expect(client.getStandings).toHaveBeenCalledWith(1)
     expect(client.getEfficiency).toHaveBeenCalledWith(1, 'regular')
-    expect(client.getEloGames).toHaveBeenCalledWith(undefined, undefined, 1)
+    await waitFor(() => expect(client.getEloGames).toHaveBeenCalledWith(undefined, undefined, 1))
     for (const name of ['Team Fingerprint', 'Truth Behind the Scoreboard', 'Road Ahead', 'Season Arc', 'League Landscape', 'QB Room', 'Franchise History', 'Rivalries']) {
       expect(await screen.findByRole('heading', { level: 2, name })).toBeInTheDocument()
     }
@@ -70,7 +74,7 @@ describe('Team profile', () => {
     expect(await screen.findByRole('link', { name: 'Ace Passer' })).toHaveAttribute('href', 'https://neonsportz.com/leagues/RZS/players/9')
     expect(screen.queryByText('Bear Passer')).not.toBeInTheDocument()
     const arc = screen.getByRole('region', { name: 'Season Arc' })
-    expect(await within(arc).findAllByText('Big upset')).toHaveLength(2)
+    expect(await within(arc).findAllByText('Big upset win')).toHaveLength(2)
     const road = screen.getByRole('region', { name: 'Road Ahead' })
     expect(await within(road).findByText('2-1')).toBeInTheDocument()
     const rivals = screen.getByRole('region', { name: 'Rivalries' })
@@ -107,6 +111,37 @@ describe('Team profile', () => {
     expect(within(kpi('Record')).getByText('5-12')).toBeInTheDocument()
   })
 
+  it('ignores a response for a season the user has already left', async () => {
+    let finishOld
+    client.getStandings.mockImplementation(season => (season === 0
+      ? new Promise(resolve => { finishOld = () => resolve([standing(A, 5, 12, 0.3, 0), standing(B, 12, 5, 0.7, 0)]) })
+      : Promise.resolve([standing(A, 2, 0, 0.6), standing(B, 0, 2, 0.4)])))
+    const router = createMemoryRouter([{ path: '/teams/:abbr', element: <TeamPage /> }], { initialEntries: ['/teams/AAA?season=103'] })
+    render(<RouterProvider router={router} />)
+    await waitFor(() => expect(client.getStandings).toHaveBeenCalledWith(0))
+    await act(() => router.navigate('/teams/AAA'))
+    await waitFor(() => expect(within(kpi('Record')).getByText('2-0')).toBeInTheDocument())
+    await act(async () => { finishOld() })
+    expect(within(kpi('Record')).getByText('2-0')).toBeInTheDocument()
+    expect(within(kpi('Record')).queryByText('5-12')).not.toBeInTheDocument()
+  })
+
+  it('keeps a tie in the projected record', async () => {
+    client.getStandings.mockResolvedValue([{ ...standing(A, 1, 0, 0.6), ties: 1, gamesPlayed: 2 }, standing(B, 0, 2, 0.4)])
+    client.getEloUpcoming.mockResolvedValue([
+      { gameId: 900, season: 1, week: 2, homeTeam: B, awayTeam: A, homeElo: 1520, awayElo: 1480, homeWinProbability: 0.6, awayWinProbability: 0.4 },
+    ])
+    renderAt('/teams/AAA')
+    const road = await screen.findByRole('region', { name: 'Road Ahead' })
+    expect(within(road).getByText('1-1-1')).toBeInTheDocument()
+  })
+
+  it('says when no seasons have been synced', async () => {
+    client.getSeasons.mockResolvedValue([])
+    renderAt('/teams/AAA')
+    expect(await screen.findByText('No seasons have been synced yet.')).toBeInTheDocument()
+  })
+
   it('says so for an unknown team', async () => {
     renderAt('/teams/ZZZ')
     expect(await screen.findByText('Team not found')).toBeInTheDocument()
@@ -117,6 +152,8 @@ describe('Team profile', () => {
     renderAt('/teams')
     const division = await screen.findByRole('region', { name: 'AFC East' })
     expect(within(division).getAllByRole('link').map(l => l.getAttribute('href'))).toEqual(['/teams/AAA', '/teams/BBB'])
+    expect(await within(division).findByText('Elo #1')).toBeInTheDocument()
+    expect(within(division).getByLabelText(/^Last \d results W/)).toBeInTheDocument()
     expect(within(screen.getByRole('navigation', { name: 'Main' })).getByRole('link', { name: 'Teams' })).toHaveAttribute('href', '/teams')
   })
 })

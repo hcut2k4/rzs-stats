@@ -41,6 +41,7 @@ export function upsetInfo(g) {
     favChance,
     winner: homeWon ? g.homeTeam : g.awayTeam,
     label: level.label,
+    alpha: level.alpha,
     shade: `rgb(${RED} / ${level.alpha.toFixed(2)})`,
   }
 }
