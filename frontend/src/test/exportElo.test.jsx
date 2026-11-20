@@ -57,7 +57,8 @@ async function getSpec(name) {
   expect(spec.cols.every(c => c.desc?.trim())).toBe(true)
   expect(spec.description).toBeTruthy()
   expect(spec.notes.join(' ')).toContain('Every team starts at 1500')
-  expect(spec.notes.join(' ')).toContain('10% of the gap back to 1500')
+  expect(spec.notes.join(' ')).toContain('pulled part of the way back toward 1500')
+  expect(spec.notes.join(' ')).toContain('Mid-season owner changes apply the same regression')
   expect(spec.notes.join(' ')).toContain('playoffs included')
   expect(Object.values(spec.api.params)).not.toContain(undefined)
   return spec

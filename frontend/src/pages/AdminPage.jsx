@@ -10,7 +10,7 @@ const ELO_FIELDS = [
   ['divisor', 'Probability divisor'],
   ['marginCap', 'Margin cap (points)'],
   ['homeFieldAdvantage', 'Home-field advantage (Elo points)'],
-  ['offseasonRetention', 'Offseason retention (0–1)'],
+  ['offseasonRetention', 'Retention (offseason and mid-season owner changes, 0–1)'],
 ]
 
 function EloConfigPanel() {

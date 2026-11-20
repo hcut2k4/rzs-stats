@@ -11,7 +11,8 @@ backend/src/main/java/com/rzs/stats/
 │   └── AdminAuthController.java   # GET /api/admin/auth — token probe for the UI
 ├── service/
 │   ├── StatsService.java          # PyPAT, SoS, standings, trends
-│   ├── EloService.java            # pure Elo math (probability, MOV, regression)
+│   ├── EloService.java            # Elo math and timeline with season/owner regression
+│   ├── OwnerChangeService.java    # hardcoded Madden 27 ownership changes
 │   ├── EloHistoryService.java     # replays every game to build rating history
 │   ├── EloQueryService.java       # ratings / games / upcoming / matchup reads
 │   ├── EloConfigService.java      # persisted, tunable Elo knobs

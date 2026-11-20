@@ -37,7 +37,8 @@ const STATS = [
     bullets: [
       'Every team starts at 1500 — higher is stronger, and ratings move after every game, playoffs included',
       'Beating strong teams earns more points, and losing to weak teams costs more; bigger wins count more, with diminishing returns after 28 points',
-      'Teams keep 78% of their distance from 1500 between seasons, so good teams stay good with room to change',
+      'Ratings regress part of the way toward 1500 between seasons, so good teams stay good with room to change',
+      'Mid-season owner changes regress the affected team like a new season, using the same configurable retention setting',
     ],
   },
   {
