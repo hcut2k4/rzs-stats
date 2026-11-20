@@ -1,3 +1,5 @@
+> **Defaults superseded.** This is the original specification and its worked examples use cap 21 and 90% retention. The shipped defaults are now cap 28 and 78% retention; see [Statistics](statistics.md#elo) for why.
+
 # Red Zone Elo Ratings — Implementation Specification
 
 ## Objective

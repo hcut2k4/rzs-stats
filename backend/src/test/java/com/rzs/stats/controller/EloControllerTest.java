@@ -79,13 +79,13 @@ class EloControllerTest {
         when(games.findAllForElo()).thenReturn(List.of(game(1, 0, 0, 7), game(2, 1, 18, 14)));
         mvc.perform(get("/api/elo/history")).andExpect(jsonPath("$.length()").value(4));
         mvc.perform(get("/api/elo/history").param("season", "1")).andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].seasonStart").value(true)).andExpect(jsonPath("$[0].startElo").value(1523.4));
+                .andExpect(jsonPath("$[0].seasonStart").value(true)).andExpect(jsonPath("$[0].startElo").value(1520.3));
         var previous = new EloService().play(new EloService.Game(1, 1L, 0, 1, 0,
                 new EloService.Team(1, "A", "Alpha"), new EloService.Team(2, "B", "Beta"), 7, 0),
                 1500, 1500, EloConfig.defaults()).homePostgameElo();
         var snapshot = new EloService().play(new EloService.Game(2, 2L, 1, 1, 18,
                 new EloService.Team(1, "A", "Alpha"), new EloService.Team(2, "B", "Beta"), 14, 0),
-                1500 + (previous - 1500) * 0.9, 1500 - (previous - 1500) * 0.9, EloConfig.defaults());
+                1500 + (previous - 1500) * EloConfig.defaults().offseasonRetention(), 1500 - (previous - 1500) * EloConfig.defaults().offseasonRetention(), EloConfig.defaults());
         mvc.perform(get("/api/elo/ratings"))
                 .andExpect(jsonPath("$[0].change").value(Math.round((snapshot.homePostgameElo() - previous) * 10) / 10.0));
         mvc.perform(get("/api/elo/games")).andExpect(jsonPath("$.length()").value(2))

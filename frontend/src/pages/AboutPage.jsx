@@ -36,8 +36,8 @@ const STATS = [
     def: 'Long-term team strength across seasons, built from game results, opponent quality, and scoring margin.',
     bullets: [
       'Every team starts at 1500 — higher is stronger, and ratings move after every game, playoffs included',
-      'Beating strong teams earns more points, and losing to weak teams costs more; bigger wins count more, with diminishing returns after 21 points',
-      'Teams keep 90% of their distance from 1500 between seasons, so good teams stay good with room to change',
+      'Beating strong teams earns more points, and losing to weak teams costs more; bigger wins count more, with diminishing returns after 28 points',
+      'Teams keep 78% of their distance from 1500 between seasons, so good teams stay good with room to change',
     ],
   },
   {

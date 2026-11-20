@@ -3,7 +3,7 @@ package com.rzs.stats.model.dto;
 public record EloConfig(double initialRating, double k, double divisor, boolean movEnabled,
                         int marginCap, double homeFieldAdvantage, double offseasonRetention) {
     public static EloConfig defaults() {
-        return new EloConfig(1500, 25, 400, true, 21, 0, 0.90);
+        return new EloConfig(1500, 25, 400, true, 28, 0, 0.78);
     }
 
     public boolean valid() {

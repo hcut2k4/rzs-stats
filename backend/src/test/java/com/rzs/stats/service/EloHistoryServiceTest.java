@@ -2,6 +2,7 @@ package com.rzs.stats.service;
 
 import com.rzs.stats.model.entity.GameEntity;
 import com.rzs.stats.model.entity.TeamEntity;
+import com.rzs.stats.model.dto.EloConfig;
 import com.rzs.stats.repository.EloConfigRepository;
 import com.rzs.stats.repository.GameRepository;
 import org.junit.jupiter.api.Test;
@@ -50,7 +51,7 @@ class EloHistoryServiceTest {
         assertThat(timeline.history()).hasSize(12);
         assertThat(timeline.history()).noneMatch(s -> s.team().teamId() == 99);
         assertThat(timeline.games().get(1).homePregameElo()).isEqualTo(timeline.games().getFirst().homePostgameElo());
-        assertThat(timeline.games().getLast().homePregameElo()).isCloseTo(1500 + (timeline.games().get(4).homePostgameElo() - 1500) * 0.9, within(1e-12));
+        assertThat(timeline.games().getLast().homePregameElo()).isCloseTo(1500 + (timeline.games().get(4).homePostgameElo() - 1500) * EloConfig.defaults().offseasonRetention(), within(1e-12));
         verify(games).findAllForElo();
         verifyNoMoreInteractions(games);
     }
