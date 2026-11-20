@@ -10,6 +10,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.*;
+import com.rzs.stats.repository.TeamRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -46,7 +49,7 @@ class EloHistoryServiceTest {
         preseason.setHomeTeam(team(99));
         when(games.findAllForElo()).thenReturn(List.of(game(5, 1, 1, 0), game(4, 0, 1, 22),
                 game(3, 0, 1, 20), game(2, 0, 1, 19), game(0, 0, 1, 18), simmed, preseason));
-        var timeline = new EloHistoryService(games, new EloConfigService(configs), new EloService()).getTimeline();
+        var timeline = new EloHistoryService(games, new EloConfigService(configs), new EloService(), new OwnerChangeService()).getTimeline();
         assertThat(timeline.games()).extracting(r -> r.game().week()).containsExactly(17, 18, 19, 20, 22, 0);
         assertThat(timeline.history()).hasSize(12);
         assertThat(timeline.history()).noneMatch(s -> s.team().teamId() == 99);
@@ -78,7 +81,7 @@ class EloHistoryServiceTest {
         input.add(scheduled);
         input.add(game(42, 0, 1, 1));
         when(games.findAllForElo()).thenReturn(input);
-        var timeline = new EloHistoryService(games, new EloConfigService(configs), new EloService()).getTimeline();
+        var timeline = new EloHistoryService(games, new EloConfigService(configs), new EloService(), new OwnerChangeService()).getTimeline();
         assertThat(timeline.games()).hasSize(1);
         assertThat(timeline.history()).hasSize(3);
         assertThat(timeline.history()).allMatch(s -> s.week() == 1);
@@ -88,8 +91,54 @@ class EloHistoryServiceTest {
     @Test
     void emptyDataProducesEmptyTimeline() {
         when(games.findAllForElo()).thenReturn(List.of());
-        var timeline = new EloHistoryService(games, new EloConfigService(configs), new EloService()).getTimeline();
+        var timeline = new EloHistoryService(games, new EloConfigService(configs), new EloService(), new OwnerChangeService()).getTimeline();
         assertThat(timeline.history()).isEmpty();
         assertThat(timeline.games()).isEmpty();
+    }
+}
+
+@DataJpaTest
+class EloOwnerChangeHistoryTest {
+    @Autowired GameRepository games;
+    @Autowired TeamRepository teams;
+    @Autowired EloConfigRepository configs;
+
+    private TeamEntity team(int id) {
+        var t = new TeamEntity();
+        t.setTeamId(id);
+        return teams.findByTeamId(id).orElseGet(() -> teams.save(t));
+    }
+
+    private GameEntity game(int id, int season, int stage, int week) {
+        var g = new GameEntity();
+        g.setGameId(id);
+        g.setSeasonIndex(season);
+        g.setStageIndex(stage);
+        g.setWeekIndex(week);
+        g.setHomeTeam(team(1));
+        g.setAwayTeam(team(2));
+        g.setHomeScore(14);
+        g.setAwayScore(7);
+        g.setStatus(2);
+        return g;
+    }
+
+    @Test
+    void hardcodedOwnerChangesReachTheTimeline() {
+        var before = game(200, 0, 1, 9);
+        before.setHomeTeam(team(776601634));
+        var after = game(201, 0, 1, 10);
+        after.setHomeTeam(team(776601634));
+        games.saveAll(List.of(before, after));
+        var engine = new EloService();
+        var timeline = new EloHistoryService(games, new EloConfigService(configs), engine, new OwnerChangeService()).getTimeline();
+        var reset = timeline.history().stream().filter(EloService.Snapshot::ownerReset).toList();
+        assertThat(reset).hasSize(1);
+        assertThat(reset.getFirst().team().teamId()).isEqualTo(776601634);
+        assertThat(reset.getFirst().week()).isEqualTo(10);
+        assertThat(reset.getFirst().startElo()).isEqualTo(engine.regress(reset.getFirst().prevElo(), timeline.config()));
+        assertThat(timeline.games().getLast().homePregameElo()).isEqualTo(reset.getFirst().startElo());
+        var queries = new EloQueryService(new EloHistoryService(games, new EloConfigService(configs), engine, new OwnerChangeService()), engine, games);
+        assertThat(queries.history(null).stream().filter(h -> h.ownerReset()).toList()).hasSize(1);
     }
 }

@@ -21,7 +21,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(StatsController.class)
 @org.springframework.context.annotation.Import({EloQueryService.class, com.rzs.stats.service.EloService.class,
-        com.rzs.stats.service.EloHistoryService.class, com.rzs.stats.service.EloConfigService.class})
+        com.rzs.stats.service.EloHistoryService.class, com.rzs.stats.service.EloConfigService.class,
+        com.rzs.stats.service.OwnerChangeService.class})
 class StatsControllerTest {
 
     @MockBean com.rzs.stats.repository.GameRepository eloGames;

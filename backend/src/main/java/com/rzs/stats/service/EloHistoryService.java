@@ -13,11 +13,13 @@ public class EloHistoryService {
     private final GameRepository repository;
     private final EloConfigService configs;
     private final EloService engine;
+    private final OwnerChangeService ownerChanges;
 
-    public EloHistoryService(GameRepository repository, EloConfigService configs, EloService engine) {
+    public EloHistoryService(GameRepository repository, EloConfigService configs, EloService engine, OwnerChangeService ownerChanges) {
         this.repository = repository;
         this.configs = configs;
         this.engine = engine;
+        this.ownerChanges = ownerChanges;
     }
 
     @Cacheable(value = "eloHistory", sync = true)
@@ -37,7 +39,7 @@ public class EloHistoryService {
             games.add(new EloService.Game(game.getGameId(), game.getId(), game.getSeasonIndex(), game.getStageIndex(),
                     game.getWeekIndex(), team(game.getHomeTeam()), team(game.getAwayTeam()), game.getHomeScore(), game.getAwayScore()));
         }
-        return engine.compute(games, teams.values(), configs.get());
+        return engine.compute(games, teams.values(), configs.get(), ownerChanges.list());
     }
 
     private boolean validTeam(TeamEntity team) {

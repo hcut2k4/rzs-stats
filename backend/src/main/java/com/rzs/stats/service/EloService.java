@@ -8,12 +8,13 @@ import java.util.*;
 @Service
 public class EloService {
     public record Team(int teamId, String abbrName, String displayName) {}
+    public record OwnerChange(int season, int week, int teamId, String abbr) {}
     public record Game(Integer gameId, Long id, int season, int stage, int week,
                        Team home, Team away, int homeScore, int awayScore) {}
     public record Result(Game game, double homePregameElo, double awayPregameElo,
                          double homeWinProbability, double awayWinProbability, long margin,
                          double movMultiplier, double pointsMoved, double homePostgameElo, double awayPostgameElo) {}
-    public record Snapshot(Team team, int season, int week, boolean seasonStart, double startElo,
+    public record Snapshot(Team team, int season, int week, boolean seasonStart, boolean ownerReset, double startElo,
                            double endElo, double change, double prevElo, int rank, int prevRank, int gamesCounted) {}
     public record Timeline(EloConfig config, List<Snapshot> history, List<Result> games) {
         public Timeline {
@@ -47,6 +48,15 @@ public class EloService {
     }
 
     public Timeline compute(List<Game> input, Collection<Team> teams, EloConfig config) {
+        return compute(input, teams, config, List.of());
+    }
+
+    public Timeline compute(List<Game> input, Collection<Team> teams, EloConfig config, List<OwnerChange> changes) {
+        Map<Integer, Map<Integer, Set<Integer>>> changesByWeek = new HashMap<>();
+        for (OwnerChange change : changes) {
+            changesByWeek.computeIfAbsent(change.season(), season -> new HashMap<>())
+                    .computeIfAbsent(change.week(), week -> new HashSet<>()).add(change.teamId());
+        }
         List<Game> games = input.stream().sorted(Comparator.comparingInt(Game::season)
                 .thenComparingInt(Game::stage).thenComparingInt(Game::week)
                 .thenComparing(Game::id, Comparator.nullsLast(Comparator.naturalOrder()))
@@ -68,6 +78,14 @@ public class EloService {
             Map<Integer, Double> previousElos = new HashMap<>(ratings);
             boolean seasonStart = !Objects.equals(previousSeason, first.season());
             if (previousSeason != null && seasonStart) ratings.replaceAll((id, rating) -> regress(rating, config));
+            Set<Integer> ownerResets = new HashSet<>();
+            if (!seasonStart) {
+                for (int id : changesByWeek.getOrDefault(first.season(), Map.of()).getOrDefault(first.week(), Set.of())) {
+                    if (!teamMap.containsKey(id)) continue;
+                    ratings.put(id, regress(ratings.get(id), config));
+                    ownerResets.add(id);
+                }
+            }
             Map<Integer, Double> starts = new HashMap<>(ratings);
             while (index < games.size() && games.get(index).season() == first.season() && games.get(index).week() == first.week()) {
                 Game game = games.get(index++);
@@ -84,7 +102,7 @@ public class EloService {
             Map<Integer, Integer> currentRanks = ranks(ratings);
             for (Team team : teamMap.values()) {
                 int id = team.teamId();
-                history.add(new Snapshot(team, first.season(), first.week(), seasonStart, starts.get(id),
+                history.add(new Snapshot(team, first.season(), first.week(), seasonStart, ownerResets.contains(id), starts.get(id),
                         ratings.get(id), ratings.get(id) - starts.get(id), previousElos.get(id), currentRanks.get(id), previousRanks.get(id), counts.getOrDefault(id, 0)));
             }
             previousRanks = currentRanks;
