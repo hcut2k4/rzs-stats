@@ -12,9 +12,9 @@ public class EloConfigEntity {
     private double k = 25;
     private double divisor = 400;
     private boolean movEnabled = true;
-    private int marginCap = 21;
+    private int marginCap = 28;
     private double homeFieldAdvantage = 0;
-    private double offseasonRetention = 0.90;
+    private double offseasonRetention = 0.78;
 
     public EloConfig config() {
         return new EloConfig(initialRating, k, divisor, movEnabled, marginCap, homeFieldAdvantage, offseasonRetention);

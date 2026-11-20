@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import PageHeader from '../components/PageHeader'
 import { triggerSync, triggerForceSync, getSyncStatus, triggerCacheWarm, getCacheWarmStatus, checkAdminAuth, setAdminToken, getEloConfig, putEloConfig, triggerQbSync, getQbSyncStatus } from '../api/client'
 
-const ELO_DEFAULTS = { initialRating: 1500, k: 25, divisor: 400, movEnabled: true, marginCap: 21, homeFieldAdvantage: 0, offseasonRetention: 0.9 }
+const ELO_DEFAULTS = { initialRating: 1500, k: 25, divisor: 400, movEnabled: true, marginCap: 28, homeFieldAdvantage: 0, offseasonRetention: 0.78 }
 
 const ELO_FIELDS = [
   ['initialRating', 'Initial rating'],

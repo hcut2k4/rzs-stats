@@ -9,7 +9,7 @@ import static org.assertj.core.api.Assertions.*;
 
 class EloServiceTest {
     private final EloService engine = new EloService();
-    private final EloConfig config = EloConfig.defaults();
+    private final EloConfig config = new EloConfig(1500, 25, 400, true, 21, 0, 0.90);
     private final EloService.Team a = new EloService.Team(1, "A", "Alpha");
     private final EloService.Team b = new EloService.Team(2, "B", "Beta");
     private final EloService.Team c = new EloService.Team(3, "C", "Gamma");
@@ -61,6 +61,15 @@ class EloServiceTest {
         var result = engine.play(game(1, 0, 0, a, b, 7, 0), -1000, 1500, config);
         assertThat(result.movMultiplier()).isEqualTo(1);
         assertThat(result.pointsMoved()).isFinite();
+    }
+
+    @Test
+    void defaultsKeepSeventyEightPercentOfDeviationAndCapMarginAtTwentyEight() {
+        var defaults = EloConfig.defaults();
+        assertThat(defaults).isEqualTo(new EloConfig(1500, 25, 400, true, 28, 0, 0.78));
+        assertThat(engine.regress(1750, defaults)).isCloseTo(1695, within(1e-9));
+        assertThat(engine.play(game(1, 0, 0, a, b, 35, 0), 1500, 1500, defaults).movMultiplier())
+                .isCloseTo(Math.log1p(28), within(1e-12));
     }
 
     @ParameterizedTest

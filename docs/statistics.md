@@ -46,15 +46,25 @@ Rolling team strength that carries across seasons. Config is persisted and tunab
 | Knob | Default meaning |
 |------|-----------------|
 | `initialRating` | Every team's starting rating (1500) |
-| `k` | Step size per game; validated to 1–100 |
-| `divisor` | Logistic scale for win probability |
-| `movEnabled` / `marginCap` | Margin-of-victory multiplier, capped at `marginCap` points (21) |
-| `homeFieldAdvantage` | Rating points added to the home side for the prediction |
-| `offseasonRetention` | Fraction of distance from `initialRating` kept between seasons (0.9) |
+| `k` | Step size per game; validated to 1–100 (25) |
+| `divisor` | Logistic scale for win probability (400) |
+| `movEnabled` / `marginCap` | Margin-of-victory multiplier, capped at `marginCap` points (28) |
+| `homeFieldAdvantage` | Rating points added to the home side for the prediction (0) |
+| `offseasonRetention` | Fraction of distance from `initialRating` kept between seasons (0.78) |
 
 `EloHistoryService` **replays every game in order** to build history — ratings are derived, never stored per game. Playoffs count. Changing config changes all history, so the `eloHistory` cache is evicted with the rest.
 
-Original Elo spec: [Elo ratings implementation](elo-ratings-implementation.md).
+**How the defaults were chosen.** Retention 0.78 and cap 28 come from a walk-forward backtest over two independent Madden cycles (Madden 26, seasons 96–102, and Madden 27, 103 onward), each replayed from 1500; a new cycle never inherits ratings. Selection used only the Madden 26 folds and was confirmed on Madden 27:
+
+- **Retention** is flat across 0.75–0.80 and worse on both sides (0.67 and 0.90 each cost about 0.001 log loss). League strength is stickier than the NFL's one-third regression, so the floor was set at 0.75.
+- **Home field is 0.** Pooled across both cycles the estimate is -8 Elo (95% CI -21.5 to +5.3), and home teams won 48.6% and 49.1% of games.
+- **K 25 / divisor 400 stay.** Only K/divisor affects predictions; the divisor otherwise just rescales the displayed ratings.
+- **An early-season K boost was tested and dropped:** gain 0.0006 log loss, winning 3 of 6 folds.
+- The cap barely matters (0.0003 log loss); margin of victory itself does (turning it off costs about 0.019).
+
+The gains over the old defaults (retention 0.90, cap 21) are small: 0.0025 log loss on the Madden 26 folds, 0.0026 on Madden 27 season 104, and 0.0195 on season 105 weeks 0–5. Rerun the backtest harness (`EloBacktestReport`, gated by `-DeloBacktest=true`) after each season; retention rests on 8 season boundaries.
+
+Original Elo spec: [Elo ratings implementation](elo-ratings-implementation.md) — its worked examples use the original K 25, cap 21, retention 0.90.
 
 ### Outlook tiers
 
