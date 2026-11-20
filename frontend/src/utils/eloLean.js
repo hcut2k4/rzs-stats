@@ -27,6 +27,24 @@ export const UPSET_LEVELS = [
   { hi: Infinity, label: 'Stunner', alpha: 0.42 },
 ]
 
+const RED = '220 38 38'
+
+export function upsetInfo(g) {
+  if (g.homeScore === g.awayScore) return null
+  const homeWon = g.homeScore > g.awayScore
+  const chance = homeWon ? g.homeWinProbability : g.awayWinProbability
+  const favChance = homeWon ? g.awayWinProbability : g.homeWinProbability
+  if (favChance < TIERS[0].hi) return null
+  const level = UPSET_LEVELS.find(l => favChance < l.hi)
+  return {
+    chance,
+    favChance,
+    winner: homeWon ? g.homeTeam : g.awayTeam,
+    label: level.label,
+    shade: `rgb(${RED} / ${level.alpha.toFixed(2)})`,
+  }
+}
+
 export function tierShade(prob, tier) {
   const t = Math.min(Math.max((prob - tier.lo) / (tier.hi - tier.lo), 0), 1)
   return `rgb(${tier.rgb} / ${(SHADE_DEEP + (SHADE_LIGHT - SHADE_DEEP) * t).toFixed(3)})`

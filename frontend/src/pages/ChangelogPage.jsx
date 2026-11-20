@@ -133,6 +133,7 @@ export default function ChangelogPage() {
           <div><h3 className="font-display font-bold uppercase text-xl mb-1">League season numbers</h3><p>Seasons are labeled the way the league counts them, so this is Season 103 and later, not calendar years.</p></div>
           <div><h3 className="font-display font-bold uppercase text-xl mb-1">Playoff rounds on Games</h3><p>Playoff games are named by round instead of showing up as week 19 or week 20.</p></div>
           <div><h3 className="font-display font-bold uppercase text-xl mb-1">Elo retuned (Nov 19)</h3><p>After testing ten seasons of past results across Madden 26 and Madden 27, Elo now keeps 78% of a team's rating between seasons instead of 90%, and counts blowouts up to 28 points. Ratings and history shifted slightly.</p></div>
+          <div><h3 className="font-display font-bold uppercase text-xl mb-1">Team profiles (Nov 20)</h3><p>Every team has its own page under <Link to="/teams" className="text-accent hover:underline">Teams</Link>: league ranks, a percentile fingerprint, wins against expectation, a game-by-game season arc, the road ahead, franchise history and head-to-head records. Click any team name in a table to open it.</p></div>
           <div><h3 className="font-display font-bold uppercase text-xl mb-1">Sortable everywhere</h3><p>Every column on the Elo and QB tables sorts, and the game tables order teams by Elo.</p></div>
         </div>
       </section>

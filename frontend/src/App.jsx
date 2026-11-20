@@ -9,9 +9,12 @@ import ChangelogPage from './pages/ChangelogPage'
 import EloPage from './pages/EloPage'
 import QbPage from './pages/QbPage'
 import EfficiencyPage from './pages/EfficiencyPage'
+import TeamsPage from './pages/TeamsPage'
+import TeamPage from './pages/TeamPage'
 import ThemeToggle from './components/ThemeToggle'
 
 const LINKS = [
+  { to: '/teams', label: 'Teams' },
   { to: '/standings', label: 'Standings' },
   { to: '/efficiency', label: 'Efficiency' },
   { to: '/games', label: 'Games' },
@@ -78,6 +81,8 @@ export default function App() {
           <Route path="/games" element={<GamesPage />} />
           <Route path="/elo" element={<EloPage />} />
           <Route path="/qb" element={<QbPage />} />
+          <Route path="/teams" element={<TeamsPage />} />
+          <Route path="/teams/:abbr" element={<TeamPage />} />
           <Route path="/trends" element={<Navigate to="/standings?tab=history" replace />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/about" element={<AboutPage />} />

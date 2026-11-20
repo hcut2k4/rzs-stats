@@ -11,8 +11,8 @@ import { SortTh, useSorter } from '../components/SortTh'
 import LeanBar from '../components/LeanBar'
 import ExportMenu from '../components/ExportMenu'
 import { divergeColor } from '../utils/heat'
-import { TIERS, UPSET_LEVELS, lean, pct0, LEAN_HOME, LEAN_AWAY } from '../utils/eloLean'
-import { weekLabel } from '../utils/playoffRounds'
+import { lean, pct0, upsetInfo, LEAN_HOME, LEAN_AWAY } from '../utils/eloLean'
+import { weekName as label } from '../utils/playoffRounds'
 import { COLORS } from '../utils/chartColors'
 import { seasonLabel, seasonNumber } from '../utils/seasons'
 
@@ -28,7 +28,6 @@ const TABS = [
   { value: 'games', label: 'Games' },
 ]
 const TAB_VALUES = TABS.map(t => t.value)
-const label = w => weekLabel(w >= 18 ? 2 : 1, w)
 const signed = (v, d = 1) => (v > 0 ? '+' : '') + v.toFixed(d)
 const pct = v => (v * 100).toFixed(1) + '%'
 
@@ -53,24 +52,6 @@ const TIPS = {
   projLean: 'Which way Elo leans and by how much. The bar grows out of the center line toward the favored team, and the longer and darker it is, the bigger the edge. Sorts home favorites and away favorites to opposite ends.',
   projFav: 'The team Elo leans toward and its projected chance of winning. Sorts the closest games first.',
   projOutlook: 'How competitive the game should be, read off the favorite\'s win chance: Toss-up under 55%, Tilt under 60%, Lean under 70%, Likely under 80%, Solid above that. Each tier has its own color \u2014 green for a toss-up, then blue, purple, orange and yellow \u2014 running deep at the competitive end of its own band and fading to nearly white at the far end. Sorts the closest games first.',
-}
-
-const RED = '220 38 38'
-
-function upsetInfo(g) {
-  if (g.homeScore === g.awayScore) return null
-  const homeWon = g.homeScore > g.awayScore
-  const chance = homeWon ? g.homeWinProbability : g.awayWinProbability
-  const favChance = homeWon ? g.awayWinProbability : g.homeWinProbability
-  if (favChance < TIERS[0].hi) return null
-  const level = UPSET_LEVELS.find(l => favChance < l.hi)
-  return {
-    chance,
-    favChance,
-    winner: homeWon ? g.homeTeam : g.awayTeam,
-    label: level.label,
-    shade: `rgb(${RED} / ${level.alpha.toFixed(2)})`,
-  }
 }
 
 function RankMove({ change }) {

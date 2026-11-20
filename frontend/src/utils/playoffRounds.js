@@ -4,3 +4,5 @@ export function weekLabel(stage, weekIndex) {
   if (stage === 2) return ROUNDS[weekIndex] ?? `Playoffs Week ${weekIndex + 1}`
   return `Week ${weekIndex + 1}`
 }
+
+export const weekName = weekIndex => weekLabel(weekIndex >= 18 ? 2 : 1, weekIndex)

@@ -2,12 +2,23 @@
 
 ## Frontend Pages
 
-Routes: `/` Home, `/standings`, `/efficiency`, `/games`, `/elo`, `/qb`, `/about`, `/changelog`, `/admin`. The `RZS Stats` wordmark links to `/`. `/trends` no longer has a page — it redirects to `/standings?tab=history`, so old links and bookmarks keep working.
+Routes: `/` Home, `/teams`, `/teams/:abbr`, `/standings`, `/efficiency`, `/games`, `/elo`, `/qb`, `/about`, `/changelog`, `/admin`. The `RZS Stats` wordmark links to `/`. `/trends` no longer has a page — it redirects to `/standings?tab=history`, so old links and bookmarks keep working.
 
 ### HomePage
 Landing page at `/`. Leads with **Best Games Ahead** — the five closest unplayed games league-wide, ranked by the favorite's win probability (closest to a coin flip first, week ascending as tiebreak), linking to `/elo?tab=games`. Below it, one preview card per section (Standings, Efficiency, Games, Elo, QBs, Trends, About) in a 3-column grid; each card is a `Link` to its page. The Trends card has no page of its own — it links to `/standings?tab=weekly`. Every section fetches independently so one failed request doesn't blank the page — top 5 by PyPAT, latest week's scores, top 5 Elo with biggest riser, top 5 QBs by TANY/A, and a mini PyPAT line chart for the top 4 teams.
 
 The Best Games table mirrors the Elo **Projected** table — same columns, `LeanBar`, Outlook tiers and shading — by importing the same helpers rather than restating them. **The tier thresholds, colors and `lean()` live only in [utils/eloLean.js](../frontend/src/utils/eloLean.js)**; change them there and both tables move together.
+
+### TeamsPage and TeamPage
+`/teams` lists every team by division from the latest standings, with a team-color edge, record and PyPAT. `/teams/:abbr` (case-insensitive abbreviation, `?season=` holds the **league season number**, e.g. `105`, and is omitted for the latest season) is the team profile. `TeamCell` links every team name in every table to it, so the profile is reachable from anywhere.
+
+The profile is built entirely from existing league-wide endpoints, filtered to the team client-side: `/standings`, `/efficiency?stage=regular`, `/qb/leaderboard` (season, regular, unqualified included), `/elo/upcoming`, `/elo/games?teamId=` (all seasons, once per team), `/trends/season` and `/elo/history` (all seasons, once). Each request goes through `useLoad`, which only hands data back for the key it was fetched for, so a slow response for a season or team the user has left never renders; a failed section is named in a banner while the rest still render. Pure derivations (percentiles, ranks, the team-side game view, Elo expected wins, head-to-head, franchise rows) live in [utils/teamProfile.js](../frontend/src/utils/teamProfile.js).
+
+Sections, top to bottom: **Masthead** (team-color wash, KPI strip with league ranks and season-over-season deltas), **Team Fingerprint** (percentile sliders; defense and points-allowed are flipped so right is always better), **Truth Behind the Scoreboard** (actual vs PyPAT vs Elo expected wins, regular season), **Road Ahead** (only while games remain; projected record = wins + summed win chances; Outlook tiers from `eloLean.js`), **Season Arc** (game tiles with `upsetInfo` badges, plus cumulative wins vs Elo expectation), **League Landscape** (offense/defense Pts/Drive scatter with this team ringed), **QB Room**, **Franchise History** (Elo line with peak and low, season table), **Rivalries** (all-time head to head, sortable). Every table or list has an `ExportMenu`.
+
+Team color comes from `primaryColor`, a decimal RGB string from NeonSportz. `teamColorVars` sets `--team`/`--team-dark` and the `.team-scope` class in `index.css` resolves `--team-c`, lifting very dark colors (navy, black) only on the dark theme.
+
+Shared pieces this page pulled out of other pages: efficiency `METRICS` now live in `utils/efficiencyMetrics.js`, `upsetInfo` in `utils/eloLean.js`, and `weekName` (week index to "Week 5" or "Wild Card") in `utils/playoffRounds.js`.
 
 ### StandingsPage
 Three tabs, with the active one held in the URL as `?tab=standings|history|weekly` (`standings` omits the param) — same contract as EloPage: deep links work, an unknown value falls back to Standings, and tab switches use `replace`. The season picker lives in the header and is shared by Standings and Week by Week; it is hidden on Season History, which spans every season. The header qualifier is per-tab. Group-by-conference and the SoS toggle are Standings-tab controls and render below the tab row, not in the header.
