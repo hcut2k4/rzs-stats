@@ -68,7 +68,7 @@ Original Elo spec: [Elo ratings implementation](elo-ratings-implementation.md) â
 
 #### Owner changes
 
-Mid-season owner changes regress only the affected team toward 1500, using the same `offseasonRetention` setting and regression as a new season. Regression applies before games in the exact season/week block, including a bye. A change at a season's first observed block gets no extra regression. `OwnerChangeService` supplies the four hardcoded Madden 27 rows, keyed by teamId; other cycles have different IDs. History marks the affected snapshot with `ownerReset`; its `change` remains game-only, while the ratings table's weekly change includes regression.
+Mid-season owner changes regress only the affected team toward 1500, using the same `offseasonRetention` setting and regression as a new season. Regression applies before games in the exact season/week block, including a bye. A change at a season's first observed block gets no extra regression. `OwnerChangeService` supplies the four hardcoded Madden 27 rows, keyed by teamId; other cycles have different IDs. History `change` remains game-only, while the ratings table's weekly change includes regression.
 
 The backtest's all-games log loss at retention 0.78 was 0.594682 with mid-season regression versus 0.594828 without it. This is a small gain inside the noise band, adopted because it matches how the league works. There is no separate owner retention setting.
 

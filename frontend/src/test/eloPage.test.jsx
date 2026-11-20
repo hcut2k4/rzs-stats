@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
@@ -60,34 +60,6 @@ describe('EloPage', () => {
 
     await userEvent.click(head('Team'))
     expect(elos()).toEqual(['1500', '1400', '1600'])
-  })
-
-  it('marks only the changed team and explains the owner regression in its tooltip', async () => {
-    const rect = { width: 800, height: 460, top: 0, left: 0, right: 800, bottom: 460 }
-    const bounds = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(rect)
-    vi.stubGlobal('ResizeObserver', class {
-      constructor(callback) { this.callback = callback }
-      observe(target) { this.callback([{ target, contentRect: rect }]) }
-      unobserve() {}
-      disconnect() {}
-    })
-    client.getEloHistory.mockResolvedValue([
-      hist(1, 0), { ...hist(1, 1), ownerReset: true }, hist(1, 2),
-      { ...hist(1, 1), teamId: 2, ownerReset: false },
-    ])
-    try {
-      const { container } = render(<MemoryRouter initialEntries={['/elo?tab=history']}><EloPage /></MemoryRouter>)
-      const marker = await screen.findByLabelText('BUF owner change')
-      expect(container.querySelectorAll('circle[aria-label$="owner change"]')).toHaveLength(1)
-      const chart = container.querySelector('.recharts-wrapper')
-      Object.defineProperty(chart, 'offsetWidth', { configurable: true, value: 800 })
-      Object.defineProperty(chart, 'offsetHeight', { configurable: true, value: 460 })
-      fireEvent.mouseMove(chart, { clientX: Number(marker.getAttribute('cx')), clientY: Number(marker.getAttribute('cy')) })
-      expect(await screen.findByText('Owner change: regressed toward 1500')).toBeVisible()
-    } finally {
-      bounds.mockRestore()
-      vi.unstubAllGlobals()
-    }
   })
 
   it('names playoff weeks in the week selector', async () => {
