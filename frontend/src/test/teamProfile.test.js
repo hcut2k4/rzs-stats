@@ -1,6 +1,6 @@
 import {
-  eloExpectedWins, fingerprint, franchiseSeasons, headToHead, ordinal, percentileIn, projectedRecord, rankIn, seasonArc, sosVariant, teamColor, teamGames,
-  teamUpcoming, visibleTeamColor,
+  eloExpectedWins, fingerprint, franchiseSeasons, headToHead, ordinal, percentileIn, projectedRecord, rankIn, seasonArc, sosVariantForWeek, latestWeek, teamColor, teamGames,
+  teamUpcoming, visibleTeamColor, rankTone,
 } from '../utils/teamProfile'
 
 const team = (teamId, abbrName) => ({ teamId, abbrName, displayName: abbrName + 'x' })
@@ -160,13 +160,41 @@ describe('fingerprint', () => {
   })
 })
 
-it('reads prior-season schedule strength only for the active season', () => {
-  expect(sosVariant(2, 2)).toBe('Prev')
-  expect(sosVariant(1, 2)).toBe('Curr')
-  expect(sosVariant(0, 0)).toBe('Curr')
-})
-
 it('projects whole remaining games and keeps existing ties', () => {
   const road = [{ winProb: 0.6 }, { winProb: 0.7 }, { winProb: 0.3 }]
   expect(projectedRecord({ wins: 5, losses: 3, ties: 1 }, road)).toEqual({ wins: 7, losses: 4, ties: 1 })
+})
+
+describe('week-based schedule strength', () => {
+  it.each([[8, 'Prev'], [9, 'Curr'], [17, 'Curr'], [null, 'Prev'], [undefined, 'Prev']])(
+    'uses week index %s to select %s quality', (week, variant) => {
+      expect(sosVariantForWeek(2, 2, week)).toBe(variant)
+    }
+  )
+
+  it('uses current-season quality for finished seasons and season zero', () => {
+    for (const week of [null, 8, 9, 17]) {
+      expect(sosVariantForWeek(1, 2, week)).toBe('Curr')
+      expect(sosVariantForWeek(0, 0, week)).toBe('Curr')
+    }
+  })
+
+  it('finds the latest week even when weeks arrive unsorted', () => {
+    expect(latestWeek([9, 17, 8])).toBe(17)
+    expect(latestWeek([0])).toBe(0)
+    expect(latestWeek([])).toBeNull()
+    expect(latestWeek(null)).toBeNull()
+    expect(latestWeek(undefined)).toBeNull()
+  })
+
+  it('keeps current-season quality after the regular season ends', () => {
+    expect(sosVariantForWeek(2, 2, latestWeek(Array.from({ length: 18 }, (_, i) => i)))).toBe('Curr')
+    expect(sosVariantForWeek(2, 2, latestWeek([]))).toBe('Prev')
+  })
+})
+
+it('classifies rank quartiles consistently including incomplete leagues', () => {
+  expect([1, 8, 9, 24, 25, 32].map(rank => rankTone(rank, 32))).toEqual(['good', 'good', 'muted', 'muted', 'bad', 'bad'])
+  expect([1, 2, 3, 4, 5].map(rank => rankTone(rank, 5))).toEqual(['good', 'good', 'muted', 'bad', 'bad'])
+  expect(rankTone(null, 32)).toBe('muted')
 })

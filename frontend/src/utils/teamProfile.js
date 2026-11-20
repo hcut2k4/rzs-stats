@@ -2,6 +2,7 @@ import { upsetInfo } from './eloLean'
 import { METRICS } from './efficiencyMetrics'
 
 export const REGULAR_WEEKS = 18
+export const SOS_CURRENT_FROM_WEEK = 9
 
 export function teamColor(primaryColor) {
   const n = Number(primaryColor)
@@ -23,6 +24,21 @@ export function visibleTeamColor(hex) {
 export function teamColorVars(primaryColor) {
   const hex = teamColor(primaryColor)
   return hex ? { '--team': hex, '--team-dark': visibleTeamColor(hex) } : {}
+}
+
+export function rankTone(rank, of) {
+  if (!rank || !of) return 'muted'
+  if (rank <= Math.ceil(of / 4)) return 'good'
+  if (rank > of - Math.ceil(of / 4)) return 'bad'
+  return 'muted'
+}
+
+export function roadTiles(record, road, sosLeft) {
+  return [
+    { label: 'Projected record', value: record, tip: 'Current record plus the Elo win probability of every remaining game, rounded to whole games. Ties so far are kept.' },
+    { label: 'Favored in', value: `${road.filter(r => r.winProb >= 0.5).length} of ${road.length}`, tip: 'Remaining games where Elo gives this team at least a 50% win probability.' },
+    { label: 'Remaining SoS', value: sosLeft.text, note: sosLeft.rank, tip: sosLeft.tip, source: sosLeft.source },
+  ]
 }
 
 export function ordinal(n) {
@@ -201,8 +217,12 @@ export const luckLean = winDiff => (winDiff > 0.5 ? 1 : winDiff < -0.5 ? -1 : 0)
 
 export const quadrant = (offense, defense, league) => ({ goodOffense: offense >= league, goodDefense: defense <= league })
 
-// Same default as Standings and About: the active season reads prior-season opponent quality, finished seasons their own.
-export const sosVariant = (season, latest) => (season > 0 && season === latest ? 'Prev' : 'Curr')
+export const latestWeek = weeks => (weeks?.length ? Math.max(...weeks) : null)
+
+// All SoS values use previous-season quality through Week 9, then current-season quality through the playoffs.
+export const sosVariantForWeek = (season, latest, week) => (
+  season > 0 && season === latest && (week == null || week < SOS_CURRENT_FROM_WEEK) ? 'Prev' : 'Curr'
+)
 
 export function projectedRecord(team, road) {
   const remainingWins = Math.round(road.reduce((s, r) => s + r.winProb, 0))

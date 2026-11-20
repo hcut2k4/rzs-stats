@@ -1,3 +1,6 @@
+import { landscapeSummary, LANDSCAPE_FOOTER } from '../../utils/teamProfileCopy'
+import ExportMenu from '../ExportMenu'
+import { landscapeSpec } from './specs'
 import { Link } from 'react-router-dom'
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceArea, ReferenceLine, ResponsiveContainer } from 'recharts'
 import QuadrantLabel from '../QuadrantLabel'
@@ -28,7 +31,7 @@ function Tip({ active, payload }) {
   )
 }
 
-export default function LeagueLandscape({ rows, teamId, loading }) {
+export default function LeagueLandscape({ rows, teamId, loading, season, team }) {
   const points = tierPoints(rows)
   const me = points.find(p => p.id === teamId)
   if (loading || !me) {
@@ -52,8 +55,8 @@ export default function LeagueLandscape({ rows, teamId, loading }) {
       id="landscape"
       kicker="Points per drive"
       title="League Landscape"
-      summary={`${where}: ${n2(me.x)} scored and ${n2(me.y)} allowed per drive, against a league average of ${n2(league)}.`}
-      actions={<Link to="/efficiency" className="text-xs font-semibold uppercase tracking-wide text-muted hover:text-ink">Efficiency →</Link>}
+      summary={landscapeSummary(team.displayName, me.x, me.y, league)}
+      actions={<div className="flex items-center gap-3"><ExportMenu spec={landscapeSpec(rows, teamId, season, team)} /><Link to="/efficiency" className="text-xs font-semibold uppercase tracking-wide text-muted hover:text-ink">Efficiency →</Link></div>}
     >
       <div className="h-80 sm:h-96" role="img" aria-label={`Scatter of every team's offense against defense points per drive. ${me.name} is highlighted: ${where.toLowerCase()}.`}>
         <ResponsiveContainer width="100%" height="100%">
@@ -73,7 +76,7 @@ export default function LeagueLandscape({ rows, teamId, loading }) {
           </ScatterChart>
         </ResponsiveContainer>
       </div>
-      <p className="text-xs text-muted mt-1">Up and right is better. Dashed lines mark the league average. Regular season.</p>
+      <p className="text-xs text-muted mt-1">{LANDSCAPE_FOOTER}</p>
     </Section>
   )
 }

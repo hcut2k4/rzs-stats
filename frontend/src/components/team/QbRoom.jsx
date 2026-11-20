@@ -1,3 +1,4 @@
+import { UNQUALIFIED_TIP } from '../../utils/teamProfileCopy'
 import { Link } from 'react-router-dom'
 import InfoTip from '../InfoTip'
 import ExportMenu from '../ExportMenu'
@@ -6,11 +7,11 @@ import { goodBadColor } from '../../utils/heat'
 import { n1, n2, signed2, neonPlayerUrl, TANYA_TIP, RUSHPLUS_TIP } from '../../utils/qb'
 
 export const QB_COLS = [
-  { key: 'rank', label: 'Lg Rk', desc: 'League TANY/A rank among qualified quarterbacks. Empty when the quarterback has not thrown enough to qualify.', fmt: v => v ?? '—', z: '0' },
+  { key: 'rank', label: 'Lg Rk', desc: 'Rank by overall quarterback efficiency among qualified quarterbacks across the league; 1 is best. Empty below the minimum pass attempts.', fmt: v => v ?? '—', z: '0' },
   { key: 'gamesPlayed', label: 'GP', desc: 'Games played.', fmt: v => v, z: '0' },
   { key: 'passAtt', label: 'Att', desc: 'Pass attempts.', fmt: v => v, z: '0' },
   { key: 'tanya', label: 'TANY/A', desc: TANYA_TIP, fmt: n2, z: '0.00', heat: 'higher' },
-  { key: 'anya', label: 'ANY/A', desc: 'Adjusted Net Yards per Attempt: passing only, no fumble term.', fmt: n2, z: '0.00', heat: 'higher' },
+  { key: 'anya', label: 'ANY/A', desc: 'Passing efficiency in adjusted yards per passing opportunity, accounting for sacks, touchdowns and interceptions. Higher means more productive passing; rushing and fumbles are excluded.', fmt: n2, z: '0.00', heat: 'higher' },
   { key: 'rushValue', label: 'RUSH+', desc: RUSHPLUS_TIP, fmt: signed2, z: '+0.00;-0.00;0.00', heat: 'higher' },
   { key: 'passerRating', label: 'Rating', desc: 'Passer rating from completion rate, yards per attempt, touchdown rate and interception rate.', fmt: n1, z: '0.0', heat: 'higher' },
   { key: 'passYds', label: 'Yds', desc: 'Passing yards.', fmt: v => v, z: '0' },
@@ -27,7 +28,7 @@ export default function QbRoom({ rows, league, spec, loading }) {
       id="qbs"
       kicker="Under center"
       title="QB Room"
-      summary={rows.length ? 'Every quarterback who threw a pass for this team, colored against the qualified QBs across the league.' : null}
+      summary={rows.length ? spec.description : null}
       actions={rows.length > 0 && <div className="flex items-center gap-3"><Link to="/qb" className="text-xs font-semibold uppercase tracking-wide text-muted hover:text-ink">QBs →</Link><ExportMenu spec={spec} /></div>}
     >
       {loading ? <Loading /> : !rows.length ? <Empty>No quarterback stats for this season. QB stats fill in after the QB sync runs.</Empty> : (
@@ -44,7 +45,7 @@ export default function QbRoom({ rows, league, spec, loading }) {
                 <tr key={r.rosterId} className={`border-t border-line ${i % 2 ? 'bg-surface' : 'bg-bg'} ${r.qualified ? '' : 'text-muted'}`}>
                   <td className="px-2 py-1.5 whitespace-nowrap sticky left-0 bg-inherit">
                     <a href={neonPlayerUrl(r.rosterId)} target="_blank" rel="noreferrer" className="font-semibold hover:text-accent" title={`${r.playerName} on NeonSportz`}>{r.playerName}</a>
-                    {!r.qualified && <span className="ml-1.5 text-[10px] uppercase tracking-wide">unqualified</span>}
+                    {!r.qualified && <span className="ml-1.5 text-[10px] uppercase tracking-wide"><InfoTip text={UNQUALIFIED_TIP}>Unqualified</InfoTip></span>}
                   </td>
                   {QB_COLS.map(c => (
                     <td key={c.key} className="px-2 py-1.5 text-right" style={{ backgroundColor: color(c, r) }}>{c.fmt(r[c.key])}</td>

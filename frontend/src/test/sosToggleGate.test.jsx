@@ -3,8 +3,14 @@ import { vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import StandingsPage from '../pages/StandingsPage'
 import * as client from '../api/client'
+import { clearLoadCache } from '../utils/useLoad'
 
 vi.mock('../api/client')
+
+beforeEach(() => {
+  clearLoadCache()
+  client.getAvailableWeeks.mockResolvedValue([])
+})
 
 const team = (teamId, gamesPlayed) => ({
   teamId, gamesPlayed, displayName: `Team ${teamId}`, abbrName: 'TM',

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { getSeasons, getStandings, getSeasonTrends } from '../api/client'
+import { getSeasons, getStandings, getSeasonTrends, getAvailableWeeks } from '../api/client'
 import ExportMenu from '../components/ExportMenu'
 import { specCols } from '../utils/exportTable'
 import { TeamCell } from '../components/TeamLogo'
@@ -11,6 +11,8 @@ import SeasonHistoryTab from '../components/SeasonHistoryTab'
 import WeeklyTab from '../components/WeeklyTab'
 import { goodBadColor, divergeColor } from '../utils/heat'
 import { seasonLabel, seasonNumber } from '../utils/seasons'
+import { latestWeek, sosVariantForWeek } from '../utils/teamProfile'
+import { useLoad } from '../utils/useLoad'
 
 const pct = v => v != null ? (v * 100).toFixed(1) + '%' : '—'
 
@@ -37,12 +39,14 @@ export default function StandingsPage() {
   const [sortKey, setSortKey] = useState('pythagoreanPat')
   const [sortAsc, setSortAsc] = useState(false)
   const [groupByConf, setGroupByConf] = useState(false)
-  const [sosMode, setSosMode] = useState('curr')
+  const [sosMode, setSosMode] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [history, setHistory] = useState(null)
   const [historyError, setHistoryError] = useState(false)
   const historyRequested = useRef(false)
+  const latest = seasons.length ? seasons[seasons.length - 1] : null
+  const weeks = useLoad(season != null && season === latest ? `weeks-${season}` : null, () => getAvailableWeeks(season, 1))
 
   useEffect(() => {
     getSeasons()
@@ -51,9 +55,7 @@ export default function StandingsPage() {
         if (s.length) {
           const defaultSeason = s[s.length - 1]
           setSeason(defaultSeason)
-          // Default to prior season stats for the active/current season (insufficient games),
-          // current season stats for all historical seasons (full data available)
-          setSosMode(defaultSeason === s[s.length - 1] ? 'prev' : 'curr')
+          setSosMode(null)
         }
       })
       .catch(() => setError('Failed to load seasons'))
@@ -92,30 +94,29 @@ export default function StandingsPage() {
   const paAvg = r => r.gamesPlayed > 0 ? r.pointsAgainst / r.gamesPlayed : 0
   const sortGetters = { pointsFor: pfAvg, pointsAgainst: paAvg }
 
+  const sosToggleReady = standings.some(r => r.gamesPlayed >= 3)
+  const activeSosMode = sosMode ?? sosVariantForWeek(season, latest, latestWeek(weeks.data)).toLowerCase()
+  const sosPrefix = activeSosMode === 'curr' ? 'Curr' : 'Prev'
+  const sosSource = activeSosMode === 'curr' ? 'current-season' : 'previous-season'
+  const sosCols = isCurrentSeason
+    ? [
+        { sortKey: 'sosPlayed', key: `oppPyPat${sosPrefix}`, label: 'Played', exportLabel: `SoS Played (${sosSource})`, title: `Played SoS: avg opponent-adjusted PyPAT, ${sosSource}. Lower = easier schedule.` },
+        { sortKey: 'sosLeft', key: `oppPyPatRemaining${sosPrefix}`, label: 'Left', exportLabel: `SoS Left (${sosSource})`, title: `Remaining SoS: future opponents' opponent-adjusted PyPAT using ${sosSource} opponent quality.` },
+        { sortKey: 'sosTotal', key: `oppPyPatTotal${sosPrefix}`, label: 'Total', exportLabel: `SoS Total (${sosSource})`, title: `Full-season SoS: all scheduled opponents, ${sosSource}.` },
+      ]
+    : [
+        { sortKey: 'sosPlayed', key: `oppPyPat${sosPrefix}`, label: 'SoS', exportLabel: `SoS (${sosSource})`, title: `Strength of Schedule: avg opponent-adjusted PyPAT, ${sosSource}. Lower = easier schedule.` },
+      ]
+
+  const sortField = sosCols.find(col => col.sortKey === sortKey)?.key ?? sortKey
   const sorted = [...standings].sort((a, b) => {
-    const getter = sortGetters[sortKey]
-    const av = getter ? getter(a) : a[sortKey]
-    const bv = getter ? getter(b) : b[sortKey]
+    const getter = sortGetters[sortField]
+    const av = getter ? getter(a) : a[sortField]
+    const bv = getter ? getter(b) : b[sortField]
     if (av == null) return 1
     if (bv == null) return -1
     return sortAsc ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1)
   })
-
-  // Current-season opponent PyPAT is noise until opponents have games that were not
-  // against you, so the toggle stays hidden and SoS reads off the prior season.
-  const sosToggleReady = standings.some(r => r.gamesPlayed >= 3)
-  const activeSosMode = sosToggleReady ? sosMode : 'prev'
-  const sosPrefix = activeSosMode === 'curr' ? 'Curr' : 'Prev'
-  const sosSource = activeSosMode === 'curr' ? 'current season' : 'previous season'
-  const sosCols = isCurrentSeason
-    ? [
-        { key: `oppPyPat${sosPrefix}`, label: 'Played', exportLabel: 'SoS Played', title: `Played SoS: avg opponent-adjusted PyPAT, ${sosSource}. Lower = easier schedule.` },
-        { key: `oppPyPatRemaining${sosPrefix}`, label: 'Left', exportLabel: 'SoS Left', title: `Remaining SoS: future opponents' opponent-adjusted PyPAT, ${sosSource}.` },
-        { key: `oppPyPatTotal${sosPrefix}`, label: 'Total', exportLabel: 'SoS Total', title: `Full-season SoS: all scheduled opponents, ${sosSource}.` },
-      ]
-    : [
-        { key: `oppPyPat${sosPrefix}`, label: 'SoS', title: `Strength of Schedule: avg opponent-adjusted PyPAT, ${sosSource}. Lower = easier schedule.` },
-      ]
 
   const COLS = [
     { key: 'rank',           label: '#', desc: 'Row number in the current sort order. Not an official standing or playoff seed.', tx: (_, i) => i + 1, value: (_, i) => i + 1, z: '0', fmt: (_, i) => i + 1, stickyLeft: 'left-0', w: 'w-10' },
@@ -166,7 +167,7 @@ export default function StandingsPage() {
   const gamesLabel = standings.length ? `${Math.max(...standings.map(r => r.gamesPlayed))} games played` : null
 
   const exportSpec = group => {
-    const sortLabel = COLS.find(col => col.key === sortKey)?.label
+    const sortLabel = COLS.find(col => (col.sortKey ?? col.key) === sortKey)?.label
     const direction = sortAsc ? 'ascending' : 'descending'
     return {
       name: group.label ? `Standings — ${group.label}` : 'Standings',
@@ -177,7 +178,7 @@ export default function StandingsPage() {
       cols: specCols(COLS, (col, heatVal) => cellColor(col, heatVal)),
       api: {
         path: '/standings', params: { season: standingsSeason },
-        note: `Returned unsorted; this table is sorted by ${sortKey} ${direction}. SoS uses ${sosSource} opponent quality.`,
+        note: `Returned unsorted; this table is sorted by ${sortField} ${direction}. SoS uses ${sosSource} opponent quality.`,
         fields: {
           Team: 'cityName + " " + displayName',
           'Avg PF': 'pointsFor / gamesPlayed, 1 dp; empty when no games played',
@@ -206,7 +207,7 @@ export default function StandingsPage() {
             onChange={e => {
               const newSeason = Number(e.target.value)
               setSeason(newSeason)
-              setSosMode(newSeason === seasons[seasons.length - 1] ? 'prev' : 'curr')
+              setSosMode(null)
             }}
           >
             {seasons.map(s => (
@@ -301,10 +302,10 @@ export default function StandingsPage() {
                             col.stickyLeft ? ` sticky ${col.stickyLeft} z-20 bg-bg ${col.w ?? ''}` : ''
                           }${col.groupStart ? ' border-l border-rule' : ''}`}
                           title={col.title}
-                          onClick={() => handleSort(col.key)}
+                          onClick={() => handleSort(col.sortKey ?? col.key)}
                         >
                           {col.label}
-                          {sortKey === col.key && (sortAsc ? ' ▲' : ' ▼')}
+                          {sortKey === (col.sortKey ?? col.key) && (sortAsc ? ' ▲' : ' ▼')}
                         </th>
                       ))}
                     </tr>

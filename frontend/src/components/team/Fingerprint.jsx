@@ -1,3 +1,4 @@
+import { FINGERPRINT_SUMMARY, FINGERPRINT_FOOTER } from '../../utils/teamProfileCopy'
 import InfoTip from '../InfoTip'
 import ExportMenu from '../ExportMenu'
 import Section, { Empty, Loading } from './Section'
@@ -36,7 +37,7 @@ export default function Fingerprint({ groups, spec, loading }) {
       id="fingerprint"
       kicker="Percentile vs the league"
       title="Team Fingerprint"
-      summary="Where each number ranks against the rest of the league. Further right is always better, defense included, so a long bar is a strength and a short one a weakness."
+      summary={FINGERPRINT_SUMMARY}
       actions={hasData && <ExportMenu spec={spec} />}
     >
       {loading ? <Loading /> : !hasData ? <Empty>No team stats yet. Run the stat sync from Admin to fill the fingerprint.</Empty> : (
@@ -56,7 +57,7 @@ export default function Fingerprint({ groups, spec, loading }) {
         <span>Poor</span>
         <span className="h-1.5 w-28 rounded-full" style={{ background: `linear-gradient(90deg, ${goodBadColor(0, SCALE)}, rgb(var(--line)), ${goodBadColor(100, SCALE)})` }} aria-hidden="true" />
         <span>Great</span>
-        <span className="sm:ml-2">Bubble is the percentile; 50 is the league median. Regular season.</span>
+        <span className="sm:ml-2">{FINGERPRINT_FOOTER}</span>
       </div>
     </Section>
   )

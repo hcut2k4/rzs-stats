@@ -1,3 +1,5 @@
+import { roadTiles } from '../../utils/teamProfile'
+import { outlookTip } from '../../utils/teamProfileCopy'
 import { Link } from 'react-router-dom'
 import { TeamLogo } from '../TeamLogo'
 import InfoTip from '../InfoTip'
@@ -24,29 +26,25 @@ export default function RoadAhead({ rows, projection, sosLeft, spec, teamHref, l
       id="road"
       kicker="Remaining schedule"
       title="Road Ahead"
-      summary={`Elo projects ${projection.wins.toFixed(1)} wins by season's end, ${projection.remaining.toFixed(1)} of them from the ${rows.length} games left.`}
+      summary={spec.description}
       actions={<ExportMenu spec={spec} />}
     >
       <div className="grid grid-cols-3 gap-px bg-line border-y border-line mb-3">
-        {[
-          ['Projected', projection.record, 'Current record plus the Elo win chance of every remaining game, rounded to whole games. Ties so far are kept.', null],
-          ['Favored in', `${rows.filter(r => r.winProb >= 0.5).length} of ${rows.length}`, 'Remaining games where Elo gives this team at least a 50% chance.', null],
-          ['SoS Left', sosLeft.text, sosLeft.tip, sosLeft.rank],
-        ].map(([label, value, tip, sub]) => (
+        {roadTiles(projection.record, rows, sosLeft).map(({ label, value, tip, note }) => (
           <div key={label} className="bg-bg px-3 py-2">
             <p className="text-[11px] uppercase tracking-wide text-muted font-semibold"><InfoTip text={tip}>{label}</InfoTip></p>
             <p className="font-display font-extrabold text-2xl leading-none mt-1 num">{value}</p>
-            {sub && <p className="text-[11px] text-muted mt-1">{sub}</p>}
+            {note && <p className="text-[11px] text-muted mt-1">{note}</p>}
           </div>
         ))}
       </div>
-      <div className={`${ROW} border-b border-rule pb-1`} aria-hidden="true">
+      <div className={`${ROW} border-b border-rule pb-1`}>
         <span className="th px-0">Week</span>
         <span className="th px-0">Opponent</span>
         <span className="th px-0 hidden sm:block text-right">Elo</span>
-        <span className="th px-0">Win chance</span>
+        <span className="th px-0">Win probability</span>
         <span />
-        <span className="th px-0 hidden sm:block text-center">Outlook</span>
+        <span className="th px-0 hidden sm:block text-center"><InfoTip text={outlookTip()}>Outlook</InfoTip></span>
       </div>
       <ul className="text-sm num">
         {rows.map(r => {
@@ -62,14 +60,14 @@ export default function RoadAhead({ rows, projection, sosLeft, spec, teamHref, l
               <ChanceBar p={r.winProb} />
               <span className="text-right font-semibold">{pct0(r.winProb)}</span>
               <span className="hidden sm:block text-[11px] uppercase tracking-wide font-semibold text-center text-muted rounded border border-line bg-surface px-1 py-0.5 whitespace-nowrap"
-                title="How competitive Elo expects the game to be, with the same tiers as the Elo page">
+                title={outlookTip()}>
                 {l.tossUp ? l.tier.label : `${l.tier.label} ${r.winProb >= 0.5 ? 'win' : 'loss'}`}
               </span>
             </li>
           )
         })}
       </ul>
-      <p className="text-xs text-muted mt-2">Win chances use each team's current Elo, so later games are less certain. Outlook uses the Elo page tiers, read from this team's side.</p>
+      <p className="text-xs text-muted mt-2">{spec.notes[0]}</p>
     </Section>
   )
 }

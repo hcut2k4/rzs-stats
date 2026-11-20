@@ -1,15 +1,17 @@
+import { PYPAT_TIP } from '../utils/teamProfileCopy'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getSeasons, getStandings, getEloGames, getEloRatings } from '../api/client'
 import PageHeader from '../components/PageHeader'
 import ExportMenu from '../components/ExportMenu'
 import { TeamLogo } from '../components/TeamLogo'
-import { recordText, teamColorVars, teamGames } from '../utils/teamProfile'
+import { recordText, teamColor, teamColorVars, teamGames } from '../utils/teamProfile'
 import { seasonLabel } from '../utils/seasons'
 
 const pct = v => (v * 100).toFixed(1) + '%'
 const FORM = { W: 'bg-good', L: 'bg-bad', T: 'bg-muted' }
 const FORM_GAMES = 5
+const SCOPE = 'Record, PyPAT and last 5 are regular season only. Elo rank includes playoffs.'
 
 export default function TeamsPage() {
   const [data, setData] = useState(null)
@@ -40,23 +42,24 @@ export default function TeamsPage() {
   const ordered = divisions.flatMap(d => rows.filter(r => r.division === d).sort((a, b) => b.winPct - a.winPct || b.pythagoreanPat - a.pythagoreanPat))
   const spec = season == null ? null : {
     name: 'Teams',
-    qualifier: `${seasonLabel(season)} · grouped by division · win % descending within each`,
-    description: 'Every team with its division, record, PyPAT, Elo rank and its last five regular-season results.',
+    qualifier: `${seasonLabel(season)} · grouped by division · win % descending within each. ${SCOPE}`,
+    description: 'Every team with its division, record, PyPAT, Elo rank and its last five regular-season results. ' + SCOPE,
     rows: ordered,
+    rowAccent: r => teamColor(r.primaryColor),
     cols: [
       { label: 'Division', desc: 'Conference and division.', text: r => r.division },
       { label: 'Team', desc: 'City plus nickname.', text: r => `${r.cityName} ${r.displayName}`, logo: r => r.abbrName },
       { label: 'Record', desc: 'Regular-season wins, losses and ties.', text: recordText },
-      { label: 'PyPAT', desc: 'PythagoreanPAT win expectancy from points scored and allowed.', text: r => (r.gamesPlayed ? pct(r.pythagoreanPat) : ''), value: r => (r.gamesPlayed ? r.pythagoreanPat : null), z: '0.0%' },
-      { label: 'Elo Rank', desc: 'Rank by Elo after the latest week.', text: r => String(eloRank(r.teamId) ?? ''), value: r => eloRank(r.teamId) ?? null, z: '0' },
-      { label: 'Last 5', desc: 'Results of the last five regular-season games, oldest first.', text: r => form(r.teamId).map(g => g.result).join('') },
+      { label: 'PyPAT', desc: PYPAT_TIP, text: r => (r.gamesPlayed ? pct(r.pythagoreanPat) : ''), value: r => (r.gamesPlayed ? r.pythagoreanPat : null), z: '0.0%' },
+      { label: 'Elo Rank', desc: 'Rank by Elo after the latest week, including playoffs.', text: r => String(eloRank(r.teamId) ?? ''), value: r => eloRank(r.teamId) ?? null, z: '0' },
+      { label: 'Last 5', form: r => form(r.teamId).map(g => g.result), desc: 'Results of the last five regular-season games, oldest first.', text: r => form(r.teamId).map(g => g.result).join('') },
     ],
     api: { path: '/standings', params: { season }, note: `Grouped by division, then win % and PyPAT descending. Elo rank from /api/elo/ratings?season=${season}; last five from /api/elo/games?season=${season}.` },
   }
 
   return (
     <div>
-      <PageHeader title="Teams" qualifier={season == null ? null : `${seasonLabel(season)} · pick a team for its full profile`}>
+      <PageHeader title="Teams" qualifier={season == null ? null : `${seasonLabel(season)} · pick a team for its full profile. ${SCOPE}`}>
         {spec && <ExportMenu spec={spec} />}
       </PageHeader>
       {error && <p className="text-bad">Could not load teams.</p>}
@@ -86,7 +89,7 @@ export default function TeamsPage() {
                       </span>
                       <span className="text-right num pr-1">
                         <span className="block text-sm font-semibold">{recordText(r)}</span>
-                        {r.gamesPlayed > 0 && <span className="block text-[11px] text-muted">{pct(r.pythagoreanPat)} PyPAT</span>}
+                        {r.gamesPlayed > 0 && <span className="block text-[11px] text-muted" title={PYPAT_TIP}>{pct(r.pythagoreanPat)} PyPAT</span>}
                         {rank != null && <span className="block text-[11px] text-muted">Elo #{rank}</span>}
                       </span>
                     </Link>

@@ -2,6 +2,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
 import { MemoryRouter, RouterProvider, createMemoryRouter } from 'react-router-dom'
+import * as tableImage from '../utils/tableImage'
 import * as client from '../api/client'
 import App from '../App'
 import { TeamCell } from '../components/TeamLogo'
@@ -34,6 +35,7 @@ const hist = (teamId, season, week, endElo, rank) => ({ teamId, season, week, se
 describe('Team profile', () => {
   beforeEach(() => {
     clearLoadCache()
+    client.getAvailableWeeks.mockResolvedValue([])
     client.getEloRatings.mockResolvedValue([{ teamId: 1, rank: 1 }, { teamId: 2, rank: 2 }])
     client.getSeasons.mockResolvedValue([0, 1])
     client.getStandings.mockImplementation(season => Promise.resolve(
@@ -63,6 +65,8 @@ describe('Team profile', () => {
   it('shows the latest season profile with every section', async () => {
     renderAt('/teams/aaa')
     expect(await screen.findByRole('heading', { level: 1, name: 'Aces' })).toBeInTheDocument()
+    expect(within(screen.getByRole('heading', { level: 1, name: 'Aces' }).closest('header')).getByRole('button', { name: 'PNG' })).toBeVisible()
+    expect(within(await screen.findByRole('region', { name: 'League Landscape' })).getByRole('button', { name: 'PNG' })).toBeVisible()
     expect(client.getStandings).toHaveBeenCalledWith(1)
     expect(client.getEfficiency).toHaveBeenCalledWith(1, 'regular')
     await waitFor(() => expect(client.getEloGames).toHaveBeenCalledWith(undefined, undefined, 1))
@@ -75,10 +79,39 @@ describe('Team profile', () => {
     expect(screen.queryByText('Bear Passer')).not.toBeInTheDocument()
     const arc = screen.getByRole('region', { name: 'Season Arc' })
     expect(await within(arc).findAllByText('Big upset win')).toHaveLength(2)
+    expect(within(arc).getByText(/So far: 2 upset wins/)).toHaveTextContent("How each game changed the Aces' Elo rating")
+    expect(within(arc).getAllByText('25% win probability')).toHaveLength(2)
+    expect(within(arc).getAllByText('+20.0 Elo')).toHaveLength(2)
     const road = screen.getByRole('region', { name: 'Road Ahead' })
     expect(await within(road).findByText('2-1')).toBeInTheDocument()
     const rivals = screen.getByRole('region', { name: 'Rivalries' })
     expect(await within(rivals).findByText('3-0')).toBeInTheDocument()
+  })
+
+  it.each([[7, 'previous-season', '50.0%'], [9, 'current-season', '48.0%'], [17, 'current-season', '48.0%']])(
+    'uses completed week index %s for both Played and Remaining SoS', async (week, source, value) => {
+      client.getAvailableWeeks.mockResolvedValue(Array.from({ length: week + 1 }, (_, i) => i))
+      renderAt('/teams/AAA')
+      const road = await screen.findByRole('region', { name: 'Road Ahead' })
+      await waitFor(() => expect(within(road).getByText('Remaining SoS')).toHaveAttribute('title', expect.stringContaining(source)))
+      expect(within(road).getByText(value)).toBeInTheDocument()
+      expect(screen.getByText('Strength of Schedule')).toHaveAttribute('title', expect.stringContaining(source))
+      expect(within(kpi('Strength of Schedule')).getByText(source === 'current-season' ? '50.0%' : '52.0%')).toBeInTheDocument()
+    }
+  )
+
+  it('leaves missing current-season Remaining SoS unrated instead of using previous-season quality', async () => {
+    client.getAvailableWeeks.mockResolvedValue([9])
+    client.getEloUpcoming.mockResolvedValue([{
+      gameId: 9, season: 1, week: 9, homeTeam: A, awayTeam: B, homeElo: 1500, awayElo: 1500,
+      homeWinProbability: 0.5, awayWinProbability: 0.5,
+    }])
+    client.getStandings.mockResolvedValue([{ ...standing(A, 6, 2, 0.6), oppPyPatRemainingCurr: null }])
+    renderAt('/teams/AAA')
+    const road = await screen.findByRole('region', { name: 'Road Ahead' })
+    await waitFor(() => expect(within(road).getByText('Remaining SoS')).toHaveAttribute('title', expect.stringContaining('current-season')))
+    expect(within(road).getByText('—')).toBeInTheDocument()
+    expect(within(road).queryByText(/hardest of/)).not.toBeInTheDocument()
   })
 
   it('switches season and drops the remaining schedule for a finished season', async () => {
@@ -88,6 +121,8 @@ describe('Team profile', () => {
     await waitFor(() => expect(within(kpi('Record')).getByText('5-12')).toBeInTheDocument())
     expect(client.getStandings).toHaveBeenCalledWith(0)
     expect(screen.queryByRole('heading', { name: 'Road Ahead' })).not.toBeInTheDocument()
+    const arc = screen.getByRole('region', { name: 'Season Arc' })
+    expect(within(arc).getByText(/1 upset win\./)).not.toHaveTextContent('So far')
   })
 
   it('keeps the season when following an opponent link', async () => {
@@ -153,6 +188,16 @@ describe('Team profile', () => {
     const division = await screen.findByRole('region', { name: 'AFC East' })
     expect(within(division).getAllByRole('link').map(l => l.getAttribute('href'))).toEqual(['/teams/AAA', '/teams/BBB'])
     expect(await within(division).findByText('Elo #1')).toBeInTheDocument()
+    expect(screen.getByText(/Record, PyPAT and last 5 are regular season only. Elo rank includes playoffs./)).toBeInTheDocument()
+    const copy = vi.spyOn(tableImage, 'copyImage').mockResolvedValue('copied')
+    await userEvent.click(screen.getByRole('button', { name: 'PNG' }))
+    const spec = copy.mock.calls[0][0]
+    expect(spec.qualifier).toContain('Elo rank includes playoffs.')
+    expect(spec.description).toContain('Record, PyPAT and last 5 are regular season only.')
+    expect(spec.cols.find(c => c.label === 'Elo Rank').desc).toContain('including playoffs')
+    expect(spec.rowAccent({ primaryColor: '0' })).toBe('#000000')
+    expect(spec.rowAccent({ primaryColor: '16727040' })).toBe('#ff3c00')
+    copy.mockRestore()
     expect(within(division).getByLabelText(/^Last \d results W/)).toBeInTheDocument()
     expect(within(screen.getByRole('navigation', { name: 'Main' })).getByRole('link', { name: 'Teams' })).toHaveAttribute('href', '/teams')
   })

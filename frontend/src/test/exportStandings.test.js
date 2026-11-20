@@ -1,12 +1,14 @@
 import { createElement } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import StandingsPage from '../pages/StandingsPage'
 import * as client from '../api/client'
+import { clearLoadCache } from '../utils/useLoad'
 import { buildWorkbook, csvText, toRows } from '../utils/exportTable'
 
 vi.mock('../api/client')
+
 const { specs } = vi.hoisted(() => ({ specs: new Map() }))
 vi.mock('../components/ExportMenu', () => ({ default: ({ spec }) => { specs.set(spec.name, spec); return null } }))
 
@@ -16,6 +18,8 @@ const sampleStandings = [
 ]
 
 beforeEach(() => {
+  clearLoadCache()
+  client.getAvailableWeeks.mockResolvedValue([])
   specs.clear()
   client.getSeasons.mockResolvedValue([4, 5])
   client.getStandings.mockResolvedValue(sampleStandings)
@@ -31,7 +35,7 @@ async function show() {
 describe('Standings exports', () => {
   it('includes the table headers, one row per team and sequential ranks', async () => {
     const rows = toRows(await show())
-    expect(rows[0]).toEqual(expect.arrayContaining(['#', 'Team', 'W', 'L', 'T', 'Win%', 'Avg PF', 'Avg PA', 'PyPAT', 'Luck', 'SoS Played', 'SoS Left', 'SoS Total']))
+    expect(rows[0]).toEqual(expect.arrayContaining(['#', 'Team', 'W', 'L', 'T', 'Win%', 'Avg PF', 'Avg PA', 'PyPAT', 'Luck', 'SoS Played (previous-season)', 'SoS Left (previous-season)', 'SoS Total (previous-season)']))
     expect(rows).toHaveLength(sampleStandings.length + 1)
     expect(rows.slice(1).map(r => r[0])).toEqual(['1', '2'])
   })
@@ -92,12 +96,105 @@ describe('Standings exports', () => {
     expect(specs.get('Standings').qualifier).toContain('sorted by Avg PF descending')
     fireEvent.click(screen.getByRole('columnheader', { name: 'Avg PF ▼' }))
     expect(specs.get('Standings').qualifier).toContain('sorted by Avg PF ascending')
-    expect(specs.get('Standings').api.note).toContain('previous season')
+    expect(specs.get('Standings').api.note).toContain('previous-season')
     fireEvent.click(screen.getByRole('button', { name: 'This season' }))
     const spec = specs.get('Standings')
-    expect(spec.api.note).toContain('current season')
-    expect(spec.cols.find(c => c.label === 'SoS Played').desc).toContain('current season')
-    expect(spec.api.fields['SoS Played']).toContain('oppPyPatCurr')
+    expect(spec.api.note).toContain('current-season')
+    expect(spec.cols.find(c => c.label === 'SoS Played (current-season)').desc).toContain('current-season')
+    expect(spec.api.fields['SoS Played (current-season)']).toContain('oppPyPatCurr')
+  })
+
+  it.each([[8, 'previous-season', 'Prev', '52.0%'], [9, 'current-season', 'Curr', '42.0%'], [17, 'current-season', 'Curr', '42.0%']])(
+    'uses one source for Played, Left and Total at completed week index %s', async (week, source, variant, value) => {
+      client.getAvailableWeeks.mockResolvedValue(Array.from({ length: week + 1 }, (_, i) => i))
+      client.getStandings.mockResolvedValue([{
+        ...sampleStandings[0], oppPyPatCurr: 0.41, oppPyPatPrev: 0.51,
+        oppPyPatRemainingCurr: 0.42, oppPyPatRemainingPrev: 0.52,
+        oppPyPatTotalCurr: 0.43, oppPyPatTotalPrev: 0.53,
+      }])
+      await show()
+      await waitFor(() => expect(screen.getByRole('columnheader', { name: 'Left' })).toHaveAttribute('title', expect.stringContaining(source)))
+      const spec = specs.get('Standings')
+      const label = `SoS Left (${source})`
+      expect(spec.api.fields[label]).toContain(`oppPyPatRemaining${variant}`)
+      expect(spec.cols.find(c => c.label === label).desc).toContain(source)
+      expect(toRows(spec)[1].slice(-3)).toEqual(variant === 'Curr' ? ['41.0%', value, '43.0%'] : ['51.0%', value, '53.0%'])
+      expect(client.getAvailableWeeks).toHaveBeenCalledWith(5, 1)
+      fireEvent.click(screen.getByRole('button', { name: variant === 'Curr' ? 'Prior season' : 'This season' }))
+      expect(toRows(specs.get('Standings'))[1].slice(-3)).toEqual(variant === 'Curr' ? ['51.0%', '52.0%', '53.0%'] : ['41.0%', '42.0%', '43.0%'])
+    }
+  )
+
+  it.each([['Played', 'oppPyPat'], ['Left', 'oppPyPatRemaining'], ['Total', 'oppPyPatTotal']])('keeps %s sorting on displayed values when Week 10 completed weeks arrive', async (label, field) => {
+    let resolveWeeks
+    client.getAvailableWeeks.mockReturnValue(new Promise(resolve => { resolveWeeks = resolve }))
+    client.getStandings.mockResolvedValue([
+      { ...sampleStandings[0], [`${field}Prev`]: 0.7, [`${field}Curr`]: 0.3 },
+      { ...sampleStandings[1], [`${field}Prev`]: 0.3, [`${field}Curr`]: 0.7 },
+    ])
+    await show()
+    fireEvent.click(screen.getByRole('columnheader', { name: label }))
+    expect(specs.get('Standings').rows.map(r => r.teamId)).toEqual([1, 2])
+
+    await act(async () => resolveWeeks([9]))
+
+    const spec = specs.get('Standings')
+    expect(spec.rows.map(r => r.teamId)).toEqual([2, 1])
+    const rows = screen.getAllByRole('row').slice(2)
+    expect(rows.map(r => within(r).getAllByRole('cell')[1].textContent)).toEqual(['Buffalo Bills', 'New England Patriots'])
+    expect(rows.map(r => within(r).getAllByRole('cell').at(label === 'Played' ? -3 : label === 'Left' ? -2 : -1).textContent)).toEqual(['70.0%', '30.0%'])
+    expect(screen.getByRole('columnheader', { name: `${label} ▼` })).toHaveAttribute('title', expect.stringContaining('current-season'))
+    expect(spec.qualifier).toContain(`sorted by ${label} descending`)
+    expect(spec.api.note).toContain(`sorted by ${field}Curr descending`)
+  })
+
+  it.each([
+    ['Played', 'oppPyPat'], ['Left', 'oppPyPatRemaining'], ['Total', 'oppPyPatTotal'],
+  ])('keeps %s sorting on the displayed values when the SoS mode changes', async (label, field) => {
+    client.getStandings.mockResolvedValue([
+      { ...sampleStandings[0], [`${field}Prev`]: 0.7, [`${field}Curr`]: 0.3 },
+      { ...sampleStandings[1], [`${field}Prev`]: 0.3, [`${field}Curr`]: 0.7 },
+    ])
+    await show()
+    fireEvent.click(screen.getByRole('columnheader', { name: label }))
+    expect(specs.get('Standings').rows.map(r => r.teamId)).toEqual([1, 2])
+
+    fireEvent.click(screen.getByRole('button', { name: 'This season' }))
+
+    const spec = specs.get('Standings')
+    expect(spec.rows.map(r => r.teamId)).toEqual([2, 1])
+    expect(screen.getByRole('columnheader', { name: `${label} ▼` })).toBeInTheDocument()
+    expect(spec.qualifier).toContain(`sorted by ${label} descending`)
+    expect(spec.api.note).toContain(`sorted by ${field}Curr descending`)
+
+    fireEvent.click(screen.getByRole('columnheader', { name: `${label} ▼` }))
+    expect(specs.get('Standings').rows.map(r => r.teamId)).toEqual([1, 2])
+    expect(screen.getByRole('columnheader', { name: `${label} ▲` })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Prior season' }))
+    expect(specs.get('Standings').rows.map(r => r.teamId)).toEqual([2, 1])
+    expect(specs.get('Standings').qualifier).toContain(`sorted by ${label} ascending`)
+  })
+
+  it('leaves all null current-season SoS values empty instead of using previous-season quality', async () => {
+    client.getAvailableWeeks.mockResolvedValue([9])
+    client.getStandings.mockResolvedValue([{ ...sampleStandings[0], oppPyPatCurr: null, oppPyPatTotalCurr: null, oppPyPatRemainingCurr: null, oppPyPatRemainingPrev: 0.52 }])
+    await show()
+    await waitFor(() => expect(specs.get('Standings')?.api.fields['SoS Left (current-season)']).toContain('oppPyPatRemainingCurr'))
+    expect(toRows(specs.get('Standings'))[1].slice(-3)).toEqual(['', '', ''])
+  })
+
+  it('keeps a manual previous-season choice when Week 10 weeks arrive', async () => {
+    let resolveWeeks
+    client.getAvailableWeeks.mockReturnValue(new Promise(resolve => { resolveWeeks = resolve }))
+    await show()
+    fireEvent.click(screen.getByRole('button', { name: 'Prior season' }))
+    await act(async () => resolveWeeks([9]))
+    const spec = specs.get('Standings')
+    for (const label of ['Played', 'Left', 'Total']) {
+      expect(spec.api.fields[`SoS ${label} (previous-season)`]).toContain('Prev')
+    }
+    expect(screen.getByRole('button', { name: 'Prior season' })).toHaveClass('bg-ink')
   })
 
   it('keeps export provenance with the response and ignores stale seasons', async () => {

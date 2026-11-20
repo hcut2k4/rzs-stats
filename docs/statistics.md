@@ -1,6 +1,6 @@
 # Statistics
 
-**The ethos**: surface the truth behind the scoreboard. W-L records are noisy — one-score games are largely random. PyPAT and SoS cut through that noise to show who is actually playing well and who has been lucky. Every design decision (H2H exclusion in SoS, game-weighted SoS Total, prior-season default for active seasons) exists to minimize bias and maximize signal.
+**The ethos**: surface the truth behind the scoreboard. W-L records are noisy — one-score games are largely random. PyPAT and SoS cut through that noise to show who is actually playing well and who has been lucky. Every design decision (H2H exclusion in SoS, game-weighted SoS Total, week-based opponent quality for active seasons) exists to minimize bias and maximize signal.
 
 ## Key Concepts
 
@@ -34,7 +34,7 @@ Average PyPAT of opponents, with these refinements:
      - Because both sides average one value per game, this is exactly the mean over the full schedule
      - **NOT a union average** — that approach lets weak played-only opponents drag Total below both Played and Left
 
-4. **Toggle (active season only, 3+ games played)**: Current-season vs prior-season opponent PyPAT. Prior season is the default — early in a season, current-season sample sizes are too small to be meaningful. The toggle is hidden until some team has played 3 games, because before that an opponent's only games are the ones against you and nothing survives the H2H exclusion.
+4. **Toggle (active season only, 3+ games played)**: Played, Left and Total all use the same opponent-quality source, including on team profiles. Previous-season opponent quality through Week 9; current-season quality from Week 10 through the playoffs. Finished seasons use their own season. The toggle overrides the default. Season index 0 uses current-season quality. The latest completed regular-season week determines the default (Week 10 is index 9); loading or empty weeks use previous-season quality. The toggle is hidden until some team has played 3 games, because before that an opponent's only games are the ones against you and nothing survives the H2H exclusion.
 
 5. **Unratable opponents are null, never 0.0**: If an opponent has no games left after H2H exclusion, they contribute nothing. If *no* opponent on a column could be rated, the column is `null` — "no data", which is not the same as a 0.0 rating. Each column is weighted by the games it actually rated, so Total stays the mean over every rated game.
 

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { chooseScale } from '../utils/tableImage'
+import { readFileSync } from 'node:fs'
+import { IMAGE, chooseScale } from '../utils/tableImage'
 let copyImage, copyChartImage
 
 let ctx, calls, canvases, downloads, write, png
@@ -22,7 +23,15 @@ beforeEach(async () => {
   canvases = []
   downloads = []
   png = new Blob(['png'], { type: 'image/png' })
+  let offset = [0, 0]
+  const stack = []
   ctx = {
+    save() { stack.push([...offset]) },
+    restore() { offset = stack.pop() ?? [0, 0] },
+    translate(x, y) { offset = [offset[0] + x, offset[1] + y] },
+    roundRect: vi.fn(), clip: vi.fn(), beginPath: vi.fn(), arc: vi.fn(), fill: vi.fn(), strokeRect: vi.fn(),
+    moveTo: vi.fn(), lineTo: vi.fn(), stroke: vi.fn(), setLineDash: vi.fn(), closePath: vi.fn(),
+    createLinearGradient: () => ({ addColorStop: vi.fn() }),
     textAlign: 'left',
     measureText: vi.fn(text => ({ width: text.length * 7 })),
     scale: vi.fn(),
@@ -30,8 +39,8 @@ beforeEach(async () => {
       this.style = value
       calls.push({ type: 'fillStyle', value })
     },
-    fillRect(...args) { calls.push({ type: 'fillRect', args, style: this.style }) },
-    fillText(...args) { calls.push({ type: 'fillText', args, style: this.style, align: this.textAlign }) },
+    fillRect(...args) { args[0] += offset[0]; args[1] += offset[1]; calls.push({ type: 'fillRect', args, style: this.style }) },
+    fillText(...args) { args[1] += offset[0]; args[2] += offset[1]; calls.push({ type: 'fillText', args, style: this.style, align: this.textAlign }) },
   }
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(function () {
     canvases.push(this)
@@ -44,7 +53,7 @@ beforeEach(async () => {
     static revokeObjectURL = vi.fn()
   })
   write = vi.fn().mockResolvedValue(undefined)
-  vi.stubGlobal('navigator', { clipboard: { write } })
+  vi.stubGlobal('navigator', { userAgent: 'jsdom', clipboard: { write } })
   vi.stubGlobal('ClipboardItem', class {
     constructor(data) { this.data = data }
   })
@@ -364,4 +373,138 @@ describe('chart PNG export', () => {
     await expect(result).resolves.toBe('toobig')
     expect(downloads).toHaveLength(0)
   })
+})
+
+it('draws percentile bubbles, chance bars, outlook pills, form blocks and stat tiles', async () => {
+  const table = spec()
+  table.tiles = [{ label: 'Projected', value: '12-5' }]
+  table.cols = [
+    { label: 'Percentile', text: () => '75', meter: () => 75 },
+    { label: 'Win chance', text: () => '60%', chance: () => 0.6 },
+    { label: 'Outlook', text: () => 'Lean win', pill: () => true },
+    { label: 'Last 5', text: () => 'WLT', form: () => ['W', 'L', 'T'] },
+  ]
+  await expect(copyImage(table)).resolves.toBe('copied')
+  const texts = calls.filter(c => c.type === 'fillText').map(c => c.args[0])
+  expect(texts).toEqual(expect.arrayContaining(['75', '60%', 'Lean win', 'W', 'L', 'T', 'Projected', '12-5']))
+  expect(ctx.arc).toHaveBeenCalledTimes(1)
+  expect(ctx.strokeRect).toHaveBeenCalledTimes(1)
+  expect(calls.some(c => c.type === 'fillRect' && c.style === '#16a34a')).toBe(true)
+})
+
+it('honors a panel width of 390 and uses the shared frame', async () => {
+  const draw = vi.fn()
+  const panel = { ...spec(), image: { width: 390, draw: () => ({ height: 200, draw }) } }
+  await expect(copyImage(panel)).resolves.toBe('copied')
+  expect(canvases[0].width).toBe(780)
+  expect(draw).toHaveBeenCalledWith(ctx)
+  expect(calls.filter(c => c.type === 'fillText').map(c => c.args[0])).toContain('RZS Stats — Standings')
+})
+
+it('defaults panels to 900 CSS pixels and guards oversized panels', async () => {
+  const panel = { ...spec(), image: { draw: () => ({ height: 100, draw() {} }) } }
+  await expect(copyImage(panel)).resolves.toBe('copied')
+  expect(canvases[0].width).toBe(1800)
+  await expect(copyImage({ ...panel, image: { draw: () => ({ height: 20000, draw() {} }) } })).resolves.toBe('toobig')
+})
+
+it('draws every team panel with missing data and the current widget visuals', async () => {
+  vi.stubGlobal('Image', class { set src(value) { queueMicrotask(() => this.onerror()) } })
+  const { headerSpec, fingerprintSpec, truthSpec, arcSpec, franchiseSpec, qbSpec, roadSpec, landscapeSpec } = await import('../components/team/specs')
+  const team = { teamId: 1, displayName: 'Bears', abbrName: 'CHI', cityName: 'Chicago', conference: 'NFC', division: 'NFC North', gamesPlayed: 2, wins: 1, losses: 1, ties: 0 }
+  const games = [
+    { week: 0, home: true, opp: { abbrName: 'GB', displayName: 'Packers' }, result: 'W', teamScore: 21, oppScore: 14, winProb: 0.3, preElo: 1490, postElo: 1510, eloChange: 20, cumWins: 1, cumExpected: 0.3, upset: { label: 'Big upset', won: true, alpha: 0.32 } },
+    { week: 1, home: false, opp: { abbrName: 'DET', displayName: 'Lions' }, result: 'L', teamScore: 7, oppScore: 14, winProb: 0.6, preElo: 1510, postElo: 1495, eloChange: -15, cumWins: 1, cumExpected: 0.9 },
+  ]
+  const panels = [
+    headerSpec(team, 1, [{ label: 'Record', value: '1-1', note: '2nd in NFC North' }, { label: 'Elo', value: '1495', rank: { rank: 20, of: 32 }, delta: { up: false, text: '5 vs S103' } }]),
+    fingerprintSpec(team, 1, [{ title: 'Offense', rows: [{ label: 'Points', text: '21', percentile: 75 }] }, { title: 'Defense', rows: [{ label: 'Points', text: '—', percentile: null }] }]),
+    truthSpec(team, 1, [{ value: 1, label: 'Actual wins' }, { value: 0.8, label: 'PyPAT wins' }, { value: 0.9, label: 'Elo wins' }], games),
+    arcSpec(team, 1, games),
+    franchiseSpec(team, [{ season: 1, wins: 1, losses: 1, ties: 0, finalElo: 1495 }], [{ season: 0, week: 1, endElo: 1490 }, { season: 1, week: 0, endElo: 1510 }]),
+    landscapeSpec([{ ...team, offense: { pointsPerDrive: 2, drives: 10 }, defense: { pointsPerDrive: 1.5, drives: 10 } }], 1, 1, team),
+  ]
+  ctx.rotate = vi.fn()
+  const { FINGERPRINT_FOOTER, TRUTH_EXPLANATION, FRANCHISE_NOTE, LANDSCAPE_FOOTER, trajectoryCopy } = await import('../utils/teamProfileCopy')
+  const footers = [null, FINGERPRINT_FOOTER, TRUTH_EXPLANATION, trajectoryCopy(5), FRANCHISE_NOTE, LANDSCAPE_FOOTER]
+  for (const [i, panel] of panels.entries()) {
+    const start = calls.length
+    await expect(copyImage(panel), panel.name).resolves.toBe('copied')
+    const output = calls.slice(start).filter(c => c.type === 'fillText').map(c => c.args[0]).join(' ')
+    expect(output).toContain(panel.qualifier)
+    if (footers[i]) expect(output).toContain(footers[i])
+  }
+  const texts = calls.filter(c => c.type === 'fillText').map(c => c.args[0])
+  expect(texts).toEqual(expect.arrayContaining(['75', 'No data', 'Poor', 'Great', 'Actual wins', 'Big upset win', 'Peak 1510', 'Low 1490', 'Good O', 'Bad D']))
+  const qualified = { playerName: 'Starter', qualified: true, tanya: 8 }
+  const backup = { playerName: 'Backup', qualified: false, tanya: 2 }
+  const qbs = qbSpec(team, 1, [qualified, backup], {}, [qualified, backup, { qualified: true, tanya: 4 }])
+  await expect(copyImage(qbs)).resolves.toBe('copied')
+  expect(qbs.cols.find(c => c.label === 'TANY/A').color(qualified)).toBe('rgb(22 163 74 / 0.420)')
+  expect(qbs.cols.find(c => c.label === 'TANY/A').color(backup)).toBeUndefined()
+  expect(calls).toContainEqual(expect.objectContaining({ type: 'fillText', args: expect.arrayContaining(['Backup']), style: '#646e7d' }))
+  const road = roadSpec(team, 1, [{ ...games[0], oppElo: 1500, game: { homeWinProbability: 0.3, awayWinProbability: 0.7 } }], { text: '—' })
+  await expect(copyImage(road)).resolves.toBe('copied')
+  const roadText = calls.filter(c => c.type === 'fillText').map(c => c.args[0])
+  expect(roadText).toContain('30%')
+  expect(roadText).toContain('Win probability')
+  expect(roadText.join(' ')).toContain(road.notes[0])
+})
+
+it('highlights the focused team last and fades the remaining Landscape logos', async () => {
+  vi.stubGlobal('Image', class { set src(value) { queueMicrotask(() => this.onload()) } })
+  const drawn = []
+  ctx.drawImage = (...args) => drawn.push({ args, alpha: ctx.globalAlpha, filter: ctx.filter })
+  ctx.rotate = vi.fn()
+  const { drawChartPlot } = await import('../utils/chartImage')
+  const chart = chartSpec()
+  chart.points = chart.points.map((p, i) => ({ ...p, id: i + 1 }))
+  await drawChartPlot(ctx, 900, 720, { ...chart, focus: 1, focusColor: '#123456' })
+  expect(drawn.map(d => [d.alpha, d.filter, d.args[3]])).toEqual([[0.45, 'grayscale(1)', 26], [1, 'none', 44]])
+  expect(ctx.arc).toHaveBeenCalledWith(expect.any(Number), expect.any(Number), 27, 0, Math.PI * 2)
+  expect(ctx.strokeStyle).toBe('#123456')
+})
+
+
+it('keeps the PNG palette equal to the light theme tokens', () => {
+  const css = readFileSync('src/index.css', 'utf8')
+  const root = css.match(/:root\s*\{([^}]+)\}/)[1]
+  for (const [name, color] of Object.entries(IMAGE)) {
+    const channels = root.match(new RegExp(`--${name}:\\s*([\\d ]+);`))[1].trim().split(/\s+/).map(Number)
+    const imageChannels = color.startsWith('#') ? color.slice(1).match(/../g).map(c => parseInt(c, 16)) : color.match(/\d+/g).map(Number)
+    expect(imageChannels, name).toEqual(channels)
+  }
+})
+
+it('draws rivalry wins and ties as separate shares on a red track and colors point differences', async () => {
+  vi.stubGlobal('Image', class { set src(value) { queueMicrotask(() => this.onerror()) } })
+  const { rivalrySpec } = await import('../components/team/specs')
+  const row = { opp: { displayName: 'Bears' }, games: 4, w: 1, l: 2, t: 1, diff: 7, pf: 60, pa: 53, last: { season: 1, week: 0, result: 'W', teamScore: 20, oppScore: 13 } }
+  const table = rivalrySpec({ displayName: 'Aces' }, [row, { ...row, diff: -7 }, { ...row, diff: 0 }], { key: 'games', asc: false }, 3)
+  const alpha = []
+  const fillRect = ctx.fillRect.bind(ctx)
+  ctx.fillRect = (...args) => {
+    if (args[3] === 8) alpha.push(ctx.globalAlpha)
+    fillRect(...args)
+  }
+  await expect(copyImage(table.imageSpec)).resolves.toBe('copied')
+  expect(alpha.slice(0, 3)).toEqual([0.5, 0.8, 0.6])
+  expect(ctx.roundRect).toHaveBeenCalledWith(expect.any(Number), expect.any(Number), 80, 8, 4)
+  const bars = calls.filter(c => c.type === 'fillRect' && c.args[3] === 8)
+  expect(bars.slice(0, 3).map(c => [c.style, c.args[2]])).toEqual([[IMAGE.bad, 80], [IMAGE.good, 20], [IMAGE.muted, 20]])
+  expect(bars[2].args[0]).toBe(bars[1].args[0] + 20)
+  for (const [value, tone] of [['+7', IMAGE.good], ['-7', IMAGE.bad], ['0', IMAGE.ink]]) {
+    expect(calls).toContainEqual(expect.objectContaining({ type: 'fillText', style: tone, args: expect.arrayContaining([value]) }))
+  }
+  const { toRows } = await import('../utils/exportTable')
+  expect(toRows(table)[0]).toEqual(['Opponent', 'GP', 'W', 'L', 'T', 'Point Diff', 'Pts/G For–Against', 'Last meeting'])
+})
+
+it('draws each row accent after the cell backgrounds', async () => {
+  const table = spec()
+  table.rows.push(table.rows[0])
+  table.rowAccent = (_, i) => i ? '#000000' : '#123456'
+  await copyImage(table)
+  const accents = calls.filter(c => c.type === 'fillRect' && ['#123456', '#000000'].includes(c.style))
+  expect(accents.map(c => [c.style, c.args])).toEqual([['#123456', [0, 80, 4, 23]], ['#000000', [0, 104, 4, 23]]])
 })
