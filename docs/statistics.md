@@ -54,15 +54,15 @@ Rolling team strength that carries across seasons. Config is persisted and tunab
 
 `EloHistoryService` **replays every game in order** to build history — ratings are derived, never stored per game. Playoffs count. Changing config changes all history, so the `eloHistory` cache is evicted with the rest.
 
-**How the defaults were chosen.** Retention 0.78 and cap 28 come from a walk-forward backtest over two independent Madden cycles (Madden 26, seasons 96–102, and Madden 27, 103 onward), each replayed from 1500; a new cycle never inherits ratings. Selection used only the Madden 26 folds and was confirmed on Madden 27:
+**How the defaults were chosen.** Retention 0.78 and cap 28 come from a backtest that grades every completed game, 2,572 across two independent Madden cycles (Madden 26, seasons 96–102, and Madden 27, 103 onward). Each cycle is replayed from 1500; a new cycle never inherits ratings. Every prediction uses only earlier games, so no split is needed. About 9,000 settings were tried, including an early-season K boost:
 
-- **Retention** is flat across 0.75–0.80 and worse on both sides (0.67 and 0.90 each cost about 0.001 log loss). League strength is stickier than the NFL's one-third regression, so the floor was set at 0.75.
+- **Retention** is nearly flat from 0.67 to 0.80 (within 0.0005 log loss) and worse toward 1.0; 0.90 costs 0.0024. League strength is stickier than the NFL's one-third regression, so the floor was set at 0.75, which costs 0.0003.
 - **Home field is 0.** Pooled across both cycles the estimate is -8 Elo (95% CI -21.5 to +5.3), and home teams won 48.6% and 49.1% of games.
 - **K 25 / divisor 400 stay.** Only K/divisor affects predictions; the divisor otherwise just rescales the displayed ratings.
-- **An early-season K boost was tested and dropped:** gain 0.0006 log loss, winning 3 of 6 folds.
-- The cap barely matters (0.0003 log loss); margin of victory itself does (turning it off costs about 0.019).
+- **The early-season K boost was dropped:** the best version gained 0.0006 log loss and beat the no-boost setting by a meaningful margin in only 2 of 10 seasons.
+- The cap barely matters; margin of victory itself does (turning it off costs about 0.019).
 
-The gains over the old defaults (retention 0.90, cap 21) are small: 0.0025 log loss on the Madden 26 folds, 0.0026 on Madden 27 season 104, and 0.0195 on season 105 weeks 0–5. Rerun the backtest harness (`EloBacktestReport`, gated by `-DeloBacktest=true`) after each season; retention rests on 8 season boundaries.
+The chosen setting beats the old defaults (retention 0.90, cap 21) by 0.0028 log loss over all games (0.5977 to 0.5948; 95% interval -0.0047 to -0.0009) and in 9 of 10 seasons. The gain is small, and 445 of the settings tried land within 0.002 of the best, so the choice among them rests on simplicity. Rerun the backtest harness (`EloBacktestReport`, gated by `-DeloBacktest=true`) after each season; retention rests on 8 season boundaries.
 
 Original Elo spec: [Elo ratings implementation](elo-ratings-implementation.md) — its worked examples use the original K 25, cap 21, retention 0.90.
 
