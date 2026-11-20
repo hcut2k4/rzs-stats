@@ -96,15 +96,6 @@ export default function StandingsPage() {
   const paAvg = r => r.gamesPlayed > 0 ? r.pointsAgainst / r.gamesPlayed : 0
   const sortGetters = { pointsFor: pfAvg, pointsAgainst: paAvg }
 
-  const sorted = [...standings].sort((a, b) => {
-    const getter = sortGetters[sortKey]
-    const av = getter ? getter(a) : a[sortKey]
-    const bv = getter ? getter(b) : b[sortKey]
-    if (av == null) return 1
-    if (bv == null) return -1
-    return sortAsc ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1)
-  })
-
   // Current-season opponent PyPAT is noise until opponents have games that were not
   // against you, so the toggle stays hidden and SoS reads off the prior season.
   const sosToggleReady = standings.some(r => r.gamesPlayed >= 3)
@@ -115,13 +106,23 @@ export default function StandingsPage() {
   const leftSource = leftPrefix === 'Curr' ? 'current-season' : 'previous-season'
   const sosCols = isCurrentSeason
     ? [
-        { key: `oppPyPat${sosPrefix}`, label: 'Played', exportLabel: 'SoS Played', title: `Played SoS: avg opponent-adjusted PyPAT, ${sosSource}. Lower = easier schedule.` },
-        { key: `oppPyPatRemaining${leftPrefix}`, label: 'Left', exportLabel: `SoS Left (${leftSource})`, source: leftSource, title: `Remaining SoS: future opponents' opponent-adjusted PyPAT using ${leftSource} opponent quality.` },
-        { key: `oppPyPatTotal${sosPrefix}`, label: 'Total', exportLabel: 'SoS Total', title: `Full-season SoS: all scheduled opponents, ${sosSource}.` },
+        { sortKey: 'sosPlayed', key: `oppPyPat${sosPrefix}`, label: 'Played', exportLabel: 'SoS Played', title: `Played SoS: avg opponent-adjusted PyPAT, ${sosSource}. Lower = easier schedule.` },
+        { sortKey: 'sosLeft', key: `oppPyPatRemaining${leftPrefix}`, label: 'Left', exportLabel: `SoS Left (${leftSource})`, source: leftSource, title: `Remaining SoS: future opponents' opponent-adjusted PyPAT using ${leftSource} opponent quality.` },
+        { sortKey: 'sosTotal', key: `oppPyPatTotal${sosPrefix}`, label: 'Total', exportLabel: 'SoS Total', title: `Full-season SoS: all scheduled opponents, ${sosSource}.` },
       ]
     : [
-        { key: `oppPyPat${sosPrefix}`, label: 'SoS', title: `Strength of Schedule: avg opponent-adjusted PyPAT, ${sosSource}. Lower = easier schedule.` },
+        { sortKey: 'sosPlayed', key: `oppPyPat${sosPrefix}`, label: 'SoS', title: `Strength of Schedule: avg opponent-adjusted PyPAT, ${sosSource}. Lower = easier schedule.` },
       ]
+
+  const sortField = sosCols.find(col => col.sortKey === sortKey)?.key ?? sortKey
+  const sorted = [...standings].sort((a, b) => {
+    const getter = sortGetters[sortField]
+    const av = getter ? getter(a) : a[sortField]
+    const bv = getter ? getter(b) : b[sortField]
+    if (av == null) return 1
+    if (bv == null) return -1
+    return sortAsc ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1)
+  })
 
   const COLS = [
     { key: 'rank',           label: '#', desc: 'Row number in the current sort order. Not an official standing or playoff seed.', tx: (_, i) => i + 1, value: (_, i) => i + 1, z: '0', fmt: (_, i) => i + 1, stickyLeft: 'left-0', w: 'w-10' },
@@ -172,7 +173,7 @@ export default function StandingsPage() {
   const gamesLabel = standings.length ? `${Math.max(...standings.map(r => r.gamesPlayed))} games played` : null
 
   const exportSpec = group => {
-    const sortLabel = COLS.find(col => col.key === sortKey)?.label
+    const sortLabel = COLS.find(col => (col.sortKey ?? col.key) === sortKey)?.label
     const direction = sortAsc ? 'ascending' : 'descending'
     return {
       name: group.label ? `Standings — ${group.label}` : 'Standings',
@@ -183,7 +184,7 @@ export default function StandingsPage() {
       cols: specCols(COLS, (col, heatVal) => cellColor(col, heatVal)),
       api: {
         path: '/standings', params: { season: standingsSeason },
-        note: `Returned unsorted; this table is sorted by ${sortKey} ${direction}. ${isCurrentSeason ? 'Played/Total SoS' : 'SoS'} uses ${sosSource} opponent quality.${isCurrentSeason ? ` SoS Left uses ${leftSource} opponent quality.` : ''}`,
+        note: `Returned unsorted; this table is sorted by ${sortField} ${direction}. ${isCurrentSeason ? 'Played/Total SoS' : 'SoS'} uses ${sosSource} opponent quality.${isCurrentSeason ? ` SoS Left uses ${leftSource} opponent quality.` : ''}`,
         fields: {
           Team: 'cityName + " " + displayName',
           'Avg PF': 'pointsFor / gamesPlayed, 1 dp; empty when no games played',
@@ -307,10 +308,10 @@ export default function StandingsPage() {
                             col.stickyLeft ? ` sticky ${col.stickyLeft} z-20 bg-bg ${col.w ?? ''}` : ''
                           }${col.groupStart ? ' border-l border-rule' : ''}`}
                           title={col.title}
-                          onClick={() => handleSort(col.key)}
+                          onClick={() => handleSort(col.sortKey ?? col.key)}
                         >
                           {col.label}
-                          {sortKey === col.key && (sortAsc ? ' ▲' : ' ▼')}
+                          {sortKey === (col.sortKey ?? col.key) && (sortAsc ? ' ▲' : ' ▼')}
                         </th>
                       ))}
                     </tr>
