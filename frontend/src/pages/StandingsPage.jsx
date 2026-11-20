@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { getSeasons, getStandings, getSeasonTrends, getEloUpcoming } from '../api/client'
+import { getSeasons, getStandings, getSeasonTrends, getAvailableWeeks } from '../api/client'
 import ExportMenu from '../components/ExportMenu'
 import { specCols } from '../utils/exportTable'
 import { TeamCell } from '../components/TeamLogo'
@@ -11,7 +11,7 @@ import SeasonHistoryTab from '../components/SeasonHistoryTab'
 import WeeklyTab from '../components/WeeklyTab'
 import { goodBadColor, divergeColor } from '../utils/heat'
 import { seasonLabel, seasonNumber } from '../utils/seasons'
-import { currentRegularWeek, sosLeftVariant } from '../utils/teamProfile'
+import { latestWeek, sosVariantForWeek } from '../utils/teamProfile'
 import { useLoad } from '../utils/useLoad'
 
 const pct = v => v != null ? (v * 100).toFixed(1) + '%' : '—'
@@ -39,14 +39,14 @@ export default function StandingsPage() {
   const [sortKey, setSortKey] = useState('pythagoreanPat')
   const [sortAsc, setSortAsc] = useState(false)
   const [groupByConf, setGroupByConf] = useState(false)
-  const [sosMode, setSosMode] = useState('curr')
+  const [sosMode, setSosMode] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [history, setHistory] = useState(null)
   const [historyError, setHistoryError] = useState(false)
   const historyRequested = useRef(false)
   const latest = seasons.length ? seasons[seasons.length - 1] : null
-  const upcoming = useLoad(tab === 'standings' && season != null && season === latest ? `upcoming-${season}` : null, () => getEloUpcoming(season))
+  const weeks = useLoad(season != null && season === latest ? `weeks-${season}` : null, () => getAvailableWeeks(season, 1))
 
   useEffect(() => {
     getSeasons()
@@ -55,9 +55,7 @@ export default function StandingsPage() {
         if (s.length) {
           const defaultSeason = s[s.length - 1]
           setSeason(defaultSeason)
-          // Default to prior season stats for the active/current season (insufficient games),
-          // current season stats for all historical seasons (full data available)
-          setSosMode(defaultSeason === s[s.length - 1] ? 'prev' : 'curr')
+          setSosMode(null)
         }
       })
       .catch(() => setError('Failed to load seasons'))
@@ -96,22 +94,18 @@ export default function StandingsPage() {
   const paAvg = r => r.gamesPlayed > 0 ? r.pointsAgainst / r.gamesPlayed : 0
   const sortGetters = { pointsFor: pfAvg, pointsAgainst: paAvg }
 
-  // Current-season opponent PyPAT is noise until opponents have games that were not
-  // against you, so the toggle stays hidden and SoS reads off the prior season.
   const sosToggleReady = standings.some(r => r.gamesPlayed >= 3)
-  const activeSosMode = sosToggleReady ? sosMode : 'prev'
+  const activeSosMode = sosMode ?? sosVariantForWeek(season, latest, latestWeek(weeks.data)).toLowerCase()
   const sosPrefix = activeSosMode === 'curr' ? 'Curr' : 'Prev'
-  const sosSource = activeSosMode === 'curr' ? 'current season' : 'previous season'
-  const leftPrefix = activeSosMode === 'curr' ? 'Curr' : sosLeftVariant(season, latest, currentRegularWeek(upcoming.data ?? []))
-  const leftSource = leftPrefix === 'Curr' ? 'current-season' : 'previous-season'
+  const sosSource = activeSosMode === 'curr' ? 'current-season' : 'previous-season'
   const sosCols = isCurrentSeason
     ? [
-        { sortKey: 'sosPlayed', key: `oppPyPat${sosPrefix}`, label: 'Played', exportLabel: 'SoS Played', title: `Played SoS: avg opponent-adjusted PyPAT, ${sosSource}. Lower = easier schedule.` },
-        { sortKey: 'sosLeft', key: `oppPyPatRemaining${leftPrefix}`, label: 'Left', exportLabel: `SoS Left (${leftSource})`, source: leftSource, title: `Remaining SoS: future opponents' opponent-adjusted PyPAT using ${leftSource} opponent quality.` },
-        { sortKey: 'sosTotal', key: `oppPyPatTotal${sosPrefix}`, label: 'Total', exportLabel: 'SoS Total', title: `Full-season SoS: all scheduled opponents, ${sosSource}.` },
+        { sortKey: 'sosPlayed', key: `oppPyPat${sosPrefix}`, label: 'Played', exportLabel: `SoS Played (${sosSource})`, title: `Played SoS: avg opponent-adjusted PyPAT, ${sosSource}. Lower = easier schedule.` },
+        { sortKey: 'sosLeft', key: `oppPyPatRemaining${sosPrefix}`, label: 'Left', exportLabel: `SoS Left (${sosSource})`, title: `Remaining SoS: future opponents' opponent-adjusted PyPAT using ${sosSource} opponent quality.` },
+        { sortKey: 'sosTotal', key: `oppPyPatTotal${sosPrefix}`, label: 'Total', exportLabel: `SoS Total (${sosSource})`, title: `Full-season SoS: all scheduled opponents, ${sosSource}.` },
       ]
     : [
-        { sortKey: 'sosPlayed', key: `oppPyPat${sosPrefix}`, label: 'SoS', title: `Strength of Schedule: avg opponent-adjusted PyPAT, ${sosSource}. Lower = easier schedule.` },
+        { sortKey: 'sosPlayed', key: `oppPyPat${sosPrefix}`, label: 'SoS', exportLabel: `SoS (${sosSource})`, title: `Strength of Schedule: avg opponent-adjusted PyPAT, ${sosSource}. Lower = easier schedule.` },
       ]
 
   const sortField = sosCols.find(col => col.sortKey === sortKey)?.key ?? sortKey
@@ -141,7 +135,7 @@ export default function StandingsPage() {
       fmt: v => v != null ? (v > 0 ? '+' : '') + v.toFixed(1) : '—',
       heat: 'diverge',
       title: 'Wins above PyPAT expectation. Positive = lucky (regression risk).' },
-    ...sosCols.map((c, i) => ({ ...c, desc: `${c.label === 'Left' ? 'Remaining schedule: future opponents' : c.label === 'Total' ? 'Full-season schedule: all scheduled opponents' : 'Played schedule: opponents already played'}. Average opponent-adjusted PyPAT using ${c.source ?? sosSource} quality, recalculated with the subject team's games removed so head-to-head results cannot inflate it. Weighted per game, so a division rival played twice counts twice. Lower = easier schedule. Null = no data, not 0.`, value: r => r[c.key], z: '0.0%', fmt: pct, heat: 'lower', group: 'Strength of schedule', groupStart: i === 0 })),
+    ...sosCols.map((c, i) => ({ ...c, desc: `${c.label === 'Left' ? 'Remaining schedule: future opponents' : c.label === 'Total' ? 'Full-season schedule: all scheduled opponents' : 'Played schedule: opponents already played'}. Average opponent-adjusted PyPAT using ${sosSource} quality, recalculated with the subject team's games removed so head-to-head results cannot inflate it. Weighted per game, so a division rival played twice counts twice. Lower = easier schedule. Null = no data, not 0.`, value: r => r[c.key], z: '0.0%', fmt: pct, heat: 'lower', group: 'Strength of schedule', groupStart: i === 0 })),
   ]
 
   const groupSpans = []
@@ -184,7 +178,7 @@ export default function StandingsPage() {
       cols: specCols(COLS, (col, heatVal) => cellColor(col, heatVal)),
       api: {
         path: '/standings', params: { season: standingsSeason },
-        note: `Returned unsorted; this table is sorted by ${sortField} ${direction}. ${isCurrentSeason ? 'Played/Total SoS' : 'SoS'} uses ${sosSource} opponent quality.${isCurrentSeason ? ` SoS Left uses ${leftSource} opponent quality.` : ''}`,
+        note: `Returned unsorted; this table is sorted by ${sortField} ${direction}. SoS uses ${sosSource} opponent quality.`,
         fields: {
           Team: 'cityName + " " + displayName',
           'Avg PF': 'pointsFor / gamesPlayed, 1 dp; empty when no games played',
@@ -213,7 +207,7 @@ export default function StandingsPage() {
             onChange={e => {
               const newSeason = Number(e.target.value)
               setSeason(newSeason)
-              setSosMode(newSeason === seasons[seasons.length - 1] ? 'prev' : 'curr')
+              setSosMode(null)
             }}
           >
             {seasons.map(s => (

@@ -35,6 +35,7 @@ const hist = (teamId, season, week, endElo, rank) => ({ teamId, season, week, se
 describe('Team profile', () => {
   beforeEach(() => {
     clearLoadCache()
+    client.getAvailableWeeks.mockResolvedValue([])
     client.getEloRatings.mockResolvedValue([{ teamId: 1, rank: 1 }, { teamId: 2, rank: 2 }])
     client.getSeasons.mockResolvedValue([0, 1])
     client.getStandings.mockImplementation(season => Promise.resolve(
@@ -87,23 +88,20 @@ describe('Team profile', () => {
     expect(await within(rivals).findByText('3-0')).toBeInTheDocument()
   })
 
-  it.each([[8, 'previous-season', '50.0%'], [9, 'current-season', '48.0%'], [10, 'current-season', '48.0%']])(
-    'uses the league week for Remaining SoS at index %s and keeps Played unchanged', async (week, source, value) => {
-      const game = (week, homeTeam, awayTeam) => ({
-        gameId: week, season: 1, week, homeTeam, awayTeam, homeElo: 1500, awayElo: 1500,
-        homeWinProbability: 0.5, awayWinProbability: 0.5,
-      })
-      client.getEloUpcoming.mockResolvedValue([game(12, A, B), game(week, B, { ...B, teamId: 3 })])
+  it.each([[7, 'previous-season', '50.0%'], [9, 'current-season', '48.0%'], [17, 'current-season', '48.0%']])(
+    'uses completed week index %s for both Played and Remaining SoS', async (week, source, value) => {
+      client.getAvailableWeeks.mockResolvedValue(Array.from({ length: week + 1 }, (_, i) => i))
       renderAt('/teams/AAA')
       const road = await screen.findByRole('region', { name: 'Road Ahead' })
       await waitFor(() => expect(within(road).getByText('Remaining SoS')).toHaveAttribute('title', expect.stringContaining(source)))
       expect(within(road).getByText(value)).toBeInTheDocument()
-      expect(screen.getByText('Strength of Schedule')).toHaveAttribute('title', expect.stringContaining('previous-season'))
-      expect(within(kpi('Strength of Schedule')).getByText('52.0%')).toBeInTheDocument()
+      expect(screen.getByText('Strength of Schedule')).toHaveAttribute('title', expect.stringContaining(source))
+      expect(within(kpi('Strength of Schedule')).getByText(source === 'current-season' ? '50.0%' : '52.0%')).toBeInTheDocument()
     }
   )
 
   it('leaves missing current-season Remaining SoS unrated instead of using previous-season quality', async () => {
+    client.getAvailableWeeks.mockResolvedValue([9])
     client.getEloUpcoming.mockResolvedValue([{
       gameId: 9, season: 1, week: 9, homeTeam: A, awayTeam: B, homeElo: 1500, awayElo: 1500,
       homeWinProbability: 0.5, awayWinProbability: 0.5,

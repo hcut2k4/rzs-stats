@@ -217,18 +217,12 @@ export const luckLean = winDiff => (winDiff > 0.5 ? 1 : winDiff < -0.5 ? -1 : 0)
 
 export const quadrant = (offense, defense, league) => ({ goodOffense: offense >= league, goodDefense: defense <= league })
 
-// Same default as Standings and About: the active season reads prior-season opponent quality, finished seasons their own.
-// SoS Left switches to current-season quality from Week 10; Played keeps this default.
-export const sosVariant = (season, latest) => (season > 0 && season === latest ? 'Prev' : 'Curr')
+export const latestWeek = weeks => (weeks?.length ? Math.max(...weeks) : null)
 
-export const sosLeftVariant = (season, latest, currentWeek) => (
-  currentWeek >= SOS_CURRENT_FROM_WEEK ? 'Curr' : sosVariant(season, latest)
+// All SoS values use previous-season quality through Week 9, then current-season quality through the playoffs.
+export const sosVariantForWeek = (season, latest, week) => (
+  season > 0 && season === latest && (week == null || week < SOS_CURRENT_FROM_WEEK) ? 'Prev' : 'Curr'
 )
-
-export function currentRegularWeek(upcoming) {
-  const weeks = upcoming.map(g => g.week).filter(w => Number.isInteger(w) && w >= 0 && w < REGULAR_WEEKS)
-  return weeks.length ? Math.min(...weeks) : null
-}
 
 export function projectedRecord(team, road) {
   const remainingWins = Math.round(road.reduce((s, r) => s + r.winProb, 0))

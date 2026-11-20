@@ -11,7 +11,7 @@ vi.mock('../api/client')
 
 beforeEach(() => {
   clearLoadCache()
-  client.getEloUpcoming.mockResolvedValue([])
+  client.getAvailableWeeks.mockResolvedValue([])
 })
 
 globalThis.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} }
@@ -166,22 +166,23 @@ describe('Standings tabs', () => {
 
   it('resets the SoS mode on a season change but keeps it across tab switches', async () => {
     stub()
+    client.getAvailableWeeks.mockResolvedValue([9])
     client.getStandings.mockResolvedValue([row(1, 'Aces', 0.5, { gamesPlayed: 3 }), row(2, 'Wolves', 0.5, { gamesPlayed: 3 })])
     renderAt('/standings')
 
-    await waitFor(() => expect(screen.getByText('Prior season')).toHaveClass('bg-ink'))
-    await userEvent.click(screen.getByText('This season'))
-    expect(screen.getByText('This season')).toHaveClass('bg-ink')
+    await waitFor(() => expect(screen.getByText('This season')).toHaveClass('bg-ink'))
+    await userEvent.click(screen.getByText('Prior season'))
+    expect(screen.getByText('Prior season')).toHaveClass('bg-ink')
 
     await userEvent.click(screen.getByRole('tab', { name: 'Week by Week' }))
     await userEvent.click(screen.getByRole('tab', { name: 'Standings' }))
-    expect(screen.getByText('This season')).toHaveClass('bg-ink')
+    expect(screen.getByText('Prior season')).toHaveClass('bg-ink')
 
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Season' }), '6')
     await waitFor(() => expect(screen.getByText('This season')).toHaveClass('bg-ink'))
 
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Season' }), '7')
-    await waitFor(() => expect(screen.getByText('Prior season')).toHaveClass('bg-ink'))
+    await waitFor(() => expect(screen.getByText('This season')).toHaveClass('bg-ink'))
   })
 
   it('offers a retry when season history fails to load, instead of showing it as empty', async () => {

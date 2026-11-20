@@ -10,7 +10,7 @@ vi.mock('../api/client')
 
 beforeEach(() => {
   clearLoadCache()
-  client.getEloUpcoming.mockResolvedValue([])
+  client.getAvailableWeeks.mockResolvedValue([])
 })
 
 globalThis.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} }

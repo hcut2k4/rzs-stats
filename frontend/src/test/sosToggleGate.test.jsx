@@ -9,7 +9,7 @@ vi.mock('../api/client')
 
 beforeEach(() => {
   clearLoadCache()
-  client.getEloUpcoming.mockResolvedValue([])
+  client.getAvailableWeeks.mockResolvedValue([])
 })
 
 const team = (teamId, gamesPlayed) => ({

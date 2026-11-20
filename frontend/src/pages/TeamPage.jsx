@@ -1,7 +1,6 @@
-import { PYPAT_TIP, LUCK_TIP, franchiseSummary } from '../utils/teamProfileCopy'
 import { useEffect, useMemo } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { getSeasons, getStandings, getEfficiency, getQbLeaderboard, getEloUpcoming, getEloGames, getSeasonTrends, getEloHistory } from '../api/client'
+import { getSeasons, getStandings, getEfficiency, getQbLeaderboard, getAvailableWeeks, getEloUpcoming, getEloGames, getSeasonTrends, getEloHistory } from '../api/client'
 import { useSorter } from '../components/SortTh'
 import Masthead from '../components/team/Masthead'
 import Fingerprint from '../components/team/Fingerprint'
@@ -15,10 +14,11 @@ import Rivalries from '../components/team/Rivalries'
 import { arcSpec, fingerprintSpec, franchiseSpec, qbSpec, rivalrySpec, roadSpec, truthSpec } from '../components/team/specs'
 import { pct, signed } from '../utils/efficiencyMetrics'
 import { useLoad } from '../utils/useLoad'
+import { PYPAT_TIP, LUCK_TIP, franchiseSummary } from '../utils/teamProfileCopy'
 import { SEASON_OFFSET, seasonLabel, seasonNumber } from '../utils/seasons'
 import {
   actualWins, eloExpectedWins, fingerprint, franchiseSeasons, headToHead, lastWeekRows, luckLean, ordinal, projectedRecord,
-  currentRegularWeek, pypatWins, rankIn, recordText, seasonArc, signed1, sosLeftVariant, sosVariant, tally, teamColorVars, teamGames, teamUpcoming,
+  latestWeek, pypatWins, rankIn, recordText, seasonArc, signed1, sosVariantForWeek, tally, teamColorVars, teamGames, teamUpcoming,
 } from '../utils/teamProfile'
 
 const SOS_TIP = 'Strength of schedule: opponent quality based on points scored and allowed, with this team\'s own games removed from each opponent. Higher means a harder schedule. Empty means no data, not 0.'
@@ -57,6 +57,7 @@ export default function TeamPage() {
   const efficiency = useLoad(seasonKey('efficiency'), () => getEfficiency(season, 'regular'))
   const qbParams = { scope: 'season', season, stage: 'regular', includeUnqualified: true }
   const qbs = useLoad(seasonKey('qb'), () => getQbLeaderboard(qbParams))
+  const weeks = useLoad(seasonKey('weeks'), () => getAvailableWeeks(season, 1))
   const upcoming = useLoad(seasonKey('upcoming'), () => getEloUpcoming(season))
   const trends = useLoad('trends', getSeasonTrends)
   const history = useLoad('history', () => getEloHistory())
@@ -99,12 +100,10 @@ export default function TeamPage() {
   const playedRows = all.filter(r => r.gamesPlayed)
   const prevLabel = `S${seasonNumber(season - 1)}`
 
-  const sos = sosVariant(season, latest)
+  const sos = sosVariantForWeek(season, latest, latestWeek(weeks.data))
   const sosSource = sos === 'Prev' ? 'previous-season opponent quality' : 'current-season opponent quality'
-  const sosLeft = sosLeftVariant(season, latest, currentRegularWeek(upcoming.data ?? []))
-  const sosLeftSource = sosLeft === 'Prev' ? 'previous-season opponent quality' : 'current-season opponent quality'
   const playedField = `oppPyPat${sos}`
-  const leftField = `oppPyPatRemaining${sosLeft}`
+  const leftField = `oppPyPatRemaining${sos}`
   const sosText = field => (team[field] == null ? '—' : pct(team[field]))
   const divRank = rankIn(team.winPct, all.filter(r => r.division === team.division).map(r => r.winPct))
 
@@ -190,9 +189,9 @@ export default function TeamPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
           <ScoreboardTruth lanes={lanes} games={team.gamesPlayed} arc={regularArc} spec={truthSpec(team, season, lanes, regularArc)} />
           {showRoad
-            ? <RoadAhead rows={road} loading={upcoming.loading} teamHref={teamHref} spec={roadSpec(team, season, road, { text: sosText(leftField), source: sosLeftSource, rank: leftRank ? `${ordinal(leftRank.rank)} hardest of ${leftRank.of}` : null })}
+            ? <RoadAhead rows={road} loading={upcoming.loading} teamHref={teamHref} spec={roadSpec(team, season, road, { text: sosText(leftField), source: sosSource, rank: leftRank ? `${ordinal(leftRank.rank)} hardest of ${leftRank.of}` : null })}
                 projection={{ record: recordText(projectedRecord(team, road)) }}
-                sosLeft={{ text: sosText(leftField), source: sosLeftSource, tip: `${SOS_TIP} Remaining games only. Uses ${sosLeftSource}.`, rank: leftRank ? `${ordinal(leftRank.rank)} hardest of ${leftRank.of}` : null }} />
+                sosLeft={{ text: sosText(leftField), source: sosSource, tip: `${SOS_TIP} Remaining games only. Uses ${sosSource}.`, rank: leftRank ? `${ordinal(leftRank.rank)} hardest of ${leftRank.of}` : null }} />
             : qbRoom}
         </div>
         <SeasonArc games={seasonGames} spec={arcSpec(team, season, seasonGames, inProgress)} teamHref={teamHref} loading={eloGames.loading} />
