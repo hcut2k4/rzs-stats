@@ -1,5 +1,7 @@
 # Handoff: resetting Elo when a team changes owners
 
+Status (2026-11-20): implemented production mid-season regression for the four Madden 27 rows, sharing offseason retention; admin ownership management remains deferred.
+
 Pick-up document for a new session. Goal: work out when and how to reset or regress a team's Elo when its human owner changes, and test whether doing so improves rating accuracy on both Madden 26 and Madden 27. Nothing here has been built.
 
 ## The idea

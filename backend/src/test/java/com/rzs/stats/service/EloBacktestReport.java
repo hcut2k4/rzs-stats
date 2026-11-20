@@ -237,7 +237,8 @@ class EloBacktestReport {
             Map<Integer, Integer> ranks = boostRanks(ratings);
             for (var team : teams.values()) {
                 int id = team.teamId();
-                history.add(new EloService.Snapshot(team, first.season(), first.week(), seasonStart, starts.get(id), ratings.get(id),
+                history.add(new EloService.Snapshot(team, first.season(), first.week(), seasonStart, !seasonStart && changes.weeks().getOrDefault(first.season(), Map.of())
+                        .getOrDefault(first.week(), Set.of()).contains(id), starts.get(id), ratings.get(id),
                         ratings.get(id) - starts.get(id), previousElos.get(id), ranks.get(id), previousRanks.get(id), counts.getOrDefault(id, 0)));
             }
             previousRanks = ranks;
@@ -481,6 +482,9 @@ class EloBacktestReport {
             for (Cycle cycle : cycles()) {
                 var baselineTimeline = engine.compute(cycle.games(), List.of(), config);
                 var timeline = replayBoost(cycle, config, 0, 0, regressChanges.get(cycle.name()));
+                if (cycle == current) assertEquals(timeline,
+                        engine.compute(cycle.games(), List.of(), config, new OwnerChangeService().list()),
+                        "Production owner changes match the REGRESS arm");
                 for (var snapshot : timeline.history()) {
                     if (snapshot.week() != 0 || !regressChanges.get(cycle.name()).weeks().getOrDefault(snapshot.season(), Map.of())
                             .getOrDefault(0, Set.of()).contains(snapshot.team().teamId())) continue;
@@ -720,7 +724,7 @@ class EloBacktestReport {
                 graded.add(new EloService.Result(labeled, r.homePregameElo(), r.awayPregameElo(), r.homeWinProbability(), r.awayWinProbability(),
                         r.margin(), r.movMultiplier(), r.pointsMoved(), r.homePostgameElo(), r.awayPostgameElo()));
             }
-            for (var s : timeline.history()) history.add(new EloService.Snapshot(s.team(), s.season() + cycle.offset(), s.week(), s.seasonStart(),
+            for (var s : timeline.history()) history.add(new EloService.Snapshot(s.team(), s.season() + cycle.offset(), s.week(), s.seasonStart(), s.ownerReset(),
                     s.startElo(), s.endElo(), s.change(), s.prevElo(), s.rank(), s.prevRank(), s.gamesCounted()));
         }
         assertEquals(archive.games().size() + current.games().size(), graded.size());

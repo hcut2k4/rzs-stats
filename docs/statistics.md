@@ -50,7 +50,7 @@ Rolling team strength that carries across seasons. Config is persisted and tunab
 | `divisor` | Logistic scale for win probability (400) |
 | `movEnabled` / `marginCap` | Margin-of-victory multiplier, capped at `marginCap` points (28) |
 | `homeFieldAdvantage` | Rating points added to the home side for the prediction (0) |
-| `offseasonRetention` | Fraction of distance from `initialRating` kept between seasons (0.78) |
+| `offseasonRetention` | Fraction of distance from `initialRating` kept between seasons and at mid-season owner changes (0.78) |
 
 `EloHistoryService` **replays every game in order** to build history — ratings are derived, never stored per game. Playoffs count. Changing config changes all history, so the `eloHistory` cache is evicted with the rest.
 
@@ -65,6 +65,12 @@ Rolling team strength that carries across seasons. Config is persisted and tunab
 The chosen setting beats the old defaults (retention 0.90, cap 21) by 0.0028 log loss over all games (0.5977 to 0.5948; 95% interval -0.0047 to -0.0009) and in 9 of 10 seasons. The gain is small, and 445 of the settings tried land within 0.002 of the best, so the choice among them rests on simplicity. Rerun the backtest harness (`EloBacktestReport`, gated by `-DeloBacktest=true`) after each season; retention rests on 8 season boundaries.
 
 Original Elo spec: [Elo ratings implementation](elo-ratings-implementation.md) — its worked examples use the original K 25, cap 21, retention 0.90.
+
+#### Owner changes
+
+Mid-season owner changes regress only the affected team toward 1500, using the same `offseasonRetention` setting and regression as a new season. Regression applies before games in the exact season/week block, including a bye. A change at a season's first observed block gets no extra regression. `OwnerChangeService` supplies the four hardcoded Madden 27 rows, keyed by teamId; other cycles have different IDs. History marks the affected snapshot with `ownerReset`; its `change` remains game-only, while the ratings table's weekly change includes regression.
+
+The backtest's all-games log loss at retention 0.78 was 0.594682 with mid-season regression versus 0.594828 without it. This is a small gain inside the noise band, adopted because it matches how the league works. There is no separate owner retention setting.
 
 ### Outlook tiers
 

@@ -142,4 +142,51 @@ class EloServiceTest {
         assertThat(timeline.history()).extracting(EloService.Snapshot::rank).containsExactly(1, 2, 3);
         assertThat(timeline.history()).extracting(s -> s.team().teamId()).containsExactly(1, 2, 3);
     }
+
+    @ParameterizedTest
+    @CsvSource({"0.5", "0.78", "0.9"})
+    void ownerChangesRegressOnlyTheChangedTeamAtTheExactBlockEvenOnBye(double retention) {
+        var custom = new EloConfig(1500, 25, 400, true, 28, 0, retention);
+        var input = List.of(game(1, 0, 0, a, b, 21, 0), game(2, 0, 1, c, d, 7, 0),
+                game(3, 0, 2, c, d, 7, 0), game(4, 0, 3, a, b, 7, 0), game(5, 1, 0, c, d, 7, 0));
+        var changes = List.of(new EloService.OwnerChange(0, 2, a.teamId(), "A"));
+        var baseline = engine.compute(input, List.of(), custom);
+        var timeline = engine.compute(input, List.of(), custom, changes);
+        assertThat(timeline.history().subList(0, 8)).isEqualTo(baseline.history().subList(0, 8));
+        var reset = timeline.history().get(8);
+        assertThat(reset.startElo()).isEqualTo(1500 + (reset.prevElo() - 1500) * retention);
+        assertThat(reset.endElo()).isEqualTo(reset.startElo());
+        assertThat(reset.change()).isZero();
+        assertThat(timeline.history().subList(9, 12)).isEqualTo(baseline.history().subList(9, 12));
+        assertThat(timeline.history().stream().filter(EloService.Snapshot::ownerReset).toList()).containsExactly(reset);
+        assertThat(timeline.games().get(3).homePregameElo()).isEqualTo(reset.endElo());
+        var seasonal = timeline.history().get(16);
+        assertThat(seasonal.startElo()).isEqualTo(1500 + (seasonal.prevElo() - 1500) * retention);
+        assertThat(engine.compute(input, List.of(), custom, changes)).isEqualTo(timeline);
+        assertThat(engine.compute(input, List.of(), custom, List.of(changes.getFirst(), new EloService.OwnerChange(0, 2, a.teamId(), "Other label"))))
+                .isEqualTo(timeline);
+    }
+
+    @Test
+    void ownerRegressionPrecedesGamesAndHistoryChangeCountsOnlyGames() {
+        var input = List.of(game(1, 0, 0, a, b, 21, 0), new EloService.Game(2, 2L, 0, 2, 1, a, b, 7, 0));
+        var timeline = engine.compute(input, List.of(), config, List.of(new EloService.OwnerChange(0, 1, 1, "A")));
+        var reset = timeline.history().get(2);
+        assertThat(timeline.games().getLast().homePregameElo()).isEqualTo(engine.regress(reset.prevElo(), config));
+        assertThat(reset.change()).isEqualTo(reset.endElo() - reset.startElo());
+        assertThat(reset.change()).isNotEqualTo(reset.endElo() - reset.prevElo());
+    }
+
+    @Test
+    void seasonStartsUnknownTeamsAndEmptyChangesLeaveTimelineUnchanged() {
+        var input = List.of(game(1, 0, 0, a, b, 21, 0), game(2, 0, 1, a, b, 7, 0),
+                game(3, 1, 0, a, b, 7, 0), game(4, 2, 5, a, b, 7, 0));
+        var baseline = engine.compute(input, List.of(), config);
+        assertThat(engine.compute(input, List.of(), config, List.of())).isEqualTo(baseline);
+        assertThat(engine.compute(input, List.of(), config, List.of(
+                new EloService.OwnerChange(0, 0, 1, "A"), new EloService.OwnerChange(1, 0, 1, "A"),
+                new EloService.OwnerChange(2, 5, 1, "A"), new EloService.OwnerChange(0, 1, 99, "Unknown"),
+                new EloService.OwnerChange(3, 1, 1, "A"), new EloService.OwnerChange(0, 2, 1, "A"))))
+                .isEqualTo(baseline);
+    }
 }
