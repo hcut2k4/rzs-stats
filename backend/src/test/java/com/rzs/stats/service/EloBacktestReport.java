@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ForkJoinPool;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.function.ToDoubleFunction;
 import java.util.stream.Collectors;
 
@@ -124,6 +125,7 @@ class EloBacktestReport {
     }
 
     @Test
+    @EnabledIfSystemProperty(named = "eloBacktestPhase3", matches = "true")
     void writeKBoostReport() throws Exception {
         long started = System.nanoTime();
         Path output = Path.of("target/elo-backtest");
@@ -382,6 +384,280 @@ class EloBacktestReport {
                 .append(f(ci[0])).append(", ").append(f(ci[1])).append("]; per-fold wins ").append(foldWins(candidate, baseline)).append("/6.\n");
     }
 
+    @Test
+    void writeAllGamesReport() throws Exception {
+        long started = System.nanoTime();
+        Path output = Path.of("target/elo-backtest");
+        Files.createDirectories(output);
+        Path archivePath = Path.of("..").toAbsolutePath().normalize().resolve("archive/madden26/games.json");
+        assertTrue(Files.isRegularFile(archivePath), "All-games selection requires the archive");
+        archive = load(archivePath, true);
+        current = load(Path.of("src/test/resources/elo/games-snapshot.json"), false);
+        List<Supplier<BoostRow>> configs = new ArrayList<>();
+        for (double k : new double[]{15, 20, 25, 30, 35, 40}) for (int cap : new int[]{0, 14, 21, 28, 35})
+            for (double retention : new double[]{0.67, 0.75, 0.78, 0.80, 0.82, 0.85, 0.88, 0.90, 0.95, 1})
+                for (double hfa : new double[]{-10, 0, 10}) for (double boost : new double[]{0, 0.25, 0.5, 1})
+                    for (int weeks : boost == 0 ? new int[]{0} : new int[]{3, 6, 9}) {
+                        var c = new EloConfig(1500, k, 400, cap != 0, cap == 0 ? 21 : cap, hfa, retention);
+                        configs.add(() -> evaluateAll(c, boost, weeks));
+                    }
+        assertEquals(9000, configs.size());
+        List<BoostRow> rows;
+        try (var pool = new ForkJoinPool(4)) {
+            rows = pool.submit(() -> configs.parallelStream().map(Supplier::get).toList()).get();
+        }
+        var defaults = rows.stream().filter(r -> r.boost() == 0 && r.row().config().equals(DEFAULTS)).findFirst().orElseThrow();
+        var committedConfig = new EloConfig(1500, 25, 400, true, 28, 0, 0.78);
+        var committed = rows.stream().filter(r -> r.boost() == 0 && r.row().config().equals(committedConfig)).findFirst().orElseThrow();
+        assertEquals(0.5761, defaults.row().windows().get("season104").logLoss(), 0.002);
+        var zero = evaluateAll(new EloConfig(1500, 1e-9, 400, true, 21, 0, 0.90), 0, 0);
+        assertEquals(Math.log(2), allLoss(zero), 1e-8);
+        var eligible = rows.stream().filter(this::allEligible).sorted(Comparator.comparingDouble(this::allLoss)).toList();
+        assertFalse(eligible.isEmpty(), "No settings meet the presentation guardrails");
+        var provisional = selectAll(eligible, defaults);
+        var noBoost = selectAll(eligible.stream().filter(r -> r.boost() == 0).toList(), defaults);
+        int boostWins = seasonWins(provisional, noBoost, 0.002);
+        boolean adoptBoost = provisional.boost() > 0 && boostWins >= 7;
+        var winner = adoptBoost ? provisional : noBoost;
+        List<Transition> transitions = new ArrayList<>();
+        for (Cycle cycle : cycles()) transitions.addAll(transitions(cycle, replayBoost(cycle, winner.row().config(), winner.boost(), winner.weeks())));
+        assertEquals(8, transitions.size());
+        assertFalse(transitions.stream().anyMatch(t -> t.from() == 102 && t.to() == 103));
+        writeAllCsv(output.resolve("results-all-games.csv"), rows, defaults, committed);
+        String report = allReport(rows, eligible, defaults, committed, provisional, noBoost, winner, boostWins, adoptBoost, zero, transitions);
+        assertEquals(8, report.lines().filter(line -> line.startsWith("| Transition ") && Character.isDigit(line.charAt(13))).count());
+        assertFalse(report.contains("102→103") || report.contains("102->103"));
+        for (int season = 96; season <= 105; season++) assertTrue(report.contains("| Season " + season + " |"));
+        double seconds = (System.nanoTime() - started) / 1e9;
+        Files.writeString(output.resolve("report-all-games.md"), report + "\nRuntime: " + f(seconds) + " seconds; four-worker 9,000-config sweep.\n");
+        System.out.println("All-games Elo: 9000 configurations, " + eligible.size() + " eligible; " + f(seconds) + " seconds; " + output.resolve("report-all-games.md").toAbsolutePath());
+    }
+
+    private BoostRow evaluateAll(EloConfig config, double boost, int weeks) {
+        Map<Integer, SeasonMetrics> seasons = new TreeMap<>();
+        List<EloService.Result> graded = new ArrayList<>();
+        List<EloService.Snapshot> history = new ArrayList<>();
+        for (Cycle cycle : cycles()) {
+            var timeline = replayBoost(cycle, config, boost, weeks);
+            if (boost == 0) {
+                var expected = engine.compute(cycle.games(), List.of(), config);
+                assertEquals(expected.games(), timeline.games());
+                assertEquals(expected.history(), timeline.history());
+            }
+            for (int season : cycle.seasons()) {
+                var ratings = endpoint(timeline, season, false);
+                double mean = ratings.values().stream().mapToDouble(Double::doubleValue).average().orElseThrow();
+                double sd = Math.sqrt(ratings.values().stream().mapToDouble(v -> (v - mean) * (v - mean)).average().orElseThrow());
+                seasons.put(season + cycle.offset(), new SeasonMetrics(sd, Collections.min(ratings.values()), Collections.max(ratings.values()), Double.NaN, Double.NaN));
+            }
+            // Only graded predictions are pooled; season labels keep cycle/week blocks distinct. No pooled timeline is replayed.
+            for (var r : timeline.games()) {
+                var g = r.game();
+                var labeled = new EloService.Game(g.gameId(), g.id(), g.season() + cycle.offset(), g.stage(), g.week(), g.home(), g.away(), g.homeScore(), g.awayScore());
+                graded.add(new EloService.Result(labeled, r.homePregameElo(), r.awayPregameElo(), r.homeWinProbability(), r.awayWinProbability(),
+                        r.margin(), r.movMultiplier(), r.pointsMoved(), r.homePostgameElo(), r.awayPostgameElo()));
+            }
+            for (var s : timeline.history()) history.add(new EloService.Snapshot(s.team(), s.season() + cycle.offset(), s.week(), s.seasonStart(),
+                    s.startElo(), s.endElo(), s.change(), s.prevElo(), s.rank(), s.prevRank(), s.gamesCounted()));
+        }
+        assertEquals(archive.games().size() + current.games().size(), graded.size());
+        assertEquals(10, seasons.size());
+        var grading = new EloService.Timeline(config, history, graded);
+        double xx = 0, xy = 0;
+        for (var r : graded) {
+            double x = r.homePregameElo() - r.awayPregameElo() + config.homeFieldAdvantage();
+            xx += x * x; xy += x * (r.game().homeScore() - r.game().awayScore());
+        }
+        double[] slopes = new double[106];
+        Arrays.fill(slopes, xx == 0 ? Double.NaN : xy / xx);
+        Map<String, Metrics> windows = new LinkedHashMap<>();
+        windows.put("all", score(grading, r -> true, EloService.Result::homeWinProbability, slopes));
+        windows.put("excluding_first_weeks", score(grading, r -> !(r.game().week() == 0 && (r.game().season() == 96 || r.game().season() == 103)), EloService.Result::homeWinProbability, slopes));
+        for (Cycle cycle : cycles()) {
+            windows.put(cycle.name(), score(grading, r -> r.game().season() >= cycle.offset() && r.game().season() <= cycle.offset() + cycle.seasons().getLast(), EloService.Result::homeWinProbability, slopes));
+            for (int season : cycle.seasons()) {
+                int label = season + cycle.offset();
+                windows.put("season" + label, score(grading, r -> r.game().season() == label, EloService.Result::homeWinProbability, slopes));
+            }
+        }
+        assertEquals(archive.games().size() + current.games().size(), windows.get("all").n());
+        assertEquals(windows.get("all").n(), windows.get("archive").n() + windows.get("current").n());
+        assertEquals(windows.get("all").n(), seasons.keySet().stream().mapToInt(season -> windows.get("season" + season).n()).sum());
+        weekBuckets(windows, grading, "all", r -> true, slopes);
+        Map<String, List<EloService.Result>> blocks = graded.stream().collect(Collectors.groupingBy(r -> r.game().season() + ":" + r.game().week(), LinkedHashMap::new, Collectors.toList()));
+        double[] losses = blocks.values().stream().mapToDouble(v -> v.stream().mapToDouble(r -> logLoss(r.homeWinProbability(), actual(r.game()))).sum()).toArray();
+        int[] counts = blocks.values().stream().mapToInt(List::size).toArray();
+        assertEquals(graded.size(), Arrays.stream(counts).sum());
+        return new BoostRow(boost, weeks, new Row(config, windows, seasons, List.of(), losses, counts, new double[0], new double[0]));
+    }
+
+    private double allLoss(BoostRow r) { return r.row().windows().get("all").logLoss(); }
+    private boolean allEligible(BoostRow r) {
+        var c = r.row().config();
+        return c.offseasonRetention() >= 0.75 && c.offseasonRetention() <= 0.90 && r.row().windows().get("all").sharp() >= 0.30
+                && r.row().seasons().values().stream().filter(s -> s.sd() >= 120).count() >= 6;
+    }
+    private int seasonWins(BoostRow candidate, BoostRow baseline, double band) {
+        int wins = 0;
+        for (int season = 96; season <= 105; season++) if (baseline.row().windows().get("season" + season).logLoss() - candidate.row().windows().get("season" + season).logLoss() > band) wins++;
+        return wins;
+    }
+    private int changedKnobs(BoostRow r) {
+        var c = r.row().config();
+        return (c.k() == 25 ? 0 : 1) + (c.movEnabled() ? 0 : 1) + (c.movEnabled() && c.marginCap() != 21 ? 1 : 0)
+                + (c.offseasonRetention() == 0.90 ? 0 : 1) + (c.homeFieldAdvantage() == 0 ? 0 : 1) + (r.boost() == 0 ? 0 : 2);
+    }
+    private BoostRow selectAll(List<BoostRow> eligible, BoostRow defaults) {
+        double best = eligible.stream().mapToDouble(this::allLoss).min().orElseThrow();
+        return eligible.stream().filter(r -> allLoss(r) <= best + 0.002).min(Comparator
+                .comparingInt((BoostRow r) -> -seasonWins(r, defaults, 0))
+                .thenComparingDouble(r -> -r.row().windows().get("all").five().resolution())
+                .thenComparingInt(this::changedKnobs).thenComparingDouble(r -> roundness(r.row()) + Math.abs(r.boost() % 0.5))
+                .thenComparingDouble(this::allLoss)).orElseThrow();
+    }
+
+    private void writeAllCsv(Path path, List<BoostRow> rows, BoostRow defaults, BoostRow committed) throws Exception {
+        try (var writer = Files.newBufferedWriter(path)) {
+            List<String> header = new ArrayList<>(List.of("k,divisor,movEnabled,marginCap,retention,hfa,boost,N", "reference_only", "eligible", "all_games_log_loss", "seasons_better_old_defaults", "seasons_better_committed", "changed_knobs"));
+            var first = rows.getFirst().row();
+            for (var w : first.windows().entrySet()) for (String metric : numbers(w.getValue()).keySet()) header.add(w.getKey() + "_" + metric);
+            for (int season : first.seasons().keySet()) for (String metric : List.of("end_sd", "end_min", "end_max", "end_range")) header.add("season" + season + "_" + metric);
+            writer.write(String.join(",", header) + "\n");
+            for (var r : rows) {
+                var c = r.row().config();
+                List<String> cells = new ArrayList<>(List.of(boostPrefix(r), Boolean.toString(c.offseasonRetention() < 0.75 || c.offseasonRetention() > 0.90), Boolean.toString(allEligible(r)),
+                        f(allLoss(r)), Integer.toString(seasonWins(r, defaults, 0)), Integer.toString(seasonWins(r, committed, 0)), Integer.toString(changedKnobs(r))));
+                for (var m : r.row().windows().values()) for (double value : numbers(m).values()) cells.add(f(value));
+                for (var m : r.row().seasons().values()) for (double value : new double[]{m.sd(), m.min(), m.max(), m.max() - m.min()}) cells.add(f(value));
+                writer.write(String.join(",", cells) + "\n");
+            }
+        }
+    }
+
+    private String allReport(List<BoostRow> rows, List<BoostRow> eligible, BoostRow defaults, BoostRow committed,
+                             BoostRow provisional, BoostRow noBoost, BoostRow winner, int boostWins, boolean adoptBoost,
+                             BoostRow zero, List<Transition> transitions) {
+        StringBuilder out = new StringBuilder("# Elo settings — all completed games\n\n");
+        out.append("9,000 deduplicated configs (6 K × 5 MOV settings × 10 retentions × 3 HFA × 10 boost schedules); ")
+                .append(eligible.size()).append(" eligible. Archive: ").append(archive.games().size()).append(" games; Madden 27: ").append(current.games().size())
+                .append("; ALL ").append(archive.games().size() + current.games().size()).append(" completed games graded, including playoffs. No walk-forward selection or separate confirmation.\n\n")
+                .append("Uses the supplied fixture without refreshing it: scope permits harness/output changes only. Season 103 contributes ").append(winner.row().windows().get("season103").n())
+                .append(" games; season 105 contributes ").append(winner.row().windows().get("season105").n()).append(" games, including ")
+                .append(current.games().stream().filter(g -> g.season() == 2 && g.week() == 6).count()).append(" games at index week 6 (display Week 7). No Admin sync or live fetch was performed.\n\n")
+                .append("## Replay, grading and selection choices\n\n")
+                .append("- Two independent replay loops per config, starting at 1500, delegate to production play/probability/regress. Archive ARI→AZ identities are stable within that cycle only. Only finished predictions/snapshots are combined for grading, with labels 96–105 keeping week blocks distinct; no combined history is ever replayed.\n")
+                .append("- Every no-boost grid row matches production compute Results and Snapshots exactly in each cycle. Every config asserts season-103 week-0 ratings exactly 1500 and 32 non-1500 carried ratings at every archive boundary. Graded count equals both fixtures' sum; all ten seasons are included. Old-default season104 LL = ")
+                .append(f(defaults.row().windows().get("season104").logLoss())).append(" (expected 0.5761 ±0.002). Near-zero K all-games LL = ").append(f(allLoss(zero))).append(" (expected log(2), tolerance 1e-8).\n")
+                .append("- Index weeks 0–5 / 6–11 / 12+ correspond to display Weeks 1–6 / 7–12 / 13+. First-week exclusion drops only index week 0 of seasons 96 and 103; every other game remains. At HFA=0 those initial predictions are exactly 0.5. With HFA ±10 the actual production probabilities are about 0.4856/0.5144, so initial weeks do not add exactly the same loss across HFA choices. They remain graded as specified, without overriding production probabilities.\n")
+                .append("- Primary score is game-weighted all-games log loss. Selection eligibility: retention 0.75–0.90, population season-end SD≥120 in ≥6/10 seasons, and all-games favorite≥70% share≥0.30. Season ends include playoffs; season105 is the latest available partial-season endpoint. Reference retentions 0.67/0.95/1.00 are never selectable.\n")
+                .append("- Every eligible config within 0.002 of the minimum eligible all-games LL enters the tie set. Tie order: more seasons with strictly lower LL than old defaults, higher five-band resolution, fewer changed knobs, roundness, then lower LL for exact remaining ties. Changed knobs count K, MOV switch, cap only when MOV is on, retention, HFA, plus boost and N as two new knobs when enabled; divisor/initial rating are fixed. Roundness uses the previous harness preference for K multiples of 10, retention multiples of 0.05, HFA 0, and boost multiples of 0.5.\n")
+                .append("- Best no-boost uses the identical eligibility/tie procedure restricted to boost0. A provisional boosted winner must beat that no-boost config by STRICTLY more than 0.002 LL in ≥7/10 seasons; otherwise the final winner is best no-boost. No other boost adoption rule is used.\n")
+                .append("- Margin slope fits points = beta × (pregame Elo gap + HFA) through the origin on ALL graded games pooled across the independently replayed cycles, once per config. Thus margin MAE/RMSE are in-sample descriptive measures, unlike the pregame probabilities. That same fitted slope scores cycle/season/bucket subsets. Elo/point = 1/beta; slopes outside 10–60 are flagged without failing.\n")
+                .append("- Reuses tie-aware Brier/accuracy/AUC, five TIERS cut points 0.55/0.60/0.70/0.80, ten equal-width favorite bands, ECE and weekly rank movement. Murphy exports grouped reliability/resolution/empirical uncertainty and the within-bin forecast-variance/covariance correction; exact_reliability includes this correction. Both corrected raw-Brier identities are asserted within 1e-9.\n")
+                .append("- Paired bootstrap: 2,000 season/week block resamples across ALL games in both cycles, seed 20261119, shared blocks for both configs; summed loss difference / summed game count. Percentile CI endpoints are sorted indices 49/1949. Negative differences favor the first named config. These intervals describe the fitted sample and do not correct selection uncertainty or week-to-week dependence; this is settings selection on all available data.\n\n## Winner and comparisons\n\n")
+                .append("Final winner: ").append(boostName(winner)).append(".\n\n")
+                .append("Minimum eligible all-games LL: ").append(f(allLoss(eligible.getFirst()))).append(". Configs within 0.002: ")
+                .append(eligible.stream().filter(r -> allLoss(r) <= allLoss(eligible.getFirst()) + 0.002).count()).append(".\n\n")
+                .append("| Setting | All-games LL | Excluding first weeks LL | Brier | Seasons better than old /10 | Seasons better than committed /10 | ≥70% share |\n|---|---:|---:|---:|---:|---:|---:|\n");
+        List<BoostRow> finalists = List.of(defaults, committed, winner);
+        List<String> labels = List.of("Old defaults", "Committed 0.78/cap28", "Winner");
+        for (int i = 0; i < finalists.size(); i++) {
+            var r = finalists.get(i); var m = r.row().windows().get("all");
+            out.append("| ").append(labels.get(i)).append(" | ").append(f(allLoss(r))).append(" | ").append(f(r.row().windows().get("excluding_first_weeks").logLoss()))
+                    .append(" | ").append(f(m.brier())).append(" | ").append(seasonWins(r, defaults, 0)).append(" | ").append(seasonWins(r, committed, 0)).append(" | ").append(f(m.sharp())).append(" |\n");
+        }
+        out.append("\n| Paired comparison | All-games LL difference | 95% week-block CI | Seasons improved /10 |\n|---|---:|---|---:|\n");
+        allBootstrap(out, "Committed − old defaults", committed, defaults);
+        allBootstrap(out, "Winner − old defaults", winner, defaults);
+        allBootstrap(out, "Winner − committed", winner, committed);
+        allBootstrap(out, "Provisional − best no boost", provisional, noBoost);
+        out.append("\n## Boost decision\n\nProvisional tie-break winner: ").append(boostName(provisional)).append("; all-games LL ").append(f(allLoss(provisional)))
+                .append(". Best no-boost: ").append(boostName(noBoost)).append("; all-games LL ").append(f(allLoss(noBoost))).append(".\n\n")
+                .append("Provisional winner improves more than 0.002 LL versus best no-boost in ").append(boostWins).append("/10 seasons; 7 required. ")
+                .append(adoptBoost ? "BOOST PASSES; adoption requires separately scoped production review." : "BOOST DROPPED; final winner is the best no-boost setting.")
+                .append(" No production code or persisted settings changed.\n\n## Every season and both cycles\n\n")
+                .append("| Season | Games | Old LL | Committed LL | Winner LL | Winner − old | Winner − committed |\n|---|---:|---:|---:|---:|---:|---:|\n");
+        for (int season = 96; season <= 105; season++) {
+            var d = defaults.row().windows().get("season" + season); var c = committed.row().windows().get("season" + season); var w = winner.row().windows().get("season" + season);
+            out.append("| Season ").append(season).append(" | ").append(w.n()).append(" | ").append(f(d.logLoss())).append(" | ").append(f(c.logLoss()))
+                    .append(" | ").append(f(w.logLoss())).append(" | ").append(f(w.logLoss() - d.logLoss())).append(" | ").append(f(w.logLoss() - c.logLoss())).append(" |\n");
+        }
+        out.append("\n| Setting | Cycle/window | Games | LL | Brier | Accuracy | ECE | Margin MAE | Weekly rank movement |\n|---|---|---:|---:|---:|---:|---:|---:|---:|\n");
+        for (int i = 0; i < finalists.size(); i++) for (String window : List.of("archive", "current", "all_weeks0_5", "all_weeks6_11", "all_weeks12plus")) {
+            var m = finalists.get(i).row().windows().get(window);
+            out.append("| ").append(labels.get(i)).append(" | ").append(window).append(" | ").append(m.n()).append(" | ").append(f(m.logLoss()))
+                    .append(" | ").append(f(m.brier())).append(" | ").append(f(m.accuracy())).append(" | ").append(f(m.ece())).append(" | ").append(f(m.mae())).append(" | ").append(f(m.rankChange())).append(" |\n");
+        }
+        out.append("\n## Retention curve at final winner's other knobs\n\n| Retention | Reference only | All-games LL | Archive LL | Madden27 LL | Eligible |\n|---:|---|---:|---:|---:|---|\n");
+        for (var r : rows.stream().filter(r -> sameExceptRetention(r.row().config(), winner.row().config()) && r.boost() == winner.boost() && r.weeks() == winner.weeks())
+                .sorted(Comparator.comparingDouble(r -> r.row().config().offseasonRetention())).toList()) {
+            double ret = r.row().config().offseasonRetention();
+            out.append("| ").append(ret).append(" | ").append(ret < 0.75 || ret > 0.90).append(" | ").append(f(allLoss(r)))
+                    .append(" | ").append(f(r.row().windows().get("archive").logLoss())).append(" | ").append(f(r.row().windows().get("current").logLoss())).append(" | ").append(allEligible(r)).append(" |\n");
+        }
+        var unconstrained = rows.stream().min(Comparator.comparingDouble(this::allLoss)).orElseThrow();
+        var aboveFloor = rows.stream().filter(r -> r.row().config().offseasonRetention() >= 0.75).min(Comparator.comparingDouble(this::allLoss)).orElseThrow();
+        var inRange = rows.stream().filter(r -> r.row().config().offseasonRetention() >= 0.75 && r.row().config().offseasonRetention() <= 0.90).min(Comparator.comparingDouble(this::allLoss)).orElseThrow();
+        out.append("\nUnconstrained-retention grid optimum (no presentation guardrails): ").append(boostName(unconstrained)).append("; LL ").append(f(allLoss(unconstrained)))
+                .append(". Best with only the 0.75 floor: ").append(boostName(aboveFloor)).append("; LL ").append(f(allLoss(aboveFloor))).append("; floor cost ")
+                .append(f(allLoss(aboveFloor) - allLoss(unconstrained))).append(" LL. Best with retention in [0.75,0.90]: LL ").append(f(allLoss(inRange)))
+                .append("; range cost ").append(f(allLoss(inRange) - allLoss(unconstrained))).append(". Only the supplied grid is searched; a continuous optimum below 0.67 is unknown.\n\n")
+                .append("## Home-field maximum likelihood\n\nIntercept-only logistic MLE uses home outcomes (ties half), divisor400 Elo units, with observed-information Wald 95% CI. Conditional estimates use old-default pregame gaps as fixed offsets and are descriptive, without refitting dynamic ratings. Only per-game likelihoods are pooled. Fixtures do not establish who hosted, so the practical meaning of the home label is unknown.\n\n")
+                .append("| Corpus | Fit | HFA | 95% CI |\n|---|---|---:|---|\n");
+        List<EloService.Result> pooled = new ArrayList<>();
+        for (Cycle cycle : cycles()) {
+            var results = replayBoost(cycle, DEFAULTS, 0, 0).games();
+            pooled.addAll(results); hfaTable(out, cycle.name(), results);
+        }
+        hfaTable(out, "pooled", pooled);
+        out.append("\n## End-of-season spread\n\n| Season | Old SD | Committed SD | Winner SD | Winner min | Winner max |\n|---|---:|---:|---:|---:|---:|\n");
+        for (int season = 96; season <= 105; season++) {
+            var w = winner.row().seasons().get(season);
+            out.append("| ").append(season).append(" | ").append(f(defaults.row().seasons().get(season).sd())).append(" | ").append(f(committed.row().seasons().get(season).sd()))
+                    .append(" | ").append(f(w.sd())).append(" | ").append(f(w.min())).append(" | ").append(f(w.max())).append(" |\n");
+        }
+        out.append("\nMargin slope flags outside 10–60 Elo/point (non-failing): ").append(rows.stream().filter(r -> {
+            double slope = r.row().windows().get("all").eloPerPoint(); return !Double.isFinite(slope) || slope < 10 || slope > 60;
+        }).count()).append(" / 9000 configs.\n\n## Calibration and Murphy decomposition\n\n")
+                .append("| Setting | Tier | n | Mean predicted | Observed favorite win rate |\n|---|---|---:|---:|---:|\n");
+        for (int i = 0; i < finalists.size(); i++) {
+            var m = finalists.get(i).row().windows().get("all");
+            for (int tier = 0; tier < 5; tier++) out.append("| ").append(labels.get(i)).append(" | ").append(TIERS[tier]).append(" | ").append(m.tierN()[tier])
+                    .append(" | ").append(f(m.predicted()[tier])).append(" | ").append(f(m.observed()[tier])).append(" |\n");
+        }
+        out.append("\n| Setting | Bins | Raw Brier | Grouped reliability | Resolution | Uncertainty | Within-bin correction | Exact reliability |\n|---|---:|---:|---:|---:|---:|---:|---:|\n");
+        for (int i = 0; i < finalists.size(); i++) {
+            var m = finalists.get(i).row().windows().get("all");
+            for (int bins : List.of(5, 10)) {
+                var d = bins == 5 ? m.five() : m.ten();
+                out.append("| ").append(labels.get(i)).append(" | ").append(bins).append(" | ").append(f(m.brier())).append(" | ").append(f(d.reliability()))
+                        .append(" | ").append(f(d.resolution())).append(" | ").append(f(d.uncertainty())).append(" | ").append(f(d.correction())).append(" | ").append(f(d.exactReliability())).append(" |\n");
+            }
+        }
+        allRankings(out, defaults, winner);
+        out.append("\n## Within-cycle retention boundaries\n\nExactly eight boundaries; final-winner continuity shown.\n\n| Transition | Cycle | Non-1500 ratings carried |\n|---|---|---:|\n");
+        for (var t : transitions) out.append("| Transition ").append(t.from()).append("→").append(t.to()).append(" | ").append(t.cycle()).append(" | ").append(t.carried()).append(" |\n");
+        return out.append("\nFull per-config, per-cycle, per-season, calibration, Murphy, margin and stability metrics are in results-all-games.csv. Earlier reports/results are unchanged.\n").toString();
+    }
+
+    private void allBootstrap(StringBuilder out, String label, BoostRow candidate, BoostRow baseline) {
+        var ci = bootstrap(candidate.row(), baseline.row());
+        out.append("| ").append(label).append(" | ").append(f(allLoss(candidate) - allLoss(baseline))).append(" | [").append(f(ci[0])).append(", ").append(f(ci[1]))
+                .append("] | ").append(seasonWins(candidate, baseline, 0)).append(" |\n");
+    }
+
+    private void allRankings(StringBuilder out, BoostRow defaults, BoostRow winner) {
+        out.append("\n## Final top and bottom eight in both independent cycles\n\nSeason102 is archive final; season105 is the latest current endpoint, including every completed game.\n\n| Setting | Cycle | Season | Rank | Team | Elo |\n|---|---|---:|---:|---|---:|\n");
+        for (var r : List.of(defaults, winner)) for (Cycle cycle : cycles()) {
+            var timeline = replayBoost(cycle, r.row().config(), r.boost(), r.weeks());
+            int season = cycle.seasons().getLast();
+            int week = timeline.history().stream().filter(s -> s.season() == season).mapToInt(EloService.Snapshot::week).max().orElseThrow();
+            var snapshots = timeline.history().stream().filter(s -> s.season() == season && s.week() == week).sorted(Comparator.comparingInt(EloService.Snapshot::rank)).toList();
+            for (var s : snapshots) if (s.rank() <= 8 || s.rank() > snapshots.size() - 8) out.append("| ").append(r == defaults ? "Old defaults" : "Winner").append(" | ")
+                    .append(cycle.name()).append(" | ").append(season + cycle.offset()).append(" | ").append(s.rank()).append(" | ").append(s.team().abbrName()).append(" | ").append(f(s.endElo())).append(" |\n");
+        }
+    }
+
     private Cycle load(Path path, boolean historical) throws Exception {
         JsonNode data = new ObjectMapper().readTree(path.toFile());
         assertTrue(data.isArray(), "Fixture must be an array: " + path);
@@ -603,8 +879,12 @@ class EloBacktestReport {
             observed[i] = counts[i] == 0 ? Double.NaN : five[i][2] / counts[i];
             ece += Math.abs(five[i][1] - five[i][2]) / n;
         }
-        Set<String> weeks = selected.stream().map(r -> r.game().season() + ":" + r.game().week()).collect(Collectors.toSet());
-        double rankChange = timeline.history().stream().filter(s -> weeks.contains(s.season() + ":" + s.week()))
+        Map<Integer, BitSet> selectedWeeks = new HashMap<>();
+        selected.forEach(r -> selectedWeeks.computeIfAbsent(r.game().season(), season -> new BitSet()).set(r.game().week()));
+        double rankChange = timeline.history().stream().filter(s -> {
+            var weeks = selectedWeeks.get(s.season());
+            return weeks != null && weeks.get(s.week());
+        })
                 .mapToInt(s -> Math.abs(s.rank() - s.prevRank())).average().orElse(Double.NaN);
         return new Metrics(n, loss / n, brier / n, coin == 0 ? Double.NaN : 1 - brier / coin, picks / n, ece, sharp / n,
                 auc(probabilities, outcomes), marginN, marginN == 0 ? Double.NaN : mae / marginN,
