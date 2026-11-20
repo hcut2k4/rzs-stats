@@ -44,6 +44,9 @@ class EloBacktestReport {
     record Transition(String cycle, int from, int to, int carried) {}
     record Benchmark(String model, String window, Metrics metrics) {}
     record BoostRow(double boost, int weeks, Row row) {}
+    enum OwnerRule { RESET, REGRESS }
+    record OwnerChanges(OwnerRule rule, Map<Integer, Map<Integer, Set<Integer>>> weeks) {}
+    private static final OwnerChanges NO_OWNER_CHANGES = new OwnerChanges(OwnerRule.RESET, Map.of());
 
     @Test
     @EnabledIfSystemProperty(named = "eloBacktestPhase2", matches = "true")
@@ -185,6 +188,11 @@ class EloBacktestReport {
     }
 
     private EloService.Timeline replayBoost(Cycle cycle, EloConfig config, double boost, int weeks) {
+        return replayBoost(cycle, config, boost, weeks, NO_OWNER_CHANGES);
+    }
+
+    private EloService.Timeline replayBoost(Cycle cycle, EloConfig config, double boost, int weeks,
+                                            OwnerChanges changes) {
         var games = cycle.games().stream().sorted(Comparator.comparingInt(EloService.Game::season)
                 .thenComparingInt(EloService.Game::stage).thenComparingInt(EloService.Game::week)
                 .thenComparing(EloService.Game::id, Comparator.nullsLast(Comparator.naturalOrder()))
@@ -198,12 +206,19 @@ class EloBacktestReport {
         List<EloService.Result> results = new ArrayList<>();
         Set<String> seen = new HashSet<>();
         Integer previousSeason = null;
-        int index = 0;
+        int index = 0, appliedChanges = 0;
         while (index < games.size()) {
             var first = games.get(index);
             Map<Integer, Double> previousElos = new HashMap<>(ratings);
             boolean seasonStart = !Objects.equals(previousSeason, first.season());
             if (previousSeason != null && seasonStart) ratings.replaceAll((id, rating) -> engine.regress(rating, config));
+            for (int id : changes.weeks().getOrDefault(first.season(), Map.of()).getOrDefault(first.week(), Set.of())) {
+                assertTrue(ratings.containsKey(id), "Unknown reset team: " + id);
+                if (changes.rule() == OwnerRule.RESET || first.week() > 0) {
+                    ratings.put(id, changes.rule() == OwnerRule.RESET ? config.initialRating() : engine.regress(ratings.get(id), config));
+                    appliedChanges++;
+                }
+            }
             Map<Integer, Double> starts = new HashMap<>(ratings);
             double k = boost == 0 ? config.k() : config.k() * (1 + boost * Math.max(0, 1 - (double) first.week() / weeks));
             var weekly = new EloConfig(config.initialRating(), k, config.divisor(), config.movEnabled(), config.marginCap(),
@@ -229,7 +244,14 @@ class EloBacktestReport {
             previousSeason = first.season();
         }
         var timeline = new EloService.Timeline(config, history, results);
-        verifyReplay(cycle, timeline);
+        assertEquals(changes.weeks().values().stream().flatMap(w -> w.entrySet().stream())
+                .filter(w -> changes.rule() == OwnerRule.RESET || w.getKey() > 0).mapToInt(w -> w.getValue().size()).sum(), appliedChanges,
+                "Every ownership " + changes.rule() + " must be applied exactly once in " + cycle.name());
+        for (var snapshot : history) if (changes.weeks().getOrDefault(snapshot.season(), Map.of())
+                .getOrDefault(snapshot.week(), Set.of()).contains(snapshot.team().teamId()))
+            assertEquals(changes.rule() == OwnerRule.RESET ? config.initialRating() : engine.regress(snapshot.prevElo(), config),
+                    snapshot.startElo(), 0, "Ownership " + changes.rule() + " startElo");
+        verifyReplay(cycle, timeline, changes);
         return timeline;
     }
 
@@ -433,13 +455,254 @@ class EloBacktestReport {
         System.out.println("All-games Elo: 9000 configurations, " + eligible.size() + " eligible; " + f(seconds) + " seconds; " + output.resolve("report-all-games.md").toAbsolutePath());
     }
 
+    @Test
+    @EnabledIfSystemProperty(named = "eloOwnerChanges", matches = "true")
+    void writeOwnerChangeReport() throws Exception {
+        Path output = Path.of("target/elo-backtest");
+        Files.createDirectories(output);
+        archive = load(Path.of("../archive/madden26/games.json"), true);
+        current = load(Path.of("src/test/resources/elo/games-snapshot.json"), false);
+        Map<String, OwnerChanges> changes = new LinkedHashMap<>();
+        Map<String, OwnerChanges> regressChanges = new LinkedHashMap<>();
+        for (Cycle cycle : cycles()) {
+            changes.put(cycle.name(), loadOwnerChanges(cycle, OwnerRule.RESET));
+            regressChanges.put(cycle.name(), loadOwnerChanges(cycle, OwnerRule.REGRESS));
+        }
+        List<Integer> changedSeasons = List.of(96, 98, 99, 100, 101, 103, 104, 105);
+        List<Integer> midseasonSeasons = List.of(96, 98, 100, 101, 103);
+        Map<Double, BoostRow> off = new LinkedHashMap<>(), on = new LinkedHashMap<>(), regress = new LinkedHashMap<>();
+        StringBuilder carryover = new StringBuilder("\nSeason-start flagged teams receive only normal regression of this arm's prior Elo. Chronological carryover can change their starts from baseline and can affect seasons beyond the five directly flagged mid-season seasons.\n\n| Retention | Season | Team | Baseline start | Regress start | Difference |\n|---:|---:|---|---:|---:|---:|\n");
+        for (double retention : new double[]{0.75, 0.78, 0.80, 0.82, 0.85, 0.88, 0.90}) {
+            var config = new EloConfig(1500, 25, 400, true, 28, 0, retention);
+            off.put(retention, evaluateAll(config, 0, 0, Map.of(), changes));
+            on.put(retention, evaluateAll(config, 0, 0, changes, changes));
+            regress.put(retention, evaluateAll(config, 0, 0, regressChanges, changes));
+            int seasonStartFlags = 0;
+            for (Cycle cycle : cycles()) {
+                var baselineTimeline = engine.compute(cycle.games(), List.of(), config);
+                var timeline = replayBoost(cycle, config, 0, 0, regressChanges.get(cycle.name()));
+                for (var snapshot : timeline.history()) {
+                    if (snapshot.week() != 0 || !regressChanges.get(cycle.name()).weeks().getOrDefault(snapshot.season(), Map.of())
+                            .getOrDefault(0, Set.of()).contains(snapshot.team().teamId())) continue;
+                    seasonStartFlags++;
+                    assertEquals(engine.regress(snapshot.prevElo(), config), snapshot.startElo(), 0);
+                    var baselineStart = baselineTimeline.history().stream().filter(v -> v.season() == snapshot.season()
+                            && v.week() == 0 && v.team().teamId() == snapshot.team().teamId()).findFirst().orElseThrow();
+                    if (baselineStart.prevElo() == snapshot.prevElo()) assertEquals(baselineStart.startElo(), snapshot.startElo(), 0);
+                    if (baselineStart.startElo() != snapshot.startElo()) carryover.append("| ").append(retention).append(" | ")
+                            .append(snapshot.season() + cycle.offset()).append(" | ").append(snapshot.team().abbrName())
+                            .append(" | ").append(f(baselineStart.startElo())).append(" | ").append(f(snapshot.startElo()))
+                            .append(" | ").append(f(snapshot.startElo() - baselineStart.startElo())).append(" |\n");
+                }
+            }
+            assertEquals(7, seasonStartFlags, "Seven season-start flags receive no extra regression");
+        }
+        var baseline = off.get(0.78);
+        assertEquals(0.594828, allLoss(baseline), 1e-6);
+        assertEquals(0.5761, evaluateAll(DEFAULTS, 0, 0).row().windows().get("season104").logLoss(), 0.002);
+        for (var resets : List.of(Map.<String, OwnerChanges>of(), changes, regressChanges)) {
+            var zero = evaluateAll(new EloConfig(1500, 1e-9, 400, true, 28, 0, 0.78), 0, 0, resets, changes);
+            assertEquals(Math.log(2), allLoss(zero), 1e-8);
+        }
+        for (var armChanges : List.of(changes, regressChanges)) {
+            List<Transition> boundaries = new ArrayList<>();
+            for (Cycle cycle : cycles()) {
+                var timeline = replayBoost(cycle, baseline.row().config(), 0, 0, armChanges.get(cycle.name()));
+                boundaries.addAll(transitions(cycle, timeline, armChanges.get(cycle.name())));
+            }
+            assertEquals(8, boundaries.size());
+            assertFalse(boundaries.stream().anyMatch(t -> t.from() == 102 && t.to() == 103));
+        }
+        var best = on.values().stream().min(Comparator.comparingDouble(this::allLoss)).orElseThrow();
+        double bestRetention = best.row().config().offseasonRetention();
+        int wins = seasonWins(best, off.get(bestRetention), 0, changedSeasons);
+        boolean adopt = allLoss(best) < 0.594828 && allEligible(best) && wins >= 5;
+        var bestRegress = regress.values().stream().min(Comparator.comparingDouble(this::allLoss)).orElseThrow();
+        double bestRegressRetention = bestRegress.row().config().offseasonRetention();
+        int regressWins = seasonWins(bestRegress, off.get(bestRegressRetention), 0, changedSeasons);
+        boolean adoptRegress = allLoss(bestRegress) < 0.594828 && allEligible(bestRegress) && regressWins >= 5;
+        StringBuilder report = new StringBuilder("# Ownership-change Elo backtest\n\n")
+                .append("K25, divisor400, MOV cap28, HFA0, no boost; initial rating1500. Cycles replay independently. Reset replaces regression at a season start; midseason-regress applies the retention multiplier only at flagged weeks>0, with no extra action at week0.\n\n")
+                .append("Controls passed: reset-off committed baseline LL ").append(f(allLoss(baseline)))
+                .append(" (expected 0.594828 ±0.000001); Results/Snapshots equal engine.compute for every reset-off config; old-default S104 LL≈0.5761; near-zero K LL=ln2 in all three arms; all 32 S103 week0 starts=1500; 8 within-cycle boundaries; no cross-cycle boundary.\n\n")
+                .append("Reset controls passed: exactly 14 resets per reset-on replay (10 archive, 4 current); every reset team's startElo=1500 at its reset week.\n\n")
+                .append("Regress controls passed: exactly 7 mid-season applications per replay (6 archive, 1 current); every mid-season flagged startElo=engine.regress(prevElo); all 7 season-start flags receive only normal regression of this arm's prior Elo.\n\n")
+                .append("Guardrails: retention 0.75–0.90, end-of-season population SD≥120 in ≥6/10 seasons, all-games sharp (favorite≥70% share)≥0.30. Endpoints include playoffs; S105 is partial.\n\n")
+                .append("| Retention | Off LL | On LL | On − off | Off Brier | On Brier | Off sharp | On sharp | On eligible | Changed seasons won /8 | Regress LL | Regress − off | Regress Brier | Regress sharp | Regress eligible | Regress changed seasons won /8 | Regress directly flagged seasons won /5 | Regress seasons won / differing |\n|---:|---:|---:|---:|---:|---:|---:|---:|---|---:|---:|---:|---:|---:|---|---:|---:|---|\n");
+        for (double retention : off.keySet()) {
+            var a = off.get(retention); var b = on.get(retention);
+            var am = a.row().windows().get("all"); var bm = b.row().windows().get("all");
+            var c = regress.get(retention); var cm = c.row().windows().get("all");
+            var differing = c.row().seasons().keySet().stream().filter(season -> c.row().windows().get("season" + season).logLoss()
+                    != a.row().windows().get("season" + season).logLoss()).toList();
+            report.append("| ").append(retention).append(" | ").append(f(am.logLoss())).append(" | ").append(f(bm.logLoss()))
+                    .append(" | ").append(f(bm.logLoss() - am.logLoss())).append(" | ").append(f(am.brier())).append(" | ").append(f(bm.brier()))
+                    .append(" | ").append(f(am.sharp())).append(" | ").append(f(bm.sharp())).append(" | ").append(allEligible(b))
+                    .append(" | ").append(seasonWins(b, a, 0, changedSeasons))
+                    .append(" | ").append(f(cm.logLoss())).append(" | ").append(f(cm.logLoss() - am.logLoss()))
+                    .append(" | ").append(f(cm.brier())).append(" | ").append(f(cm.sharp())).append(" | ").append(allEligible(c))
+                    .append(" | ").append(seasonWins(c, a, 0, changedSeasons)).append(" | ").append(seasonWins(c, a, 0, midseasonSeasons))
+                    .append(" | ").append(seasonWins(c, a, 0, differing)).append("/").append(differing.size()).append(" |\n");
+        }
+        report.append("\n| Retention | Window | n | Off LL | On LL | On − off | Off endpoint SD | On endpoint SD | Regress LL | Regress − off | Regress endpoint SD |\n|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n");
+        for (double retention : off.keySet()) {
+            List<String> windows = new ArrayList<>(List.of("archive", "current"));
+            for (int season = 96; season <= 105; season++) windows.add("season" + season);
+            for (String window : windows) {
+                var a = off.get(retention).row(); var b = on.get(retention).row();
+                var am = a.windows().get(window); var bm = b.windows().get(window);
+                report.append("| ").append(retention).append(" | ").append(window).append(" | ").append(am.n())
+                        .append(" | ").append(f(am.logLoss())).append(" | ").append(f(bm.logLoss())).append(" | ").append(f(bm.logLoss() - am.logLoss()));
+                if (window.startsWith("season")) {
+                    int season = Integer.parseInt(window.substring(6));
+                    report.append(" | ").append(f(a.seasons().get(season).sd())).append(" | ").append(f(b.seasons().get(season).sd()));
+                } else report.append(" | — | —");
+                var c = regress.get(retention).row();
+                report.append(" | ").append(f(c.windows().get(window).logLoss()))
+                        .append(" | ").append(f(c.windows().get(window).logLoss() - am.logLoss()))
+                        .append(" | ").append(window.startsWith("season") ? f(c.seasons().get(Integer.parseInt(window.substring(6))).sd()) : "—");
+                report.append(" |\n");
+            }
+        }
+        Map<String, Map<Double, BoostRow>> arms = new LinkedHashMap<>();
+        arms.put("off", off); arms.put("reset", on); arms.put("midseason-regress", regress);
+        Map<String, Map<String, OwnerChanges>> rules = Map.of("off", Map.of(), "reset", changes, "midseason-regress", regressChanges);
+        Map<String, Map<String, Map<Double, double[]>>> cis = new LinkedHashMap<>();
+        report.append("\nowner_changed includes all 14 flags; midseason_changed includes only the 7 rows at weeks>0. Each subset selects a game once when either flagged team plays at or after its flagged week through season end. These are event/season windows, not a franchise filter across unrelated seasons. All arms use identical subset games.\n\n")
+                .append("Paired bootstrap: 2,000 season/week block resamples within each subset, seed20261119; summed loss difference / summed game count; percentile 95% endpoints at indices49/1949. Negative favors the named arm. CIs are descriptive, do not correct selection or week-to-week dependence, and need not exclude zero.\n");
+        for (String window : List.of("owner_changed", "midseason_changed")) {
+            report.append("\n| Retention | ").append(window).append(" n | Off LL | On LL | Regress LL |\n|---:|---:|---:|---:|---:|\n");
+            StringBuilder intervals = new StringBuilder("\n| Comparison | " + window + " LL difference | 95% week-block CI | All-games seasons improved /10 |\n|---|---:|---|---:|\n");
+            Map<String, Map<Double, double[]>> windowCis = new LinkedHashMap<>();
+            for (String arm : List.of("reset", "midseason-regress")) windowCis.put(arm, new LinkedHashMap<>());
+            cis.put(window, windowCis);
+            for (double retention : off.keySet()) {
+                var a = off.get(retention).row().windows().get(window);
+                var b = on.get(retention).row().windows().get(window);
+                var c = regress.get(retention).row().windows().get(window);
+                assertEquals(a.n(), b.n()); assertEquals(a.n(), c.n());
+                report.append("| ").append(retention).append(" | ").append(a.n()).append(" | ").append(f(a.logLoss()))
+                        .append(" | ").append(f(b.logLoss())).append(" | ").append(f(c.logLoss())).append(" |\n");
+                var subsetOff = ownerSubset(off.get(retention), Map.of(), changes, window);
+                for (String arm : List.of("reset", "midseason-regress")) {
+                    var subset = ownerSubset(arms.get(arm).get(retention), rules.get(arm), changes, window);
+                    windowCis.get(arm).put(retention, bootstrap(subset.row(), subsetOff.row()));
+                    allBootstrap(intervals, retention + (arm.equals("reset") ? " on − off" : " midseason-regress − off"), subset, subsetOff);
+                }
+            }
+            report.append(intervals);
+        }
+        report.append(carryover).append("\nSeasons with changes: ").append(changedSeasons)
+                .append(". Direct mid-season changes occur only in ").append(midseasonSeasons).append("; carryover can change other seasons' LL. The table counts exact per-season LL differences from baseline.\n\n")
+                .append("Best retention under reset-on: ").append(bestRetention).append("; all-games LL ").append(f(allLoss(best)))
+                .append("; allEligible=").append(allEligible(best)).append("; changed seasons won=").append(wins).append("/8.\n\n")
+                .append("Adopt only if all-games LL<0.594828, allEligible, and ≥5/8 changed seasons won against reset-off at the same retention. Subset CI is reported but need not exclude zero.\n\n")
+                .append("Verdict: ").append(adopt ? "ADOPT" : "DO NOT ADOPT").append(" ownership resets at retention ").append(bestRetention).append(".\n\n")
+                .append("Best retention under midseason-regress: ").append(bestRegressRetention).append("; all-games LL ").append(f(allLoss(bestRegress)))
+                .append("; allEligible=").append(allEligible(bestRegress)).append("; changed seasons won=").append(regressWins).append("/8; directly flagged seasons won=")
+                .append(seasonWins(bestRegress, off.get(bestRegressRetention), 0, midseasonSeasons)).append("/5.\n\n")
+                .append("Verdict: ").append(adoptRegress ? "ADOPT" : "DO NOT ADOPT").append(" midseason-regress at retention ").append(bestRegressRetention).append(".\n");
+        Files.writeString(output.resolve("report-owner-changes.md"), report);
+        try (var writer = Files.newBufferedWriter(output.resolve("results-owner-changes.csv"))) {
+            List<String> header = new ArrayList<>(List.of("k,divisor,movEnabled,marginCap,retention,hfa,boost,N", "reset", "eligible", "changed_seasons_won", "owner_changed_on_minus_off_ci_low", "owner_changed_on_minus_off_ci_high"));
+            for (var w : baseline.row().windows().entrySet()) for (String metric : numbers(w.getValue()).keySet()) header.add(w.getKey() + "_" + metric);
+            for (int season : baseline.row().seasons().keySet()) header.add("season" + season + "_endpoint_sd");
+            header.addAll(List.of("arm", "owner_changed_arm_minus_off_ci_low", "owner_changed_arm_minus_off_ci_high", "midseason_changed_arm_minus_off_ci_low", "midseason_changed_arm_minus_off_ci_high", "direct_midseason_seasons_won", "differing_seasons_won", "differing_seasons"));
+            writer.write(String.join(",", header) + "\n");
+            for (double retention : off.keySet()) for (String arm : arms.keySet()) {
+                var r = arms.get(arm).get(retention);
+                String comparison = arm.equals("off") ? "reset" : arm;
+                double[] ci = cis.get("owner_changed").get("reset").get(retention);
+                List<String> cells = new ArrayList<>(List.of(boostPrefix(r), Boolean.toString(arm.equals("reset")), Boolean.toString(allEligible(r)),
+                        Integer.toString(seasonWins(arms.get(comparison).get(retention), off.get(retention), 0, changedSeasons)),
+                        arm.equals("midseason-regress") ? "" : f(ci[0]), arm.equals("midseason-regress") ? "" : f(ci[1])));
+                for (var m : r.row().windows().values()) for (double v : numbers(m).values()) cells.add(f(v));
+                for (var m : r.row().seasons().values()) cells.add(f(m.sd()));
+                var differing = r.row().seasons().keySet().stream().filter(season -> r.row().windows().get("season" + season).logLoss()
+                        != off.get(retention).row().windows().get("season" + season).logLoss()).toList();
+                var ownerCi = arm.equals("off") ? new double[]{0, 0} : cis.get("owner_changed").get(arm).get(retention);
+                var midCi = arm.equals("off") ? new double[]{0, 0} : cis.get("midseason_changed").get(arm).get(retention);
+                cells.addAll(List.of(arm, f(ownerCi[0]), f(ownerCi[1]), f(midCi[0]), f(midCi[1]), Integer.toString(seasonWins(r, off.get(retention), 0, midseasonSeasons)),
+                        Integer.toString(seasonWins(r, off.get(retention), 0, differing)), Integer.toString(differing.size())));
+                writer.write(String.join(",", cells) + "\n");
+            }
+        }
+        System.out.println("Ownership-change Elo: 21 configurations; " + output.resolve("report-owner-changes.md").toAbsolutePath());
+    }
+
+    private OwnerChanges loadOwnerChanges(Cycle cycle, OwnerRule rule) throws Exception {
+        Map<String, Integer> teams = new HashMap<>();
+        for (var game : cycle.games()) for (var team : List.of(game.home(), game.away())) {
+            String abbr = cycle == archive ? normalize(team.abbrName()) : team.abbrName();
+            Integer previous = teams.putIfAbsent(abbr, team.teamId());
+            assertTrue(previous == null || previous == team.teamId(), "Ambiguous owner-change team: " + abbr);
+        }
+        List<String> lines = Files.readAllLines(Path.of("src/test/resources/elo/owner-changes.csv"));
+        assertEquals("season,week,team,note", lines.getFirst(), "Invalid ownership CSV header");
+        Map<Integer, Map<Integer, Set<Integer>>> resets = new TreeMap<>();
+        for (int i = 1; i < lines.size(); i++) {
+            String row = lines.get(i);
+            String[] cells = row.split(",", 4);
+            assertEquals(4, cells.length, "Invalid ownership CSV row: " + row);
+            int label = assertDoesNotThrow(() -> Integer.parseInt(cells[0]), "Invalid ownership season: " + row);
+            int week = assertDoesNotThrow(() -> Integer.parseInt(cells[1]), "Invalid ownership week: " + row) - 1;
+            assertTrue(label >= 96 && label <= 105, "Unknown ownership season: " + row);
+            if ((label < 103) != (cycle == archive)) continue;
+            int season = label - cycle.offset();
+            String abbr = cycle == archive ? normalize(cells[2]) : cells[2];
+            Integer id = teams.get(abbr);
+            assertNotNull(id, "Unknown owner-change team in " + cycle.name() + ": " + row);
+            assertTrue(cycle.games().stream().anyMatch(g -> g.season() == season && g.week() == week),
+                    "Ownership season/week block missing in " + cycle.name() + ": " + row);
+            assertTrue(resets.computeIfAbsent(season, s -> new TreeMap<>()).computeIfAbsent(week, w -> new TreeSet<>()).add(id),
+                    "Duplicate ownership row: " + row);
+        }
+        assertEquals(cycle == archive ? 10 : 4, resets.values().stream().flatMap(w -> w.values().stream()).mapToInt(Set::size).sum(),
+                "All ownership rows must resolve in " + cycle.name());
+        if (rule == OwnerRule.REGRESS) assertEquals(cycle == archive ? 6 : 1,
+                resets.values().stream().flatMap(w -> w.entrySet().stream()).filter(w -> w.getKey() > 0).mapToInt(w -> w.getValue().size()).sum(),
+                "Exactly seven mid-season regressions must resolve");
+        return new OwnerChanges(rule, resets);
+    }
+
+    private boolean ownerChanged(EloService.Game game, Map<String, OwnerChanges> changes, boolean midseasonOnly) {
+        int offset = game.season() < 103 ? 96 : 103;
+        var weeks = changes.getOrDefault(offset == 96 ? "archive" : "current", NO_OWNER_CHANGES).weeks().getOrDefault(game.season() - offset, Map.of());
+        return weeks.entrySet().stream().anyMatch(w -> (!midseasonOnly || w.getKey() > 0) && w.getKey() <= game.week()
+                && (w.getValue().contains(game.home().teamId()) || w.getValue().contains(game.away().teamId())));
+    }
+
+    private BoostRow ownerSubset(BoostRow all, Map<String, OwnerChanges> resets,
+                                 Map<String, OwnerChanges> changes, String window) {
+        Map<String, List<EloService.Result>> blocks = new LinkedHashMap<>();
+        for (Cycle cycle : cycles()) for (var r : replayBoost(cycle, all.row().config(), 0, 0, resets.getOrDefault(cycle.name(), NO_OWNER_CHANGES)).games()) {
+            var g = r.game();
+            var labeled = new EloService.Game(g.gameId(), g.id(), g.season() + cycle.offset(), g.stage(), g.week(), g.home(), g.away(), g.homeScore(), g.awayScore());
+            if (ownerChanged(labeled, changes, window.equals("midseason_changed"))) blocks.computeIfAbsent(labeled.season() + ":" + labeled.week(), w -> new ArrayList<>()).add(r);
+        }
+        double[] losses = blocks.values().stream().mapToDouble(v -> v.stream().mapToDouble(r -> logLoss(r.homeWinProbability(), actual(r.game()))).sum()).toArray();
+        int[] counts = blocks.values().stream().mapToInt(List::size).toArray();
+        assertEquals(all.row().windows().get(window).n(), Arrays.stream(counts).sum());
+        assertEquals(all.row().windows().get(window).logLoss(), Arrays.stream(losses).sum() / Arrays.stream(counts).sum(), 1e-12);
+        Map<String, Metrics> windows = new LinkedHashMap<>(all.row().windows());
+        windows.put("all", windows.get(window));
+        var row = all.row();
+        return new BoostRow(0, 0, new Row(row.config(), windows, row.seasons(), row.folds(), losses, counts, row.foldRanks(), row.resolutionRanks()));
+    }
+
     private BoostRow evaluateAll(EloConfig config, double boost, int weeks) {
+        return evaluateAll(config, boost, weeks, Map.of(), Map.of());
+    }
+
+    private BoostRow evaluateAll(EloConfig config, double boost, int weeks,
+                                 Map<String, OwnerChanges> resets,
+                                 Map<String, OwnerChanges> ownerChanges) {
         Map<Integer, SeasonMetrics> seasons = new TreeMap<>();
         List<EloService.Result> graded = new ArrayList<>();
         List<EloService.Snapshot> history = new ArrayList<>();
         for (Cycle cycle : cycles()) {
-            var timeline = replayBoost(cycle, config, boost, weeks);
-            if (boost == 0) {
+            var timeline = replayBoost(cycle, config, boost, weeks, resets.getOrDefault(cycle.name(), NO_OWNER_CHANGES));
+            if (boost == 0 && resets.isEmpty()) {
                 var expected = engine.compute(cycle.games(), List.of(), config);
                 assertEquals(expected.games(), timeline.games());
                 assertEquals(expected.history(), timeline.history());
@@ -483,6 +746,9 @@ class EloBacktestReport {
         assertEquals(archive.games().size() + current.games().size(), windows.get("all").n());
         assertEquals(windows.get("all").n(), windows.get("archive").n() + windows.get("current").n());
         assertEquals(windows.get("all").n(), seasons.keySet().stream().mapToInt(season -> windows.get("season" + season).n()).sum());
+        if (!ownerChanges.isEmpty()) for (String window : List.of("owner_changed", "midseason_changed"))
+            windows.put(window, score(grading, r -> ownerChanged(r.game(), ownerChanges, window.equals("midseason_changed")),
+                    EloService.Result::homeWinProbability, slopes));
         weekBuckets(windows, grading, "all", r -> true, slopes);
         Map<String, List<EloService.Result>> blocks = graded.stream().collect(Collectors.groupingBy(r -> r.game().season() + ":" + r.game().week(), LinkedHashMap::new, Collectors.toList()));
         double[] losses = blocks.values().stream().mapToDouble(v -> v.stream().mapToDouble(r -> logLoss(r.homeWinProbability(), actual(r.game()))).sum()).toArray();
@@ -498,8 +764,11 @@ class EloBacktestReport {
                 && r.row().seasons().values().stream().filter(s -> s.sd() >= 120).count() >= 6;
     }
     private int seasonWins(BoostRow candidate, BoostRow baseline, double band) {
+        return seasonWins(candidate, baseline, band, java.util.stream.IntStream.rangeClosed(96, 105).boxed().toList());
+    }
+    private int seasonWins(BoostRow candidate, BoostRow baseline, double band, Collection<Integer> seasons) {
         int wins = 0;
-        for (int season = 96; season <= 105; season++) if (baseline.row().windows().get("season" + season).logLoss() - candidate.row().windows().get("season" + season).logLoss() > band) wins++;
+        for (int season : seasons) if (baseline.row().windows().get("season" + season).logLoss() - candidate.row().windows().get("season" + season).logLoss() > band) wins++;
         return wins;
     }
     private int changedKnobs(BoostRow r) {
@@ -729,6 +998,10 @@ class EloBacktestReport {
     }
 
     private void verifyReplay(Cycle cycle, EloService.Timeline timeline) {
+        verifyReplay(cycle, timeline, NO_OWNER_CHANGES);
+    }
+
+    private void verifyReplay(Cycle cycle, EloService.Timeline timeline, OwnerChanges changes) {
         assertEquals(cycle.games().size(), timeline.games().size());
         var starts = timeline.history().stream().filter(s -> s.season() == 0 && s.week() == 0).toList();
         assertEquals(32, starts.size());
@@ -739,10 +1012,14 @@ class EloBacktestReport {
             assertEquals(1500, r.homePregameElo(), 0);
             assertEquals(1500, r.awayPregameElo(), 0);
         }
-        if (cycle == archive) transitions(cycle, timeline);
+        if (cycle == archive) transitions(cycle, timeline, changes);
     }
 
     private List<Transition> transitions(Cycle cycle, EloService.Timeline timeline) {
+        return transitions(cycle, timeline, NO_OWNER_CHANGES);
+    }
+
+    private List<Transition> transitions(Cycle cycle, EloService.Timeline timeline, OwnerChanges changes) {
         List<Transition> transitions = new ArrayList<>();
         for (int season : cycle.seasons()) {
             if (season == 0) continue;
@@ -752,10 +1029,11 @@ class EloBacktestReport {
             int carried = 0;
             for (var s : starts) {
                 assertEquals(previous.get(s.team().teamId()), s.prevElo(), 1e-9);
-                assertEquals(engine.regress(s.prevElo(), timeline.config()), s.startElo(), 1e-9);
+                boolean reset = changes.rule() == OwnerRule.RESET && changes.weeks().getOrDefault(season, Map.of()).getOrDefault(s.week(), Set.of()).contains(s.team().teamId());
+                assertEquals(reset ? timeline.config().initialRating() : engine.regress(s.prevElo(), timeline.config()), s.startElo(), 1e-9);
                 if (s.startElo() != 1500 && s.prevElo() != 1500) carried++;
             }
-            if (cycle == archive) assertEquals(32, carried, "Archive identities must carry all teams across seasons");
+            if (cycle == archive && changes.weeks().isEmpty()) assertEquals(32, carried, "Archive identities must carry all teams across seasons");
             transitions.add(new Transition(cycle.name(), season - 1 + cycle.offset(), season + cycle.offset(), carried));
         }
         return transitions;
