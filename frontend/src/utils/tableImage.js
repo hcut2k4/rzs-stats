@@ -76,7 +76,7 @@ export async function layoutTable(spec, ctx) {
     let width = ctx.measureText(col.label).width
     ctx.font = '12px sans-serif'
     spec.rows.forEach((row, i) => { width = Math.max(width, ctx.measureText(text(col, row, i)).width + (logos[i][c] ? 26 : 0)) })
-    return Math.max(Math.ceil(width) + 20, col.bar || col.meter || col.chance ? (col.barWidth ?? 140) + 20 : col.form ? 110 : col.pill ? width + 36 : 0)
+    return Math.max(Math.ceil(width) + 20, col.winShare ? 100 : col.bar || col.meter || col.chance ? (col.barWidth ?? 140) + 20 : col.form ? 110 : col.pill ? width + 36 : 0)
   })
   ctx.font = 'bold 18px sans-serif'
   let width = Math.max(widths.reduce((sum, value) => sum + value, 0), ctx.measureText(title).width + 20)
@@ -165,7 +165,7 @@ export async function layoutTable(spec, ctx) {
           }
           if (logo) left += 26
         }
-        ctx.fillStyle = spec.rowMuted?.(row, rowIndex) ? IMAGE.muted : IMAGE.ink
+        ctx.fillStyle = rowIndex != null && col.textColor ? IMAGE[col.textColor(row, rowIndex)] : spec.rowMuted?.(row, rowIndex) ? IMAGE.muted : IMAGE.ink
         const textX = left + (ctx.textAlign === 'right' ? textWidth : ctx.textAlign === 'center' ? textWidth / 2 : 0)
         const visual = rowIndex != null && drawCellVisual(ctx, col, row, rowIndex, x + 10, y, widths[i] - 20, content)
         if (!visual && (rowIndex == null || bar?.text !== false)) ctx.fillText(content, textX, y + (rowIndex == null ? 13 : 12))
@@ -182,12 +182,35 @@ export async function layoutTable(spec, ctx) {
       ctx.fillStyle = i % 2 ? IMAGE.surface : IMAGE.bg
       ctx.fillRect(0, y, width, 24)
       drawCells(y, row, i)
+      const accent = spec.rowAccent?.(row, i)
+      if (accent) {
+        ctx.fillStyle = accent
+        ctx.fillRect(0, y, 4, 23)
+      }
     })
     ctx.restore()
   } }
 }
 
 export function drawCellVisual(ctx, col, row, i, x, y, width, content) {
+  const share = col.winShare?.(row, i)
+  if (share) {
+    ctx.save()
+    ctx.beginPath()
+    ctx.roundRect(x, y + 8, 80, 8, 4)
+    ctx.clip()
+    ctx.fillStyle = IMAGE.bad
+    ctx.globalAlpha = 0.5
+    ctx.fillRect(x, y + 8, 80, 8)
+    ctx.fillStyle = IMAGE.good
+    ctx.globalAlpha = 0.8
+    ctx.fillRect(x, y + 8, 80 * share.wins, 8)
+    ctx.fillStyle = IMAGE.muted
+    ctx.globalAlpha = 0.6
+    ctx.fillRect(x + 80 * share.wins, y + 8, 80 * share.ties, 8)
+    ctx.restore()
+    return true
+  }
   const meter = col.meter?.(row, i)
   const chance = col.chance?.(row, i)
   if (Number.isFinite(meter) || Number.isFinite(chance)) {

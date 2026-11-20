@@ -26,6 +26,21 @@ export function teamColorVars(primaryColor) {
   return hex ? { '--team': hex, '--team-dark': visibleTeamColor(hex) } : {}
 }
 
+export function rankTone(rank, of) {
+  if (!rank || !of) return 'muted'
+  if (rank <= Math.ceil(of / 4)) return 'good'
+  if (rank > of - Math.ceil(of / 4)) return 'bad'
+  return 'muted'
+}
+
+export function roadTiles(record, road, sosLeft) {
+  return [
+    { label: 'Projected record', value: record, tip: 'Current record plus the Elo win probability of every remaining game, rounded to whole games. Ties so far are kept.' },
+    { label: 'Favored in', value: `${road.filter(r => r.winProb >= 0.5).length} of ${road.length}`, tip: 'Remaining games where Elo gives this team at least a 50% win probability.' },
+    { label: 'Remaining SoS', value: sosLeft.text, note: sosLeft.rank, tip: sosLeft.tip, source: sosLeft.source },
+  ]
+}
+
 export function ordinal(n) {
   const mod100 = n % 100
   const suffix = mod100 >= 11 && mod100 <= 13 ? 'th' : { 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] ?? 'th'

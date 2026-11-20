@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
+import { toRows, aiText } from '../utils/exportTable'
 import { TIERS, pct0 } from '../utils/eloLean'
 import {
   possessive, landscapeSummary, truthSummary, roadSummary, roadFooter, outlookTip,
   arcSummary, trajectoryCopy, franchiseSummary, rivalrySummary,
 } from '../utils/teamProfileCopy'
-import { arcSpec, roadSpec, truthSpec, rivalrySpec } from '../components/team/specs'
+import { arcSpec, roadSpec, truthSpec, rivalrySpec, headerSpec, qbSpec } from '../components/team/specs'
 
 const team = { displayName: 'Bears', wins: 5, losses: 2, ties: 0 }
 const lanes = (actual, pypat, elo) => [
@@ -112,4 +113,27 @@ describe('team profile copy', () => {
     expect(rivalry.qualifier).toContain('Pts/G For–Against')
     expect(rivalry.cols.map(c => c.label)).toEqual(['Opponent', 'GP', 'W', 'L', 'T', 'Point Diff', 'Pts/G For–Against', 'Last meeting'])
   })
+})
+
+
+it('blanks unavailable header KPIs and optional notes in data exports', () => {
+  const kpis = [{ label: 'Elo', value: '—' }, { label: 'Record', value: '0-0' }, { label: 'Missing' }, { label: 'Zero', value: 0 }]
+  const spec = headerSpec(team, 1, kpis)
+  expect(toRows(spec)).toEqual([
+    ['Label', 'Value', 'Rank', 'Note', 'Delta'],
+    ['Elo', '', '', '', ''], ['Record', '0-0', '', '', ''], ['Missing', '', '', '', ''], ['Zero', '0', '', '', ''],
+  ])
+  expect(kpis[0].value).toBe('—')
+})
+
+it('includes all Road Ahead tile values, rank and quality source in AI notes only', () => {
+  const spec = roadSpec({ ...team, ties: 1 }, 1, [{ week: 0, home: true, opp: { displayName: 'Aces' }, oppElo: 1500, game: { homeWinProbability: 0.7, awayWinProbability: 0.3 }, winProb: 0.7 }], { text: '52.0%', rank: '3rd hardest of 32', source: 'current-season opponent quality' })
+  const ai = aiText(spec)
+  for (const text of ['Projected record: 6-2-1', 'Favored in: 1 of 1', 'Remaining SoS: 52.0% · 3rd hardest of 32 · Uses current-season opponent quality.']) expect(ai).toContain(text)
+  expect(toRows(spec)[0]).toEqual(['Week', 'Site', 'Opponent', 'Opp Elo', 'Win probability', 'Outlook'])
+})
+
+it('defines the positive QB qualification condition', () => {
+  const spec = qbSpec(team, 1, [], {})
+  expect(spec.cols.find(c => c.label === 'Qualified').desc).toBe('Yes means the quarterback has at least 10 pass attempts per team game, the minimum for league rankings.')
 })

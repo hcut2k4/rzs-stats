@@ -1,3 +1,4 @@
+import { roadTiles } from '../../utils/teamProfile'
 import { outlookTip } from '../../utils/teamProfileCopy'
 import { Link } from 'react-router-dom'
 import { TeamLogo } from '../TeamLogo'
@@ -29,15 +30,11 @@ export default function RoadAhead({ rows, projection, sosLeft, spec, teamHref, l
       actions={<ExportMenu spec={spec} />}
     >
       <div className="grid grid-cols-3 gap-px bg-line border-y border-line mb-3">
-        {[
-          ['Projected record', projection.record, 'Current record plus the Elo win probability of every remaining game, rounded to whole games. Ties so far are kept.', null],
-          ['Favored in', `${rows.filter(r => r.winProb >= 0.5).length} of ${rows.length}`, 'Remaining games where Elo gives this team at least a 50% win probability.', null],
-          ['Remaining SoS', sosLeft.text, sosLeft.tip, sosLeft.rank],
-        ].map(([label, value, tip, sub]) => (
+        {roadTiles(projection.record, rows, sosLeft).map(({ label, value, tip, note }) => (
           <div key={label} className="bg-bg px-3 py-2">
             <p className="text-[11px] uppercase tracking-wide text-muted font-semibold"><InfoTip text={tip}>{label}</InfoTip></p>
             <p className="font-display font-extrabold text-2xl leading-none mt-1 num">{value}</p>
-            {sub && <p className="text-[11px] text-muted mt-1">{sub}</p>}
+            {note && <p className="text-[11px] text-muted mt-1">{note}</p>}
           </div>
         ))}
       </div>

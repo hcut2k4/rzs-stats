@@ -2,7 +2,7 @@ import { FINGERPRINT_FOOTER, LANDSCAPE_FOOTER, TRUTH_EXPLANATION, FRANCHISE_NOTE
 import { IMAGE, drawCellVisual, layoutTable, wrapText } from '../../utils/tableImage'
 import { loadLogo } from '../../utils/teamLogo'
 import { drawChartPlot } from '../../utils/chartImage'
-import { ordinal, signed1, teamColor, eloPeaks } from '../../utils/teamProfile'
+import { ordinal, signed1, teamColor, eloPeaks, rankTone } from '../../utils/teamProfile'
 import { pct0 } from '../../utils/eloLean'
 import { shortWeekName, weekName } from '../../utils/playoffRounds'
 import { seasonNumber } from '../../utils/seasons'
@@ -76,7 +76,7 @@ export const headerImage = (team, season, kpis) => ({ width: 390, async draw(ctx
       ctx.fillRect(x + 1, y, width / 2 - 2, 124)
       text(ctx, k.label, x + 12, y + 17, 11, IMAGE.muted, true)
       text(ctx, k.value, x + 12, y + 46, 28, IMAGE.ink, true)
-      const rankColor = k.neutral ? IMAGE.ink : k.rank?.rank <= Math.ceil(k.rank?.of / 4) ? IMAGE.good : k.rank?.rank > k.rank?.of - Math.ceil(k.rank?.of / 4) ? IMAGE.bad : IMAGE.muted
+      const rankColor = k.neutral ? IMAGE.ink : IMAGE[rankTone(k.rank?.rank, k.rank?.of)]
       if (k.rank) text(ctx, `${ordinal(k.rank.rank)}${k.rankWord ?? ''} of ${k.rank.of}`, x + 12, y + 72, 11, rankColor, true)
       if (k.note) text(ctx, k.note, x + 12, y + 91, 11, IMAGE.muted)
       if (k.delta) text(ctx, `${k.delta.minor ? '' : k.delta.up ? '▲ ' : '▼ '}${k.delta.text}`, x + 12, y + 109, 11, k.delta.minor ? IMAGE.muted : k.delta.up ? IMAGE.good : IMAGE.bad)

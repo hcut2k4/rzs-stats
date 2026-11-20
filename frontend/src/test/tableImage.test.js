@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { chooseScale } from '../utils/tableImage'
+import { readFileSync } from 'node:fs'
+import { IMAGE, chooseScale } from '../utils/tableImage'
 let copyImage, copyChartImage
 
 let ctx, calls, canvases, downloads, write, png
@@ -28,7 +29,7 @@ beforeEach(async () => {
     save() { stack.push([...offset]) },
     restore() { offset = stack.pop() ?? [0, 0] },
     translate(x, y) { offset = [offset[0] + x, offset[1] + y] },
-    beginPath: vi.fn(), arc: vi.fn(), fill: vi.fn(), strokeRect: vi.fn(),
+    roundRect: vi.fn(), clip: vi.fn(), beginPath: vi.fn(), arc: vi.fn(), fill: vi.fn(), strokeRect: vi.fn(),
     moveTo: vi.fn(), lineTo: vi.fn(), stroke: vi.fn(), setLineDash: vi.fn(), closePath: vi.fn(),
     createLinearGradient: () => ({ addColorStop: vi.fn() }),
     textAlign: 'left',
@@ -462,4 +463,48 @@ it('highlights the focused team last and fades the remaining Landscape logos', a
   expect(drawn.map(d => [d.alpha, d.filter, d.args[3]])).toEqual([[0.45, 'grayscale(1)', 26], [1, 'none', 44]])
   expect(ctx.arc).toHaveBeenCalledWith(expect.any(Number), expect.any(Number), 27, 0, Math.PI * 2)
   expect(ctx.strokeStyle).toBe('#123456')
+})
+
+
+it('keeps the PNG palette equal to the light theme tokens', () => {
+  const css = readFileSync('src/index.css', 'utf8')
+  const root = css.match(/:root\s*\{([^}]+)\}/)[1]
+  for (const [name, color] of Object.entries(IMAGE)) {
+    const channels = root.match(new RegExp(`--${name}:\\s*([\\d ]+);`))[1].trim().split(/\s+/).map(Number)
+    const imageChannels = color.startsWith('#') ? color.slice(1).match(/../g).map(c => parseInt(c, 16)) : color.match(/\d+/g).map(Number)
+    expect(imageChannels, name).toEqual(channels)
+  }
+})
+
+it('draws rivalry wins and ties as separate shares on a red track and colors point differences', async () => {
+  vi.stubGlobal('Image', class { set src(value) { queueMicrotask(() => this.onerror()) } })
+  const { rivalrySpec } = await import('../components/team/specs')
+  const row = { opp: { displayName: 'Bears' }, games: 4, w: 1, l: 2, t: 1, diff: 7, pf: 60, pa: 53, last: { season: 1, week: 0, result: 'W', teamScore: 20, oppScore: 13 } }
+  const table = rivalrySpec({ displayName: 'Aces' }, [row, { ...row, diff: -7 }, { ...row, diff: 0 }], { key: 'games', asc: false }, 3)
+  const alpha = []
+  const fillRect = ctx.fillRect.bind(ctx)
+  ctx.fillRect = (...args) => {
+    if (args[3] === 8) alpha.push(ctx.globalAlpha)
+    fillRect(...args)
+  }
+  await expect(copyImage(table.imageSpec)).resolves.toBe('copied')
+  expect(alpha.slice(0, 3)).toEqual([0.5, 0.8, 0.6])
+  expect(ctx.roundRect).toHaveBeenCalledWith(expect.any(Number), expect.any(Number), 80, 8, 4)
+  const bars = calls.filter(c => c.type === 'fillRect' && c.args[3] === 8)
+  expect(bars.slice(0, 3).map(c => [c.style, c.args[2]])).toEqual([[IMAGE.bad, 80], [IMAGE.good, 20], [IMAGE.muted, 20]])
+  expect(bars[2].args[0]).toBe(bars[1].args[0] + 20)
+  for (const [value, tone] of [['+7', IMAGE.good], ['-7', IMAGE.bad], ['0', IMAGE.ink]]) {
+    expect(calls).toContainEqual(expect.objectContaining({ type: 'fillText', style: tone, args: expect.arrayContaining([value]) }))
+  }
+  const { toRows } = await import('../utils/exportTable')
+  expect(toRows(table)[0]).toEqual(['Opponent', 'GP', 'W', 'L', 'T', 'Point Diff', 'Pts/G For–Against', 'Last meeting'])
+})
+
+it('draws each row accent after the cell backgrounds', async () => {
+  const table = spec()
+  table.rows.push(table.rows[0])
+  table.rowAccent = (_, i) => i ? '#000000' : '#123456'
+  await copyImage(table)
+  const accents = calls.filter(c => c.type === 'fillRect' && ['#123456', '#000000'].includes(c.style))
+  expect(accents.map(c => [c.style, c.args])).toEqual([['#123456', [0, 80, 4, 23]], ['#000000', [0, 104, 4, 23]]])
 })

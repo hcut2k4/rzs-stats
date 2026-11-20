@@ -2,6 +2,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
 import { MemoryRouter, RouterProvider, createMemoryRouter } from 'react-router-dom'
+import * as tableImage from '../utils/tableImage'
 import * as client from '../api/client'
 import App from '../App'
 import { TeamCell } from '../components/TeamLogo'
@@ -189,6 +190,16 @@ describe('Team profile', () => {
     const division = await screen.findByRole('region', { name: 'AFC East' })
     expect(within(division).getAllByRole('link').map(l => l.getAttribute('href'))).toEqual(['/teams/AAA', '/teams/BBB'])
     expect(await within(division).findByText('Elo #1')).toBeInTheDocument()
+    expect(screen.getByText(/Record, PyPAT and last 5 are regular season only. Elo rank includes playoffs./)).toBeInTheDocument()
+    const copy = vi.spyOn(tableImage, 'copyImage').mockResolvedValue('copied')
+    await userEvent.click(screen.getByRole('button', { name: 'PNG' }))
+    const spec = copy.mock.calls[0][0]
+    expect(spec.qualifier).toContain('Elo rank includes playoffs.')
+    expect(spec.description).toContain('Record, PyPAT and last 5 are regular season only.')
+    expect(spec.cols.find(c => c.label === 'Elo Rank').desc).toContain('including playoffs')
+    expect(spec.rowAccent({ primaryColor: '0' })).toBe('#000000')
+    expect(spec.rowAccent({ primaryColor: '16727040' })).toBe('#ff3c00')
+    copy.mockRestore()
     expect(within(division).getByLabelText(/^Last \d results W/)).toBeInTheDocument()
     expect(within(screen.getByRole('navigation', { name: 'Main' })).getByRole('link', { name: 'Teams' })).toHaveAttribute('href', '/teams')
   })

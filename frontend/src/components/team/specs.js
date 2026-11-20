@@ -1,8 +1,8 @@
-import { FINGERPRINT_SUMMARY, LANDSCAPE_FOOTER, TRUTH_EXPLANATION, UNQUALIFIED_TIP, truthSummary, landscapeSummary, roadSummary, roadFooter, outlookTip, arcSummary, qbSummary, rivalrySummary, count } from '../../utils/teamProfileCopy'
+import { FINGERPRINT_SUMMARY, LANDSCAPE_FOOTER, TRUTH_EXPLANATION, truthSummary, landscapeSummary, roadSummary, roadFooter, outlookTip, arcSummary, qbSummary, rivalrySummary, count } from '../../utils/teamProfileCopy'
 import { headerImage, fingerprintImage, truthImage, arcImage, franchiseImage, landscapeImage, tableWithFooter } from './images'
 import { goodBadColor, divergeColor } from '../../utils/heat'
 import { halfPointScale, leaguePointsPerDrive, tierPoints } from '../../utils/efficiencyMetrics'
-import { quadrant, projectedRecord, recordText, teamColor } from '../../utils/teamProfile'
+import { quadrant, projectedRecord, recordText, roadTiles, teamColor } from '../../utils/teamProfile'
 import { QB_COLS } from './QbRoom'
 import { HISTORY_TIPS } from './FranchiseHistory'
 import { RIVALRY_TIPS, lastMeeting } from './Rivalries'
@@ -70,16 +70,13 @@ export const arcSpec = (team, season, games, inProgress = false) => ({
 })
 
 export const roadSpec = (team, season, road, sosLeft = {}) => {
+  const tiles = roadTiles(recordText(projectedRecord(team, road)), road, sosLeft)
   const spec = {
     name: `${team.displayName} Remaining Schedule`,
     qualifier: `${seasonLabel(season)} · ${count(road.length, 'game')} left. ${roadSummary(team, road)}`,
     description: roadSummary(team, road),
-    notes: [roadFooter(team.displayName)],
-    tiles: [
-      { label: 'Projected record', value: recordText(projectedRecord(team, road)) },
-      { label: 'Favored in', value: `${road.filter(r => r.winProb >= 0.5).length} of ${road.length}` },
-      { label: 'Remaining SoS', value: sosLeft.text, note: sosLeft.rank },
-    ],
+    notes: [roadFooter(team.displayName), ...tiles.map(t => `${t.label}: ${t.value ?? '—'}${t.note ? ` · ${t.note}` : ''}${t.source ? ` · Uses ${t.source}.` : ''}`)],
+    tiles,
     rows: road,
     cols: [
       { label: 'Week', desc: 'Week of the game.', text: r => weekName(r.week) },
@@ -103,7 +100,7 @@ export const qbSpec = (team, season, rows, params, league = rows) => ({
   rows,
   cols: [
     { label: 'QB', desc: 'Quarterback name.', text: r => r.playerName },
-    { label: 'Qualified', desc: UNQUALIFIED_TIP, text: r => (r.qualified ? 'Yes' : 'No') },
+    { label: 'Qualified', desc: 'Yes means the quarterback has at least 10 pass attempts per team game, the minimum for league rankings.', text: r => (r.qualified ? 'Yes' : 'No') },
     ...QB_COLS.map(c => ({ label: c.label, desc: c.desc, text: r => String(c.fmt(r[c.key])), value: r => r[c.key], z: c.z, color: r => c.heat && r.qualified ? goodBadColor(r[c.key], league.filter(q => q.qualified).map(q => q[c.key]), c.heat) : undefined })),
   ],
   api: { path: '/qb/leaderboard', params, note: `Filtered to teamAbbr=${team.abbrName}; sorted by passAtt descending.` },
@@ -135,23 +132,30 @@ export const franchiseSpec = (team, rows, points = [], summary = '') => {
 
 const RIVALRY_SORTS = { opp: 'Opponent', games: 'GP', record: 'Record (win %)', diff: 'Point Diff', ppg: 'Pts/G For–Against (differential)', last: 'Last meeting' }
 
-export const rivalrySpec = (team, rows, sort, total) => ({
-  name: `${team.displayName} Head to Head`,
-  qualifier: `All seasons · regular season and playoffs · ${rows.length < total ? `top ${rows.length} of ${total} opponents` : `all ${total} opponents`} · sorted by ${RIVALRY_SORTS[sort.key]} ${sort.asc ? 'ascending' : 'descending'}. ${rivalrySummary(team.displayName, total)}`,
-  description: rivalrySummary(team.displayName, total),
-  rows,
-  cols: [
-    { label: 'Opponent', desc: RIVALRY_TIPS.opp, text: r => r.opp.displayName, logo: r => r.opp.abbrName },
-    n('GP', RIVALRY_TIPS.games, r => r.games),
-    n('W', 'Wins against this opponent.', r => r.w),
-    n('L', 'Losses against this opponent.', r => r.l),
-    n('T', 'Ties against this opponent.', r => r.t),
-    { label: 'Point Diff', desc: RIVALRY_TIPS.diff, text: r => (r.diff > 0 ? '+' : '') + r.diff, value: r => r.diff, z: '+0;-0;0' },
-    { label: 'Pts/G For–Against', desc: RIVALRY_TIPS.ppg, text: r => `${(r.pf / r.games).toFixed(1)}–${(r.pa / r.games).toFixed(1)}` },
-    { label: 'Last meeting', desc: RIVALRY_TIPS.last, text: lastMeeting },
-  ],
-  api: { path: '/elo/games', params: { teamId: team.teamId }, note: 'Grouped by opponent client-side. Ties count half in win percentage.' },
-})
+export const rivalrySpec = (team, rows, sort, total) => {
+  const spec = {
+    name: `${team.displayName} Head to Head`,
+    qualifier: `All seasons · regular season and playoffs · ${rows.length < total ? `top ${rows.length} of ${total} opponents` : `all ${total} opponents`} · sorted by ${RIVALRY_SORTS[sort.key]} ${sort.asc ? 'ascending' : 'descending'}. ${rivalrySummary(team.displayName, total)}`,
+    description: rivalrySummary(team.displayName, total),
+    rows,
+    cols: [
+      { label: 'Opponent', desc: RIVALRY_TIPS.opp, text: r => r.opp.displayName, logo: r => r.opp.abbrName },
+      n('GP', RIVALRY_TIPS.games, r => r.games),
+      n('W', 'Wins against this opponent.', r => r.w),
+      n('L', 'Losses against this opponent.', r => r.l),
+      n('T', 'Ties against this opponent.', r => r.t),
+      { label: 'Point Diff', desc: RIVALRY_TIPS.diff, text: r => (r.diff > 0 ? '+' : '') + r.diff, value: r => r.diff, z: '+0;-0;0' },
+      { label: 'Pts/G For–Against', desc: RIVALRY_TIPS.ppg, text: r => `${(r.pf / r.games).toFixed(1)}–${(r.pa / r.games).toFixed(1)}` },
+      { label: 'Last meeting', desc: RIVALRY_TIPS.last, text: lastMeeting },
+    ],
+    api: { path: '/elo/games', params: { teamId: team.teamId }, note: 'Grouped by opponent client-side. Ties count half in win percentage.' },
+  }
+  spec.imageSpec = { ...spec, cols: [...spec.cols.slice(0, 5),
+    { label: 'Record', text: () => '', winShare: r => ({ wins: r.w / r.games, ties: r.t / r.games }) },
+    ...spec.cols.slice(5).map(c => c.label === 'Point Diff' ? { ...c, textColor: r => r.diff > 0 ? 'good' : r.diff < 0 ? 'bad' : 'ink' } : c),
+  ] }
+  return spec
+}
 
 export const headerSpec = (team, season, kpis) => ({
   name: `${team.displayName} Profile`,
@@ -159,9 +163,9 @@ export const headerSpec = (team, season, kpis) => ({
   rows: kpis,
   cols: [
     { label: 'Label', desc: 'Headline statistic.', text: r => r.label },
-    { label: 'Value', desc: 'Displayed statistic.', text: r => r.value },
+    { label: 'Value', desc: 'Displayed statistic.', text: r => r.value ?? '', value: r => r.value === '—' ? null : r.value ?? null },
     { label: 'Rank', desc: 'League rank and number of teams.', text: r => r.rank ? `${ordinal(r.rank.rank)}${r.rankWord ?? ''} of ${r.rank.of}` : '' },
-    { label: 'Note', desc: 'Context for the statistic.', text: r => r.note },
+    { label: 'Note', desc: 'Context for the statistic.', text: r => r.note ?? '' },
     { label: 'Delta', desc: 'Change from the previous season.', text: r => r.delta ? `${r.delta.minor ? '' : r.delta.up ? '▲ ' : '▼ '}${r.delta.text}` : '' },
   ],
   image: headerImage(team, season, kpis),

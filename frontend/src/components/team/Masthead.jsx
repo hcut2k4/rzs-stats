@@ -4,15 +4,8 @@ import { Link } from 'react-router-dom'
 import { TeamLogo } from '../TeamLogo'
 import InfoTip from '../InfoTip'
 import { teamLogoUrl } from '../../utils/teamLogo'
-import { ordinal } from '../../utils/teamProfile'
+import { ordinal, rankTone } from '../../utils/teamProfile'
 import { seasonNumber } from '../../utils/seasons'
-
-function rankTone(rank, of) {
-  if (!rank || !of) return 'text-muted'
-  if (rank <= Math.ceil(of / 4)) return 'text-good'
-  if (rank > of - Math.ceil(of / 4)) return 'text-bad'
-  return 'text-muted'
-}
 
 function Kpi({ label, value, tip, rank, rankWord = '', neutral, note, delta }) {
   return (
@@ -22,7 +15,7 @@ function Kpi({ label, value, tip, rank, rankWord = '', neutral, note, delta }) {
       </dt>
       <dd className="font-display font-extrabold text-3xl sm:text-4xl leading-none mt-1 num">{value}</dd>
       <dd className="text-xs mt-1.5 flex items-center gap-2 flex-wrap num">
-        {rank && <span className={`font-semibold ${neutral ? 'text-ink' : rankTone(rank.rank, rank.of)}`}>{ordinal(rank.rank)}{rankWord} of {rank.of}</span>}
+        {rank && <span className={`font-semibold ${neutral ? 'text-ink' : ({ good: 'text-good', bad: 'text-bad', muted: 'text-muted' })[rankTone(rank.rank, rank.of)]}`}>{ordinal(rank.rank)}{rankWord} of {rank.of}</span>}
         {note && <span className="text-muted">{note}</span>}
         {delta && (delta.minor
           ? <span className="text-muted" title={delta.title}>{delta.text}</span>

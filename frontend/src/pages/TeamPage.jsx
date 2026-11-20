@@ -190,9 +190,9 @@ export default function TeamPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
           <ScoreboardTruth lanes={lanes} games={team.gamesPlayed} arc={regularArc} spec={truthSpec(team, season, lanes, regularArc)} />
           {showRoad
-            ? <RoadAhead rows={road} loading={upcoming.loading} teamHref={teamHref} spec={roadSpec(team, season, road, { text: sosText(leftField), rank: leftRank ? `${ordinal(leftRank.rank)} hardest of ${leftRank.of}` : null })}
+            ? <RoadAhead rows={road} loading={upcoming.loading} teamHref={teamHref} spec={roadSpec(team, season, road, { text: sosText(leftField), source: sosLeftSource, rank: leftRank ? `${ordinal(leftRank.rank)} hardest of ${leftRank.of}` : null })}
                 projection={{ record: recordText(projectedRecord(team, road)) }}
-                sosLeft={{ text: sosText(leftField), tip: `${SOS_TIP} Remaining games only. Uses ${sosLeftSource}.`, rank: leftRank ? `${ordinal(leftRank.rank)} hardest of ${leftRank.of}` : null }} />
+                sosLeft={{ text: sosText(leftField), source: sosLeftSource, tip: `${SOS_TIP} Remaining games only. Uses ${sosLeftSource}.`, rank: leftRank ? `${ordinal(leftRank.rank)} hardest of ${leftRank.of}` : null }} />
             : qbRoom}
         </div>
         <SeasonArc games={seasonGames} spec={arcSpec(team, season, seasonGames, inProgress)} teamHref={teamHref} loading={eloGames.loading} />

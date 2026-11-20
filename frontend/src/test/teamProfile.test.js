@@ -1,6 +1,6 @@
 import {
   eloExpectedWins, fingerprint, franchiseSeasons, headToHead, ordinal, percentileIn, projectedRecord, rankIn, seasonArc, sosLeftVariant, sosVariant, currentRegularWeek, teamColor, teamGames,
-  teamUpcoming, visibleTeamColor,
+  teamUpcoming, visibleTeamColor, rankTone,
 } from '../utils/teamProfile'
 
 const team = (teamId, abbrName) => ({ teamId, abbrName, displayName: abbrName + 'x' })
@@ -194,4 +194,11 @@ describe('remaining schedule strength', () => {
     expect(currentRegularWeek([{ week: 18 }])).toBeNull()
     expect(currentRegularWeek([])).toBeNull()
   })
+})
+
+
+it('classifies rank quartiles consistently including incomplete leagues', () => {
+  expect([1, 8, 9, 24, 25, 32].map(rank => rankTone(rank, 32))).toEqual(['good', 'good', 'muted', 'muted', 'bad', 'bad'])
+  expect([1, 2, 3, 4, 5].map(rank => rankTone(rank, 5))).toEqual(['good', 'good', 'muted', 'bad', 'bad'])
+  expect(rankTone(null, 32)).toBe('muted')
 })
