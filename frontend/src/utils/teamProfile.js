@@ -202,6 +202,8 @@ export const luckLean = winDiff => (winDiff > 0.5 ? 1 : winDiff < -0.5 ? -1 : 0)
 
 export const quadrant = (offense, defense, league) => ({ goodOffense: offense >= league, goodDefense: defense <= league })
 
+// Same default as Standings and About: the active season reads prior-season opponent quality, finished seasons their own.
+// SoS Left switches to current-season quality from Week 10; Played keeps this default.
 export const sosVariant = (season, latest) => (season > 0 && season === latest ? 'Prev' : 'Curr')
 
 export const sosLeftVariant = (season, latest, currentWeek) => (

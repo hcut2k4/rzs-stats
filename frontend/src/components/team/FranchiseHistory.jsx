@@ -1,3 +1,4 @@
+import { FRANCHISE_NOTE } from '../../utils/teamProfileCopy'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ReferenceDot, ResponsiveContainer } from 'recharts'
 import InfoTip from '../InfoTip'
 import ExportMenu from '../ExportMenu'
@@ -75,7 +76,7 @@ export default function FranchiseHistory({ points, seasons, allTime, spec, loadi
               </LineChart>
             </ResponsiveContainer>
           </div>
-          <figcaption className="text-xs text-muted mt-1">Elo after every week. Dotted lines mark season starts, where ratings regress toward 1500.</figcaption>
+          <figcaption className="text-xs text-muted mt-1">{FRANCHISE_NOTE}</figcaption>
         </figure>
         <div className="overflow-x-auto border-y border-rule self-start">
           <table className="w-full text-sm num">

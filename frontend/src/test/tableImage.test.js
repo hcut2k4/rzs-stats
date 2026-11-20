@@ -424,7 +424,15 @@ it('draws every team panel with missing data and the current widget visuals', as
     landscapeSpec([{ ...team, offense: { pointsPerDrive: 2, drives: 10 }, defense: { pointsPerDrive: 1.5, drives: 10 } }], 1, 1, team),
   ]
   ctx.rotate = vi.fn()
-  for (const panel of panels) await expect(copyImage(panel), panel.name).resolves.toBe('copied')
+  const { FINGERPRINT_FOOTER, TRUTH_EXPLANATION, FRANCHISE_NOTE, LANDSCAPE_FOOTER, trajectoryCopy } = await import('../utils/teamProfileCopy')
+  const footers = [null, FINGERPRINT_FOOTER, TRUTH_EXPLANATION, trajectoryCopy(5), FRANCHISE_NOTE, LANDSCAPE_FOOTER]
+  for (const [i, panel] of panels.entries()) {
+    const start = calls.length
+    await expect(copyImage(panel), panel.name).resolves.toBe('copied')
+    const output = calls.slice(start).filter(c => c.type === 'fillText').map(c => c.args[0]).join(' ')
+    expect(output).toContain(panel.qualifier)
+    if (footers[i]) expect(output).toContain(footers[i])
+  }
   const texts = calls.filter(c => c.type === 'fillText').map(c => c.args[0])
   expect(texts).toEqual(expect.arrayContaining(['75', 'No data', 'Poor', 'Great', 'Actual wins', 'Big upset win', 'Peak 1510', 'Low 1490', 'Good O', 'Bad D']))
   const qualified = { playerName: 'Starter', qualified: true, tanya: 8 }
@@ -434,9 +442,12 @@ it('draws every team panel with missing data and the current widget visuals', as
   expect(qbs.cols.find(c => c.label === 'TANY/A').color(qualified)).toBe('rgb(22 163 74 / 0.420)')
   expect(qbs.cols.find(c => c.label === 'TANY/A').color(backup)).toBeUndefined()
   expect(calls).toContainEqual(expect.objectContaining({ type: 'fillText', args: expect.arrayContaining(['Backup']), style: '#646e7d' }))
-  const road = roadSpec(team, 1, [{ ...games[0], oppElo: 1500, game: { homeWinProbability: 0.3, awayWinProbability: 0.7 } }], 1.3, { text: '—' })
+  const road = roadSpec(team, 1, [{ ...games[0], oppElo: 1500, game: { homeWinProbability: 0.3, awayWinProbability: 0.7 } }], { text: '—' })
   await expect(copyImage(road)).resolves.toBe('copied')
-  expect(calls.filter(c => c.type === 'fillText').map(c => c.args[0])).toContain('30%')
+  const roadText = calls.filter(c => c.type === 'fillText').map(c => c.args[0])
+  expect(roadText).toContain('30%')
+  expect(roadText).toContain('Win probability')
+  expect(roadText.join(' ')).toContain(road.notes[0])
 })
 
 it('highlights the focused team last and fades the remaining Landscape logos', async () => {

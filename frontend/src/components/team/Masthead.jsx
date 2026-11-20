@@ -25,7 +25,7 @@ function Kpi({ label, value, tip, rank, rankWord = '', neutral, note, delta }) {
         {rank && <span className={`font-semibold ${neutral ? 'text-ink' : rankTone(rank.rank, rank.of)}`}>{ordinal(rank.rank)}{rankWord} of {rank.of}</span>}
         {note && <span className="text-muted">{note}</span>}
         {delta && (delta.minor
-          ? <span className="text-muted" title={delta.title}>±{delta.text}</span>
+          ? <span className="text-muted" title={delta.title}>{delta.text}</span>
           : <span className={delta.up ? 'text-good' : 'text-bad'} title={delta.title}>{delta.up ? '▲' : '▼'} {delta.text}</span>)}
       </dd>
     </div>

@@ -77,6 +77,9 @@ describe('Team profile', () => {
     expect(screen.queryByText('Bear Passer')).not.toBeInTheDocument()
     const arc = screen.getByRole('region', { name: 'Season Arc' })
     expect(await within(arc).findAllByText('Big upset win')).toHaveLength(2)
+    expect(within(arc).getByText(/So far: 2 upset wins/)).toHaveTextContent("How each game changed the Aces' Elo rating")
+    expect(within(arc).getAllByText('25% win probability')).toHaveLength(2)
+    expect(within(arc).getAllByText('+20.0 Elo')).toHaveLength(2)
     const road = screen.getByRole('region', { name: 'Road Ahead' })
     expect(await within(road).findByText('2-1')).toBeInTheDocument()
     const rivals = screen.getByRole('region', { name: 'Rivalries' })
@@ -92,10 +95,10 @@ describe('Team profile', () => {
       client.getEloUpcoming.mockResolvedValue([game(12, A, B), game(week, B, { ...B, teamId: 3 })])
       renderAt('/teams/AAA')
       const road = await screen.findByRole('region', { name: 'Road Ahead' })
-      await waitFor(() => expect(within(road).getByText('SoS Left')).toHaveAttribute('title', expect.stringContaining(source)))
+      await waitFor(() => expect(within(road).getByText('Remaining SoS')).toHaveAttribute('title', expect.stringContaining(source)))
       expect(within(road).getByText(value)).toBeInTheDocument()
-      expect(screen.getByText('SoS Played')).toHaveAttribute('title', expect.stringContaining('previous-season'))
-      expect(within(kpi('SoS Played')).getByText('52.0%')).toBeInTheDocument()
+      expect(screen.getByText('Strength of Schedule')).toHaveAttribute('title', expect.stringContaining('previous-season'))
+      expect(within(kpi('Strength of Schedule')).getByText('52.0%')).toBeInTheDocument()
     }
   )
 
@@ -107,7 +110,7 @@ describe('Team profile', () => {
     client.getStandings.mockResolvedValue([{ ...standing(A, 6, 2, 0.6), oppPyPatRemainingCurr: null }])
     renderAt('/teams/AAA')
     const road = await screen.findByRole('region', { name: 'Road Ahead' })
-    await waitFor(() => expect(within(road).getByText('SoS Left')).toHaveAttribute('title', expect.stringContaining('current-season')))
+    await waitFor(() => expect(within(road).getByText('Remaining SoS')).toHaveAttribute('title', expect.stringContaining('current-season')))
     expect(within(road).getByText('—')).toBeInTheDocument()
     expect(within(road).queryByText(/hardest of/)).not.toBeInTheDocument()
   })
@@ -119,6 +122,8 @@ describe('Team profile', () => {
     await waitFor(() => expect(within(kpi('Record')).getByText('5-12')).toBeInTheDocument())
     expect(client.getStandings).toHaveBeenCalledWith(0)
     expect(screen.queryByRole('heading', { name: 'Road Ahead' })).not.toBeInTheDocument()
+    const arc = screen.getByRole('region', { name: 'Season Arc' })
+    expect(within(arc).getByText(/1 upset win\./)).not.toHaveTextContent('So far')
   })
 
   it('keeps the season when following an opponent link', async () => {

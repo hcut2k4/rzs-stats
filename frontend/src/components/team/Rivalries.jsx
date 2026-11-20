@@ -46,7 +46,7 @@ export default function Rivalries({ rows, sorter, specFor, loading }) {
       id="rivalries"
       kicker="All-time head to head"
       title="Rivalries"
-      summary={`Record against all ${rows.length} opponents faced, regular season and playoffs.`}
+      summary={specFor(shown).description}
       actions={<ExportMenu spec={specFor(shown)} />}
     >
       <div className="overflow-x-auto border-y border-rule">
@@ -54,11 +54,11 @@ export default function Rivalries({ rows, sorter, specFor, loading }) {
           <thead>
             <tr className="border-b border-rule">
               {th('opp', 'Opponent', 'text-left')}
-              {th('games', 'G')}
+              {th('games', 'GP')}
               {th('record', 'Record')}
               <th className={`th ${wide}`} aria-hidden="true" />
-              {th('diff', 'Pt Diff')}
-              {th('ppg', 'PF–PA / G', `text-right ${wide}`)}
+              {th('diff', 'Point Diff')}
+              {th('ppg', 'Pts/G For–Against', `text-right ${wide}`)}
               {th('last', 'Last meeting', `text-left ${wide}`)}
             </tr>
           </thead>

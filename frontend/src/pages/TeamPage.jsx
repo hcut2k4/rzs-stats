@@ -1,3 +1,4 @@
+import { PYPAT_TIP, LUCK_TIP, franchiseSummary } from '../utils/teamProfileCopy'
 import { useEffect, useMemo } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { getSeasons, getStandings, getEfficiency, getQbLeaderboard, getEloUpcoming, getEloGames, getSeasonTrends, getEloHistory } from '../api/client'
@@ -17,14 +18,14 @@ import { useLoad } from '../utils/useLoad'
 import { SEASON_OFFSET, seasonLabel, seasonNumber } from '../utils/seasons'
 import {
   actualWins, eloExpectedWins, fingerprint, franchiseSeasons, headToHead, lastWeekRows, luckLean, ordinal, projectedRecord,
-  currentRegularWeek, pypatWins, rankIn, recordText, seasonArc, signed1, sosLeftVariant, sosVariant, tally, tallyText, teamColorVars, teamGames, teamUpcoming,
+  currentRegularWeek, pypatWins, rankIn, recordText, seasonArc, signed1, sosLeftVariant, sosVariant, tally, teamColorVars, teamGames, teamUpcoming,
 } from '../utils/teamProfile'
 
-const SOS_TIP = 'Strength of schedule: average opponent-adjusted PyPAT, with this team\'s own games removed from each opponent. Higher means a harder schedule. Empty means no data, not 0.'
-const LUCK_WORD = { 1: 'Lucky', 0: 'Even', '-1': 'Unlucky' }
+const SOS_TIP = 'Strength of schedule: opponent quality based on points scored and allowed, with this team\'s own games removed from each opponent. Higher means a harder schedule. Empty means no data, not 0.'
+const LUCK_WORD = { 1: 'Lucky', 0: 'Neutral luck', '-1': 'Unlucky' }
 
 function delta(diff, minor, text, title) {
-  return { up: diff >= 0, minor: Math.abs(diff) < minor, text, title }
+  return { up: diff >= 0, minor: Math.abs(diff) < minor, text: Math.abs(diff) < minor ? `Little change ${text.slice(text.indexOf('vs '))}` : text, title }
 }
 
 function SectionNav({ links }) {
@@ -110,26 +111,26 @@ export default function TeamPage() {
   const kpis = [
     { label: 'Record', value: recordText(team), note: played ? `${ordinal(divRank.rank)} in ${team.division}` : 'No games yet', tip: 'Regular-season record. Division place is by win percentage; ties share a place.' },
     {
-      label: 'PyPAT', value: played ? pct(team.pythagoreanPat) : '—', tip: 'PythagoreanPAT win expectancy from points scored and allowed. 50% is break-even.',
+      label: 'PyPAT', value: played ? pct(team.pythagoreanPat) : '—', tip: PYPAT_TIP,
       rank: played ? rankIn(team.pythagoreanPat, playedRows.map(r => r.pythagoreanPat)) : null,
-      delta: played && prevStanding?.gamesPlayed ? (d => delta(d, 0.01, `${Math.abs(d * 100).toFixed(1)} vs ${prevLabel}`, `Change from ${seasonLabel(season - 1)} PyPAT, in percentage points`))(team.pythagoreanPat - prevStanding.pythagoreanPat) : null,
+      delta: played && prevStanding?.gamesPlayed ? (d => delta(d, 0.01, `${Math.abs(d * 100).toFixed(1)} vs ${prevLabel}`, `${d > 0 ? '+' : ''}${Number((d * 100).toFixed(4))} percentage points from ${seasonLabel(season - 1)} PyPAT`))(team.pythagoreanPat - prevStanding.pythagoreanPat) : null,
     },
     {
-      label: 'Luck', value: played ? signed1(team.winDiff) : '—', tip: 'Actual wins minus PyPAT-expected wins. Positive means more wins than scoring margin justifies.',
+      label: 'Luck', value: played ? signed1(team.winDiff) : '—', tip: LUCK_TIP,
       rank: played ? rankIn(team.winDiff, playedRows.map(r => r.winDiff)) : null, rankWord: ' luckiest', neutral: true,
       note: played ? LUCK_WORD[luckLean(team.winDiff)] : null,
     },
     {
-      label: 'Elo', value: myElo ? myElo.endElo.toFixed(0) : '—', tip: 'Long-term strength rating, carried across seasons. 1500 is average.',
+      label: 'Elo', value: myElo ? myElo.endElo.toFixed(0) : '—', tip: 'Long-term strength rating, carried across seasons. 1500 is the league average.',
       rank: myElo ? { rank: myElo.rank, of: eloNow.length } : null,
-      delta: myElo && prevElo ? (d => delta(d, 15, `${Math.abs(d).toFixed(0)} vs ${prevLabel}`, `Change from the end of ${seasonLabel(season - 1)}`))(myElo.endElo - prevElo.endElo) : null,
+      delta: myElo && prevElo ? (d => delta(d, 15, `${Math.abs(d).toFixed(0)} vs ${prevLabel}`, `${d > 0 ? '+' : ''}${d} Elo points from the end of ${seasonLabel(season - 1)}`))(myElo.endElo - prevElo.endElo) : null,
     },
     {
-      label: 'Net Pts/Drive', value: signed(eff?.netPointsPerDrive ?? null), tip: 'Offense points per drive minus defense points per drive, regular season.',
+      label: 'Net Pts/Drive', value: signed(eff?.netPointsPerDrive ?? null), tip: 'Offense points per drive minus defense points per drive. Regular season only.',
       rank: rankIn(eff?.netPointsPerDrive, effRows.map(r => r.netPointsPerDrive)),
     },
     {
-      label: 'SoS Played', value: sosText(playedField), tip: `${SOS_TIP} Uses ${sosSource}.`, neutral: true,
+      label: 'Strength of Schedule', value: sosText(playedField), tip: `${SOS_TIP} Covers games played so far. Uses ${sosSource}.`, neutral: true,
       rank: rankIn(team[playedField], all.map(r => r[playedField])), rankWord: ' hardest',
     },
   ]
@@ -139,13 +140,12 @@ export default function TeamPage() {
   const regularArc = seasonArc(seasonGames.filter(g => !g.playoff))
   const lanes = [
     { key: 'actual', label: 'Actual wins', tip: 'Wins, with a tie counted as half.', value: actualWins(team), color: 'rgb(var(--ink))' },
-    { key: 'pypat', label: 'PyPAT wins', tip: 'PyPAT win expectancy times games played: the wins scoring margin justifies.', value: pypatWins(team), color: 'rgb(var(--muted))' },
-    ...(eloGames.data ? [{ key: 'elo', label: 'Elo wins', tip: 'The pregame Elo win chance added up over every game played. It accounts for opponent strength and home field.', value: eloExpectedWins(regularArc), color: 'rgb(var(--accent))' }] : []),
+    { key: 'pypat', label: 'PyPAT wins', tip: 'Expected wins based on points scored and allowed.', value: pypatWins(team), color: 'rgb(var(--muted))' },
+    ...(eloGames.data ? [{ key: 'elo', label: 'Elo wins', tip: 'Expected wins from adding up the pregame win probability for every game played. It accounts for opponent strength and home field.', value: eloExpectedWins(regularArc), color: 'rgb(var(--accent))' }] : []),
   ]
 
   const road = teamUpcoming(upcoming.data ?? [], teamId)
-  const remaining = road.reduce((s, r) => s + r.winProb, 0)
-  const projectedWins = actualWins(team) + remaining
+  const inProgress = season === latest && road.length > 0
   const leftRank = rankIn(team[leftField], all.map(r => r[leftField]))
   const showRoad = upcoming.loading || road.length > 0
 
@@ -154,7 +154,7 @@ export default function TeamPage() {
   const regAll = tally(allGames.filter(g => !g.playoff))
   const postAll = tally(allGames.filter(g => g.playoff))
   const allTimeText = allGames.length
-    ? `All-time ${tallyText(regAll)} in the regular season${postAll.w + postAll.l + postAll.t ? ` and ${tallyText(postAll)} in the playoffs` : ', no playoff games yet'}.`
+    ? franchiseSummary(team.displayName, regAll, postAll, new Set(allGames.map(g => g.season)).size)
     : null
 
   const h2h = rivalrySort.apply(rivals, {
@@ -190,14 +190,14 @@ export default function TeamPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
           <ScoreboardTruth lanes={lanes} games={team.gamesPlayed} arc={regularArc} spec={truthSpec(team, season, lanes, regularArc)} />
           {showRoad
-            ? <RoadAhead rows={road} loading={upcoming.loading} teamHref={teamHref} spec={roadSpec(team, season, road, projectedWins, { text: sosText(leftField), rank: leftRank ? `${ordinal(leftRank.rank)} hardest of ${leftRank.of}` : null })}
-                projection={{ wins: projectedWins, remaining, record: recordText(projectedRecord(team, road)) }}
+            ? <RoadAhead rows={road} loading={upcoming.loading} teamHref={teamHref} spec={roadSpec(team, season, road, { text: sosText(leftField), rank: leftRank ? `${ordinal(leftRank.rank)} hardest of ${leftRank.of}` : null })}
+                projection={{ record: recordText(projectedRecord(team, road)) }}
                 sosLeft={{ text: sosText(leftField), tip: `${SOS_TIP} Remaining games only. Uses ${sosLeftSource}.`, rank: leftRank ? `${ordinal(leftRank.rank)} hardest of ${leftRank.of}` : null }} />
             : qbRoom}
         </div>
-        <SeasonArc games={seasonGames} spec={arcSpec(team, season, seasonGames)} teamHref={teamHref} loading={eloGames.loading} />
+        <SeasonArc games={seasonGames} spec={arcSpec(team, season, seasonGames, inProgress)} teamHref={teamHref} loading={eloGames.loading} />
         {showRoad && qbRoom}
-        <FranchiseHistory points={points} seasons={franchise} allTime={allTimeText} spec={franchiseSpec(team, franchise, points)} loading={trends.loading || history.loading || eloGames.loading} />
+        <FranchiseHistory points={points} seasons={franchise} allTime={allTimeText} spec={franchiseSpec(team, franchise, points, allTimeText)} loading={trends.loading || history.loading || eloGames.loading} />
         <Rivalries rows={h2h} sorter={rivalrySort} specFor={shown => rivalrySpec(team, shown, rivalrySort.sort, h2h.length)} loading={eloGames.loading} />
       </div>
     </div>

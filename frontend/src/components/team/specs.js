@@ -1,4 +1,5 @@
-import { headerImage, fingerprintImage, truthImage, arcImage, franchiseImage, landscapeImage } from './images'
+import { FINGERPRINT_SUMMARY, LANDSCAPE_FOOTER, TRUTH_EXPLANATION, UNQUALIFIED_TIP, truthSummary, landscapeSummary, roadSummary, roadFooter, outlookTip, arcSummary, qbSummary, rivalrySummary, count } from '../../utils/teamProfileCopy'
+import { headerImage, fingerprintImage, truthImage, arcImage, franchiseImage, landscapeImage, tableWithFooter } from './images'
 import { goodBadColor, divergeColor } from '../../utils/heat'
 import { halfPointScale, leaguePointsPerDrive, tierPoints } from '../../utils/efficiencyMetrics'
 import { quadrant, projectedRecord, recordText, teamColor } from '../../utils/teamProfile'
@@ -15,8 +16,8 @@ const n = (label, desc, get, z = '0') => ({ label, desc, text: r => String(get(r
 
 export const fingerprintSpec = (team, season, groups) => ({
   name: `${team.displayName} Fingerprint`,
-  qualifier: `${seasonLabel(season)} · regular season · percentile against the league`,
-  description: 'One row per metric for this team: its value, its percentile against the other teams (100 = best), and its league rank. Defense and points-allowed rows are flipped so a higher percentile is always better.',
+  qualifier: `${seasonLabel(season)}. ${FINGERPRINT_SUMMARY}`,
+  description: FINGERPRINT_SUMMARY,
   notes: ['Percentile is the share of other teams this one beats, with ties counting half. Rank uses competition ranking, so tied teams share a place.', 'Missing values are empty and are left out of percentiles.'],
   image: fingerprintImage(groups),
   rows: groups.flatMap(g => g.rows.map(r => ({ ...r, group: g.title }))),
@@ -34,8 +35,9 @@ export const fingerprintSpec = (team, season, groups) => ({
 
 export const truthSpec = (team, season, lanes, arc = []) => ({
   name: `${team.displayName} Wins vs Expectation`,
-  qualifier: `${seasonLabel(season)} · regular season · ${team.gamesPlayed} games`,
-  description: 'Actual wins against the two expected-win models.',
+  qualifier: `${seasonLabel(season)}. ${truthSummary(team.displayName, lanes)}`,
+  description: truthSummary(team.displayName, lanes),
+  notes: [TRUTH_EXPLANATION],
   image: truthImage(lanes, team.gamesPlayed, arc),
   rows: lanes,
   cols: [
@@ -46,10 +48,10 @@ export const truthSpec = (team, season, lanes, arc = []) => ({
   api: { path: '/standings', params: { season }, fields: { 'Actual wins': 'wins + ties / 2', 'PyPAT wins': 'pythagoreanPat × gamesPlayed', 'Elo wins': `Sum of this team's pregame win probability over /api/elo/games?teamId=${team.teamId} rows with season=${season} and week < 18` } },
 })
 
-export const arcSpec = (team, season, games) => ({
+export const arcSpec = (team, season, games, inProgress = false) => ({
   name: `${team.displayName} Game Log`,
-  qualifier: `${seasonLabel(season)} · week order`,
-  description: 'Every completed game this season from this team\'s side, with pregame Elo win chance, Elo change and upset flags.',
+  qualifier: `${seasonLabel(season)}. ${arcSummary(team.displayName, games, inProgress)}`,
+  description: arcSummary(team.displayName, games, inProgress),
   image: arcImage(team, games),
   rows: games,
   cols: [
@@ -59,55 +61,59 @@ export const arcSpec = (team, season, games) => ({
     { label: 'Result', desc: 'W, L or T.', text: g => g.result },
     n('PF', 'Points scored.', g => g.teamScore),
     n('PA', 'Points allowed.', g => g.oppScore),
-    { label: 'Win Prob', desc: 'Pregame Elo win chance.', text: g => pct0(g.winProb), value: g => g.winProb, z: '0%' },
+    { label: 'Win probability', desc: 'Pregame win probability from Elo.', text: g => pct0(g.winProb), value: g => g.winProb, z: '0%' },
     { label: 'Pregame Elo', desc: 'This team\'s Elo before the game.', text: g => g.preElo.toFixed(0), value: g => g.preElo, z: '0' },
     { label: 'Elo Change', desc: 'Elo points gained or lost in the game.', text: g => signed1(g.eloChange), value: g => g.eloChange, z: '+0.0;-0.0;0.0' },
     { label: 'Upset', desc: 'Upset level from the Elo page ladder, sized by the beaten favorite. "loss" means this team was the favorite that lost.', text: g => (g.upset ? (g.upset.won ? g.upset.label : `${g.upset.label} loss`) : ''), color: g => g.upset?.shade },
   ],
-  api: { path: '/elo/games', params: { teamId: team.teamId, season }, fields: { 'Win Prob': 'homeWinProbability or awayWinProbability for this team', 'Elo Change': 'postgame minus pregame Elo for this team' } },
+  api: { path: '/elo/games', params: { teamId: team.teamId, season }, fields: { 'Win probability': 'homeWinProbability or awayWinProbability for this team', 'Elo Change': 'postgame minus pregame Elo for this team' } },
 })
 
-export const roadSpec = (team, season, road, projectedWins, sosLeft = {}) => ({
-  name: `${team.displayName} Remaining Schedule`,
-  qualifier: `${seasonLabel(season)} · ${road.length} games left · week order`,
-  description: 'Unplayed regular-season games with this team\'s Elo win chance from current ratings.',
-  notes: [`Projected wins: ${projectedWins.toFixed(1)} (current wins plus the sum of remaining win chances).`],
-  tiles: [
-    { label: 'Projected', value: recordText(projectedRecord(team, road)) },
-    { label: 'Favored in', value: `${road.filter(r => r.winProb >= 0.5).length} of ${road.length}` },
-    { label: 'SoS Left', value: sosLeft.text, note: sosLeft.rank },
-  ],
-  rows: road,
-  cols: [
-    { label: 'Week', desc: 'Week of the game.', text: r => weekName(r.week) },
-    { label: 'Site', desc: 'Home or away.', text: r => (r.home ? 'Home' : 'Away') },
-    { label: 'Opponent', desc: 'Opponent.', text: r => r.opp.displayName, logo: r => r.opp.abbrName },
-    { label: 'Opp Elo', desc: 'Opponent\'s current Elo.', text: r => r.oppElo.toFixed(0), value: r => r.oppElo, z: '0' },
-    { label: 'Win Prob', desc: 'This team\'s chance to win from current Elo, home field included.', chance: r => r.winProb, text: r => pct0(r.winProb), value: r => r.winProb, z: '0%' },
-    { label: 'Outlook', desc: 'How competitive the game should be, using the Elo page tiers, read from this team\'s side: "Likely loss" means the opponent is a Likely favorite.', pill: () => true, text: r => { const l = lean(r.game); return l.tossUp ? l.tier.label : `${l.tier.label} ${r.winProb >= 0.5 ? 'win' : 'loss'}` } },
-  ],
-  api: { path: '/elo/upcoming', params: { season }, note: `Filtered to games involving teamId ${team.teamId}.` },
-})
+export const roadSpec = (team, season, road, sosLeft = {}) => {
+  const spec = {
+    name: `${team.displayName} Remaining Schedule`,
+    qualifier: `${seasonLabel(season)} · ${count(road.length, 'game')} left. ${roadSummary(team, road)}`,
+    description: roadSummary(team, road),
+    notes: [roadFooter(team.displayName)],
+    tiles: [
+      { label: 'Projected record', value: recordText(projectedRecord(team, road)) },
+      { label: 'Favored in', value: `${road.filter(r => r.winProb >= 0.5).length} of ${road.length}` },
+      { label: 'Remaining SoS', value: sosLeft.text, note: sosLeft.rank },
+    ],
+    rows: road,
+    cols: [
+      { label: 'Week', desc: 'Week of the game.', text: r => weekName(r.week) },
+      { label: 'Site', desc: 'Home or away.', text: r => (r.home ? 'Home' : 'Away') },
+      { label: 'Opponent', desc: 'Opponent.', text: r => r.opp.displayName, logo: r => r.opp.abbrName },
+      { label: 'Opp Elo', desc: 'Opponent\'s current Elo.', text: r => r.oppElo.toFixed(0), value: r => r.oppElo, z: '0' },
+      { label: 'Win probability', desc: 'This team\'s win probability from current Elo, home field included.', chance: r => r.winProb, text: r => pct0(r.winProb), value: r => r.winProb, z: '0%' },
+      { label: 'Outlook', desc: outlookTip(), pill: () => true, text: r => { const l = lean(r.game); return l.tossUp ? l.tier.label : `${l.tier.label} ${r.winProb >= 0.5 ? 'win' : 'loss'}` } },
+    ],
+    api: { path: '/elo/upcoming', params: { season }, note: `Filtered to games involving teamId ${team.teamId}.` },
+  }
+  spec.image = tableWithFooter(spec, roadFooter(team.displayName))
+  return spec
+}
 
 export const qbSpec = (team, season, rows, params, league = rows) => ({
   name: `${team.displayName} QBs`,
   rowMuted: r => r && !r.qualified,
-  qualifier: `${seasonLabel(season)} · regular season · most attempts first`,
-  description: 'Every quarterback who threw a pass for this team this season.',
+  qualifier: `${seasonLabel(season)}. ${qbSummary(team.displayName)} Regular season only.`,
+  description: qbSummary(team.displayName),
   rows,
   cols: [
     { label: 'QB', desc: 'Quarterback name.', text: r => r.playerName },
-    { label: 'Qualified', desc: 'Whether the QB has enough attempts to be ranked.', text: r => (r.qualified ? 'Yes' : 'No') },
+    { label: 'Qualified', desc: UNQUALIFIED_TIP, text: r => (r.qualified ? 'Yes' : 'No') },
     ...QB_COLS.map(c => ({ label: c.label, desc: c.desc, text: r => String(c.fmt(r[c.key])), value: r => r[c.key], z: c.z, color: r => c.heat && r.qualified ? goodBadColor(r[c.key], league.filter(q => q.qualified).map(q => q[c.key]), c.heat) : undefined })),
   ],
   api: { path: '/qb/leaderboard', params, note: `Filtered to teamAbbr=${team.abbrName}; sorted by passAtt descending.` },
 })
 
-export const franchiseSpec = (team, rows, points = []) => {
+export const franchiseSpec = (team, rows, points = [], summary = '') => {
   const spec = {
     name: `${team.displayName} Franchise History`,
-    qualifier: 'Every season · newest first',
-    description: 'One row per season: regular-season record, PyPAT and Luck, final Elo, Elo rank, peak Elo and playoff record.',
+    qualifier: `Every season · newest first. ${summary}`,
+    description: summary,
     rows,
     cols: [
       n('Season', HISTORY_TIPS.season, s => seasonNumber(s.season)),
@@ -127,22 +133,21 @@ export const franchiseSpec = (team, rows, points = []) => {
   return spec
 }
 
-const RIVALRY_SORTS = { opp: 'Opponent', games: 'G', record: 'Record (win %)', diff: 'Pt Diff', ppg: 'PF–PA / G (differential)', last: 'Last meeting' }
+const RIVALRY_SORTS = { opp: 'Opponent', games: 'GP', record: 'Record (win %)', diff: 'Point Diff', ppg: 'Pts/G For–Against (differential)', last: 'Last meeting' }
 
 export const rivalrySpec = (team, rows, sort, total) => ({
   name: `${team.displayName} Head to Head`,
-  qualifier: `All seasons · regular season and playoffs · ${rows.length < total ? `top ${rows.length} of ${total} opponents` : `all ${total} opponents`} · sorted by ${RIVALRY_SORTS[sort.key]} ${sort.asc ? 'ascending' : 'descending'}`,
-  description: 'All-time record against every opponent this team has played.',
+  qualifier: `All seasons · regular season and playoffs · ${rows.length < total ? `top ${rows.length} of ${total} opponents` : `all ${total} opponents`} · sorted by ${RIVALRY_SORTS[sort.key]} ${sort.asc ? 'ascending' : 'descending'}. ${rivalrySummary(team.displayName, total)}`,
+  description: rivalrySummary(team.displayName, total),
   rows,
   cols: [
     { label: 'Opponent', desc: RIVALRY_TIPS.opp, text: r => r.opp.displayName, logo: r => r.opp.abbrName },
-    n('G', RIVALRY_TIPS.games, r => r.games),
+    n('GP', RIVALRY_TIPS.games, r => r.games),
     n('W', 'Wins against this opponent.', r => r.w),
     n('L', 'Losses against this opponent.', r => r.l),
     n('T', 'Ties against this opponent.', r => r.t),
-    { label: 'Pt Diff', desc: RIVALRY_TIPS.diff, text: r => (r.diff > 0 ? '+' : '') + r.diff, value: r => r.diff, z: '+0;-0;0' },
-    { label: 'PF/G', desc: 'Points scored per game against this opponent.', text: r => (r.pf / r.games).toFixed(1), value: r => r.pf / r.games, z: '0.0' },
-    { label: 'PA/G', desc: 'Points allowed per game against this opponent.', text: r => (r.pa / r.games).toFixed(1), value: r => r.pa / r.games, z: '0.0' },
+    { label: 'Point Diff', desc: RIVALRY_TIPS.diff, text: r => (r.diff > 0 ? '+' : '') + r.diff, value: r => r.diff, z: '+0;-0;0' },
+    { label: 'Pts/G For–Against', desc: RIVALRY_TIPS.ppg, text: r => `${(r.pf / r.games).toFixed(1)}–${(r.pa / r.games).toFixed(1)}` },
     { label: 'Last meeting', desc: RIVALRY_TIPS.last, text: lastMeeting },
   ],
   api: { path: '/elo/games', params: { teamId: team.teamId }, note: 'Grouped by opponent client-side. Ties count half in win percentage.' },
@@ -157,7 +162,7 @@ export const headerSpec = (team, season, kpis) => ({
     { label: 'Value', desc: 'Displayed statistic.', text: r => r.value },
     { label: 'Rank', desc: 'League rank and number of teams.', text: r => r.rank ? `${ordinal(r.rank.rank)}${r.rankWord ?? ''} of ${r.rank.of}` : '' },
     { label: 'Note', desc: 'Context for the statistic.', text: r => r.note },
-    { label: 'Delta', desc: 'Change from the previous season.', text: r => r.delta ? `${r.delta.minor ? '±' : r.delta.up ? '▲ ' : '▼ '}${r.delta.text}` : '' },
+    { label: 'Delta', desc: 'Change from the previous season.', text: r => r.delta ? `${r.delta.minor ? '' : r.delta.up ? '▲ ' : '▼ '}${r.delta.text}` : '' },
   ],
   image: headerImage(team, season, kpis),
   api: { path: '/standings', params: { season }, note: 'Elo uses /api/elo/history; net points per drive uses /api/efficiency with stage=regular.' },
@@ -169,7 +174,9 @@ export function landscapeSpec(rows, teamId, season, team) {
   const chart = { points, league, xScale: halfPointScale(points.map(p => p.x)), yScale: halfPointScale(points.map(p => p.y)), focus: teamId, focusColor: teamColor(team?.primaryColor) ?? '#1d4ed8' }
   return {
     name: `${team?.displayName ?? 'Team'} League Landscape`,
-    qualifier: `${seasonLabel(season)} · regular season`,
+    qualifier: `${seasonLabel(season)}. ${points.some(p => p.id === teamId) ? landscapeSummary(team.displayName, points.find(p => p.id === teamId).x, points.find(p => p.id === teamId).y, league) : ''}`,
+    description: points.some(p => p.id === teamId) ? landscapeSummary(team.displayName, points.find(p => p.id === teamId).x, points.find(p => p.id === teamId).y, league) : '',
+    notes: [LANDSCAPE_FOOTER],
     rows: points,
     cols: [
       { label: 'Team', desc: 'Team name.', text: r => r.name, logo: r => r.abbr },

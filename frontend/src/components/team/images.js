@@ -1,4 +1,5 @@
-import { IMAGE, drawCellVisual, layoutTable } from '../../utils/tableImage'
+import { FINGERPRINT_FOOTER, LANDSCAPE_FOOTER, TRUTH_EXPLANATION, FRANCHISE_NOTE, trajectoryCopy } from '../../utils/teamProfileCopy'
+import { IMAGE, drawCellVisual, layoutTable, wrapText } from '../../utils/tableImage'
 import { loadLogo } from '../../utils/teamLogo'
 import { drawChartPlot } from '../../utils/chartImage'
 import { ordinal, signed1, teamColor, eloPeaks } from '../../utils/teamProfile'
@@ -13,6 +14,24 @@ const text = (ctx, value, x, y, size = 12, tone = IMAGE.ink, bold = false) => {
   ctx.textAlign = 'left'
   ctx.fillText(value ?? '—', x, y)
 }
+function paragraph(ctx, value, width, y) {
+  ctx.font = '11px sans-serif'
+  wrapText(ctx, value, width - 40).forEach((row, i) => text(ctx, row, 20, y + i * 15, 11, IMAGE.muted))
+}
+
+export const tableWithFooter = (spec, footer) => ({ async draw(ctx, width) {
+  const table = await layoutTable(spec, ctx)
+  ctx.font = '11px sans-serif'
+  const footerHeight = wrapText(ctx, footer, width - 40).length * 15 + 30
+  return { height: table.height + footerHeight, draw(ctx) {
+    ctx.save()
+    ctx.scale(Math.min(1, width / table.width), 1)
+    table.draw(ctx, 0, 0)
+    ctx.restore()
+    paragraph(ctx, footer, width, table.height + 20)
+  } }
+} })
+
 const line = (ctx, x1, y1, x2, y2, tone = IMAGE.line, dash = []) => {
   ctx.strokeStyle = tone
   ctx.setLineDash(dash)
@@ -60,14 +79,14 @@ export const headerImage = (team, season, kpis) => ({ width: 390, async draw(ctx
       const rankColor = k.neutral ? IMAGE.ink : k.rank?.rank <= Math.ceil(k.rank?.of / 4) ? IMAGE.good : k.rank?.rank > k.rank?.of - Math.ceil(k.rank?.of / 4) ? IMAGE.bad : IMAGE.muted
       if (k.rank) text(ctx, `${ordinal(k.rank.rank)}${k.rankWord ?? ''} of ${k.rank.of}`, x + 12, y + 72, 11, rankColor, true)
       if (k.note) text(ctx, k.note, x + 12, y + 91, 11, IMAGE.muted)
-      if (k.delta) text(ctx, `${k.delta.minor ? '±' : k.delta.up ? '▲ ' : '▼ '}${k.delta.text}`, x + 12, y + 109, 11, k.delta.minor ? IMAGE.muted : k.delta.up ? IMAGE.good : IMAGE.bad)
+      if (k.delta) text(ctx, `${k.delta.minor ? '' : k.delta.up ? '▲ ' : '▼ '}${k.delta.text}`, x + 12, y + 109, 11, k.delta.minor ? IMAGE.muted : k.delta.up ? IMAGE.good : IMAGE.bad)
     })
   } }
 } })
 
 export const fingerprintImage = groups => ({ draw(ctx, width) {
   const rowHeight = 36, columns = 2, gap = 28, w = (width - 40 - gap) / columns
-  const height = Math.ceil(groups.length / columns) * (Math.max(...groups.map(g => g.rows.length)) * rowHeight + 44) + 48
+  const height = Math.ceil(groups.length / columns) * (Math.max(...groups.map(g => g.rows.length)) * rowHeight + 44) + 70
   return { height, draw(ctx) {
     groups.forEach((group, i) => {
       const x = 20 + (i % columns) * (w + gap), top = Math.floor(i / columns) * (height - 48)
@@ -83,18 +102,21 @@ export const fingerprintImage = groups => ({ draw(ctx, width) {
         line(ctx, x, y + 29, x + w, y + 29)
       })
     })
-    const y = height - 30
+    const y = height - 50
     text(ctx, 'Poor', 20, y, 11, IMAGE.muted)
     const gradient = ctx.createLinearGradient(52, 0, 164, 0)
     gradient.addColorStop(0, IMAGE.bad); gradient.addColorStop(0.5, IMAGE.line); gradient.addColorStop(1, IMAGE.good)
     ctx.fillStyle = gradient
     ctx.fillRect(52, y - 3, 112, 6)
     text(ctx, 'Great', 174, y, 11, IMAGE.muted)
-    text(ctx, 'Bubble is the percentile; 50 is the league median. Regular season.', 220, y, 11, IMAGE.muted)
+    paragraph(ctx, FINGERPRINT_FOOTER, width, y + 24)
   } }
 } })
 
-export const landscapeImage = chart => ({ draw: () => ({ height: 640, draw: ctx => drawChartPlot(ctx, 900, 694, chart, 16) }) })
+export const landscapeImage = chart => ({ draw: () => ({ height: 670, async draw(ctx) {
+  await drawChartPlot(ctx, 900, 694, chart, 16)
+  paragraph(ctx, LANDSCAPE_FOOTER, 900, 649)
+} }) })
 
 function plot(ctx, width, top, data, keys, colors, { baseline, boundaries = false, peaks = false, band = false } = {}) {
   if (!data.length) return
@@ -155,7 +177,7 @@ function plot(ctx, width, top, data, keys, colors, { baseline, boundaries = fals
   }
 }
 
-export const truthImage = (lanes, games, arc) => ({ draw: () => ({ height: arc.length > 1 ? 430 : 195, draw(ctx) {
+export const truthImage = (lanes, games, arc) => ({ draw: () => ({ height: arc.length > 1 ? 475 : 240, draw(ctx) {
   const left = 135, right = 805, x = v => left + v / Math.max(1, games) * (right - left)
   line(ctx, x(lanes[0].value), 5, x(lanes[0].value), lanes.length * 38, IMAGE.muted, [4, 4])
   lanes.forEach((lane, i) => {
@@ -173,15 +195,16 @@ export const truthImage = (lanes, games, arc) => ({ draw: () => ({ height: arc.l
   text(ctx, `${games} games`, right - 42, 142, 11, IMAGE.muted)
   if (arc.length > 1) {
     const gap = arc.at(-1).cumWins - arc.at(-1).cumExpected
-    text(ctx, `Week by week    — Actual wins    - - Elo expected    ${gap >= 0 ? 'Ahead of' : 'Behind'} Elo by ${Math.abs(gap).toFixed(1)}`, 20, 178, 12, IMAGE.muted)
+    text(ctx, `Week by week    — Actual wins    - - Elo expected wins    ${gap >= 0 ? 'Ahead of' : 'Behind'} Elo by ${Math.abs(gap).toFixed(1)}`, 20, 178, 12, IMAGE.muted)
     plot(ctx, 900, 182, arc, ['cumWins', 'cumExpected'], [IMAGE.ink, IMAGE.accent], { band: true })
   }
+  paragraph(ctx, TRUTH_EXPLANATION, 900, arc.length > 1 ? 425 : 180)
 } }) })
 
 export const arcImage = (team, games) => ({ async draw(ctx, width) {
   const logos = await Promise.all(games.map(g => loadLogo(g.opp.abbrName)))
   const count = 6, w = (width - 40) / count, rows = Math.ceil(games.length / count), chartTop = rows * 160 + 35
-  return { height: chartTop + 230, draw(ctx) {
+  return { height: chartTop + 275, draw(ctx) {
     games.forEach((g, i) => {
       const x = 20 + i % count * w, y = Math.floor(i / count) * 160
       ctx.fillStyle = IMAGE.surface
@@ -194,8 +217,8 @@ export const arcImage = (team, games) => ({ async draw(ctx, width) {
       text(ctx, `${g.home ? 'vs' : '@'} ${g.opp.abbrName}`, x + 40, y + 45, 13, IMAGE.ink, true)
       text(ctx, g.result, x + 8, y + 76, 20, g.result === 'W' ? IMAGE.good : g.result === 'L' ? IMAGE.bad : IMAGE.ink, true)
       text(ctx, `${g.teamScore ?? '—'}–${g.oppScore ?? '—'}`, x + 30, y + 76, 20, IMAGE.ink, true)
-      text(ctx, g.winProb == null ? '—' : `${pct0(g.winProb)} pre`, x + 8, y + 102, 11, IMAGE.muted)
-      text(ctx, signed1(g.eloChange), x + w - 49, y + 102, 11, g.eloChange >= 0 ? IMAGE.good : IMAGE.bad, true)
+      text(ctx, g.winProb == null ? '—' : `${pct0(g.winProb)} win probability`, x + 8, y + 95, 11, IMAGE.muted)
+      text(ctx, `${signed1(g.eloChange)} Elo`, x + 8, y + 109, 11, g.eloChange >= 0 ? IMAGE.good : IMAGE.bad, true)
       if (g.upset) {
         ctx.globalAlpha = g.upset.alpha
         ctx.fillStyle = g.upset.won ? IMAGE.good : IMAGE.bad
@@ -205,7 +228,7 @@ export const arcImage = (team, games) => ({ async draw(ctx, width) {
       }
     })
     text(ctx, 'Elo through the season', 20, chartTop, 14, IMAGE.ink, true)
-    if (games.length) text(ctx, `${signed1(games.at(-1).postElo == null || games[0].preElo == null ? null : games.at(-1).postElo - games[0].preElo)} since the opener, playoffs included. The flat line is the 1500 average.`, 220, chartTop, 11, IMAGE.muted)
+    if (games.length) paragraph(ctx, trajectoryCopy(games.at(-1).postElo == null || games[0].preElo == null ? null : games.at(-1).postElo - games[0].preElo), width, chartTop + 232)
     const data = games.length ? [{ elo: games[0].preElo, label: 'Start' }, ...games.map(g => ({ ...g, elo: g.postElo }))] : []
     plot(ctx, width, chartTop + 5, data, ['elo'], [color(team)], { baseline: 1500 })
   } }
@@ -214,15 +237,15 @@ export const arcImage = (team, games) => ({ async draw(ctx, width) {
 export const franchiseImage = (team, points, spec) => ({ async draw(ctx, width) {
   const table = await layoutTable(spec, ctx)
   const panelWidth = Math.max(width, table.width)
-  return { height: 275 + table.height, draw(ctx) {
-    text(ctx, 'Elo after every week', 20, 14, 14, IMAGE.ink, true)
+  return { height: 295 + table.height, draw(ctx) {
+    text(ctx, 'Elo rating after each week', 20, 14, 14, IMAGE.ink, true)
     plot(ctx, width, 20, points, ['endElo'], [color(team)], { baseline: 1500, boundaries: true, peaks: true })
-    text(ctx, 'Dotted lines mark season starts, where ratings regress toward 1500.', 20, 253, 11, IMAGE.muted)
+    paragraph(ctx, FRANCHISE_NOTE, width, 253)
     if (panelWidth > width) {
       ctx.save()
       ctx.scale(width / panelWidth, 1)
-      table.draw(ctx, 0, 275)
+      table.draw(ctx, 0, 295)
       ctx.restore()
-    } else table.draw(ctx, 0, 275)
+    } else table.draw(ctx, 0, 295)
   } }
 } })

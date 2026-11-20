@@ -1,3 +1,4 @@
+import { trajectoryCopy } from '../../utils/teamProfileCopy'
 import { Link } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer } from 'recharts'
 import { TeamLogo } from '../TeamLogo'
@@ -30,9 +31,9 @@ function Tile({ g, teamHref }) {
         <p className={`font-display font-extrabold text-2xl leading-none mt-1.5 num ${g.result === 'W' ? 'text-good' : g.result === 'L' ? 'text-bad' : ''}`}>
           {g.result} <span className="text-ink">{g.teamScore}–{g.oppScore}</span>
         </p>
-        <div className="flex items-center justify-between mt-1.5 text-xs num">
-          <span className="text-muted" title="Pregame win chance from Elo">{pct0(g.winProb)} pre</span>
-          <span className={`font-semibold ${g.eloChange >= 0 ? 'text-good' : 'text-bad'}`} title="Elo points gained or lost">{signed1(g.eloChange)}</span>
+        <div className="flex flex-wrap items-center justify-between gap-x-1 mt-1.5 text-xs num">
+          <span className="text-muted" title="Pregame win probability from Elo">{pct0(g.winProb)} win probability</span>
+          <span className={`font-semibold ${g.eloChange >= 0 ? 'text-good' : 'text-bad'}`} title="Elo points gained or lost">{signed1(g.eloChange)} Elo</span>
         </div>
       </div>
       {upset && (
@@ -72,7 +73,7 @@ function EloTrajectory({ games }) {
     <figure className="mt-6">
       <figcaption className="flex items-center gap-x-4 gap-y-1 flex-wrap text-xs text-muted mb-2">
         <span className="font-semibold uppercase tracking-wide text-ink">Elo through the season</span>
-        <span>{signed1(moved)} since the opener, playoffs included. The flat line is the 1500 average.</span>
+        <span>{trajectoryCopy(moved)}</span>
       </figcaption>
       <div className="h-44" role="img" aria-label={`Elo after every game this season, from ${data[0].elo.toFixed(0)} to ${data[data.length - 1].elo.toFixed(0)}.`}>
         <ResponsiveContainer width="100%" height="100%">
@@ -98,18 +99,12 @@ export default function SeasonArc({ games, spec, teamHref, loading }) {
       </Section>
     )
   }
-  const upsetWins = games.filter(g => g.upset?.won).length
-  const upsetLosses = games.filter(g => g.upset && !g.upset.won).length
-  const parts = [
-    upsetWins ? `${upsetWins} upset win${upsetWins > 1 ? 's' : ''}` : null,
-    upsetLosses ? `${upsetLosses} upset loss${upsetLosses > 1 ? 'es' : ''}` : null,
-  ].filter(Boolean)
   return (
     <Section
       id="arc"
       kicker="Game by game"
       title="Season Arc"
-      summary={`Every game with its pregame Elo win chance and the rating points it moved. ${parts.length ? `${parts.join(' and ')}.` : 'No upsets either way.'}`}
+      summary={spec.description}
       actions={<ExportMenu spec={spec} />}
     >
       <ol className="flex overflow-x-auto snap-x gap-2 -mx-4 px-4 pb-1 sm:mx-0 sm:px-0 sm:pb-0 sm:grid sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-9">

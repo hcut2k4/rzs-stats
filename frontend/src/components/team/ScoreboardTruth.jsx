@@ -1,17 +1,11 @@
+import { TRUTH_EXPLANATION } from '../../utils/teamProfileCopy'
 import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import InfoTip from '../InfoTip'
 import ExportMenu from '../ExportMenu'
 import Section, { Empty } from './Section'
-import { luckLean } from '../../utils/teamProfile'
 import { shortWeekName, weekName } from '../../utils/playoffRounds'
 
 const fmt = v => (Number.isInteger(v) ? String(v) : v.toFixed(1))
-
-const VERDICT = {
-  1: gap => `Won ${gap.toFixed(1)} more games than their scoring margin justifies. Expect some regression.`,
-  0: () => 'The record is honest: wins line up with scoring margin.',
-  '-1': gap => `Won ${(-gap).toFixed(1)} fewer games than their scoring margin justifies. A rebound candidate.`,
-}
 
 function ArcTip({ active, payload }) {
   if (!active || !payload?.length) return null
@@ -20,7 +14,7 @@ function ArcTip({ active, payload }) {
     <div className="bg-bg border border-rule rounded-sm px-3 py-2 text-sm num">
       <p className="font-semibold">{weekName(p.week)} · {p.home ? 'vs' : '@'} {p.opp.abbrName} · {p.result} {p.teamScore}–{p.oppScore}</p>
       <p>Wins <span className="font-semibold">{p.cumWins}</span></p>
-      <p className="text-muted">Elo expected {p.cumExpected.toFixed(1)}</p>
+      <p className="text-muted">Elo expected wins {p.cumExpected.toFixed(1)}</p>
     </div>
   )
 }
@@ -33,7 +27,7 @@ function CumulativeChart({ games }) {
       <figcaption className="flex items-center gap-x-4 gap-y-1 flex-wrap text-xs text-muted mb-2">
         <span className="font-semibold uppercase tracking-wide text-ink">Week by week</span>
         <span className="inline-flex items-center gap-1.5"><span className="w-4 h-0.5 bg-ink" /> Actual wins</span>
-        <span className="inline-flex items-center gap-1.5"><span className="w-4 border-t-2 border-dashed border-accent" /> Elo expected</span>
+        <span className="inline-flex items-center gap-1.5"><span className="w-4 border-t-2 border-dashed border-accent" /> Elo expected wins</span>
         <span>{gap >= 0 ? 'Ahead of' : 'Behind'} Elo by {Math.abs(gap).toFixed(1)}</span>
       </figcaption>
       <div className="h-44" role="img" aria-label={`Cumulative wins against Elo expected wins by week: ${last.cumWins} actual against ${last.cumExpected.toFixed(1)} expected.`}>
@@ -62,14 +56,13 @@ export default function ScoreboardTruth({ lanes, games, arc, spec }) {
     )
   }
   const actual = lanes[0].value
-  const gap = actual - lanes[1].value
   const pos = v => `${Math.min(Math.max(v / games, 0), 1) * 100}%`
   return (
     <Section
       id="truth"
       kicker="Wins vs expectation"
       title="Truth Behind the Scoreboard"
-      summary={VERDICT[luckLean(gap)](gap)}
+      summary={spec.description}
       actions={<ExportMenu spec={spec} />}
     >
       <div className="relative pt-1">
@@ -95,7 +88,7 @@ export default function ScoreboardTruth({ lanes, games, arc, spec }) {
       </div>
       {arc.length > 1 && <CumulativeChart games={arc} />}
       <p className="text-xs text-muted mt-3">
-        Regular season only. PyPAT expects wins from points scored and allowed. Elo expects them from the pregame win chance in every game, so it credits a hard schedule. The dashed line marks actual wins.
+        {TRUTH_EXPLANATION}
       </p>
     </Section>
   )
