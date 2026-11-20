@@ -49,7 +49,7 @@ export default function TeamsPage() {
       { label: 'Record', desc: 'Regular-season wins, losses and ties.', text: recordText },
       { label: 'PyPAT', desc: 'PythagoreanPAT win expectancy from points scored and allowed.', text: r => (r.gamesPlayed ? pct(r.pythagoreanPat) : ''), value: r => (r.gamesPlayed ? r.pythagoreanPat : null), z: '0.0%' },
       { label: 'Elo Rank', desc: 'Rank by Elo after the latest week.', text: r => String(eloRank(r.teamId) ?? ''), value: r => eloRank(r.teamId) ?? null, z: '0' },
-      { label: 'Last 5', desc: 'Results of the last five regular-season games, oldest first.', text: r => form(r.teamId).map(g => g.result).join('') },
+      { label: 'Last 5', form: r => form(r.teamId).map(g => g.result), desc: 'Results of the last five regular-season games, oldest first.', text: r => form(r.teamId).map(g => g.result).join('') },
     ],
     api: { path: '/standings', params: { season }, note: `Grouped by division, then win % and PyPAT descending. Elo rank from /api/elo/ratings?season=${season}; last five from /api/elo/games?season=${season}.` },
   }

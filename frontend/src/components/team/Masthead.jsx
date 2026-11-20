@@ -1,3 +1,5 @@
+import ExportMenu from '../ExportMenu'
+import { headerSpec } from './specs'
 import { Link } from 'react-router-dom'
 import { TeamLogo } from '../TeamLogo'
 import InfoTip from '../InfoTip'
@@ -58,6 +60,7 @@ export default function Masthead({ team, season, seasons, onSeason, kpis }) {
           {[...seasons].reverse().map(s => <option key={s} value={s}>Season {seasonNumber(s)}</option>)}
         </select>
       </div>
+      <div className="relative flex justify-end px-4"><ExportMenu spec={headerSpec(team, season, kpis)} /></div>
       <dl className="relative grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-px bg-line border-t border-line">
         {kpis.map(k => <Kpi key={k.label} {...k} />)}
       </dl>

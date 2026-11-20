@@ -126,3 +126,12 @@ it('does not leave a feedback timer when a copy finishes after unmount', async (
   await act(async () => resolve('copied'))
   expect(vi.getTimerCount()).toBe(0)
 })
+
+it('prefers the panel image over the image table override', async () => {
+  const original = { ...spec, image: { width: 390, draw: vi.fn() }, imageSpec: { rows: [], cols: [] } }
+  copyImage.mockResolvedValue('copied')
+  render(<ExportMenu spec={original} />)
+  fireEvent.click(screen.getByRole('button', { name: 'PNG' }))
+  expect(copyImage).toHaveBeenCalledWith(original)
+  await screen.findByRole('button', { name: 'Copied' })
+})

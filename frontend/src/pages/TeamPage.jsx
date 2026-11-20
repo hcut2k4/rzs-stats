@@ -169,7 +169,7 @@ export default function TeamPage() {
     eloGames.error && 'game log', trends.error && 'season history', history.error && 'Elo history',
   ].filter(Boolean)
 
-  const qbRoom = <QbRoom rows={myQbs} league={qbs.data ?? []} spec={qbSpec(team, season, myQbs, qbParams)} loading={qbs.loading} />
+  const qbRoom = <QbRoom rows={myQbs} league={qbs.data ?? []} spec={qbSpec(team, season, myQbs, qbParams, qbs.data ?? [])} loading={qbs.loading} />
   const nav = [
     ['fingerprint', 'Fingerprint'], ['landscape', 'Landscape'], ['truth', 'Wins vs expectation'],
     ...(showRoad ? [['road', 'Road ahead']] : []), ['arc', 'Season arc'], ['qbs', 'QBs'], ['franchise', 'History'], ['rivalries', 'Rivalries'],
@@ -183,19 +183,19 @@ export default function TeamPage() {
       <div className="space-y-12">
         <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-10 items-start">
           <Fingerprint groups={groups} spec={fingerprintSpec(team, season, groups)} loading={efficiency.loading} />
-          <LeagueLandscape rows={effRows} teamId={teamId} loading={efficiency.loading} />
+          <LeagueLandscape rows={effRows} teamId={teamId} season={season} team={team} loading={efficiency.loading} />
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
-          <ScoreboardTruth lanes={lanes} games={team.gamesPlayed} arc={regularArc} spec={truthSpec(team, season, lanes)} />
+          <ScoreboardTruth lanes={lanes} games={team.gamesPlayed} arc={regularArc} spec={truthSpec(team, season, lanes, regularArc)} />
           {showRoad
-            ? <RoadAhead rows={road} loading={upcoming.loading} teamHref={teamHref} spec={roadSpec(team, season, road, projectedWins)}
+            ? <RoadAhead rows={road} loading={upcoming.loading} teamHref={teamHref} spec={roadSpec(team, season, road, projectedWins, { text: sosText(leftField), rank: leftRank ? `${ordinal(leftRank.rank)} hardest of ${leftRank.of}` : null })}
                 projection={{ wins: projectedWins, remaining, record: recordText(projectedRecord(team, road)) }}
                 sosLeft={{ text: sosText(leftField), tip: `${SOS_TIP} Remaining games only. Uses ${sosSource}.`, rank: leftRank ? `${ordinal(leftRank.rank)} hardest of ${leftRank.of}` : null }} />
             : qbRoom}
         </div>
         <SeasonArc games={seasonGames} spec={arcSpec(team, season, seasonGames)} teamHref={teamHref} loading={eloGames.loading} />
         {showRoad && qbRoom}
-        <FranchiseHistory points={points} seasons={franchise} allTime={allTimeText} spec={franchiseSpec(team, franchise)} loading={trends.loading || history.loading || eloGames.loading} />
+        <FranchiseHistory points={points} seasons={franchise} allTime={allTimeText} spec={franchiseSpec(team, franchise, points)} loading={trends.loading || history.loading || eloGames.loading} />
         <Rivalries rows={h2h} sorter={rivalrySort} specFor={shown => rivalrySpec(team, shown, rivalrySort.sort, h2h.length)} loading={eloGames.loading} />
       </div>
     </div>

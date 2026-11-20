@@ -1,3 +1,7 @@
+import { headerImage, fingerprintImage, truthImage, arcImage, franchiseImage, landscapeImage } from './images'
+import { goodBadColor, divergeColor } from '../../utils/heat'
+import { halfPointScale, leaguePointsPerDrive, tierPoints } from '../../utils/efficiencyMetrics'
+import { quadrant, projectedRecord, recordText, teamColor } from '../../utils/teamProfile'
 import { QB_COLS } from './QbRoom'
 import { HISTORY_TIPS } from './FranchiseHistory'
 import { RIVALRY_TIPS, lastMeeting } from './Rivalries'
@@ -5,7 +9,7 @@ import { lean, pct0 } from '../../utils/eloLean'
 import { pct } from '../../utils/efficiencyMetrics'
 import { weekName } from '../../utils/playoffRounds'
 import { seasonLabel, seasonNumber } from '../../utils/seasons'
-import { signed1, tallyText } from '../../utils/teamProfile'
+import { ordinal, signed1, tallyText } from '../../utils/teamProfile'
 
 const n = (label, desc, get, z = '0') => ({ label, desc, text: r => String(get(r)), value: get, z })
 
@@ -14,6 +18,7 @@ export const fingerprintSpec = (team, season, groups) => ({
   qualifier: `${seasonLabel(season)} · regular season · percentile against the league`,
   description: 'One row per metric for this team: its value, its percentile against the other teams (100 = best), and its league rank. Defense and points-allowed rows are flipped so a higher percentile is always better.',
   notes: ['Percentile is the share of other teams this one beats, with ties counting half. Rank uses competition ranking, so tied teams share a place.', 'Missing values are empty and are left out of percentiles.'],
+  image: fingerprintImage(groups),
   rows: groups.flatMap(g => g.rows.map(r => ({ ...r, group: g.title }))),
   cols: [
     { label: 'Group', desc: 'Offense, Defense, or Team-level.', text: r => r.group },
@@ -27,10 +32,11 @@ export const fingerprintSpec = (team, season, groups) => ({
   api: { path: '/efficiency', params: { season, stage: 'regular' }, note: `Team rows also use /api/standings?season=${season} and /api/elo/history?season=${season} (latest week). Percentiles are computed client-side.` },
 })
 
-export const truthSpec = (team, season, lanes) => ({
+export const truthSpec = (team, season, lanes, arc = []) => ({
   name: `${team.displayName} Wins vs Expectation`,
   qualifier: `${seasonLabel(season)} · regular season · ${team.gamesPlayed} games`,
   description: 'Actual wins against the two expected-win models.',
+  image: truthImage(lanes, team.gamesPlayed, arc),
   rows: lanes,
   cols: [
     { label: 'Measure', desc: 'Actual wins, PyPAT expected wins, or Elo expected wins.', text: r => r.label },
@@ -44,6 +50,7 @@ export const arcSpec = (team, season, games) => ({
   name: `${team.displayName} Game Log`,
   qualifier: `${seasonLabel(season)} · week order`,
   description: 'Every completed game this season from this team\'s side, with pregame Elo win chance, Elo change and upset flags.',
+  image: arcImage(team, games),
   rows: games,
   cols: [
     { label: 'Week', desc: 'Week or playoff round.', text: g => weekName(g.week) },
@@ -60,55 +67,65 @@ export const arcSpec = (team, season, games) => ({
   api: { path: '/elo/games', params: { teamId: team.teamId, season }, fields: { 'Win Prob': 'homeWinProbability or awayWinProbability for this team', 'Elo Change': 'postgame minus pregame Elo for this team' } },
 })
 
-export const roadSpec = (team, season, road, projectedWins) => ({
+export const roadSpec = (team, season, road, projectedWins, sosLeft = {}) => ({
   name: `${team.displayName} Remaining Schedule`,
   qualifier: `${seasonLabel(season)} · ${road.length} games left · week order`,
   description: 'Unplayed regular-season games with this team\'s Elo win chance from current ratings.',
   notes: [`Projected wins: ${projectedWins.toFixed(1)} (current wins plus the sum of remaining win chances).`],
+  tiles: [
+    { label: 'Projected', value: recordText(projectedRecord(team, road)) },
+    { label: 'Favored in', value: `${road.filter(r => r.winProb >= 0.5).length} of ${road.length}` },
+    { label: 'SoS Left', value: sosLeft.text, note: sosLeft.rank },
+  ],
   rows: road,
   cols: [
     { label: 'Week', desc: 'Week of the game.', text: r => weekName(r.week) },
     { label: 'Site', desc: 'Home or away.', text: r => (r.home ? 'Home' : 'Away') },
     { label: 'Opponent', desc: 'Opponent.', text: r => r.opp.displayName, logo: r => r.opp.abbrName },
     { label: 'Opp Elo', desc: 'Opponent\'s current Elo.', text: r => r.oppElo.toFixed(0), value: r => r.oppElo, z: '0' },
-    { label: 'Win Prob', desc: 'This team\'s chance to win from current Elo, home field included.', text: r => pct0(r.winProb), value: r => r.winProb, z: '0%' },
-    { label: 'Outlook', desc: 'How competitive the game should be, using the Elo page tiers, read from this team\'s side: "Likely loss" means the opponent is a Likely favorite.', text: r => { const l = lean(r.game); return l.tossUp ? l.tier.label : `${l.tier.label} ${r.winProb >= 0.5 ? 'win' : 'loss'}` } },
+    { label: 'Win Prob', desc: 'This team\'s chance to win from current Elo, home field included.', chance: r => r.winProb, text: r => pct0(r.winProb), value: r => r.winProb, z: '0%' },
+    { label: 'Outlook', desc: 'How competitive the game should be, using the Elo page tiers, read from this team\'s side: "Likely loss" means the opponent is a Likely favorite.', pill: () => true, text: r => { const l = lean(r.game); return l.tossUp ? l.tier.label : `${l.tier.label} ${r.winProb >= 0.5 ? 'win' : 'loss'}` } },
   ],
   api: { path: '/elo/upcoming', params: { season }, note: `Filtered to games involving teamId ${team.teamId}.` },
 })
 
-export const qbSpec = (team, season, rows, params) => ({
+export const qbSpec = (team, season, rows, params, league = rows) => ({
   name: `${team.displayName} QBs`,
+  rowMuted: r => r && !r.qualified,
   qualifier: `${seasonLabel(season)} · regular season · most attempts first`,
   description: 'Every quarterback who threw a pass for this team this season.',
   rows,
   cols: [
     { label: 'QB', desc: 'Quarterback name.', text: r => r.playerName },
     { label: 'Qualified', desc: 'Whether the QB has enough attempts to be ranked.', text: r => (r.qualified ? 'Yes' : 'No') },
-    ...QB_COLS.map(c => ({ label: c.label, desc: c.desc, text: r => String(c.fmt(r[c.key])), value: r => r[c.key], z: c.z })),
+    ...QB_COLS.map(c => ({ label: c.label, desc: c.desc, text: r => String(c.fmt(r[c.key])), value: r => r[c.key], z: c.z, color: r => c.heat && r.qualified ? goodBadColor(r[c.key], league.filter(q => q.qualified).map(q => q[c.key]), c.heat) : undefined })),
   ],
   api: { path: '/qb/leaderboard', params, note: `Filtered to teamAbbr=${team.abbrName}; sorted by passAtt descending.` },
 })
 
-export const franchiseSpec = (team, rows) => ({
-  name: `${team.displayName} Franchise History`,
-  qualifier: 'Every season · newest first',
-  description: 'One row per season: regular-season record, PyPAT and Luck, final Elo, Elo rank, peak Elo and playoff record.',
-  rows,
-  cols: [
-    n('Season', HISTORY_TIPS.season, s => seasonNumber(s.season)),
-    n('W', 'Regular-season wins.', s => s.wins),
-    n('L', 'Regular-season losses.', s => s.losses),
-    n('T', 'Regular-season ties.', s => s.ties),
-    { label: 'PyPAT', desc: HISTORY_TIPS.pypat, text: s => pct(s.pythagoreanPat), value: s => s.pythagoreanPat, z: '0.0%' },
-    { label: 'Luck', desc: HISTORY_TIPS.luck, text: s => signed1(s.winDiff), value: s => s.winDiff, z: '+0.0;-0.0;0.0' },
-    { label: 'Final Elo', desc: HISTORY_TIPS.finalElo, text: s => s.finalElo?.toFixed(0), value: s => s.finalElo, z: '0' },
-    { label: 'Elo Rank', desc: HISTORY_TIPS.finalRank, text: s => String(s.finalRank), value: s => s.finalRank, z: '0' },
-    { label: 'Peak Elo', desc: HISTORY_TIPS.peakElo, text: s => s.peakElo?.toFixed(0), value: s => s.peakElo, z: '0' },
-    { label: 'Playoffs', desc: HISTORY_TIPS.playoffs, text: s => (s.playoffs ? tallyText(s.playoffs) : '') },
-  ],
-  api: { path: '/trends/season', params: {}, note: `Rows filtered to teamId ${team.teamId}. Elo columns come from /api/elo/history; playoff record from /api/elo/games?teamId=${team.teamId} rows with week ≥ 18.` },
-})
+export const franchiseSpec = (team, rows, points = []) => {
+  const spec = {
+    name: `${team.displayName} Franchise History`,
+    qualifier: 'Every season · newest first',
+    description: 'One row per season: regular-season record, PyPAT and Luck, final Elo, Elo rank, peak Elo and playoff record.',
+    rows,
+    cols: [
+      n('Season', HISTORY_TIPS.season, s => seasonNumber(s.season)),
+      n('W', 'Regular-season wins.', s => s.wins),
+      n('L', 'Regular-season losses.', s => s.losses),
+      n('T', 'Regular-season ties.', s => s.ties),
+      { label: 'PyPAT', desc: HISTORY_TIPS.pypat, color: s => goodBadColor(s.pythagoreanPat, [0.2, 0.8, ...rows.map(r => r.pythagoreanPat)]), text: s => pct(s.pythagoreanPat), value: s => s.pythagoreanPat, z: '0.0%' },
+      { label: 'Luck', desc: HISTORY_TIPS.luck, color: s => divergeColor(s.winDiff, Math.max(2, ...rows.map(r => Math.abs(r.winDiff ?? 0)))), text: s => signed1(s.winDiff), value: s => s.winDiff, z: '+0.0;-0.0;0.0' },
+      { label: 'Final Elo', desc: HISTORY_TIPS.finalElo, text: s => s.finalElo?.toFixed(0), value: s => s.finalElo, z: '0' },
+      { label: 'Elo Rank', desc: HISTORY_TIPS.finalRank, text: s => String(s.finalRank), value: s => s.finalRank, z: '0' },
+      { label: 'Peak Elo', desc: HISTORY_TIPS.peakElo, text: s => s.peakElo?.toFixed(0), value: s => s.peakElo, z: '0' },
+      { label: 'Playoffs', desc: HISTORY_TIPS.playoffs, text: s => (s.playoffs ? tallyText(s.playoffs) : '') },
+    ],
+    api: { path: '/trends/season', params: {}, note: `Rows filtered to teamId ${team.teamId}. Elo columns come from /api/elo/history; playoff record from /api/elo/games?teamId=${team.teamId} rows with week ≥ 18.` },
+  }
+  spec.image = franchiseImage(team, points, spec)
+  return spec
+}
 
 const RIVALRY_SORTS = { opp: 'Opponent', games: 'G', record: 'Record (win %)', diff: 'Pt Diff', ppg: 'PF–PA / G (differential)', last: 'Last meeting' }
 
@@ -130,3 +147,38 @@ export const rivalrySpec = (team, rows, sort, total) => ({
   ],
   api: { path: '/elo/games', params: { teamId: team.teamId }, note: 'Grouped by opponent client-side. Ties count half in win percentage.' },
 })
+
+export const headerSpec = (team, season, kpis) => ({
+  name: `${team.displayName} Profile`,
+  qualifier: `${seasonLabel(season)}`,
+  rows: kpis,
+  cols: [
+    { label: 'Label', desc: 'Headline statistic.', text: r => r.label },
+    { label: 'Value', desc: 'Displayed statistic.', text: r => r.value },
+    { label: 'Rank', desc: 'League rank and number of teams.', text: r => r.rank ? `${ordinal(r.rank.rank)}${r.rankWord ?? ''} of ${r.rank.of}` : '' },
+    { label: 'Note', desc: 'Context for the statistic.', text: r => r.note },
+    { label: 'Delta', desc: 'Change from the previous season.', text: r => r.delta ? `${r.delta.minor ? '±' : r.delta.up ? '▲ ' : '▼ '}${r.delta.text}` : '' },
+  ],
+  image: headerImage(team, season, kpis),
+  api: { path: '/standings', params: { season }, note: 'Elo uses /api/elo/history; net points per drive uses /api/efficiency with stage=regular.' },
+})
+
+export function landscapeSpec(rows, teamId, season, team) {
+  const points = tierPoints(rows)
+  const league = leaguePointsPerDrive(rows)
+  const chart = { points, league, xScale: halfPointScale(points.map(p => p.x)), yScale: halfPointScale(points.map(p => p.y)), focus: teamId, focusColor: teamColor(team?.primaryColor) ?? '#1d4ed8' }
+  return {
+    name: `${team?.displayName ?? 'Team'} League Landscape`,
+    qualifier: `${seasonLabel(season)} · regular season`,
+    rows: points,
+    cols: [
+      { label: 'Team', desc: 'Team name.', text: r => r.name, logo: r => r.abbr },
+      n('Offense', 'Offense points per drive.', r => r.x, '0.00'),
+      n('Defense', 'Defense points allowed per drive.', r => r.y, '0.00'),
+      n('Net', 'Offense minus defense points per drive.', r => r.x - r.y, '0.00'),
+      { label: 'Quadrant', desc: 'Offense and defense compared with the league average.', text: r => { const q = quadrant(r.x, r.y, league); return `${q.goodOffense ? 'Good' : 'Bad'} offense, ${q.goodDefense ? 'good' : 'bad'} defense` } },
+    ],
+    image: landscapeImage(chart),
+    api: { path: '/efficiency', params: { season, stage: 'regular' } },
+  }
+}

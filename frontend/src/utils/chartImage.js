@@ -1,7 +1,8 @@
-import { chooseScale, copyPng } from './tableImage'
+import { IMAGE, imageFrame, copyPng } from './tableImage'
 import { loadLogo } from './teamLogo'
 
-async function drawChart({ name, qualifier = '', points, league, xScale, yScale }) {
+export async function drawChart(spec) {
+  const { name, qualifier = '' } = spec
   const canvas = document.createElement('canvas')
   const ctx = canvas.getContext('2d')
   if (!ctx) return null
@@ -12,23 +13,17 @@ async function drawChart({ name, qualifier = '', points, league, xScale, yScale 
   ctx.font = '12px sans-serif'
   width = Math.ceil(Math.max(width, ctx.measureText(qualifier).width + 20, ctx.measureText(footer).width + 20))
   const height = 720
-  const scale = chooseScale(width, height)
-  if (!scale) return null
-  canvas.width = width * scale
-  canvas.height = height * scale
-  ctx.scale(scale, scale)
-  ctx.fillStyle = '#ffffff'
-  ctx.fillRect(0, 0, width, height)
-  ctx.textBaseline = 'middle'
-  ctx.fillStyle = '#0f172a'
-  ctx.font = 'bold 18px sans-serif'
-  ctx.fillText(title, 10, 19)
-  ctx.fillStyle = '#646e7d'
-  ctx.font = '12px sans-serif'
-  ctx.fillText(qualifier, 10, 40)
-  ctx.fillText(footer, 10, height - 13)
+  const frame = imageFrame(spec, width, height - 80, canvas)
+  if (!frame) return null
+  await drawChartPlot(ctx, width, height, spec)
+  frame.finish()
+  return new Promise(resolve => canvas.toBlob(resolve, 'image/png'))
+}
 
-  const left = 80, right = width - 30, top = 70, bottom = height - 80
+export async function drawChartPlot(ctx, width, height, { points, league, xScale, yScale, focus, focusColor = IMAGE.accent }, plotTop = 70) {
+  ctx.font = '12px sans-serif'
+  ctx.fillStyle = IMAGE.muted
+  const left = 80, right = width - 30, top = plotTop, bottom = height - 80
   const x = value => left + (value - xScale.domain[0]) / (xScale.domain[1] - xScale.domain[0]) * (right - left)
   const y = value => top + (value - yScale.domain[0]) / (yScale.domain[1] - yScale.domain[0]) * (bottom - top)
   const line = (x1, y1, x2, y2) => {
@@ -37,7 +32,7 @@ async function drawChart({ name, qualifier = '', points, league, xScale, yScale 
     ctx.lineTo(x2, y2)
     ctx.stroke()
   }
-  ctx.strokeStyle = '#dfe3e9'
+  ctx.strokeStyle = IMAGE.line
   ctx.setLineDash([2, 4])
   ctx.textAlign = 'center'
   xScale.ticks.forEach(tick => {
@@ -59,7 +54,7 @@ async function drawChart({ name, qualifier = '', points, league, xScale, yScale 
   ctx.rotate(-Math.PI / 2)
   ctx.fillText('Defense points allowed per drive → better', 0, 0)
   ctx.restore()
-  ctx.strokeStyle = '#646e7d'
+  ctx.strokeStyle = IMAGE.muted
   ctx.setLineDash([4, 4])
   if (Number.isFinite(league)) {
     line(x(league), top, x(league), bottom)
@@ -72,25 +67,44 @@ async function drawChart({ name, qualifier = '', points, league, xScale, yScale 
       ctx.textAlign = goodOffense ? 'right' : 'left'
       const labelX = goodOffense ? right - 8 : left + 8
       const labelY = goodDefense ? top + 18 : bottom - 30
-      ctx.fillText(`${goodOffense ? 'Good' : 'Bad'} offense`, labelX, labelY)
-      ctx.fillText(`${goodDefense ? 'Good' : 'Bad'} defense`, labelX, labelY + 15)
+      ctx.fillText(`${goodOffense ? 'Good' : 'Bad'} ${focus != null ? 'O' : 'offense'}`, labelX, labelY)
+      ctx.fillText(`${goodDefense ? 'Good' : 'Bad'} ${focus != null ? 'D' : 'defense'}`, labelX, labelY + 15)
     }
   }
   const logos = await Promise.all(points.map(point => loadLogo(point.abbr)))
   ctx.textAlign = 'center'
-  ctx.fillStyle = '#0f172a'
-  points.forEach((point, i) => {
+  ctx.fillStyle = IMAGE.ink
+  const order = points.map((point, i) => ({ point, i }))
+  if (focus != null) order.sort((a, b) => Number(a.point.id === focus) - Number(b.point.id === focus))
+  order.forEach(({ point, i }) => {
+    ctx.save()
+    if (focus != null) {
+      ctx.globalAlpha = point.id === focus ? 1 : 0.45
+      ctx.filter = point.id === focus ? 'none' : 'grayscale(1)'
+      if (point.id === focus) {
+        ctx.beginPath()
+        ctx.arc(x(point.x), y(point.y), 27, 0, Math.PI * 2)
+        ctx.fillStyle = IMAGE.bg
+        ctx.fill()
+        ctx.strokeStyle = focusColor
+        ctx.lineWidth = 3
+        ctx.stroke()
+      }
+    }
     if (logos[i]) {
       try {
-        ctx.drawImage(logos[i], x(point.x) - 22, y(point.y) - 22, 44, 44)
+        const size = focus != null && point.id !== focus ? 26 : 44
+        ctx.drawImage(logos[i], x(point.x) - size / 2, y(point.y) - size / 2, size, size)
+        ctx.restore()
         return
       } catch {
         // A decoded image can still be unavailable to draw.
       }
     }
+    ctx.fillStyle = IMAGE.ink
     ctx.fillText(point.abbr, x(point.x), y(point.y))
+    ctx.restore()
   })
-  return new Promise(resolve => canvas.toBlob(resolve, 'image/png'))
 }
 
 export function copyChartImage(spec) {

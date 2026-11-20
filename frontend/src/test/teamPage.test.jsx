@@ -63,6 +63,8 @@ describe('Team profile', () => {
   it('shows the latest season profile with every section', async () => {
     renderAt('/teams/aaa')
     expect(await screen.findByRole('heading', { level: 1, name: 'Aces' })).toBeInTheDocument()
+    expect(within(screen.getByRole('heading', { level: 1, name: 'Aces' }).closest('header')).getByRole('button', { name: 'PNG' })).toBeVisible()
+    expect(within(await screen.findByRole('region', { name: 'League Landscape' })).getByRole('button', { name: 'PNG' })).toBeVisible()
     expect(client.getStandings).toHaveBeenCalledWith(1)
     expect(client.getEfficiency).toHaveBeenCalledWith(1, 'regular')
     await waitFor(() => expect(client.getEloGames).toHaveBeenCalledWith(undefined, undefined, 1))
