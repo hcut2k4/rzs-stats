@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { teamLogoUrl } from '../utils/teamLogo'
 
 export function TeamLogo({ abbr, size = 24 }) {
@@ -18,7 +19,7 @@ export function TeamCell({ abbr, name, size = 24 }) {
   return (
     <span className="flex items-center gap-2">
       <TeamLogo abbr={abbr} size={size} />
-      <span>{name ?? abbr}</span>
+      {abbr ? <Link to={`/teams/${abbr}`} className="hover:text-accent hover:underline underline-offset-2">{name ?? abbr}</Link> : <span>{name}</span>}
     </span>
   )
 }
