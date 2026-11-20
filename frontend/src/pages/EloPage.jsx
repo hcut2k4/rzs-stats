@@ -197,7 +197,6 @@ function HistoryTab({ history, teams, params }) {
       const key = `${r.season}-${r.week}`
       if (!byKey.has(key)) { byKey.set(key, { key, season: r.season, week: r.week }); keys.push(key) }
       byKey.get(key)[r.teamId] = r.endElo
-      byKey.get(key)[`ownerReset-${r.teamId}`] = r.ownerReset
     }
     const rows = keys.map(k => byKey.get(k))
     const starts = rows.filter(r => r.week === Math.min(...rows.filter(x => x.season === r.season).map(x => x.week)))
@@ -232,7 +231,7 @@ function HistoryTab({ history, teams, params }) {
     <div>
       {teams.length > 0 && <div className="flex justify-end mb-2"><ExportMenu spec={spec} /></div>}
       <div className="flex items-center gap-3 mb-2 text-xs text-muted">
-        <span title="Each line is one team's Elo after every week. Click a team below to highlight it. Dotted vertical lines mark the start of a season, where ratings are pulled part of the way back toward 1500. Marked points show a team regressing after an owner change.">Click teams to highlight them. The rest fade back. Dotted lines mark season starts. Circles mark owner changes.</span>
+        <span title="Each line is one team's Elo after every week. Click a team below to highlight it. Dotted vertical lines mark the start of a season, where ratings are pulled part of the way back toward 1500.">Click teams to highlight them. The rest fade back. Dotted lines mark season starts.</span>
         <button onClick={() => setFocus(new Set())} className="text-ink font-medium hover:text-accent">Clear</button>
       </div>
       <div className="flex flex-wrap gap-1 mb-4">
@@ -263,7 +262,7 @@ function HistoryTab({ history, teams, params }) {
             contentStyle={{ background: 'rgb(var(--bg))', border: '1px solid rgb(var(--rule))', borderRadius: 3 }}
             labelFormatter={k => { const [s, w] = k.split('-').map(Number); return `${seasonLabel(s)} · ${label(w)}` }}
             itemSorter={item => -item.value}
-            formatter={(v, id, item) => [<span>{v.toFixed(1)}{item.payload[`ownerReset-${id}`] && <span className="block text-xs">Owner change: regressed toward 1500</span>}</span>, teams.find(t => String(t.teamId) === String(id))?.abbrName ?? id]}
+            formatter={(v, id) => [v.toFixed(1), teams.find(t => String(t.teamId) === String(id))?.abbrName ?? id]}
           />
           {teams.map((t, i) => (
             <Line
@@ -271,9 +270,7 @@ function HistoryTab({ history, teams, params }) {
               type="monotone"
               dataKey={String(t.teamId)}
               stroke={COLORS[i % COLORS.length]}
-              dot={({ cx, cy, payload }) => payload[`ownerReset-${t.teamId}`]
-                ? <circle key={payload.key} cx={cx} cy={cy} r={4} fill={COLORS[i % COLORS.length]} stroke="rgb(var(--bg))" strokeWidth={1.5} opacity={anyEmphasis && !emphasised(t.teamId) ? 0.12 : 1} aria-label={`${t.abbrName} owner change`} />
-                : <g key={payload.key} />}
+              dot={false}
               strokeWidth={emphasised(t.teamId) ? 3 : 1.5}
               strokeOpacity={anyEmphasis && !emphasised(t.teamId) ? 0.12 : 1}
               isAnimationActive={false}

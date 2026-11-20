@@ -53,7 +53,7 @@ public class EloQueryService {
 
     public List<EloDtos.History> history(Integer season) {
         return history.getTimeline().history().stream().filter(s -> season == null || s.season() == season)
-                .map(s -> new EloDtos.History(s.team().teamId(), s.season(), s.week(), s.seasonStart(), s.ownerReset(),
+                .map(s -> new EloDtos.History(s.team().teamId(), s.season(), s.week(), s.seasonStart(),
                         round(s.startElo()), round(s.endElo()), round(s.change()), s.rank())).toList();
     }
 

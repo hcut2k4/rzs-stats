@@ -138,7 +138,5 @@ class EloOwnerChangeHistoryTest {
         assertThat(reset.getFirst().week()).isEqualTo(10);
         assertThat(reset.getFirst().startElo()).isEqualTo(engine.regress(reset.getFirst().prevElo(), timeline.config()));
         assertThat(timeline.games().getLast().homePregameElo()).isEqualTo(reset.getFirst().startElo());
-        var queries = new EloQueryService(new EloHistoryService(games, new EloConfigService(configs), engine, new OwnerChangeService()), engine, games);
-        assertThat(queries.history(null).stream().filter(h -> h.ownerReset()).toList()).hasSize(1);
     }
 }
