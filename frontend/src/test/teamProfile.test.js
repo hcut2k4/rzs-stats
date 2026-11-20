@@ -1,5 +1,5 @@
 import {
-  eloExpectedWins, fingerprint, franchiseSeasons, headToHead, ordinal, percentileIn, projectedRecord, rankIn, seasonArc, sosVariant, teamColor, teamGames,
+  eloExpectedWins, fingerprint, franchiseSeasons, headToHead, ordinal, percentileIn, projectedRecord, rankIn, seasonArc, sosLeftVariant, sosVariant, currentRegularWeek, teamColor, teamGames,
   teamUpcoming, visibleTeamColor,
 } from '../utils/teamProfile'
 
@@ -169,4 +169,29 @@ it('reads prior-season schedule strength only for the active season', () => {
 it('projects whole remaining games and keeps existing ties', () => {
   const road = [{ winProb: 0.6 }, { winProb: 0.7 }, { winProb: 0.3 }]
   expect(projectedRecord({ wins: 5, losses: 3, ties: 1 }, road)).toEqual({ wins: 7, losses: 4, ties: 1 })
+})
+
+describe('remaining schedule strength', () => {
+  it.each([[8, 'Prev'], [9, 'Curr'], [10, 'Curr']])('uses %s as the current week and selects %s quality', (week, variant) => {
+    expect(sosLeftVariant(2, 2, week)).toBe(variant)
+  })
+
+  it('uses current-season quality for finished seasons and season zero', () => {
+    for (const week of [null, 8, 9, 10]) {
+      expect(sosLeftVariant(1, 2, week)).toBe('Curr')
+      expect(sosLeftVariant(0, 0, week)).toBe('Curr')
+    }
+  })
+
+  it('keeps previous-season quality when the current week is unknown', () => {
+    expect(sosLeftVariant(2, 2, null)).toBe('Prev')
+    expect(sosLeftVariant(2, 2, undefined)).toBe('Prev')
+  })
+
+  it('finds the earliest upcoming regular-season week and ignores playoffs and missing weeks', () => {
+    expect(currentRegularWeek([{ week: 10 }, { week: 18 }, { week: 8 }, { week: null }])).toBe(8)
+    expect(currentRegularWeek([{ week: 0 }, { week: 9 }])).toBe(0)
+    expect(currentRegularWeek([{ week: 18 }])).toBeNull()
+    expect(currentRegularWeek([])).toBeNull()
+  })
 })

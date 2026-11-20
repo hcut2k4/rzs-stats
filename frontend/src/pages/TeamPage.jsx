@@ -17,7 +17,7 @@ import { useLoad } from '../utils/useLoad'
 import { SEASON_OFFSET, seasonLabel, seasonNumber } from '../utils/seasons'
 import {
   actualWins, eloExpectedWins, fingerprint, franchiseSeasons, headToHead, lastWeekRows, luckLean, ordinal, projectedRecord,
-  pypatWins, rankIn, recordText, seasonArc, signed1, sosVariant, tally, tallyText, teamColorVars, teamGames, teamUpcoming,
+  currentRegularWeek, pypatWins, rankIn, recordText, seasonArc, signed1, sosLeftVariant, sosVariant, tally, tallyText, teamColorVars, teamGames, teamUpcoming,
 } from '../utils/teamProfile'
 
 const SOS_TIP = 'Strength of schedule: average opponent-adjusted PyPAT, with this team\'s own games removed from each opponent. Higher means a harder schedule. Empty means no data, not 0.'
@@ -100,8 +100,10 @@ export default function TeamPage() {
 
   const sos = sosVariant(season, latest)
   const sosSource = sos === 'Prev' ? 'previous-season opponent quality' : 'current-season opponent quality'
+  const sosLeft = sosLeftVariant(season, latest, currentRegularWeek(upcoming.data ?? []))
+  const sosLeftSource = sosLeft === 'Prev' ? 'previous-season opponent quality' : 'current-season opponent quality'
   const playedField = `oppPyPat${sos}`
-  const leftField = `oppPyPatRemaining${sos}`
+  const leftField = `oppPyPatRemaining${sosLeft}`
   const sosText = field => (team[field] == null ? '—' : pct(team[field]))
   const divRank = rankIn(team.winPct, all.filter(r => r.division === team.division).map(r => r.winPct))
 
@@ -190,7 +192,7 @@ export default function TeamPage() {
           {showRoad
             ? <RoadAhead rows={road} loading={upcoming.loading} teamHref={teamHref} spec={roadSpec(team, season, road, projectedWins, { text: sosText(leftField), rank: leftRank ? `${ordinal(leftRank.rank)} hardest of ${leftRank.of}` : null })}
                 projection={{ wins: projectedWins, remaining, record: recordText(projectedRecord(team, road)) }}
-                sosLeft={{ text: sosText(leftField), tip: `${SOS_TIP} Remaining games only. Uses ${sosSource}.`, rank: leftRank ? `${ordinal(leftRank.rank)} hardest of ${leftRank.of}` : null }} />
+                sosLeft={{ text: sosText(leftField), tip: `${SOS_TIP} Remaining games only. Uses ${sosLeftSource}.`, rank: leftRank ? `${ordinal(leftRank.rank)} hardest of ${leftRank.of}` : null }} />
             : qbRoom}
         </div>
         <SeasonArc games={seasonGames} spec={arcSpec(team, season, seasonGames)} teamHref={teamHref} loading={eloGames.loading} />

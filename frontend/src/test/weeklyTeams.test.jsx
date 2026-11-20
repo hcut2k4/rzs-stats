@@ -3,9 +3,15 @@ import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import * as client from '../api/client'
+import { clearLoadCache } from '../utils/useLoad'
 import StandingsPage from '../pages/StandingsPage'
 
 vi.mock('../api/client')
+
+beforeEach(() => {
+  clearLoadCache()
+  client.getEloUpcoming.mockResolvedValue([])
+})
 
 globalThis.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} }
 

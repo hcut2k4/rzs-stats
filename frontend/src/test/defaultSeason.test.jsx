@@ -4,8 +4,14 @@ import { MemoryRouter } from 'react-router-dom'
 import StandingsPage from '../pages/StandingsPage'
 import GamesPage from '../pages/GamesPage'
 import * as client from '../api/client'
+import { clearLoadCache } from '../utils/useLoad'
 
 vi.mock('../api/client')
+
+beforeEach(() => {
+  clearLoadCache()
+  client.getEloUpcoming.mockResolvedValue([])
+})
 
 function renderWithRouter(ui) {
   return render(<MemoryRouter>{ui}</MemoryRouter>)

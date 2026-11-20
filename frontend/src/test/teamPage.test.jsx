@@ -83,6 +83,35 @@ describe('Team profile', () => {
     expect(await within(rivals).findByText('3-0')).toBeInTheDocument()
   })
 
+  it.each([[8, 'previous-season', '50.0%'], [9, 'current-season', '48.0%'], [10, 'current-season', '48.0%']])(
+    'uses the league week for Remaining SoS at index %s and keeps Played unchanged', async (week, source, value) => {
+      const game = (week, homeTeam, awayTeam) => ({
+        gameId: week, season: 1, week, homeTeam, awayTeam, homeElo: 1500, awayElo: 1500,
+        homeWinProbability: 0.5, awayWinProbability: 0.5,
+      })
+      client.getEloUpcoming.mockResolvedValue([game(12, A, B), game(week, B, { ...B, teamId: 3 })])
+      renderAt('/teams/AAA')
+      const road = await screen.findByRole('region', { name: 'Road Ahead' })
+      await waitFor(() => expect(within(road).getByText('SoS Left')).toHaveAttribute('title', expect.stringContaining(source)))
+      expect(within(road).getByText(value)).toBeInTheDocument()
+      expect(screen.getByText('SoS Played')).toHaveAttribute('title', expect.stringContaining('previous-season'))
+      expect(within(kpi('SoS Played')).getByText('52.0%')).toBeInTheDocument()
+    }
+  )
+
+  it('leaves missing current-season Remaining SoS unrated instead of using previous-season quality', async () => {
+    client.getEloUpcoming.mockResolvedValue([{
+      gameId: 9, season: 1, week: 9, homeTeam: A, awayTeam: B, homeElo: 1500, awayElo: 1500,
+      homeWinProbability: 0.5, awayWinProbability: 0.5,
+    }])
+    client.getStandings.mockResolvedValue([{ ...standing(A, 6, 2, 0.6), oppPyPatRemainingCurr: null }])
+    renderAt('/teams/AAA')
+    const road = await screen.findByRole('region', { name: 'Road Ahead' })
+    await waitFor(() => expect(within(road).getByText('SoS Left')).toHaveAttribute('title', expect.stringContaining('current-season')))
+    expect(within(road).getByText('—')).toBeInTheDocument()
+    expect(within(road).queryByText(/hardest of/)).not.toBeInTheDocument()
+  })
+
   it('switches season and drops the remaining schedule for a finished season', async () => {
     renderAt('/teams/AAA')
     await screen.findByRole('heading', { name: 'Road Ahead' })

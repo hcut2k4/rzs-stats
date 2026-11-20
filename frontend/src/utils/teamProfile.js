@@ -2,6 +2,7 @@ import { upsetInfo } from './eloLean'
 import { METRICS } from './efficiencyMetrics'
 
 export const REGULAR_WEEKS = 18
+export const SOS_CURRENT_FROM_WEEK = 9
 
 export function teamColor(primaryColor) {
   const n = Number(primaryColor)
@@ -201,8 +202,16 @@ export const luckLean = winDiff => (winDiff > 0.5 ? 1 : winDiff < -0.5 ? -1 : 0)
 
 export const quadrant = (offense, defense, league) => ({ goodOffense: offense >= league, goodDefense: defense <= league })
 
-// Same default as Standings and About: the active season reads prior-season opponent quality, finished seasons their own.
 export const sosVariant = (season, latest) => (season > 0 && season === latest ? 'Prev' : 'Curr')
+
+export const sosLeftVariant = (season, latest, currentWeek) => (
+  currentWeek >= SOS_CURRENT_FROM_WEEK ? 'Curr' : sosVariant(season, latest)
+)
+
+export function currentRegularWeek(upcoming) {
+  const weeks = upcoming.map(g => g.week).filter(w => Number.isInteger(w) && w >= 0 && w < REGULAR_WEEKS)
+  return weeks.length ? Math.min(...weeks) : null
+}
 
 export function projectedRecord(team, road) {
   const remainingWins = Math.round(road.reduce((s, r) => s + r.winProb, 0))

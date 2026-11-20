@@ -5,8 +5,14 @@ import { MemoryRouter, useLocation, useNavigationType } from 'react-router-dom'
 import App from '../App'
 import StandingsPage from '../pages/StandingsPage'
 import * as client from '../api/client'
+import { clearLoadCache } from '../utils/useLoad'
 
 vi.mock('../api/client')
+
+beforeEach(() => {
+  clearLoadCache()
+  client.getEloUpcoming.mockResolvedValue([])
+})
 
 globalThis.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} }
 

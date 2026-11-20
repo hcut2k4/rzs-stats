@@ -4,9 +4,11 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import StandingsPage from '../pages/StandingsPage'
 import * as client from '../api/client'
+import { clearLoadCache } from '../utils/useLoad'
 import { buildWorkbook, csvText, toRows } from '../utils/exportTable'
 
 vi.mock('../api/client')
+
 const { specs } = vi.hoisted(() => ({ specs: new Map() }))
 vi.mock('../components/ExportMenu', () => ({ default: ({ spec }) => { specs.set(spec.name, spec); return null } }))
 
@@ -16,6 +18,8 @@ const sampleStandings = [
 ]
 
 beforeEach(() => {
+  clearLoadCache()
+  client.getEloUpcoming.mockResolvedValue([])
   specs.clear()
   client.getSeasons.mockResolvedValue([4, 5])
   client.getStandings.mockResolvedValue(sampleStandings)
@@ -31,7 +35,7 @@ async function show() {
 describe('Standings exports', () => {
   it('includes the table headers, one row per team and sequential ranks', async () => {
     const rows = toRows(await show())
-    expect(rows[0]).toEqual(expect.arrayContaining(['#', 'Team', 'W', 'L', 'T', 'Win%', 'Avg PF', 'Avg PA', 'PyPAT', 'Luck', 'SoS Played', 'SoS Left', 'SoS Total']))
+    expect(rows[0]).toEqual(expect.arrayContaining(['#', 'Team', 'W', 'L', 'T', 'Win%', 'Avg PF', 'Avg PA', 'PyPAT', 'Luck', 'SoS Played', 'SoS Left (previous-season)', 'SoS Total']))
     expect(rows).toHaveLength(sampleStandings.length + 1)
     expect(rows.slice(1).map(r => r[0])).toEqual(['1', '2'])
   })
@@ -98,6 +102,35 @@ describe('Standings exports', () => {
     expect(spec.api.note).toContain('current season')
     expect(spec.cols.find(c => c.label === 'SoS Played').desc).toContain('current season')
     expect(spec.api.fields['SoS Played']).toContain('oppPyPatCurr')
+  })
+
+  it.each([[8, 'previous-season', 'Prev', '52.0%'], [9, 'current-season', 'Curr', '42.0%'], [10, 'current-season', 'Curr', '42.0%']])(
+    'uses the correct Left source at week index %s while keeping Played and Total unchanged', async (week, source, variant, value) => {
+      client.getEloUpcoming.mockResolvedValue([{ week: 12 }, { week }, { week: 18 }])
+      client.getStandings.mockResolvedValue([{
+        ...sampleStandings[0], oppPyPatCurr: 0.41, oppPyPatPrev: 0.51,
+        oppPyPatRemainingCurr: 0.42, oppPyPatRemainingPrev: 0.52,
+        oppPyPatTotalCurr: 0.43, oppPyPatTotalPrev: 0.53,
+      }])
+      await show()
+      await waitFor(() => expect(screen.getByRole('columnheader', { name: 'Left' })).toHaveAttribute('title', expect.stringContaining(source)))
+      const spec = specs.get('Standings')
+      const label = `SoS Left (${source})`
+      expect(spec.api.fields[label]).toContain(`oppPyPatRemaining${variant}`)
+      expect(spec.cols.find(c => c.label === label).desc).toContain(source)
+      expect(toRows(spec)[1].slice(-3)).toEqual(['51.0%', value, '53.0%'])
+      expect(client.getEloUpcoming).toHaveBeenCalledWith(5)
+      fireEvent.click(screen.getByRole('button', { name: 'This season' }))
+      expect(toRows(specs.get('Standings'))[1].slice(-3)).toEqual(['41.0%', '42.0%', '43.0%'])
+    }
+  )
+
+  it('leaves null current-season Left empty instead of using previous-season quality', async () => {
+    client.getEloUpcoming.mockResolvedValue([{ week: 9 }])
+    client.getStandings.mockResolvedValue([{ ...sampleStandings[0], oppPyPatRemainingCurr: null, oppPyPatRemainingPrev: 0.52 }])
+    await show()
+    await waitFor(() => expect(specs.get('Standings')?.api.fields['SoS Left (current-season)']).toContain('oppPyPatRemainingCurr'))
+    expect(toRows(specs.get('Standings'))[1].at(-2)).toBe('')
   })
 
   it('keeps export provenance with the response and ignores stale seasons', async () => {
