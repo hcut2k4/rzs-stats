@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer } from 'recharts'
-import { getEloHistory, getEloRatings, getEloGames, getEloMatchup, getEloUpcoming } from '../api/client'
+import { getEloHistory, getEloRatings, getEloGames, getEloMatchup, getEloUpcoming, getPublicEloConfig } from '../api/client'
 import PageHeader from '../components/PageHeader'
 import Tabs from '../components/Tabs'
 import { TeamCell, TeamLogo } from '../components/TeamLogo'
@@ -13,6 +13,8 @@ import ExportMenu from '../components/ExportMenu'
 import { divergeColor } from '../utils/heat'
 import { lean, pct0, upsetInfo, outlookText, upsetText, LEAN_HOME, LEAN_AWAY } from '../utils/eloLean'
 import { weekName as label } from '../utils/playoffRounds'
+import { eloMarginTip } from '../utils/siteCopy'
+import { useLoad } from '../utils/useLoad'
 import { COLORS } from '../utils/chartColors'
 import { seasonLabel, seasonNumber } from '../utils/seasons'
 
@@ -45,7 +47,7 @@ const TIPS = {
   home: 'Home team, its Elo going into the game, and the Elo points it gained (green) or lost (red) from the result. Sorts by Elo.',
   score: 'Final score, away team first.',
   homeProb: 'The home team\'s win probability before the game, from both Elo ratings and home field. Under 55% either way is a Toss-up.',
-  mov: 'Scales this game\'s Elo change for both the winner and the loser. Close games shrink it and blowouts grow it, up to the configured margin cap. A favorite\'s blowout counts for less than an underdog\'s. A tie is 1.00.',
+  mov: eloMarginTip,
   result: upsetText(),
   projWeek: 'The week or playoff round of the unplayed game.',
   projElo: 'Each team\'s current Elo rating, which is used for the projection. Sorts by Elo.',
@@ -265,7 +267,7 @@ function HistoryTab({ history, teams, params }) {
 
 export const homeTeamForSide = (side, a, b) => side === 'a' ? a : side === 'b' ? b : undefined
 
-export function MatchupTab({ ratedTeams }) {
+export function MatchupTab({ ratedTeams, config }) {
   const teams = useMemo(() => [...ratedTeams].sort((x, y) => x.displayName.localeCompare(y.displayName)), [ratedTeams])
   const [a, setA] = useState(null)
   const [b, setB] = useState(null)
@@ -295,7 +297,7 @@ export function MatchupTab({ ratedTeams }) {
         {select(a, setA, 'Team A')}
         <span className="text-muted text-sm">vs</span>
         {select(b, setB, 'Team B')}
-        <label className="flex items-center gap-2 text-sm text-muted" title="Choose which team has home field, or Neutral for no home-field effect.">
+        <label className="flex items-center gap-2 text-sm text-muted" title={config ? (config.homeFieldAdvantage ? `Home field adds ${config.homeFieldAdvantage} Elo points to the home team. Neutral means no home-field effect.` : 'Home field is currently worth 0 Elo points, so picking a home team doesn\'t change the odds.') : 'Choose which team has home field, or Neutral for no home-field effect.'}>
           Home team
           <select className="field" aria-label="Home team" value={home} onChange={e => setHome(e.target.value)}>
             <option value="">Neutral</option>
@@ -328,7 +330,7 @@ export function MatchupTab({ ratedTeams }) {
   )
 }
 
-function GamesTab({ season, week, upcoming }) {
+function GamesTab({ season, week, upcoming, config }) {
   const [{ rows: games, params: gamesParams }, setGames] = useState({ rows: [], params: {} })
   const [loading, setLoading] = useState(false)
   const played = useSorter({ key: null, asc: false })
@@ -382,7 +384,7 @@ function GamesTab({ season, week, upcoming }) {
       { label: 'Away Score', desc: TIPS.score, text: g => String(g.awayScore), value: g => g.awayScore, z: '0' },
       { label: 'Home Score', desc: TIPS.score, text: g => String(g.homeScore), value: g => g.homeScore, z: '0' },
       { label: 'Home Win Prob', desc: TIPS.homeProb, text: g => pct(g.homeWinProbability), value: g => g.homeWinProbability, z: '0.0%' },
-      { label: 'Margin mult.', desc: TIPS.mov, text: g => g.movMultiplier.toFixed(2), value: g => g.movMultiplier, z: '0.00' },
+      { label: 'Margin mult.', desc: TIPS.mov(config), text: g => g.movMultiplier.toFixed(2), value: g => g.movMultiplier, z: '0.00' },
       { label: 'Result', desc: TIPS.result, text: g => { const u = upsetInfo(g); return u ? `${u.label} · ${pct0(u.chance)}` : '' }, color: g => upsetInfo(g)?.shade },
     ],
     api: { path: '/elo/games', params: gamesParams, fields: { 'Away Elo Change': 'awayPostgameElo - awayPregameElo', 'Home Elo Change': 'homePostgameElo - homePregameElo', Result: 'Compare scores to find winner; use winner pregame probability and beaten favorite probability to determine upset tier.' }, note: 'Rows use the selected client-side sort; Score sorts by margin.' },
@@ -430,7 +432,7 @@ function GamesTab({ season, week, upcoming }) {
                   <SortTh tip={TIPS.home} sortKey="home" state={played.sort} onSort={played.click}>Home</SortTh>
                   <SortTh tip={TIPS.score} sortKey="margin" state={played.sort} onSort={played.click} className="text-right">Score</SortTh>
                   <SortTh tip={TIPS.homeProb} sortKey="homeProb" state={played.sort} onSort={played.click} className="text-right">Home win prob.</SortTh>
-                  <SortTh tip={TIPS.mov} sortKey="mov" state={played.sort} onSort={played.click} className="text-right">Margin mult.</SortTh>
+                  <SortTh tip={TIPS.mov(config)} sortKey="mov" state={played.sort} onSort={played.click} className="text-right">Margin mult.</SortTh>
                   <SortTh tip={TIPS.result} sortKey="upset" state={played.sort} onSort={played.click}>Result</SortTh>
                 </tr>
               </thead>
@@ -523,6 +525,7 @@ function GamesTab({ season, week, upcoming }) {
 }
 
 export default function EloPage() {
+  const { data: config } = useLoad('elo-config', getPublicEloConfig)
   const [params, setParams] = useSearchParams()
   const tab = TAB_VALUES.includes(params.get('tab')) ? params.get('tab') : 'ratings'
   // replace: switching tabs shouldn't make Back walk through every tab visited
@@ -618,8 +621,8 @@ export default function EloPage() {
 
       {tab === 'ratings' && <RatingsTab ratings={ratings} loading={loading} params={ratingsParams} />}
       {tab === 'history' && <HistoryTab history={history} teams={teams} params={historyParams} />}
-      {tab === 'matchup' && <MatchupTab ratedTeams={teams} />}
-      {tab === 'games' && <GamesTab season={season} week={week} upcoming={upcoming} />}
+      {tab === 'matchup' && <MatchupTab ratedTeams={teams} config={config} />}
+      {tab === 'games' && <GamesTab season={season} week={week} upcoming={upcoming} config={config} />}
     </div>
   )
 }

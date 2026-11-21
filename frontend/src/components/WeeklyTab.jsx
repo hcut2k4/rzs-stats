@@ -51,7 +51,7 @@ export default function WeeklyTab({ season }) {
       ...data.map(d => {
         const value = team => d.standings.find(r => r.teamId === team.id)?.pythagoreanPat
         const label = d.weekIndex >= 18 ? weekLabel(2, d.weekIndex) : `Wk ${d.weekIndex + 1}`
-        return { label, desc: PYPAT_TIP, value, text: team => value(team) == null ? '' : (value(team) * 100).toFixed(1) + '%', z: '0.0%' }
+        return { label, desc: `PyPAT so far, counting every game through ${label} of ${seasonLabel(dataSeason)}. ${PYPAT_TIP}`, value, text: team => value(team) == null ? '' : (value(team) * 100).toFixed(1) + '%', z: '0.0%' }
       }),
     ],
     api: { path: '/trends/weekly', params: { season: dataSeason }, fields: { Team: 'standings[].displayName', 'Week columns': 'Match standings[].teamId within each weekIndex; value is standings[].pythagoreanPat.' }, note: 'Highlighting teams only changes chart emphasis; all chart teams are included.' },

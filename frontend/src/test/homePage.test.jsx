@@ -11,6 +11,7 @@ vi.mock('../api/client')
 const team = (teamId, abbrName, displayName) => ({ teamId, abbrName, displayName })
 
 function stubHomeData() {
+  client.getPublicEloConfig.mockResolvedValue(null)
   client.getSeasons.mockResolvedValue([6, 7])
   client.getStandings.mockResolvedValue([
     { ...team(1, 'KC', 'Chiefs'), pythagoreanPat: 0.71, winDiff: 1.4 },

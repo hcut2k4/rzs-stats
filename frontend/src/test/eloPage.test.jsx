@@ -1,3 +1,4 @@
+import { clearLoadCache } from '../utils/useLoad'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
@@ -12,6 +13,8 @@ const rating = (teamId, abbrName, elo, rank) => ({ teamId, abbrName, displayName
 
 describe('EloPage', () => {
   beforeEach(() => {
+    clearLoadCache()
+    client.getPublicEloConfig.mockResolvedValue(null)
     client.getEloHistory.mockResolvedValue([hist(1, 0), hist(1, 18), hist(1, 22)])
     client.getEloRatings.mockResolvedValue([rating(1, 'BUF', 1700, 1), rating(2, 'MIA', 1300, 2)])
     client.getEloGames.mockResolvedValue([])
@@ -305,5 +308,21 @@ describe('EloPage', () => {
     render(<MemoryRouter initialEntries={['/elo?tab=bogus']}><EloPage /></MemoryRouter>)
     await screen.findAllByText('BUFx')
     expect(screen.getByRole('tab', { name: 'Ratings' })).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it.each([
+    [50, 'Home field adds 50 Elo points to the home team. Neutral means no home-field effect.'],
+    [0, "Home field is currently worth 0 Elo points, so picking a home team doesn't change the odds."],
+  ])('explains a configured home-field adjustment of %s', async (homeFieldAdvantage, title) => {
+    client.getPublicEloConfig.mockResolvedValue({ movEnabled: true, marginCap: 14, homeFieldAdvantage })
+    render(<MemoryRouter initialEntries={['/elo?tab=matchup']}><EloPage /></MemoryRouter>)
+    const home = await screen.findByTitle(title)
+    expect(home).toHaveTextContent('Home team')
+  })
+
+  it('keeps the home-field fallback when config cannot load', async () => {
+    client.getPublicEloConfig.mockRejectedValue(new Error('unavailable'))
+    render(<MemoryRouter initialEntries={['/elo?tab=matchup']}><EloPage /></MemoryRouter>)
+    expect(await screen.findByTitle('Choose which team has home field, or Neutral for no home-field effect.')).toBeInTheDocument()
   })
 })

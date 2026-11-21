@@ -1,3 +1,4 @@
+import { clearLoadCache } from '../utils/useLoad'
 import { StrictMode } from 'react'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
@@ -42,6 +43,8 @@ const deferred = () => {
 }
 
 beforeEach(() => {
+  clearLoadCache()
+  client.getPublicEloConfig.mockResolvedValue(null)
   specs.clear()
   vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} })
   client.getEloHistory.mockResolvedValue(history)
@@ -242,4 +245,29 @@ it('ignores discarded history responses after effects restart', async () => {
   const spec = await getSpec('Elo History')
   expect(toRows(spec)[0]).toEqual(['Team', 'S104 W1', 'S105 W2', 'S105 W3'])
   expect(spec.api.params).toEqual({})
+})
+
+it('uses the loaded cap in both the margin tooltip and export definition', async () => {
+  const config = deferred()
+  client.getEloMatchup.mockResolvedValue(null)
+  client.getPublicEloConfig.mockReturnValue(config.promise)
+  await show('games')
+  const header = screen.getByText('Margin mult.')
+  expect(header.title).toContain('the configured margin cap')
+  await act(async () => config.resolve({ movEnabled: true, marginCap: 14, homeFieldAdvantage: 50 }))
+  const explanation = "Scales this game's Elo change for both the winner and the loser. Close games shrink it and blowouts grow it, up to a 14-point margin. A favorite's blowout counts for less than an underdog's. A tie is 1.00."
+  expect(header.title).toBe(explanation)
+  expect(specs.get('Elo Played Games').cols.find(c => c.label === 'Margin mult.').desc).toBe(explanation)
+  expect(aiText(specs.get('Elo Played Games'))).toContain(explanation)
+  fireEvent.click(screen.getByRole('tab', { name: 'Matchup' }))
+  expect(screen.getByLabelText('Home team').closest('label').title).toBe('Home field adds 50 Elo points to the home team. Neutral means no home-field effect.')
+})
+
+it.each(['disabled', 'unavailable'])('keeps margin exports and tooltips aligned when config is %s', async state => {
+  if (state === 'disabled') client.getPublicEloConfig.mockResolvedValue({ movEnabled: false, marginCap: 14, homeFieldAdvantage: 50 })
+  else client.getPublicEloConfig.mockRejectedValue(new Error('unavailable'))
+  const spec = await show('games')
+  const tip = screen.getByText('Margin mult.').title
+  expect(tip).toContain('the configured margin cap')
+  expect(spec.cols.find(c => c.label === 'Margin mult.').desc).toBe(tip)
 })

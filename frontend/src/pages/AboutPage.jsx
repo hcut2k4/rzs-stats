@@ -1,10 +1,12 @@
 import { Link } from 'react-router-dom'
-import { SYNC_LINE, PYPAT_TIP, SOS_TIP } from '../utils/siteCopy'
+import { SYNC_LINE, PYPAT_TIP, SOS_TIP, eloMarginTip } from '../utils/siteCopy'
 import { TANYA_BENCHMARK, RUSHPLUS_TIP } from '../utils/qb'
 import { METRICS } from '../utils/efficiencyMetrics'
+import { getPublicEloConfig } from '../api/client'
+import { useLoad } from '../utils/useLoad'
 import PageHeader from '../components/PageHeader'
 
-const STATS = [
+const STATS = config => [
   {
     name: 'PyPAT',
     def: PYPAT_TIP,
@@ -39,7 +41,7 @@ const STATS = [
     bullets: [
       'Every team starts at 1500 — higher is stronger, and ratings move after every game, playoffs included',
       'Ratings only move between the two teams in a game, so the league average stays at about 1500',
-      'Beating strong teams earns more rating points, and losing to weak teams costs more. The margin multiplier scales the change for both teams: close games shrink it, blowouts grow it up to the configured cap, and a favorite\'s blowout counts for less than an underdog\'s. A tie is 1.00',
+      eloMarginTip(config),
       'Ratings are pulled toward the league average of 1500 between seasons, so good teams stay good with room to change',
       'Mid-season owner changes pull the affected team toward the league average of 1500, using the same retention as a new season',
     ],
@@ -221,13 +223,14 @@ function Bullets({ items }) {
 }
 
 export default function AboutPage() {
+  const { data: config } = useLoad('elo-config', getPublicEloConfig)
   return (
     <div>
       <PageHeader title="About" qualifier="How the numbers work" />
       <p className="text-sm text-muted mb-6">See what's new in the <Link to="/changelog" className="text-accent hover:underline">Changelog</Link>.</p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        {STATS.map(({ name, def, bullets }) => (
+        {STATS(config).map(({ name, def, bullets }) => (
           <div key={name} className="border-t-2 border-rule pt-3">
             <h2 className="font-display font-bold uppercase text-xl mb-1">{name}</h2>
             <p className="text-sm mb-3">{def}</p>
