@@ -34,7 +34,7 @@ describe('SoS opponent-PyPAT toggle', () => {
     // Wait for the standings data to land before asserting the toggle is absent
     await waitFor(() => expect(screen.getByText(/games played/)).toBeInTheDocument())
     expect(screen.queryByText('This season')).not.toBeInTheDocument()
-    expect(screen.queryByText('Prior season')).not.toBeInTheDocument()
+    expect(screen.queryByText('Last season')).not.toBeInTheDocument()
   })
 
   it('appears once a team has played three games', async () => {
@@ -44,6 +44,6 @@ describe('SoS opponent-PyPAT toggle', () => {
     renderPage()
 
     await waitFor(() => expect(screen.getByText('This season')).toBeInTheDocument())
-    expect(screen.getByText('Prior season')).toBeInTheDocument()
+    expect(screen.getByText('Last season')).toBeInTheDocument()
   })
 })

@@ -116,7 +116,7 @@ describe('Standings tabs', () => {
 
     renderAt('/standings?tab=history')
 
-    expect(await screen.findByText('Loading...')).toBeInTheDocument()
+    expect(await screen.findByText('Loading…')).toBeInTheDocument()
     expect(screen.queryByText('No season data available.')).not.toBeInTheDocument()
   })
 
@@ -171,12 +171,12 @@ describe('Standings tabs', () => {
     renderAt('/standings')
 
     await waitFor(() => expect(screen.getByText('This season')).toHaveClass('bg-ink'))
-    await userEvent.click(screen.getByText('Prior season'))
-    expect(screen.getByText('Prior season')).toHaveClass('bg-ink')
+    await userEvent.click(screen.getByText('Last season'))
+    expect(screen.getByText('Last season')).toHaveClass('bg-ink')
 
     await userEvent.click(screen.getByRole('tab', { name: 'Week by Week' }))
     await userEvent.click(screen.getByRole('tab', { name: 'Standings' }))
-    expect(screen.getByText('Prior season')).toHaveClass('bg-ink')
+    expect(screen.getByText('Last season')).toHaveClass('bg-ink')
 
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Season' }), '6')
     await waitFor(() => expect(screen.getByText('This season')).toHaveClass('bg-ink'))
@@ -192,13 +192,13 @@ describe('Standings tabs', () => {
 
     renderAt('/standings?tab=history')
 
-    expect(await screen.findByText(/Failed to load season history/)).toBeInTheDocument()
+    expect(await screen.findByText(/Couldn't load season history/)).toBeInTheDocument()
     expect(screen.queryByText('No season data available.')).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
 
     expect(await screen.findByText('Season 110')).toBeInTheDocument()
-    expect(screen.queryByText(/Failed to load season history/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Couldn't load season history/)).not.toBeInTheDocument()
     expect(client.getSeasonTrends).toHaveBeenCalledTimes(2)
   })
 
@@ -206,12 +206,12 @@ describe('Standings tabs', () => {
     stub()
     client.getSeasonTrends.mockRejectedValue(new Error('boom'))
     renderAt('/standings?tab=history')
-    await screen.findByText(/Failed to load season history/)
+    await screen.findByText(/Couldn't load season history/)
 
     await userEvent.click(screen.getByRole('tab', { name: 'Standings' }))
     await userEvent.click(screen.getByRole('tab', { name: 'Season History' }))
 
-    expect(await screen.findByText(/Failed to load season history/)).toBeInTheDocument()
+    expect(await screen.findByText(/Couldn't load season history/)).toBeInTheDocument()
     expect(client.getSeasonTrends).toHaveBeenCalledTimes(1)
   })
 
@@ -233,7 +233,7 @@ describe('Standings tabs', () => {
     renderAt('/standings?tab=history')
 
     await screen.findByText('Season 110')
-    expect(screen.queryByText('Failed to load standings')).not.toBeInTheDocument()
+    expect(screen.queryByText("Couldn't load standings. Try again in a moment.")).not.toBeInTheDocument()
   })
 
   it('shows an error on Week by Week when the season list fails to load', async () => {
@@ -242,7 +242,7 @@ describe('Standings tabs', () => {
 
     renderAt('/standings?tab=weekly')
 
-    expect(await screen.findByText('Failed to load seasons')).toBeInTheDocument()
+    expect(await screen.findByText("Couldn't load seasons. Try again in a moment.")).toBeInTheDocument()
     expect(screen.queryByText('No data available.')).not.toBeInTheDocument()
   })
 

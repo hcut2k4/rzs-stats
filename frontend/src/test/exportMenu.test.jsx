@@ -40,7 +40,7 @@ it('reports Saved when AI copy falls back to a file', async () => {
   expect(await screen.findByRole('button', { name: 'Saved' })).toBeVisible()
 })
 
-it.each([['copied', 'Copied'], ['downloaded', 'Saved'], ['toobig', 'Too big']])('maps PNG %s to %s', async (result, label) => {
+it.each([['copied', 'Copied'], ['downloaded', 'Saved'], ['toobig', 'Too big for an image']])('maps PNG %s to %s', async (result, label) => {
   copyImage.mockResolvedValue(result)
   render(<ExportMenu spec={spec} />)
   fireEvent.click(screen.getByRole('button', { name: 'PNG' }))

@@ -11,6 +11,7 @@ import QbPage from './pages/QbPage'
 import EfficiencyPage from './pages/EfficiencyPage'
 import TeamsPage from './pages/TeamsPage'
 import TeamPage from './pages/TeamPage'
+import { SYNC_LINE } from './utils/siteCopy'
 import ThemeToggle from './components/ThemeToggle'
 
 const LINKS = [
@@ -87,12 +88,13 @@ export default function App() {
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/changelog" element={<ChangelogPage />} />
+          <Route path="*" element={<div><h1 className="font-display font-bold text-3xl mb-2">Page not found</h1><p>Head back to the <Link to="/" className="text-accent hover:underline">home page</Link> or pick a page from the menu.</p></div>} />
         </Routes>
       </main>
 
       <footer className="border-t border-line text-xs text-muted">
         <div className="max-w-7xl mx-auto px-4 py-4">
-          Data from NeonSportz, synced nightly at 4 AM ET. Seasons are labeled by league season number.
+          {SYNC_LINE} Seasons use the league's numbering (Season 103 and on).
         </div>
       </footer>
     </div>

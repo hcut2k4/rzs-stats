@@ -35,6 +35,7 @@ export const getEloRatings = (season, week) => api.get('/elo/ratings', { params:
 export const getEloHistory = (season) => api.get('/elo/history', { params: { season } }).then(r => r.data)
 export const getEloGames = (season, week, teamId) => api.get('/elo/games', { params: { season, week, teamId } }).then(r => r.data)
 export const getEloMatchup = (teamA, teamB, homeTeam) => api.get('/elo/matchup', { params: { teamA, teamB, homeTeam } }).then(r => r.data)
+export const getPublicEloConfig = () => api.get('/elo/config').then(r => r.data)
 export const getEloConfig = () => api.get('/admin/elo/config').then(r => r.data)
 export const putEloConfig = (config) => api.put('/admin/elo/config', config).then(r => r.data)
 export const getEloUpcoming = (season) => api.get('/elo/upcoming', { params: { season } }).then(r => r.data)

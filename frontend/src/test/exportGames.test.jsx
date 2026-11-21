@@ -5,7 +5,7 @@ import GamesPage from '../pages/GamesPage'
 import HomePage from '../pages/HomePage'
 import * as client from '../api/client'
 import { aiText, buildWorkbook, csvText, toRows } from '../utils/exportTable'
-import { TIERS, lean } from '../utils/eloLean'
+import { TIERS, outlookText, lean } from '../utils/eloLean'
 
 vi.mock('../api/client')
 const { specs } = vi.hoisted(() => ({ specs: new Map() }))
@@ -126,12 +126,12 @@ describe('Games exports', () => {
     const pending = deferred()
     client.getAvailableWeeks.mockImplementation((season, stage) => Promise.resolve(stage === 2 ? [] : [0, 1]))
     client.getGames.mockReturnValueOnce(pending.promise)
-    fireEvent.change(screen.getByDisplayValue('Regular Season'), { target: { value: '2' } })
+    fireEvent.change(screen.getByDisplayValue('Regular season'), { target: { value: '2' } })
     await screen.findByText('No games found for this week.')
-    expect(screen.queryByText('Loading...')).toBeNull()
+    expect(screen.queryByText('Loading…')).toBeNull()
     await act(async () => pending.resolve([game]))
     expect(screen.getByText('No games found for this week.')).toBeTruthy()
-    expect(screen.queryByText('Loading...')).toBeNull()
+    expect(screen.queryByText('Loading…')).toBeNull()
   })
 
   it('ignores an older stage response after playoff rows have resolved', async () => {
@@ -178,12 +178,12 @@ describe('Home Best Games exports', () => {
       ['Wild Card', 'A1', 'H1', 'H1', '85%', TIERS[4].label],
     ])
     const card = within(screen.getByRole('link', { name: /Best Games Ahead/ }))
-    expect(card.getAllByText(/^(A|H)\d+$/).map(n => n.textContent)).toEqual(toRows(spec).slice(1).flatMap(r => [r[1], r[2]]))
+    expect(card.getAllByText(/^(A|H)\d+$/).map(n => n.textContent)).toEqual(toRows(spec).slice(1).flatMap(r => [r[1], r[2], r[3]]))
     expect(card.getAllByText(/^(Toss-up|Tilt|Lean|Likely|Solid)$/).map(n => n.textContent)).toEqual(TIERS.map(t => t.label))
     expect(spec.cols.every(c => c.desc?.trim())).toBe(true)
     const outlook = spec.cols.find(c => c.label === 'Outlook')
     expect(outlook.color(spec.rows[0])).toBe(lean(spec.rows[0].game).shade)
-    TIERS.forEach((t, i) => expect(outlook.desc).toContain(`${t.label} ${i === TIERS.length - 1 ? `at least ${Math.round(t.lo * 100)}%` : `below ${Math.round(t.hi * 100)}%`}`))
+    expect(outlook.desc).toBe(outlookText())
     expect(spec.qualifier).toContain('Season 108 · Wild Card–Divisional · 5 games · closest first')
     expect(spec.api).toMatchObject({ path: '/elo/upcoming', params: {} })
     expect(client.getEloUpcoming).toHaveBeenCalledWith()

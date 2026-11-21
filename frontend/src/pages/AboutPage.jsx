@@ -1,35 +1,38 @@
 import { Link } from 'react-router-dom'
+import { SYNC_LINE, PYPAT_TIP, SOS_TIP, eloMarginTip } from '../utils/siteCopy'
+import { TANYA_BENCHMARK, RUSHPLUS_TIP } from '../utils/qb'
+import { METRICS } from '../utils/efficiencyMetrics'
+import { getPublicEloConfig } from '../api/client'
+import { useLoad } from '../utils/useLoad'
 import PageHeader from '../components/PageHeader'
 
-const STATS = [
+const STATS = config => [
   {
     name: 'PyPAT',
-    def: 'Win expectancy based on scoring differential, not W-L record.',
+    def: PYPAT_TIP,
     bullets: [
-      'One-score games are random; scoring margin predicts future success better',
+      'Points scored and allowed predict future results better than record does',
       'Dynamic exponent (Chase Stuart) adjusts for each team\'s scoring environment',
-      'Scale: 0–1, where 0.5 = break-even expectation',
+      'Shown as a percent; 50% is break-even. 61% means points scored and allowed point to about 10 wins in 17 games',
     ],
   },
   {
     name: 'Luck',
-    def: 'Actual wins minus PyPAT-expected wins.',
+    def: "Wins above or below what PyPAT expects. Points scored and allowed predict future results better than record does, so a big Luck number is a sign the record overstates or understates the team. Big gaps tend not to last.",
     bullets: [
-      'Positive = won more games than scoring margin predicts',
-      'Negative = deserved more wins',
-      'Tends to normalize — a predictor of regression or rebound',
+      "Analysts call this regression to the mean. It doesn't mean a lucky team is due for losses; its future results are simply expected to track how well it actually plays rather than its record.",
     ],
   },
   {
     name: 'Strength of Schedule',
-    def: 'Average opponent-adjusted PyPAT across a team\'s schedule.',
+    def: SOS_TIP,
     bullets: [
       'More accurate than opponent win% — PyPAT reflects true team quality',
-      'Each opponent\'s PyPAT is recalculated with the subject team removed, eliminating circular bias',
+      'Each opponent\'s PyPAT is recalculated with the subject team removed, so a team\'s own results can\'t make its opponents look better or worse',
       'Weighted per game, not per opponent — a division rival played twice counts twice',
       'Previous-season opponent quality through Week 9; current-season quality from Week 10 through the playoffs. Finished seasons use their own season. The toggle overrides the default.',
       'Blank until an opponent has games that were not against you — early in a season there is nothing to measure',
-      'Toggle on Standings between current-season and previous-season opponent PyPAT',
+      'Toggle on Standings between this season\'s and last season\'s results',
     ],
   },
   {
@@ -37,14 +40,15 @@ const STATS = [
     def: 'Long-term team strength across seasons, built from game results, opponent quality, and scoring margin.',
     bullets: [
       'Every team starts at 1500 — higher is stronger, and ratings move after every game, playoffs included',
-      'Beating strong teams earns more points, and losing to weak teams costs more; bigger wins count more, with diminishing returns after 28 points',
+      'Ratings only move between the two teams in a game, so the league average stays at about 1500',
+      eloMarginTip(config),
       'Ratings are pulled toward the league average of 1500 between seasons, so good teams stay good with room to change',
-      'Mid-season owner changes regress the affected team like a new season, using the same configurable retention setting',
+      'Mid-season owner changes pull the affected team toward the league average of 1500, using the same retention as a new season',
     ],
   },
   {
     name: 'Expected Wins',
-    def: 'How many games a team should have won, measured two ways, shown on each team profile.',
+    def: 'Two ways: PyPAT wins and Elo wins. Team profiles also show a projected record.',
     bullets: [
       'PyPAT wins: expected wins based on points scored and allowed. Actual wins minus PyPAT wins is Luck',
       'Elo wins: expected wins from adding up each regular-season game\'s pregame win probability, accounting for opponent strength and home field',
@@ -62,20 +66,21 @@ const STATS = [
   },
   {
     name: 'TANY/A',
-    def: 'Total Adjusted Net Yards per Attempt — measures overall QB efficiency by combining passing and rushing production.',
+    def: 'Total adjusted net yards per attempt, where an attempt is every dropback or carry. Touchdowns add 20 yards; interceptions and lost fumbles cost 45. Higher is better.',
     bullets: [
       'Touchdowns add 20 adjusted yards; interceptions and lost fumbles subtract 45.',
       'Includes passing attempts, sacks, and rushing attempts. Higher is better.',
       'Sack yardage and lost fumbles are estimated from team game stats.',
+      TANYA_BENCHMARK,
     ],
   },
   {
     name: 'RUSH+',
-    def: 'The extra production a quarterback adds with his legs, measured against each passing opportunity.',
+    def: RUSHPLUS_TIP,
     bullets: [
       'Credits rushing yards above 4 per carry, adds 20 for each rushing touchdown, subtracts 45 for each estimated lost fumble.',
       'Positive means his running is worth more than it costs. Higher is better.',
-      'Every estimated fumble is charged here, so RUSH+ is read alongside TANY/A, not added to it.',
+      'Divide by pass attempts plus sacks to put RUSH+ on the same per-dropback scale as ANY/A. All estimated lost fumbles are charged here, including fumbles on sacks, so a pocket passer can rate below 0. Read alongside TANY/A, not added to it.',
     ],
   },
   {
@@ -89,8 +94,9 @@ const STATS = [
   },
   {
     name: 'Points per Play',
-    def: 'Offensive points per play, our stand-in for EPA per play.',
+    def: METRICS.find(m => m.key === 'pointsPerPlay').off,
     bullets: [
+      'Expected points added (EPA) per play is the best public measure of efficiency, but it needs play-by-play data, which Madden does not provide. One goal of this site is to get as close to that insight as possible from box-score data. Points per play, points per drive and the other efficiency rates are those stand-ins. They use actual points, not expected points.',
       'Plays = pass attempts + rush attempts + sacks taken',
       'Same offensive points as Points per Drive, but divided by plays instead of possessions, so a fast, short-drive offense can rate differently on the two',
     ],
@@ -107,9 +113,9 @@ const STATS = [
     name: 'Efficiency rates',
     def: 'Supporting rates on the Efficiency page.',
     bullets: [
-      '3rd %: third downs converted ÷ attempted',
-      'RZ TD %: red-zone trips that ended in a touchdown',
-      'TO/Drive: interceptions plus lost fumbles per drive; on defense, takeaways',
+      '3rd %: third downs converted ÷ third downs attempted',
+      'RZ TD %: red-zone trips (inside the 20) that ended in a touchdown',
+      'TO/Drive: turnovers (interceptions plus lost fumbles) per drive; on defense, takeaways',
       'Sack %: sacks ÷ dropbacks; on defense, the share of opposing dropbacks sacked',
     ],
   },
@@ -132,7 +138,7 @@ const PAGES = [
   {
     name: 'Home',
     bullets: [
-      'A snapshot of every page — PyPAT leaders, latest scores, top Elo, top quarterbacks',
+      'A snapshot of every page — PyPAT leaders, team efficiency, latest scores, top Elo, top quarterbacks',
       'Click any card to open that page in full',
       'The Best Games Ahead card exports like any other table',
     ],
@@ -168,10 +174,10 @@ const PAGES = [
   {
     name: 'Elo',
     bullets: [
-      'Ratings — all 32 teams ranked by Elo, with weekly change, rank movement, and biggest risers and droppers',
+      'Ratings — all 32 teams ranked by Elo, with weekly change, rank movement, and biggest risers and fallers',
       'History — rating trends across every season; click teams to highlight them',
       'Matchup — pick any two teams for a predicted win probability',
-      'Games — game-by-game Elo changes, pregame ratings, and projected win probabilities for unplayed games',
+      'Games — game-by-game Elo changes and pregame ratings, plus unplayed games for This week or Rest of season. Sort projected games by Outlook to find the closest matchups',
       'Every table and rating history exports to Excel, CSV, an image or an AI-ready text block',
     ],
   },
@@ -179,7 +185,7 @@ const PAGES = [
     name: 'QBs',
     bullets: [
       'Leaderboard — every quarterback ranked by TANY/A, by week, season or all-time',
-      'Column presets for efficiency, classic box score and rushing; all columns sortable',
+      'Column presets for efficiency, classic box score, rushing and All; all columns sortable',
       'Movement — biggest risers and fallers, plus a rank-by-week chart you can track season by season or across every season',
       'Regular season, playoffs or both; the leaderboard, movers and rank history export to Excel, CSV, an image or an AI-ready text block',
       'Click any quarterback to open his player page on NeonSportz',
@@ -188,7 +194,7 @@ const PAGES = [
 ]
 
 const EXPORTS = [
-  'Every table and data list has four buttons: XLSX, CSV, PNG and AI. They export exactly what you see: the current sort, filters and columns',
+  'Every table and data list has four buttons: XLSX, CSV, PNG and AI. Every row of the table, in its current sort and columns.',
   'XLSX and CSV download the data. PNG copies an image of the whole table to your clipboard, or downloads it if your browser cannot copy images (Firefox). A table too large to draw as an image says so; CSV and AI always carry every row',
   'AI copies a text block you can paste into ChatGPT, Claude or Gemini: a short league primer, what the table is, a definition of every column, the complete data, and the link to fetch it again',
   'The API behind that link is public: no key and no login. An assistant that can browse can pull fresh numbers itself, so you do not have to copy the table again',
@@ -217,13 +223,14 @@ function Bullets({ items }) {
 }
 
 export default function AboutPage() {
+  const { data: config } = useLoad('elo-config', getPublicEloConfig)
   return (
     <div>
       <PageHeader title="About" qualifier="How the numbers work" />
       <p className="text-sm text-muted mb-6">See what's new in the <Link to="/changelog" className="text-accent hover:underline">Changelog</Link>.</p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        {STATS.map(({ name, def, bullets }) => (
+        {STATS(config).map(({ name, def, bullets }) => (
           <div key={name} className="border-t-2 border-rule pt-3">
             <h2 className="font-display font-bold uppercase text-xl mb-1">{name}</h2>
             <p className="text-sm mb-3">{def}</p>
@@ -248,8 +255,7 @@ export default function AboutPage() {
       </div>
 
       <p className="text-sm text-muted border-y border-line py-3 mb-10">
-        Stats sync from NeonSportz daily at <span className="text-ink font-semibold">4:00 AM ET</span>.
-        Admins can trigger a manual sync at any time.
+        {SYNC_LINE}
       </p>
 
       <h2 className="th mb-3">Resources</h2>

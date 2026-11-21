@@ -1,3 +1,4 @@
+import { clearLoadCache } from '../utils/useLoad'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
@@ -12,6 +13,8 @@ const rating = (teamId, abbrName, elo, rank) => ({ teamId, abbrName, displayName
 
 describe('EloPage', () => {
   beforeEach(() => {
+    clearLoadCache()
+    client.getPublicEloConfig.mockResolvedValue(null)
     client.getEloHistory.mockResolvedValue([hist(1, 0), hist(1, 18), hist(1, 22)])
     client.getEloRatings.mockResolvedValue([rating(1, 'BUF', 1700, 1), rating(2, 'MIA', 1300, 2)])
     client.getEloGames.mockResolvedValue([])
@@ -55,7 +58,7 @@ describe('EloPage', () => {
     await userEvent.click(head('Games'))
     expect(elos()).toEqual(['1600', '1500', '1400'])
 
-    await userEvent.click(head('Rank move'))
+    await userEvent.click(head('Rank change'))
     expect(elos()).toEqual(['1500', '1600', '1400'])
 
     await userEvent.click(head('Team'))
@@ -93,8 +96,8 @@ describe('EloPage', () => {
   it('explains column headings with tooltips', async () => {
     render(<MemoryRouter><EloPage /></MemoryRouter>)
     await screen.findAllByText('BUFx')
-    expect(screen.getByText('vs 1500')).toHaveAttribute('title', expect.stringContaining('1500 average'))
-    expect(screen.getByText('Rank move')).toHaveAttribute('title', expect.stringContaining('places'))
+    expect(screen.getByText('vs avg')).toHaveAttribute('title', expect.stringContaining('league average of 1500'))
+    expect(screen.getByText('Rank change')).toHaveAttribute('title', expect.stringContaining('places'))
   })
 
   it('offers future weeks on the Games tab with projected win probabilities', async () => {
@@ -305,5 +308,21 @@ describe('EloPage', () => {
     render(<MemoryRouter initialEntries={['/elo?tab=bogus']}><EloPage /></MemoryRouter>)
     await screen.findAllByText('BUFx')
     expect(screen.getByRole('tab', { name: 'Ratings' })).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it.each([
+    [50, 'Home field adds 50 Elo points to the home team. Neutral means no home-field effect.'],
+    [0, "Home field is currently worth 0 Elo points, so picking a home team doesn't change the odds."],
+  ])('explains a configured home-field adjustment of %s', async (homeFieldAdvantage, title) => {
+    client.getPublicEloConfig.mockResolvedValue({ movEnabled: true, marginCap: 14, homeFieldAdvantage })
+    render(<MemoryRouter initialEntries={['/elo?tab=matchup']}><EloPage /></MemoryRouter>)
+    const home = await screen.findByTitle(title)
+    expect(home).toHaveTextContent('Home team')
+  })
+
+  it('keeps the home-field fallback when config cannot load', async () => {
+    client.getPublicEloConfig.mockRejectedValue(new Error('unavailable'))
+    render(<MemoryRouter initialEntries={['/elo?tab=matchup']}><EloPage /></MemoryRouter>)
+    expect(await screen.findByTitle('Choose which team has home field, or Neutral for no home-field effect.')).toBeInTheDocument()
   })
 })

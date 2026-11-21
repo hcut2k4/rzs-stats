@@ -9,6 +9,8 @@ import com.rzs.stats.service.StatsService;
 import com.rzs.stats.service.TeamEfficiencyService;
 import com.rzs.stats.service.EloQueryService;
 import com.rzs.stats.model.dto.EloDtos;
+import com.rzs.stats.model.dto.EloConfig;
+import com.rzs.stats.service.EloConfigService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -26,10 +28,13 @@ public class StatsController {
 
     private final TeamEfficiencyService efficiency;
 
-    public StatsController(StatsService statsService, EloQueryService elo, TeamEfficiencyService efficiency) {
+    private final EloConfigService eloConfig;
+
+    public StatsController(StatsService statsService, EloQueryService elo, TeamEfficiencyService efficiency, EloConfigService eloConfig) {
         this.statsService = statsService;
         this.elo = elo;
         this.efficiency = efficiency;
+        this.eloConfig = eloConfig;
     }
 
     @GetMapping("/efficiency")
@@ -42,6 +47,11 @@ public class StatsController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid Stage");
         }
         return efficiency.efficiency(season, parsed);
+    }
+
+    @GetMapping("/elo/config")
+    public EloConfig eloConfig() {
+        return eloConfig.get();
     }
 
     @GetMapping("/elo/ratings")

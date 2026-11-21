@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer } from 'recharts'
-import { getEloHistory, getEloRatings, getEloGames, getEloMatchup, getEloUpcoming } from '../api/client'
+import { getEloHistory, getEloRatings, getEloGames, getEloMatchup, getEloUpcoming, getPublicEloConfig } from '../api/client'
 import PageHeader from '../components/PageHeader'
 import Tabs from '../components/Tabs'
 import { TeamCell, TeamLogo } from '../components/TeamLogo'
@@ -11,13 +11,15 @@ import { SortTh, useSorter } from '../components/SortTh'
 import LeanBar from '../components/LeanBar'
 import ExportMenu from '../components/ExportMenu'
 import { divergeColor } from '../utils/heat'
-import { lean, pct0, upsetInfo, LEAN_HOME, LEAN_AWAY } from '../utils/eloLean'
+import { lean, pct0, upsetInfo, outlookText, upsetText, LEAN_HOME, LEAN_AWAY } from '../utils/eloLean'
 import { weekName as label } from '../utils/playoffRounds'
+import { eloMarginTip } from '../utils/siteCopy'
+import { useLoad } from '../utils/useLoad'
 import { COLORS } from '../utils/chartColors'
 import { seasonLabel, seasonNumber } from '../utils/seasons'
 
 const BASE = 1500
-const ELO_NOTES = ['Elo measures long-term strength from every game, playoffs included. Every team starts at 1500 and is pulled part of the way back toward 1500 between seasons. Mid-season owner changes apply the same regression to the affected team. Change is versus the previous week.']
+const ELO_NOTES = ['Every team starts at 1500, the league average, and is pulled part of the way back toward it between seasons and when it changes owners mid-season. Includes playoffs. Change is since the previous week.']
 const sliceLabel = params => `${params.season == null ? 'All seasons' : seasonLabel(params.season)} · ${params.week == null ? 'All weeks' : label(params.week)}`
 const sortLabel = (sort, labels, fallback) => sort.key ? `sorted by ${labels[sort.key]} ${sort.asc ? 'ascending' : 'descending'}` : fallback
 
@@ -32,26 +34,26 @@ const signed = (v, d = 1) => (v > 0 ? '+' : '') + v.toFixed(d)
 const pct = v => (v * 100).toFixed(1) + '%'
 
 const TIPS = {
-  rank: 'Position when all 32 teams are sorted by Elo, highest first.',
+  rank: 'Position when every team is sorted by Elo, highest first.',
   team: 'Team name. Sorts alphabetically.',
-  elo: 'The team\'s Elo rating. Higher means a stronger team. 1500 is the average rating every team started from.',
-  vs1500: 'How far the rating is from the 1500 average. Blue bars to the right are above average, orange bars to the left are below average.',
+  elo: 'Higher is stronger. 1500 is the league average.',
+  vs1500: 'Rating points above or below the league average of 1500.',
   change: 'Elo points gained or lost since the previous week. Zero usually means the team was on a bye.',
   rankMove: 'How many places the team moved in the Elo ranking since the previous week. Green up arrow is a climb, red down arrow is a drop.',
   games: 'Number of games counted toward this rating so far, regular season and playoffs, across all seasons.',
   risers: 'The five teams whose rating rose the most since the previous week.',
-  droppers: 'The five teams whose rating fell the most since the previous week.',
+  fallers: 'The five teams whose rating fell the most since the previous week.',
   away: 'Away team, its Elo going into the game, and the Elo points it gained (green) or lost (red) from the result. Sorts by Elo.',
   home: 'Home team, its Elo going into the game, and the Elo points it gained (green) or lost (red) from the result. Sorts by Elo.',
   score: 'Final score, away team first.',
-  homeProb: 'The chance the home team was expected to win before the game, based only on the two teams\' Elo ratings. 50% is a toss-up.',
-  mov: 'Margin-of-victory multiplier. Bigger wins move ratings more, up to a 21-point cap. A heavy favorite winning big gets less credit than an upset winner. 1.00 is a tie.',
-  result: 'Flags upsets, sized by how strong the beaten favorite was: a Tilt favorite losing is a Slight upset, then Upset, Big upset, and Stunner when a Solid favorite goes down. Games Elo rated a Toss-up are left blank, because neither side was favored enough for the result to be a surprise. The label shows the winner\'s pregame chance.',
+  homeProb: 'The home team\'s win probability before the game, from both Elo ratings and home field. Under 55% either way is a Toss-up.',
+  mov: eloMarginTip,
+  result: upsetText(),
   projWeek: 'The week or playoff round of the unplayed game.',
   projElo: 'Each team\'s current Elo rating, which is used for the projection. Sorts by Elo.',
-  projLean: 'Which way Elo leans and by how much. The bar grows out of the center line toward the favored team, and the longer and darker it is, the bigger the edge. Sorts home favorites and away favorites to opposite ends.',
-  projFav: 'The team Elo leans toward and its projected chance of winning. Sorts the closest games first.',
-  projOutlook: 'How competitive the game should be, read off the favorite\'s win chance: Toss-up under 55%, Tilt under 60%, Lean under 70%, Likely under 80%, Solid above that. Each tier has its own color \u2014 green for a toss-up, then blue, purple, orange and yellow \u2014 running deep at the competitive end of its own band and fading to nearly white at the far end. Sorts the closest games first.',
+  projLean: 'The bar grows toward the favorite; longer means a bigger edge. A full half-bar indicates a sure thing (100% win probability).',
+  projFav: 'The team Elo favors and its projected win probability. Sorts the closest games first.',
+  projOutlook: outlookText(),
 }
 
 function RankMove({ change }) {
@@ -64,17 +66,17 @@ function RankMove({ change }) {
 function Movers({ ratings, params }) {
   const sorted = [...ratings].sort((a, b) => b.change - a.change)
   const risers = sorted.slice(0, 5)
-  const droppers = sorted.slice(-5).reverse()
+  const fallers = sorted.slice(-5).reverse()
   const spec = {
-    name: 'Elo Movers', qualifier: `${sliceLabel(params)} · risers by Change descending, droppers by Change ascending`,
-    description: 'The biggest weekly Elo risers followed by the biggest droppers.', notes: ELO_NOTES,
-    rows: [...risers.map(r => ({ ...r, direction: 'Riser' })), ...droppers.map(r => ({ ...r, direction: 'Dropper' }))],
+    name: 'Elo Movers', qualifier: `${sliceLabel(params)} · risers by Change descending, fallers by Change ascending`,
+    description: 'The biggest weekly Elo risers followed by the biggest fallers.', notes: ELO_NOTES,
+    rows: [...risers.map(r => ({ ...r, direction: 'Riser' })), ...fallers.map(r => ({ ...r, direction: 'Faller' }))],
     cols: [
-      { label: 'Direction', desc: `${TIPS.risers} ${TIPS.droppers}`, text: r => r.direction },
+      { label: 'Direction', desc: `${TIPS.risers} ${TIPS.fallers}`, text: r => r.direction },
       { label: 'Team', desc: TIPS.team, text: r => r.displayName, logo: r => r.abbrName },
       { label: 'Change', desc: TIPS.change, text: r => signed(r.change), value: r => r.change, z: '+0.0;-0.0;0.0' },
     ],
-    api: { path: '/elo/ratings', params, note: 'Sort by change; take the first five descending for risers, then the first five ascending for droppers.' },
+    api: { path: '/elo/ratings', params, note: 'Sort by change; take the first five descending for risers, then the first five ascending for fallers.' },
   }
   const list = (rows, title, tip) => (
     <div>
@@ -92,15 +94,15 @@ function Movers({ ratings, params }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-8 max-w-3xl">
       <div className="sm:col-span-2 flex justify-end"><ExportMenu spec={spec} /></div>
-      {list(risers, 'Biggest risers this week', TIPS.risers)}
-      {list(droppers, 'Biggest droppers this week', TIPS.droppers)}
+      {list(risers, `Biggest risers · ${label(params.week)}`, TIPS.risers)}
+      {list(fallers, `Biggest fallers · ${label(params.week)}`, TIPS.fallers)}
     </div>
   )
 }
 
 function RatingsTab({ ratings, loading, params }) {
   const sort = useSorter({ key: null, asc: false })
-  if (loading) return <p className="text-muted">Loading...</p>
+  if (loading) return <p className="text-muted">Loading…</p>
   if (!ratings.length) return <p className="text-muted">No ratings available.</p>
   const maxDev = Math.max(...ratings.map(r => Math.abs(r.elo - BASE)))
   const maxChange = Math.max(...ratings.map(r => Math.abs(r.change)))
@@ -114,19 +116,19 @@ function RatingsTab({ ratings, loading, params }) {
     games: r => r.gamesCounted,
   })
   const spec = {
-    name: 'Elo Ratings', qualifier: `${sliceLabel(params)} · ${sortLabel(sort.sort, { rank: '#', team: 'Team', elo: 'Elo', vs1500: 'vs 1500', change: 'Change', rankMove: 'Rank move', games: 'Games' }, 'sorted by # ascending (API order)')}`,
+    name: 'Elo Ratings', qualifier: `${sliceLabel(params)} · ${sortLabel(sort.sort, { rank: '#', team: 'Team', elo: 'Elo', vs1500: 'vs avg', change: 'Change', rankMove: 'Rank change', games: 'Games' }, 'sorted by # ascending (API order)')}`,
     description: 'Team Elo ratings, weekly changes and rank movement. Elo is rolling strength that carries across seasons.', notes: ELO_NOTES,
     rows: sorted,
     cols: [
       { label: '#', desc: TIPS.rank, text: r => String(r.rank), value: r => r.rank, z: '0' },
       { label: 'Team', desc: TIPS.team, text: r => r.displayName, logo: r => r.abbrName },
       { label: 'Elo', desc: TIPS.elo, text: r => r.elo.toFixed(0), value: r => r.elo, z: '0' },
-      { label: 'vs 1500', desc: TIPS.vs1500, text: r => signed(r.elo - BASE, 0), barWidth: 120, bar: r => ({ value: r.elo - BASE, max: maxDev, color: r.elo >= BASE ? 'rgb(37 99 235 / 0.55)' : 'rgb(234 88 12 / 0.55)', text: false }), value: r => r.elo - BASE, z: '+0;-0;0' },
+      { label: 'vs avg', desc: TIPS.vs1500, text: r => signed(r.elo - BASE, 0), barWidth: 120, bar: r => ({ value: r.elo - BASE, max: maxDev, color: r.elo >= BASE ? 'rgb(37 99 235 / 0.55)' : 'rgb(234 88 12 / 0.55)', text: false }), value: r => r.elo - BASE, z: '+0;-0;0' },
       { label: 'Change', desc: TIPS.change, text: r => signed(r.change), value: r => r.change, z: '+0.0;-0.0;0.0', color: r => divergeColor(r.change, maxChange || 1) },
-      { label: 'Rank move', desc: TIPS.rankMove, text: r => r.rankChange == null ? '–' : signed(r.rankChange, 0), value: r => r.rankChange, z: '+0;-0;0' },
+      { label: 'Rank change', desc: TIPS.rankMove, text: r => r.rankChange == null ? '–' : signed(r.rankChange, 0), value: r => r.rankChange, z: '+0;-0;0' },
       { label: 'Games', desc: TIPS.games, text: r => String(r.gamesCounted), value: r => r.gamesCounted, z: '0' },
     ],
-    api: { path: '/elo/ratings', params, fields: { 'vs 1500': 'elo - 1500', 'Rank move': 'rankChange' }, note: 'Rows use the selected client-side sort; default is API ranking order.' },
+    api: { path: '/elo/ratings', params, fields: { 'vs avg': 'elo - 1500', 'Rank change': 'rankChange' }, note: 'Rows use the selected client-side sort; default is API ranking order.' },
   }
   return (
     <div>
@@ -138,9 +140,9 @@ function RatingsTab({ ratings, loading, params }) {
               <SortTh tip={TIPS.rank} sortKey="rank" state={sort.sort} onSort={sort.click} className="w-10">#</SortTh>
               <SortTh tip={TIPS.team} sortKey="team" state={sort.sort} onSort={sort.click}>Team</SortTh>
               <SortTh tip={TIPS.elo} sortKey="elo" state={sort.sort} onSort={sort.click} className="text-right">Elo</SortTh>
-              <SortTh tip={TIPS.vs1500} sortKey="vs1500" state={sort.sort} onSort={sort.click} className="min-w-[160px]">vs 1500</SortTh>
+              <SortTh tip={TIPS.vs1500} sortKey="vs1500" state={sort.sort} onSort={sort.click} className="min-w-[160px]">vs avg</SortTh>
               <SortTh tip={TIPS.change} sortKey="change" state={sort.sort} onSort={sort.click} className="text-right">Change</SortTh>
-              <SortTh tip={TIPS.rankMove} sortKey="rankMove" state={sort.sort} onSort={sort.click} className="text-right">Rank move</SortTh>
+              <SortTh tip={TIPS.rankMove} sortKey="rankMove" state={sort.sort} onSort={sort.click} className="text-right">Rank change</SortTh>
               <SortTh tip={TIPS.games} sortKey="games" state={sort.sort} onSort={sort.click} className="text-right">Games</SortTh>
             </tr>
           </thead>
@@ -195,13 +197,13 @@ function HistoryTab({ history, teams, params }) {
   const spec = {
     name: 'Elo History', qualifier: `${sliceLabel(params)} · teams by abbreviation ascending · week points in chart order`,
     description: 'One row per chart team, with end-of-week Elo at every season and week point. Highlighting teams only changes chart emphasis.',
-    notes: [...ELO_NOTES, 'Dotted verticals mark season starts, where ratings regress toward 1500.'],
+    notes: [...ELO_NOTES, 'Dotted lines mark season starts, when ratings are pulled toward the league average of 1500.'],
     rows: teams,
     cols: [
       { label: 'Team', desc: TIPS.team, text: r => r.displayName },
       ...data.map(point => ({
         label: `S${seasonNumber(point.season)} ${point.week < 18 ? `W${point.week + 1}` : label(point.week)}`,
-        desc: 'End-of-week Elo. Ratings regress toward 1500 at each season start.',
+        desc: 'End-of-week Elo. Ratings are pulled toward the league average of 1500 at each season start.',
         text: r => point[r.teamId]?.toFixed(0) ?? '–', value: r => point[r.teamId], z: '0',
       })),
     ],
@@ -212,7 +214,7 @@ function HistoryTab({ history, teams, params }) {
     <div>
       {teams.length > 0 && <div className="flex justify-end mb-2"><ExportMenu spec={spec} /></div>}
       <div className="flex items-center gap-3 mb-2 text-xs text-muted">
-        <span title="Each line is one team's Elo after every week. Click a team below to highlight it. Dotted vertical lines mark the start of a season, where ratings are pulled part of the way back toward 1500.">Click teams to highlight them. The rest fade back. Dotted lines mark season starts.</span>
+        <span title="Each line is one team's Elo after every week. Click a team below to highlight it. Dotted vertical lines mark the start of a season, where ratings are pulled part of the way back toward 1500.">Click teams to highlight them. The rest fade back. Dotted lines mark season starts, when ratings are pulled toward the league average of 1500.</span>
         <button onClick={() => setFocus(new Set())} className="text-ink font-medium hover:text-accent">Clear</button>
       </div>
       <div className="flex flex-wrap gap-1 mb-4">
@@ -263,7 +265,9 @@ function HistoryTab({ history, teams, params }) {
   )
 }
 
-function MatchupTab({ ratedTeams }) {
+export const homeTeamForSide = (side, a, b) => side === 'a' ? a : side === 'b' ? b : undefined
+
+export function MatchupTab({ ratedTeams, config }) {
   const teams = useMemo(() => [...ratedTeams].sort((x, y) => x.displayName.localeCompare(y.displayName)), [ratedTeams])
   const [a, setA] = useState(null)
   const [b, setB] = useState(null)
@@ -276,7 +280,9 @@ function MatchupTab({ ratedTeams }) {
 
   useEffect(() => {
     if (a == null || b == null || a === b) { setResult(null); return }
-    getEloMatchup(a, b, home || undefined).then(setResult).catch(() => setResult(null))
+    let current = true
+    getEloMatchup(a, b, homeTeamForSide(home, a, b)).then(r => { if (current) setResult(r) }).catch(() => { if (current) setResult(null) })
+    return () => { current = false }
   }, [a, b, home])
 
   const select = (value, onChange, aria) => (
@@ -291,12 +297,12 @@ function MatchupTab({ ratedTeams }) {
         {select(a, setA, 'Team A')}
         <span className="text-muted text-sm">vs</span>
         {select(b, setB, 'Team B')}
-        <label className="flex items-center gap-2 text-sm text-muted" title="Choose which team has home field, or Neutral for no home-field effect. Home field only matters if the home-field advantage setting is above zero.">
+        <label className="flex items-center gap-2 text-sm text-muted" title={config ? (config.homeFieldAdvantage ? `Home field adds ${config.homeFieldAdvantage} Elo points to the home team. Neutral means no home-field effect.` : 'Home field is currently worth 0 Elo points, so picking a home team doesn\'t change the odds.') : 'Choose which team has home field, or Neutral for no home-field effect.'}>
           Home team
           <select className="field" aria-label="Home team" value={home} onChange={e => setHome(e.target.value)}>
             <option value="">Neutral</option>
-            <option value={a ?? ''}>Team A</option>
-            <option value={b ?? ''}>Team B</option>
+            <option value="a">{teams.find(t => t.teamId === a)?.displayName ?? 'Team A'}</option>
+            <option value="b">{teams.find(t => t.teamId === b)?.displayName ?? 'Team B'}</option>
           </select>
         </label>
       </div>
@@ -313,18 +319,18 @@ function MatchupTab({ ratedTeams }) {
               <p className="text-xs text-muted num mt-1">Elo {result.eloB.toFixed(0)}</p>
             </div>
           </div>
-          <div className="flex h-8 w-full text-sm font-bold num" role="img" aria-label="Win probability" title="Each team's chance of winning if they played today, from their current Elo ratings.">
+          <div className="flex h-8 w-full text-sm font-bold num" role="img" aria-label="Win probability" title="Each team's win probability if they played today, from current Elo ratings. The two add up to 100%.">
             <div className="flex items-center pl-2" style={{ width: pct(result.teamAWinProbability), background: 'rgb(37 99 235 / 0.55)' }}>{pct(result.teamAWinProbability)}</div>
             <div className="flex items-center justify-end pr-2 flex-1" style={{ background: 'rgb(234 88 12 / 0.55)' }}>{pct(result.teamBWinProbability)}</div>
           </div>
-          <p className="text-xs text-muted mt-2">Win probability from current Elo ratings.</p>
+          <p className="text-xs text-muted mt-2">Each team's win probability if they played today, from current Elo ratings. The two add up to 100%.</p>
         </div>
       )}
     </div>
   )
 }
 
-function GamesTab({ season, week, upcoming }) {
+function GamesTab({ season, week, upcoming, config }) {
   const [{ rows: games, params: gamesParams }, setGames] = useState({ rows: [], params: {} })
   const [loading, setLoading] = useState(false)
   const played = useSorter({ key: null, asc: false })
@@ -342,7 +348,7 @@ function GamesTab({ season, week, upcoming }) {
 
   const projected = useMemo(() => upcoming.filter(u => u.season === season && (scope === 'season' || u.week === week)), [upcoming, season, week, scope])
 
-  if (loading) return <p className="text-muted">Loading...</p>
+  if (loading) return <p className="text-muted">Loading…</p>
   if (!games.length && !upcoming.some(u => u.season === season)) return <p className="text-muted">No games for this week.</p>
 
   const sortedGames = played.apply(games, {
@@ -365,7 +371,7 @@ function GamesTab({ season, week, upcoming }) {
   })
 
   const playedSpec = {
-    name: 'Elo Played Games', qualifier: `${sliceLabel(gamesParams)} · ${sortLabel(played.sort, { away: 'Away', home: 'Home', margin: 'Score (margin)', homeProb: 'Home Win Prob', mov: 'MOV Mult', upset: 'Result' }, 'API game order')}`,
+    name: 'Elo Played Games', qualifier: `${sliceLabel(gamesParams)} · ${sortLabel(played.sort, { away: 'Away', home: 'Home', margin: 'Score (margin)', homeProb: 'Home Win Prob', mov: 'Margin mult.', upset: 'Result' }, 'API game order')}`,
     description: 'Completed games with pregame Elo, rating changes and upset results.', notes: ELO_NOTES,
     rows: sortedGames,
     cols: [
@@ -378,7 +384,7 @@ function GamesTab({ season, week, upcoming }) {
       { label: 'Away Score', desc: TIPS.score, text: g => String(g.awayScore), value: g => g.awayScore, z: '0' },
       { label: 'Home Score', desc: TIPS.score, text: g => String(g.homeScore), value: g => g.homeScore, z: '0' },
       { label: 'Home Win Prob', desc: TIPS.homeProb, text: g => pct(g.homeWinProbability), value: g => g.homeWinProbability, z: '0.0%' },
-      { label: 'MOV Mult', desc: TIPS.mov, text: g => g.movMultiplier.toFixed(2), value: g => g.movMultiplier, z: '0.00' },
+      { label: 'Margin mult.', desc: TIPS.mov(config), text: g => g.movMultiplier.toFixed(2), value: g => g.movMultiplier, z: '0.00' },
       { label: 'Result', desc: TIPS.result, text: g => { const u = upsetInfo(g); return u ? `${u.label} · ${pct0(u.chance)}` : '' }, color: g => upsetInfo(g)?.shade },
     ],
     api: { path: '/elo/games', params: gamesParams, fields: { 'Away Elo Change': 'awayPostgameElo - awayPregameElo', 'Home Elo Change': 'homePostgameElo - homePregameElo', Result: 'Compare scores to find winner; use winner pregame probability and beaten favorite probability to determine upset tier.' }, note: 'Rows use the selected client-side sort; Score sorts by margin.' },
@@ -386,7 +392,7 @@ function GamesTab({ season, week, upcoming }) {
   const projectedSpec = {
     name: 'Elo Projected', qualifier: `${seasonLabel(season)} · ${scope === 'season' ? 'Rest of season' : label(week)} · ${sortLabel(proj.sort, { week: 'Week', away: 'Away', home: 'Home', lean: 'Edge (home win probability)', prob: 'Favored Win Prob', tier: 'Outlook (favored win probability)' })}`,
     description: 'Unplayed games in the selected week or remaining season, projected from current Elo.',
-    notes: [...ELO_NOTES, 'Ratings change as games are played, so projections for later weeks are less certain.'],
+    notes: [...ELO_NOTES, 'Win probabilities use today\'s ratings and don\'t account for how ratings change before each game.'],
     rows: sortedProjected,
     cols: [
       ...(scope === 'season' ? [{ label: 'Week', desc: TIPS.projWeek, text: r => label(r.game.week) }] : []),
@@ -394,7 +400,7 @@ function GamesTab({ season, week, upcoming }) {
       { label: 'Away Elo', imageHidden: true, desc: TIPS.projElo, text: r => r.game.awayElo.toFixed(0), value: r => r.game.awayElo, z: '0' },
       { label: 'Home', desc: TIPS.projElo, text: r => r.game.homeTeam.abbrName, logo: r => r.game.homeTeam.abbrName, image: { text: r => `${r.game.homeTeam.abbrName} ${r.game.homeElo.toFixed(0)}` } },
       { label: 'Home Elo', imageHidden: true, desc: TIPS.projElo, text: r => r.game.homeElo.toFixed(0), value: r => r.game.homeElo, z: '0' },
-      { label: 'Edge', desc: `${TIPS.projLean} How far the favorite's win chance is above 50%, scaled so 1 means certain: (favorite probability - 0.5) * 2.`, text: r => r.l.edge.toFixed(2), align: 'center', image: { label: 'Away ◀ Edge ▶ Home' }, bar: r => ({ value: r.l.homeFav ? r.l.edge : -r.l.edge, max: 1, color: `rgb(${r.l.homeFav ? LEAN_HOME : LEAN_AWAY} / ${(0.25 + r.l.edge * 0.45).toFixed(2)})`, text: false }), value: r => r.l.edge, z: '0.00' },
+      { label: 'Edge', desc: TIPS.projLean, text: r => r.l.edge.toFixed(2), align: 'center', image: { label: 'Away ◀ Edge ▶ Home' }, bar: r => ({ value: r.l.homeFav ? r.l.edge : -r.l.edge, max: 1, color: `rgb(${r.l.homeFav ? LEAN_HOME : LEAN_AWAY} / ${(0.25 + r.l.edge * 0.45).toFixed(2)})`, text: false }), value: r => r.l.edge, z: '0.00' },
       { label: 'Favored', desc: TIPS.projFav, text: r => r.l.leansTo.abbrName, image: { text: r => `${r.l.leansTo.abbrName} ${pct0(r.l.prob)}`, align: 'right' } },
       { label: 'Favored Win Prob', imageHidden: true, desc: TIPS.projFav, text: r => pct0(r.l.prob), value: r => r.l.prob, z: '0%' },
       { label: 'Outlook', desc: TIPS.projOutlook, text: r => r.l.tier.label, color: r => r.l.shade },
@@ -426,7 +432,7 @@ function GamesTab({ season, week, upcoming }) {
                   <SortTh tip={TIPS.home} sortKey="home" state={played.sort} onSort={played.click}>Home</SortTh>
                   <SortTh tip={TIPS.score} sortKey="margin" state={played.sort} onSort={played.click} className="text-right">Score</SortTh>
                   <SortTh tip={TIPS.homeProb} sortKey="homeProb" state={played.sort} onSort={played.click} className="text-right">Home win prob.</SortTh>
-                  <SortTh tip={TIPS.mov} sortKey="mov" state={played.sort} onSort={played.click} className="text-right">MOV mult.</SortTh>
+                  <SortTh tip={TIPS.mov(config)} sortKey="mov" state={played.sort} onSort={played.click} className="text-right">Margin mult.</SortTh>
                   <SortTh tip={TIPS.result} sortKey="upset" state={played.sort} onSort={played.click}>Result</SortTh>
                 </tr>
               </thead>
@@ -442,7 +448,7 @@ function GamesTab({ season, week, upcoming }) {
                       const upset = upsetInfo(g)
                       return upset
                         ? <td className="px-2 py-1.5 whitespace-nowrap font-semibold" style={{ backgroundColor: upset.shade }}
-                            title={`${upset.winner.displayName} had a ${pct(upset.chance)} chance before the game`}>
+                            title={`${upset.winner.displayName} had a ${pct(upset.chance)} win probability before the game`}>
                             {upset.label} · {Math.round(upset.chance * 100)}%
                           </td>
                         : <td className="px-2 py-1.5" />
@@ -451,7 +457,7 @@ function GamesTab({ season, week, upcoming }) {
                 ))}
               </tbody>
             </table>
-            <p className="text-xs text-muted px-2 py-2">Each team shows its pregame Elo and the points it gained or lost in that game. Upsets are sized by the favorite they beat &mdash; Slight upset, Upset, Big upset, Stunner &mdash; and games Elo rated a Toss-up are left blank, since neither side was favored enough to be upset. Click any heading to sort; Score sorts by margin.</p>
+            <p className="text-xs text-muted px-2 py-2">{TIPS.result}</p>
           </div>
         </div>
       )}
@@ -509,7 +515,7 @@ function GamesTab({ season, week, upcoming }) {
               </tbody>
             </table>
             <p className="text-xs text-muted px-2 py-2">
-              Projected from each team&rsquo;s current Elo. The bar leans toward the favored team and grows with the edge. Outlook rates how competitive the game should be &mdash; Toss-up under 55%, Tilt under 60%, Lean under 70%, Likely under 80%, Solid above that. Each tier has its own color &mdash; green for a toss-up, then blue, purple, orange and yellow &mdash; deep at the competitive end of its band and fading to nearly white at the far end. Click any heading to sort. Ratings change as games are played, so projections for later weeks are less certain.
+              {TIPS.projOutlook} Win probabilities use today's ratings and don't account for how ratings change before each game.
             </p>
           </div>
         </div>
@@ -519,6 +525,7 @@ function GamesTab({ season, week, upcoming }) {
 }
 
 export default function EloPage() {
+  const { data: config } = useLoad('elo-config', getPublicEloConfig)
   const [params, setParams] = useSearchParams()
   const tab = TAB_VALUES.includes(params.get('tab')) ? params.get('tab') : 'ratings'
   // replace: switching tabs shouldn't make Back walk through every tab visited
@@ -547,7 +554,7 @@ export default function EloPage() {
           setWeek(last.week)
         } else setLoading(false)
       })
-      .catch(() => { if (current) { setError('Failed to load Elo ratings'); setLoading(false) } })
+      .catch(() => { if (current) { setError("Couldn't load Elo ratings. Try again in a moment."); setLoading(false) } })
     return () => { current = false }
   }, [])
 
@@ -564,7 +571,7 @@ export default function EloPage() {
     setLoading(true)
     getEloRatings(season, week)
       .then(r => { if (current) { setRatings({ rows: r, params }); setLoading(false) } })
-      .catch(() => { if (current) { setError('Failed to load Elo ratings'); setLoading(false) } })
+      .catch(() => { if (current) { setError("Couldn't load Elo ratings. Try again in a moment."); setLoading(false) } })
     return () => { current = false }
   }, [season, week])
 
@@ -614,8 +621,8 @@ export default function EloPage() {
 
       {tab === 'ratings' && <RatingsTab ratings={ratings} loading={loading} params={ratingsParams} />}
       {tab === 'history' && <HistoryTab history={history} teams={teams} params={historyParams} />}
-      {tab === 'matchup' && <MatchupTab ratedTeams={teams} />}
-      {tab === 'games' && <GamesTab season={season} week={week} upcoming={upcoming} />}
+      {tab === 'matchup' && <MatchupTab ratedTeams={teams} config={config} />}
+      {tab === 'games' && <GamesTab season={season} week={week} upcoming={upcoming} config={config} />}
     </div>
   )
 }

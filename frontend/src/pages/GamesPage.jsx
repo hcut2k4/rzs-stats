@@ -58,7 +58,7 @@ export default function GamesPage() {
         setSeasons(s)
         if (s.length) setSeason(s[s.length - 1])
       })
-      .catch(() => setError('Failed to load seasons'))
+      .catch(() => setError("Couldn't load seasons. Try again in a moment."))
   }, [])
 
   useEffect(() => {
@@ -85,7 +85,7 @@ export default function GamesPage() {
     setError(null)
     getGames(season, stage, weekIndex)
       .then(games => { if (current) { setData({ games, params: { season, stage, week: weekIndex } }); setLoading(false) } })
-      .catch(() => { if (current) { setError('Failed to load games'); setLoading(false) } })
+      .catch(() => { if (current) { setError("Couldn't load games. Try again in a moment."); setLoading(false) } })
     return () => { current = false }
   }, [season, stage, weekIndex])
 
@@ -131,7 +131,7 @@ export default function GamesPage() {
         </select>
 
         <select className="field" value={stage} onChange={e => setStage(Number(e.target.value))}>
-          <option value={1}>Regular Season</option>
+          <option value={1}>Regular season</option>
           <option value={2}>Playoffs</option>
         </select>
 
@@ -161,7 +161,7 @@ export default function GamesPage() {
       </PageHeader>
 
       {error && <div className="text-bad mb-4">{error}</div>}
-      {loading && <div className="text-muted">Loading...</div>}
+      {loading && <div className="text-muted">Loading…</div>}
 
       {!loading && !error && (
         games.length === 0

@@ -22,7 +22,7 @@ const TABS = [
 const TAB_VALUES = TABS.map(t => t.value)
 
 const STAGES = [
-  { value: 'regular', label: 'Regular' },
+  { value: 'regular', label: 'Regular season' },
   { value: 'playoffs', label: 'Playoffs' },
   { value: 'both', label: 'Both' },
 ]
@@ -36,8 +36,8 @@ const TIPS = {
   defPpd: 'Points opponents scored per drive against the defense. Lower is better.',
   offPpp: 'Points the offense scored per play. Higher is better.',
   defPpp: 'Points opponents scored per play against the defense. Lower is better.',
-  drivesPg: 'Estimated offensive drives per game. Context, not good or bad.',
-  playsPg: 'Offensive plays per game. Context, not good or bad.',
+  drivesPg: "Pace: possessions per game. More isn't better on its own.",
+  playsPg: "Pace: snaps per game. More isn't better on its own.",
 }
 
 const flip = better => (better === 'higher' ? 'lower' : 'higher')
@@ -54,7 +54,7 @@ const EFFICIENCY_NOTES = [
 function efficiencySpec(rows, cols, request, tab, sortLabel, sort) {
   return {
     name: `Efficiency ${tab}`,
-    qualifier: `${seasonLabel(request.season)} · ${STAGES.find(s => s.value === request.stage).label} · ${Math.max(...rows.map(r => r.games))} games played · ${tab} · sorted by ${sortLabel} ${sort.asc ? 'ascending' : 'descending'}`,
+    qualifier: `${seasonLabel(request.season)} · ${STAGES.find(s => s.value === request.stage).label} · through ${Math.max(...rows.map(r => r.games))} games · ${tab} · sorted by ${sortLabel} ${sort.asc ? 'ascending' : 'descending'}`,
     description: 'One row per team with season efficiency rebuilt from game box-score totals.',
     notes: EFFICIENCY_NOTES,
     rows, cols,
@@ -117,7 +117,7 @@ function TiersChart({ rows, name, qualifier }) {
     let message
     try {
       const result = await copyChartImage({ name: `${name} chart`, qualifier, points, league, xScale, yScale })
-      message = result === 'toobig' ? 'Too big' : result === 'copied' ? 'Copied' : 'Saved'
+      message = result === 'toobig' ? 'Too big for an image' : result === 'copied' ? 'Copied' : 'Saved'
     } catch {
       message = 'Failed'
     }
@@ -234,7 +234,7 @@ function OverviewTab({ rows, request }) {
 function SideTab({ rows, side, request }) {
   const isDefense = side === 'defense'
   const { sort, click, apply } = useSorter({ key: 'pointsPerDrive', asc: isDefense })
-  const columns = METRICS.map(m => ({ ...m, better: isDefense ? flip(m.better) : m.better, tip: isDefense ? m.def : m.off }))
+  const columns = METRICS.map(m => ({ ...m, label: isDefense && m.key === 'giveawayRate' ? 'Takeaways/Drive' : m.label, better: isDefense ? flip(m.better) : m.better, tip: isDefense ? m.def : m.off }))
   const getters = {
     team: r => r.displayName,
     games: r => r.games,
@@ -312,7 +312,7 @@ export default function EfficiencyPage() {
         if (s.length) setSeason(s[s.length - 1])
         else setLoading(false)
       })
-      .catch(() => { if (live) { setError('Could not load seasons.'); setLoading(false) } })
+      .catch(() => { if (live) { setError("Couldn't load seasons. Try again in a moment."); setLoading(false) } })
     return () => { live = false }
   }, [])
 
@@ -323,15 +323,15 @@ export default function EfficiencyPage() {
     setError(null)
     getEfficiency(season, stage)
       .then(d => { if (live) setData({ rows: d, request: { season, stage } }) })
-      .catch(() => { if (live) { setData({ rows: [], request: null }); setError('Could not load efficiency stats.') } })
+      .catch(() => { if (live) { setData({ rows: [], request: null }); setError("Couldn't load efficiency stats. Try again in a moment.") } })
       .finally(() => { if (live) setLoading(false) })
     return () => { live = false }
   }, [season, stage])
 
   const qualifier = season == null ? null : [
     seasonLabel(season),
-    stage === 'regular' ? null : STAGES.find(s => s.value === stage).label,
-    rows.length ? `${Math.max(...rows.map(r => r.games))} games played` : null,
+    STAGES.find(s => s.value === stage).label,
+    rows.length ? `through ${Math.max(...rows.map(r => r.games))} games` : null,
     { overview: 'ranked by net points per drive', offense: 'what each offense did with the ball', defense: 'what opposing offenses did against each defense' }[tab],
   ].filter(Boolean).join(' · ')
 
@@ -362,9 +362,9 @@ export default function EfficiencyPage() {
       <Tabs value={tab} onChange={setTab} tabs={TABS} />
 
       {error && <p className="text-bad">{error}</p>}
-      {loading && !error && <p className="text-muted">Loading...</p>}
+      {loading && !error && <p className="text-muted">Loading…</p>}
       {!loading && !error && rows.length === 0 && (
-        <p className="text-muted">No team stats yet {DASH} run the stat sync from Admin.</p>
+        <p className="text-muted">No team stats yet. They appear after the next nightly sync.</p>
       )}
       {!loading && !error && rows.length > 0 && (
         <>
