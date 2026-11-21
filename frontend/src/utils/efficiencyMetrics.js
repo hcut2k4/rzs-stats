@@ -12,7 +12,7 @@ export const METRICS = [
   },
   {
     key: 'pointsPerPlay', label: 'Pts/Play', fmt: n2, better: 'higher',
-    off: 'Points the offense scored per play (pass attempts, rushes and sacks taken). The closest stand-in we have for EPA per play. Higher is better.',
+    off: 'Points scored per offensive play (passes, runs and sacks). Measures scoring efficiency per play rather than per drive. Higher is better.',
     def: 'Points opposing offenses scored per play against this defense. Lower is better.',
   },
   {
@@ -32,8 +32,8 @@ export const METRICS = [
   },
   {
     key: 'redZoneTdRate', label: 'RZ TD %', fmt: pct, better: 'higher',
-    off: 'Red-zone trips that ended in a touchdown. Higher is better.',
-    def: 'Opposing red-zone trips that ended in a touchdown. Lower is better.',
+    off: 'Red-zone trips (inside the 20) that ended in a touchdown. Higher is better.',
+    def: 'Opposing red-zone trips (inside the 20) that ended in a touchdown. Lower is better.',
   },
   {
     key: 'giveawayRate', label: 'TO/Drive', fmt: n2, better: 'lower',

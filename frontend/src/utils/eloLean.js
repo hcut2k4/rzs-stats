@@ -27,6 +27,10 @@ export const UPSET_LEVELS = [
   { hi: Infinity, label: 'Stunner', alpha: 0.42 },
 ]
 
+export const tierText = () => TIERS.map((t, i) => `${t.label} ${Math.round(t.lo * 100)}${i === TIERS.length - 1 ? '%+' : `–${Math.round(t.hi * 100) - 1}%`}`).join(', ')
+export const outlookText = () => `How close the game should be, from the favorite's win probability: ${tierText()}.`
+export const upsetText = () => `Upsets are sized by how big a favorite lost: ${UPSET_LEVELS.map(t => t.label).join(', ')}. Toss-ups are left blank. The percent is the winner's pregame win probability.`
+
 const RED = '220 38 38'
 
 export function upsetInfo(g) {

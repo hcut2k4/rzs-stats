@@ -39,7 +39,7 @@ describe('Season History export', () => {
     ])
     expect(spec.cols.slice(1, 4).map(c => c.group)).toEqual(['Season 109', 'Season 109', 'Season 109'])
     expect(spec.cols.every(c => c.desc?.trim())).toBe(true)
-    expect(spec.cols[1].desc).toContain('Season 109')
+    expect(spec.cols[1].desc).toBe(screen.getAllByRole('columnheader', { name: /^W-L/ })[0].title)
     expect(csvText(spec)).toContain('Aces,,,,10-4,65.0%,+0.9')
     expect(spec.api).toMatchObject({ path: '/trends/season', params: {} })
     expect(spec.api.note).toContain('one entry per season')
@@ -72,7 +72,7 @@ describe('Week by Week export', () => {
     expect(spec.api).toMatchObject({ path: '/trends/weekly', params: { season: 7 } })
     expect(spec.qualifier).toBe('Season 110 · cumulative PyPAT by week')
     expect(spec.cols.every(c => c.desc?.trim())).toBe(true)
-    expect(spec.cols[3].desc).toContain('through Wild Card')
+    expect(spec.cols[3].desc).toContain('expected to win from points scored and allowed')
     const sheet = buildWorkbook(spec).Sheets['Season 110']
     expect(sheet.C2).toMatchObject({ t: 'n', v: 0.75, z: '0.0%' })
     expect(sheet.C3).toMatchObject({ t: 's', v: '' })

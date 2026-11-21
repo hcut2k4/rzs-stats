@@ -59,7 +59,7 @@ export function exportExcel(spec) {
   XLSX.writeFile(buildWorkbook(spec), `${fileStem(spec)}.xlsx`)
 }
 
-const INTRO = "Red Zone Sports (RZS) is a private Madden NFL online franchise league; human owners run all 32 teams, games not played are simulated; results are pulled from the league's NeonSportz host into a database and served by rzs-stats, a public site computing PyPAT, Luck, SoS, Elo, QB TANY/A and team efficiency. This is simulated-football data, NOT real NFL data. Team names are NFL names but every result happened only inside this league. Do not reconcile with real NFL seasons."
+const INTRO = "Red Zone Sports (RZS) is a private Madden NFL online franchise league with human owners running all 32 teams. Games not played are simulated. Results sync from NeonSportz into a database. RZS Stats is a public site computing PyPAT, Luck, SoS, Elo, QB TANY/A and team efficiency. This is simulated-football data, NOT real NFL data. Team names are NFL names but every result happened only inside this league. Do not reconcile with real NFL seasons."
 
 const CONVENTIONS = `- Season index is 0-based; the league's display number is index + 103 (season=5 is "Season 108"). Always send the index.
 - Week index is 0-based (week=0 is Week 1). Playoffs are weeks 18+ (18 wild card, 19 divisional, 20 conference, 22 Super Bowl).

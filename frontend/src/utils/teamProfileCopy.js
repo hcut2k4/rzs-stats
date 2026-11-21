@@ -1,4 +1,4 @@
-import { TIERS, pct0 } from './eloLean'
+import { tierText } from './eloLean'
 import { luckLean, quadrant, projectedRecord } from './teamProfile'
 
 export const possessive = name => /s$/i.test(name) ? `${name}'` : `${name}'s`
@@ -10,8 +10,7 @@ export const LANDSCAPE_FOOTER = 'Teams farther up and right are stronger. Dashed
 export const TRUTH_EXPLANATION = "PyPAT estimates how many games a team should have won based on points scored and allowed. Elo estimates expected wins using each game's pregame win probability, accounting for opponent strength. The dashed line marks actual wins. Regular season only."
 export const FRANCHISE_NOTE = 'Elo rating after each week. Dotted lines mark season boundaries, when ratings are pulled toward the league average of 1500.'
 export const UNQUALIFIED_TIP = 'Fewer than 10 pass attempts per team game, the minimum for league rankings.'
-export const PYPAT_TIP = 'The share of games a team should have won based on points scored and allowed. 50% means an even split of wins and losses.'
-export const LUCK_TIP = 'Actual wins minus expected wins based on scoring margin. Positive means more wins than the scoring margin predicts; negative means fewer.'
+export { PYPAT_TIP, LUCK_TIP } from './siteCopy'
 
 export function landscapeSummary(name, offense, defense, league) {
   const { goodOffense, goodDefense } = quadrant(offense, defense, league)
@@ -51,8 +50,7 @@ export function roadSummary(team, road) {
 export const roadFooter = name => `Win probabilities are based on current Elo ratings and don't account for how ratings may change before each game. Outlook labels reflect the ${possessive(name)} perspective.`
 
 export function outlookTip() {
-  const ranges = TIERS.map((t, i) => `${t.label}: ${pct0(t.lo)}–${i === TIERS.length - 1 ? '' : 'under '}${pct0(t.hi)}`).join('; ')
-  return `Based on the favorite's win probability: ${ranges}. Win or loss labels reflect this team's perspective.`
+  return `Based on the favorite's win probability: ${tierText()}. Win or loss labels reflect this team's perspective.`
 }
 
 export function arcSummary(name, games, inProgress) {

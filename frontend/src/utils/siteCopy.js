@@ -1,0 +1,5 @@
+export const SYNC_LINE = 'Stats sync from NeonSportz nightly at 4 AM ET.'
+export const PYPAT_TIP = 'The share of games a team would be expected to win from points scored and allowed. 50% is average; higher is better.'
+export const LUCK_TIP = 'Wins above or below what PyPAT expects. Big gaps tend not to last, because points scored and allowed predict future results better than record does.'
+export const SOS_TIP = 'Opponent strength. Higher means a harder schedule.'
+export const COLOR_LEGEND = 'Green is better and red is worse than the rest of the league; lower is better for points allowed. SoS: red is a harder schedule, green an easier one. Luck: blue won more than expected, orange fewer.'

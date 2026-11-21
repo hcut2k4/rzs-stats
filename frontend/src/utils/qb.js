@@ -4,5 +4,6 @@ export const signed2 = v => v != null ? (v > 0 ? '+' : '') + v.toFixed(2) : '—
 
 export const neonPlayerUrl = rosterId => `https://neonsportz.com/leagues/RZS/players/${rosterId}`
 
-export const TANYA_TIP = 'Total Adjusted Net Yards per Attempt: overall quarterback efficiency in adjusted yards per play. Higher means more productive passing and rushing after accounting for sacks and turnovers. (PassYds − SackYds + RushYds + 20×(PassTD + RushTD) − 45×(INT + FumblesLost)) ÷ (Att + Sacks + RushAtt). Rushing counts in both the numerator and the denominator, so volume alone does not inflate it.'
-export const RUSHPLUS_TIP = 'The rushing contribution to overall quarterback efficiency; higher means more value from rushing. Adjusted QB rushing production above a baseline of 4 yards per carry, including rushing touchdowns and estimated lost fumbles, normalized per passing opportunity. All estimated QB fumbles lost are charged to rushing because passing and rushing fumbles cannot be distinguished.'
+export const TANYA_BENCHMARK = 'BENCHMARK_TBD'
+export const TANYA_TIP = `Total adjusted net yards per attempt, where an attempt is every dropback or carry. Touchdowns add 20 yards; interceptions and lost fumbles cost 45. Higher is better. ${TANYA_BENCHMARK}`
+export const RUSHPLUS_TIP = "The value a QB's running adds over a 4-yards-per-carry baseline, on the same per-dropback scale as his passing stats. Positive means his running adds value."

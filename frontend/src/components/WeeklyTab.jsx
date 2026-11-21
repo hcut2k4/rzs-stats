@@ -6,6 +6,7 @@ import {
 import ExportMenu from './ExportMenu'
 import { seasonLabel } from '../utils/seasons'
 import { weekLabel } from '../utils/playoffRounds'
+import { PYPAT_TIP } from '../utils/siteCopy'
 import { COLORS } from '../utils/chartColors'
 
 export default function WeeklyTab({ season }) {
@@ -26,8 +27,8 @@ export default function WeeklyTab({ season }) {
     return () => { current = false }
   }, [season])
 
-  if (loading) return <p className="text-muted">Loading...</p>
-  if (error) return <p className="text-bad">Failed to load week-by-week data.</p>
+  if (loading) return <p className="text-muted">Loading…</p>
+  if (error) return <p className="text-bad">Couldn&apos;t load week-by-week data. Try again in a moment.</p>
   if (!data.length) return <p className="text-muted">No data available.</p>
 
   const allTeams = (data[0]?.standings.map(s => ({ id: s.teamId, name: s.displayName, abbr: s.abbrName })) ?? [])
@@ -48,7 +49,7 @@ export default function WeeklyTab({ season }) {
       ...data.map(d => {
         const value = team => d.standings.find(r => r.teamId === team.id)?.pythagoreanPat
         const label = d.weekIndex >= 18 ? weekLabel(2, d.weekIndex) : `Wk ${d.weekIndex + 1}`
-        return { label, desc: `Cumulative PythagoreanPAT win expectancy through ${label} of ${seasonLabel(dataSeason)}, based on all scoring through that week.`, value, text: team => value(team) == null ? '' : (value(team) * 100).toFixed(1) + '%', z: '0.0%' }
+        return { label, desc: PYPAT_TIP, value, text: team => value(team) == null ? '' : (value(team) * 100).toFixed(1) + '%', z: '0.0%' }
       }),
     ],
     api: { path: '/trends/weekly', params: { season: dataSeason }, fields: { Team: 'standings[].displayName', 'Week columns': 'Match standings[].teamId within each weekIndex; value is standings[].pythagoreanPat.' }, note: 'Highlighting teams only changes chart emphasis; all chart teams are included.' },
@@ -63,7 +64,7 @@ export default function WeeklyTab({ season }) {
   return (
     <div>
       <div className="flex items-center gap-3 mb-2 text-xs text-muted">
-        <span>Click teams to highlight them. The rest fade back.</span>
+        <span title={PYPAT_TIP}>Each team's PyPAT so far, after every week. Click teams to highlight them. The rest fade back.</span>
         <button onClick={() => setFocus(new Set())} className="text-ink font-medium hover:text-accent">Clear</button>
       </div>
       <div className="flex flex-wrap gap-1 mb-4">

@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { TeamLogo } from './TeamLogo'
 import { goodBadColor, divergeColor } from '../utils/heat'
 import ExportMenu from './ExportMenu'
+import { PYPAT_TIP, LUCK_TIP } from '../utils/siteCopy'
 import { seasonLabel, seasonNumber } from '../utils/seasons'
 
 export default function SeasonHistoryTab({ data }) {
@@ -55,9 +56,9 @@ export default function SeasonHistoryTab({ data }) {
       ...data.flatMap(d => {
         const get = team => d.standings.find(r => r.teamId === team.teamId)
         return [
-          { label: 'W-L', color: team => goodBadColor(get(team)?.winPct, columnValues[`${d.seasonIndex}-wl`]), desc: `Wins-losses, with ties appended when present, in ${seasonLabel(d.seasonIndex)}.`, text: team => { const r = get(team); return r ? `${r.wins}-${r.losses}${r.ties ? `-${r.ties}` : ''}` : '' } },
-          { label: 'PyPAT', color: team => goodBadColor(get(team)?.pythagoreanPat, columnValues[`${d.seasonIndex}-pypat`]), desc: `PythagoreanPAT win expectancy in ${seasonLabel(d.seasonIndex)}: the share of games a team should have won given points scored and allowed, using Chase Stuart's dynamic exponent. 50.0% is break-even.`, text: team => get(team)?.pythagoreanPat == null ? '' : (get(team).pythagoreanPat * 100).toFixed(1) + '%', value: team => get(team)?.pythagoreanPat, z: '0.0%' },
-          { label: 'Luck', color: team => divergeColor(get(team)?.winDiff), desc: `Actual wins minus PyPAT expected wins in ${seasonLabel(d.seasonIndex)}. Positive means more wins than expected.`, text: team => { const v = get(team)?.winDiff; return v == null ? '' : (v > 0 ? '+' : '') + v.toFixed(1) }, value: team => get(team)?.winDiff, z: '+0.0;-0.0;0.0' },
+          { label: 'W-L', color: team => goodBadColor(get(team)?.winPct, columnValues[`${d.seasonIndex}-wl`]), desc: 'Wins-losses, with ties appended when present.', text: team => { const r = get(team); return r ? `${r.wins}-${r.losses}${r.ties ? `-${r.ties}` : ''}` : '' } },
+          { label: 'PyPAT', color: team => goodBadColor(get(team)?.pythagoreanPat, columnValues[`${d.seasonIndex}-pypat`]), desc: PYPAT_TIP, text: team => get(team)?.pythagoreanPat == null ? '' : (get(team).pythagoreanPat * 100).toFixed(1) + '%', value: team => get(team)?.pythagoreanPat, z: '0.0%' },
+          { label: 'Luck', color: team => divergeColor(get(team)?.winDiff), desc: LUCK_TIP, text: team => { const v = get(team)?.winDiff; return v == null ? '' : (v > 0 ? '+' : '') + v.toFixed(1) }, value: team => get(team)?.winDiff, z: '+0.0;-0.0;0.0' },
         ].map(c => ({ ...c, label: `S${seasonNumber(d.seasonIndex)} ${c.label}`, image: { label: c.label, align: 'center' }, group: seasonLabel(d.seasonIndex) }))
       }),
     ],
@@ -85,9 +86,9 @@ export default function SeasonHistoryTab({ data }) {
               <th className="sticky left-0 bg-bg z-20" />
               {seasons.map(s => (
                 <React.Fragment key={s}>
-                  <th className={`${thClass} border-l border-rule`} onClick={() => handleSort(s, 'wl')}>W-L{arrow(s, 'wl')}</th>
-                  <th className={thClass} onClick={() => handleSort(s, 'pypat')}>PyPAT{arrow(s, 'pypat')}</th>
-                  <th className={thClass} onClick={() => handleSort(s, 'luck')}>Luck{arrow(s, 'luck')}</th>
+                  <th title="Wins-losses, with ties appended when present." className={`${thClass} border-l border-rule`} onClick={() => handleSort(s, 'wl')}>W-L{arrow(s, 'wl')}</th>
+                  <th className={thClass} title={PYPAT_TIP} onClick={() => handleSort(s, 'pypat')}>PyPAT{arrow(s, 'pypat')}</th>
+                  <th className={thClass} title={LUCK_TIP} onClick={() => handleSort(s, 'luck')}>Luck{arrow(s, 'luck')}</th>
                 </React.Fragment>
               ))}
             </tr>

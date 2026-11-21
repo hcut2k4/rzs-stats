@@ -25,7 +25,7 @@ async function show(tab = 'Overview') {
 }
 
 describe('Efficiency exports', () => {
-  it.each(['Copied', 'Saved', 'Too big'])('exports the Overview chart and announces %s before restoring PNG', async message => {
+  it.each(['Copied', 'Saved', 'Too big for an image'])('exports the Overview chart and announces %s before restoring PNG', async message => {
     const spec = await show()
     const ctx = Object.fromEntries(['scale', 'fillRect', 'fillText', 'beginPath', 'moveTo', 'lineTo', 'stroke', 'setLineDash', 'save', 'translate', 'rotate', 'restore', 'drawImage'].map(method => [method, vi.fn()]))
     ctx.measureText = text => ({ width: text.length * 7 })
@@ -52,7 +52,7 @@ describe('Efficiency exports', () => {
     await act(async () => {})
     expect(ctx.fillText).toHaveBeenCalledWith('RZS Stats — Efficiency Overview chart', 10, 19)
     expect(ctx.fillText).toHaveBeenCalledWith(spec.qualifier, 10, 40)
-    await act(async () => { encode(message === 'Too big' ? null : new Blob(['png'], { type: 'image/png' })) })
+    await act(async () => { encode(message === 'Too big for an image' ? null : new Blob(['png'], { type: 'image/png' })) })
     expect(button).toBeEnabled()
     expect(button).toHaveTextContent(message)
     expect(document.querySelector('[aria-live="polite"]')).toHaveTextContent(message)
@@ -63,10 +63,10 @@ describe('Efficiency exports', () => {
 
   it.each(['Overview', 'Offense', 'Defense'])('exports %s headers, definitions, notes and exact API provenance', async tab => {
     const spec = await show(tab)
-    expect(toRows(spec)[0]).toEqual(tab === 'Overview' ? ['#', 'Team', 'G', 'Net Pts/Drive', 'Off Pts/Drive', 'Def Pts/Drive', 'Off Pts/Play', 'Def Pts/Play'] : headers)
+    expect(toRows(spec)[0]).toEqual(tab === 'Overview' ? ['#', 'Team', 'G', 'Net Pts/Drive', 'Off Pts/Drive', 'Def Pts/Drive', 'Off Pts/Play', 'Def Pts/Play'] : headers.map(h => tab === 'Defense' && h === 'TO/Drive' ? 'Takeaways/Drive' : h))
     expect(spec.cols.every(c => c.desc?.trim())).toBe(true)
     expect(spec.api).toMatchObject({ path: '/efficiency', params: { season: 7, stage: 'regular' } })
-    expect(spec.qualifier).toContain(`Season 110 · Regular · 2 games played · ${tab} · sorted by`)
+    expect(spec.qualifier).toContain(`Season 110 · Regular season · through 2 games · ${tab} · sorted by`)
     const blob = aiText(spec, 'https://example.com')
     expect(blob).toContain('never averages of per-game rates. Do not average the column.')
     expect(blob).toContain('zero denominator is null/empty, not 0')
@@ -96,7 +96,7 @@ describe('Efficiency exports', () => {
     const spec = await show('Defense')
     expect(spec.cols.find(c => c.label === 'Pts/Drive').desc).toContain('Points opposing offenses scored per drive against this defense')
     expect(spec.cols.find(c => c.label === '3rd %').desc).toContain('opponents')
-    for (const label of ['Pts/Drive', 'TO/Drive', 'Sack %']) {
+    for (const label of ['Pts/Drive', 'Takeaways/Drive', 'Sack %']) {
       const col = spec.cols.find(c => c.label === label)
       expect(col.color(teams[0])).toBe('rgb(22 163 74 / 0.420)')
       expect(col.color(teams[1])).toBe('rgb(220 38 38 / 0.420)')

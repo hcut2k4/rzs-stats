@@ -10,8 +10,9 @@ import PageHeader from '../components/PageHeader'
 import ExportMenu from '../components/ExportMenu'
 import { seasonLabel } from '../utils/seasons'
 import { weekLabel } from '../utils/playoffRounds'
+import { SOS_TIP } from '../utils/siteCopy'
 import { COLORS } from '../utils/chartColors'
-import { lean, pct0, TIERS } from '../utils/eloLean'
+import { lean, pct0, outlookText, tierText } from '../utils/eloLean'
 
 const pct = v => (v == null ? '–' : (v * 100).toFixed(1) + '%')
 const signed1 = v => (v == null ? '–' : (v > 0 ? '+' : '') + v.toFixed(1))
@@ -36,7 +37,7 @@ function Card({ to, title, blurb, cta, children }) {
 function Rows({ loading, empty, children }) {
   if (loading) return <p className="text-sm text-muted">Loading…</p>
   if (empty) return <p className="text-sm text-muted">No data yet.</p>
-  return <div className="divide-y divide-line border-y border-line">{children}</div>
+  return <div className="divide-y divide-line border-y border-line overflow-x-auto">{children}</div>
 }
 
 const rowClass = 'flex items-center gap-2 py-1.5 text-sm'
@@ -51,7 +52,7 @@ function StandingsCard({ season, standings, loading }) {
     <Card
       to="/standings"
       title="Standings"
-      blurb={season == null ? 'PyPAT, Luck and strength of schedule.' : `${seasonLabel(season)} — ranked by PyPAT, not record.`}
+      blurb={season == null ? 'PyPAT, Luck and strength of schedule.' : `${seasonLabel(season)}, ranked by PyPAT: the share of games each team would be expected to win from points scored and allowed.`}
       cta="Full standings"
     >
       <Rows loading={loading} empty={!top.length}>
@@ -113,13 +114,13 @@ function EloCard({ ratings, loading }) {
   const riser = [...ratings].sort((a, b) => b.change - a.change)[0]
 
   return (
-    <Card to="/elo" title="Elo" blurb="Team strength carried across seasons." cta="Elo ratings">
+    <Card to="/elo" title="Elo" blurb="Team strength that carries across seasons. 1500 is the league average." cta="Elo ratings">
       <Rows loading={loading} empty={!top.length}>
         <div className="flex items-center gap-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted">
           <span className="w-4">#</span>
           <span className="flex-1">Team</span>
           <span className="w-14 text-right">Elo</span>
-          <span className="w-12 text-right">Chg</span>
+          <span className="w-12 text-right">Change</span>
         </div>
         {top.map((r, i) => (
           <div key={r.teamId ?? r.abbrName} className={rowClass}>
@@ -149,14 +150,14 @@ function EfficiencyCard({ season, rows, loading }) {
     <Card
       to="/efficiency"
       title="Efficiency"
-      blurb={season == null ? 'Points per drive, offense minus defense.' : `${seasonLabel(season)} teams by net points per drive.`}
+      blurb="Net points per drive: what the offense scores minus what the defense allows, per possession. Regular season only."
       cta="Team efficiency"
     >
       <Rows loading={loading} empty={!top.length}>
         <div className="flex items-center gap-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted">
           <span className="w-4">#</span>
           <span className="flex-1">Team</span>
-          <span className="w-14 text-right">Net PPD</span>
+          <span className="w-14 text-right">Net Pts/Drive</span>
         </div>
         {top.map((r, i) => (
           <div key={r.teamId} className={rowClass}>
@@ -178,7 +179,7 @@ function QbCard({ season, qbs, loading }) {
     <Card
       to="/qb"
       title="QBs"
-      blurb={season == null ? 'Quarterbacks ranked by TANY/A.' : `${seasonLabel(season)} quarterbacks by TANY/A.`}
+      blurb={season == null ? 'Quarterbacks ranked by TANY/A.' : `${seasonLabel(season)} quarterbacks by TANY/A: yards per dropback or carry, with touchdowns, turnovers and sacks built in. Regular season only.`}
       cta="QB leaderboard"
     >
       <Rows loading={loading} empty={!top.length}>
@@ -219,7 +220,7 @@ function TrendsCard({ season, weekly, loading }) {
     <Card
       to="/standings?tab=weekly"
       title="Trends"
-      blurb={season == null ? 'Season history and weekly progression.' : `${seasonLabel(season)} PyPAT, week by week.`}
+      blurb={season == null ? 'Season history and weekly progression.' : `How the top 4 teams' PyPAT has moved this season, week by week.`}
       cta="Week by week"
     >
       <Rows loading={loading} empty={chartData.length < 2}>
@@ -261,7 +262,7 @@ function TrendsCard({ season, weekly, loading }) {
   )
 }
 
-const bestGrid = 'grid grid-cols-[2.25rem_minmax(0,1fr)_2.5rem_4.5rem] items-center gap-2'
+const bestGrid = 'grid min-w-[440px] grid-cols-[2.5rem_minmax(0,1fr)_3.5rem_4rem_4.5rem] items-center gap-2'
 
 const shortWeek = w => (w >= 18 ? weekLabel(2, w) : `Wk ${w + 1}`)
 
@@ -286,7 +287,7 @@ function BestGames({ upcoming, loading }) {
       { label: 'Home', desc: 'The home team abbreviation.', logo: ({ game }) => game.homeTeam.abbrName, text: ({ game }) => game.homeTeam.abbrName },
       { label: 'Favored', desc: 'The abbreviation of the team with the higher win probability; the home team wins a tie.', text: ({ l }) => l.leansTo.abbrName },
       { label: 'Favored Win Prob', desc: 'The favored team’s Elo win probability.', text: ({ l }) => pct0(l.prob), value: ({ l }) => l.prob, z: '0%' },
-      { label: 'Outlook', desc: `The tier of the favorite’s win probability: ${TIERS.map((t, i) => `${t.label} ${i === TIERS.length - 1 ? `at least ${pct0(t.lo)}` : `below ${pct0(t.hi)}`}`).join('; ')}.`, text: ({ l }) => l.tier.label, color: ({ l }) => l.shade },
+      { label: 'Outlook', desc: outlookText(), text: ({ l }) => l.tier.label, color: ({ l }) => l.shade },
     ],
     api: {
       path: '/elo/upcoming', params: {},
@@ -306,10 +307,11 @@ function BestGames({ upcoming, loading }) {
       {!loading && best.length > 0 && <div className="flex justify-end"><ExportMenu spec={exportSpec} /></div>}
       <Rows loading={loading} empty={!best.length}>
         <div className={`${bestGrid} py-1 text-xs font-semibold uppercase tracking-wide text-muted`}>
-          <span>Wk</span>
+          <span>Week</span>
           <span>Matchup</span>
-          <span className="text-right">Fav</span>
-          <span className="text-center">Outlook</span>
+          <span className="text-right">Favorite</span>
+          <span className="text-right">Win prob.</span>
+          <span className="text-center" title={outlookText()}>Outlook</span>
         </div>
         {best.map(({ game: g, l }) => (
           <div key={g.gameId} className={`${bestGrid} py-1.5 text-sm`}>
@@ -321,6 +323,7 @@ function BestGames({ upcoming, loading }) {
               <TeamLogo abbr={g.homeTeam.abbrName} size={18} />
               <span className={l.tossUp ? 'font-semibold' : l.homeFav ? 'font-semibold' : 'text-muted'}>{g.homeTeam.abbrName}</span>
             </span>
+            <span className="text-right font-semibold">{l.leansTo.abbrName}</span>
             <span className="text-right num">{pct0(l.prob)}</span>
             <span
               className="rounded text-center text-[10px] font-semibold uppercase tracking-wide leading-tight px-1 py-1 whitespace-nowrap"
@@ -331,16 +334,17 @@ function BestGames({ upcoming, loading }) {
           </div>
         ))}
       </Rows>
+      <p className="text-xs text-muted mt-2">{tierText()}</p>
     </Card>
   )
 }
 
 const DEFINITIONS = [
-  ['PyPAT', 'Win expectancy from scoring margin, not W-L record.'],
-  ['Luck', 'Wins above or below what the scoring margin predicted.'],
-  ['SoS', 'Opponent PyPAT with head-to-head games removed.'],
-  ['Elo', 'Rolling team strength that carries between seasons.'],
-  ['TANY/A', 'QB efficiency across passing, sacks and rushing.'],
+  ['PyPAT', 'Expected win share from points scored and allowed. 50% is average.'],
+  ['Luck', "Wins above or below PyPAT's expectation. Big gaps tend not to last."],
+  ['SoS', SOS_TIP],
+  ['Elo', 'Strength that carries across seasons. 1500 is the league average.'],
+  ['TANY/A', 'Yards per dropback or carry, with touchdowns, turnovers and sacks built in.'],
 ]
 
 function AboutCard() {
@@ -429,7 +433,7 @@ export default function HomePage() {
       <PageHeader
         title="RZS Stats"
         qualifier={season == null ? 'Red Zone Sports' : `Red Zone Sports — ${seasonLabel(season)}`}
-        takeaway="W-L records are noisy — one-score games are largely random. PyPAT, Elo and strength of schedule cut through that noise to show who is actually playing well and who has just been lucky."
+        takeaway="Records can lie. Close games swing on a bounce or two, so a 9-8 team can be better than a 10-7 one. PyPAT, Elo and strength of schedule show who is actually playing well and who has just been lucky."
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-8">

@@ -80,7 +80,7 @@ describe('EfficiencyPage', () => {
 
     expect(screen.getByRole('combobox', { name: 'Season' })).toHaveValue('6')
     expect(client.getEfficiency).toHaveBeenLastCalledWith(6, 'regular')
-    expect(screen.queryByText('Could not load seasons.')).not.toBeInTheDocument()
+    expect(screen.queryByText("Couldn't load seasons. Try again in a moment.")).not.toBeInTheDocument()
     expect(screen.getByRole('table')).toBeInTheDocument()
   })
 
@@ -152,7 +152,7 @@ describe('EfficiencyPage', () => {
   it('shows a request error when efficiency cannot load', async () => {
     client.getEfficiency.mockRejectedValue(new Error('Unavailable'))
     renderAt()
-    expect(await screen.findByText('Could not load efficiency stats.')).toBeInTheDocument()
+    expect(await screen.findByText("Couldn't load efficiency stats. Try again in a moment.")).toBeInTheDocument()
     expect(screen.queryByText(/No team stats yet/)).not.toBeInTheDocument()
   })
 
@@ -162,9 +162,9 @@ describe('EfficiencyPage', () => {
     expect(client.getEfficiency).toHaveBeenLastCalledWith(7, 'regular')
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Season' }), '6')
     await waitFor(() => expect(client.getEfficiency).toHaveBeenLastCalledWith(6, 'regular'))
-    for (const stage of ['Playoffs', 'Both', 'Regular']) {
+    for (const stage of ['Playoffs', 'Both', 'Regular season']) {
       await userEvent.click(screen.getByRole('button', { name: stage }))
-      await waitFor(() => expect(client.getEfficiency).toHaveBeenLastCalledWith(6, stage.toLowerCase()))
+      await waitFor(() => expect(client.getEfficiency).toHaveBeenLastCalledWith(6, stage === 'Regular season' ? 'regular' : stage.toLowerCase()))
       expect(screen.getByRole('button', { name: stage })).toHaveAttribute('aria-pressed', 'true')
     }
   })

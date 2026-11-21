@@ -86,7 +86,7 @@ describe('Week by Week season switching', () => {
     await switchTo(6)
     await act(async () => requests[6].reject(new Error('boom')))
 
-    expect(await screen.findByText('Failed to load week-by-week data.')).toBeInTheDocument()
+    expect(await screen.findByText("Couldn't load week-by-week data. Try again in a moment.")).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /WOL/ })).not.toBeInTheDocument()
   })
 
@@ -94,12 +94,12 @@ describe('Week by Week season switching', () => {
     renderWeekly()
     await waitFor(() => expect(requests[7]).toBeDefined())
     await act(async () => requests[7].reject(new Error('boom')))
-    await screen.findByText('Failed to load week-by-week data.')
+    await screen.findByText("Couldn't load week-by-week data. Try again in a moment.")
 
     await switchTo(6)
     await act(async () => requests[6].resolve(weeks('Aces')))
 
     expect(await screen.findByRole('button', { name: /ACE/ })).toBeInTheDocument()
-    expect(screen.queryByText('Failed to load week-by-week data.')).not.toBeInTheDocument()
+    expect(screen.queryByText("Couldn't load week-by-week data. Try again in a moment.")).not.toBeInTheDocument()
   })
 })

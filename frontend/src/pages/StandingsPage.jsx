@@ -12,6 +12,7 @@ import WeeklyTab from '../components/WeeklyTab'
 import { goodBadColor, divergeColor } from '../utils/heat'
 import { seasonLabel, seasonNumber } from '../utils/seasons'
 import { latestWeek, sosVariantForWeek } from '../utils/teamProfile'
+import { PYPAT_TIP, LUCK_TIP, COLOR_LEGEND } from '../utils/siteCopy'
 import { useLoad } from '../utils/useLoad'
 
 const pct = v => v != null ? (v * 100).toFixed(1) + '%' : '—'
@@ -58,7 +59,7 @@ export default function StandingsPage() {
           setSosMode(null)
         }
       })
-      .catch(() => setError('Failed to load seasons'))
+      .catch(() => setError("Couldn't load seasons. Try again in a moment."))
   }, [])
 
   useEffect(() => {
@@ -68,7 +69,7 @@ export default function StandingsPage() {
     setError(null)
     getStandings(season)
       .then(data => { if (current) { setStandings(data); setStandingsSeason(season); setLoading(false) } })
-      .catch(() => { if (current) { setError('Failed to load standings'); setLoading(false) } })
+      .catch(() => { if (current) { setError("Couldn't load standings. Try again in a moment."); setLoading(false) } })
     return () => { current = false }
   }, [season])
 
@@ -97,15 +98,15 @@ export default function StandingsPage() {
   const sosToggleReady = standings.some(r => r.gamesPlayed >= 3)
   const activeSosMode = sosMode ?? sosVariantForWeek(season, latest, latestWeek(weeks.data)).toLowerCase()
   const sosPrefix = activeSosMode === 'curr' ? 'Curr' : 'Prev'
-  const sosSource = activeSosMode === 'curr' ? 'current-season' : 'previous-season'
+  const sosSource = activeSosMode === 'curr' ? "this season's results" : "last season's results"
   const sosCols = isCurrentSeason
     ? [
-        { sortKey: 'sosPlayed', key: `oppPyPat${sosPrefix}`, label: 'Played', exportLabel: `SoS Played (${sosSource})`, title: `Played SoS: avg opponent-adjusted PyPAT, ${sosSource}. Lower = easier schedule.` },
-        { sortKey: 'sosLeft', key: `oppPyPatRemaining${sosPrefix}`, label: 'Left', exportLabel: `SoS Left (${sosSource})`, title: `Remaining SoS: future opponents' opponent-adjusted PyPAT using ${sosSource} opponent quality.` },
-        { sortKey: 'sosTotal', key: `oppPyPatTotal${sosPrefix}`, label: 'Total', exportLabel: `SoS Total (${sosSource})`, title: `Full-season SoS: all scheduled opponents, ${sosSource}.` },
+        { sortKey: 'sosPlayed', key: `oppPyPat${sosPrefix}`, label: 'Played', exportLabel: `SoS Played (${sosSource})`, title: `Strength of opponents already played: their average PyPAT, leaving out their games against this team. Higher means a harder schedule. Uses ${sosSource}.` },
+        { sortKey: 'sosLeft', key: `oppPyPatRemaining${sosPrefix}`, label: 'Left', exportLabel: `SoS Left (${sosSource})`, title: `Strength of remaining opponents: their average PyPAT, leaving out their games against this team. Higher means a harder schedule. Uses ${sosSource}.` },
+        { sortKey: 'sosTotal', key: `oppPyPatTotal${sosPrefix}`, label: 'Total', exportLabel: `SoS Total (${sosSource})`, title: `Strength of all scheduled opponents: their average PyPAT, leaving out their games against this team. Weighted per game. Higher means a harder schedule. Uses ${sosSource}.` },
       ]
     : [
-        { sortKey: 'sosPlayed', key: `oppPyPat${sosPrefix}`, label: 'SoS', exportLabel: `SoS (${sosSource})`, title: `Strength of Schedule: avg opponent-adjusted PyPAT, ${sosSource}. Lower = easier schedule.` },
+        { sortKey: 'sosPlayed', key: `oppPyPat${sosPrefix}`, label: 'SoS', exportLabel: `SoS (${sosSource})`, title: `Strength of opponents already played: their average PyPAT, leaving out their games against this team. Higher means a harder schedule. Uses ${sosSource}.` },
       ]
 
   const sortField = sosCols.find(col => col.sortKey === sortKey)?.key ?? sortKey
@@ -124,18 +125,18 @@ export default function StandingsPage() {
     { key: 'wins',           label: 'W', desc: 'Wins. A tie counts 0.5 toward expected wins.', value: r => r.wins, z: '0', group: 'Record', groupStart: true },
     { key: 'losses',         label: 'L', desc: 'Losses.', value: r => r.losses, z: '0', group: 'Record' },
     { key: 'ties',           label: 'T', desc: 'Ties. A tie counts 0.5 toward expected wins.', value: r => r.ties, z: '0', group: 'Record' },
-    { key: 'winPct',         label: 'Win%', desc: 'Winning percentage, 3 decimals, ties as half a win.', value: r => r.winPct, z: '0.000', fmt: v => v.toFixed(3), heat: 'higher', group: 'Record' },
-    { key: 'pointsFor',      label: 'Avg PF', desc: 'Points scored per game.', value: r => r.gamesPlayed > 0 ? pfAvg(r) : null, z: '0.0', heat: 'higher', getValue: pfAvg, group: 'Scoring', groupStart: true,
+    { key: 'winPct',         label: 'Win%', desc: 'Record win percentage. A tie counts as half a win.', value: r => r.winPct, z: '0.000', fmt: v => v.toFixed(3), heat: 'higher', group: 'Record' },
+    { key: 'pointsFor',      label: 'Pts/G', desc: 'Points scored per game.', value: r => r.gamesPlayed > 0 ? pfAvg(r) : null, z: '0.0', heat: 'higher', getValue: pfAvg, group: 'Scoring', groupStart: true,
       fmt: (v, _, row) => row.gamesPlayed > 0 ? (v / row.gamesPlayed).toFixed(1) : '—' },
-    { key: 'pointsAgainst',  label: 'Avg PA', desc: 'Points allowed per game.', value: r => r.gamesPlayed > 0 ? paAvg(r) : null, z: '0.0', heat: 'lower',  getValue: paAvg, group: 'Scoring',
+    { key: 'pointsAgainst',  label: 'Opp Pts/G', desc: 'Points allowed per game.', value: r => r.gamesPlayed > 0 ? paAvg(r) : null, z: '0.0', heat: 'lower',  getValue: paAvg, group: 'Scoring',
       fmt: (v, _, row) => row.gamesPlayed > 0 ? (v / row.gamesPlayed).toFixed(1) : '—' },
-    { key: 'pythagoreanPat', label: 'PyPAT', desc: `PythagoreanPAT win expectancy: the share of games a team should have won given points scored and allowed, using Chase Stuart's dynamic exponent. 50.0% is break-even.`, value: r => r.pythagoreanPat, z: '0.0%', fmt: pct, heat: 'higher', group: 'Advanced', groupStart: true,
-      title: 'PythagoreanPAT win expectancy' },
-    { key: 'winDiff',        label: 'Luck', desc: 'Wins above PyPAT expectation. Positive = won more than scoring margin justifies, a regression risk; negative = unlucky, a rebound candidate.', value: r => r.winDiff, z: '+0.0;-0.0;0.0', group: 'Advanced',
+    { key: 'pythagoreanPat', label: 'PyPAT', desc: PYPAT_TIP, value: r => r.pythagoreanPat, z: '0.0%', fmt: pct, heat: 'higher', group: 'Advanced', groupStart: true,
+      title: PYPAT_TIP },
+    { key: 'winDiff',        label: 'Luck', desc: LUCK_TIP, value: r => r.winDiff, z: '+0.0;-0.0;0.0', group: 'Advanced',
       fmt: v => v != null ? (v > 0 ? '+' : '') + v.toFixed(1) : '—',
       heat: 'diverge',
-      title: 'Wins above PyPAT expectation. Positive = lucky (regression risk).' },
-    ...sosCols.map((c, i) => ({ ...c, desc: `${c.label === 'Left' ? 'Remaining schedule: future opponents' : c.label === 'Total' ? 'Full-season schedule: all scheduled opponents' : 'Played schedule: opponents already played'}. Average opponent-adjusted PyPAT using ${sosSource} quality, recalculated with the subject team's games removed so head-to-head results cannot inflate it. Weighted per game, so a division rival played twice counts twice. Lower = easier schedule. Null = no data, not 0.`, value: r => r[c.key], z: '0.0%', fmt: pct, heat: 'lower', group: 'Strength of schedule', groupStart: i === 0 })),
+      title: LUCK_TIP },
+    ...sosCols.map((c, i) => ({ ...c, desc: c.title, value: r => r[c.key], z: '0.0%', fmt: pct, heat: 'lower', group: 'Strength of schedule', groupStart: i === 0 })),
   ]
 
   const groupSpans = []
@@ -172,8 +173,8 @@ export default function StandingsPage() {
     return {
       name: group.label ? `Standings — ${group.label}` : 'Standings',
       qualifier: `${seasonLabel(standingsSeason)} · ${gamesLabel} · sorted by ${sortLabel} ${direction}`,
-      description: "Season standings, one row per team. The site's premise is that one-score games are near-random, so scoring margin (PyPAT) describes a team better than its W-L record.",
-      notes: ['Green = better, red = worse (lower is better for Avg PA and SoS). Luck: blue = won more than expected, orange = fewer.'],
+      description: "Season standings, one row per team. The site's premise is that one-score games are near-random, so points scored and allowed (PyPAT) describe a team better than its W-L record.",
+      notes: [COLOR_LEGEND],
       rows: group.rows,
       cols: specCols(COLS, (col, heatVal) => cellColor(col, heatVal)),
       api: {
@@ -181,8 +182,8 @@ export default function StandingsPage() {
         note: `Returned unsorted; this table is sorted by ${sortField} ${direction}. SoS uses ${sosSource} opponent quality.`,
         fields: {
           Team: 'cityName + " " + displayName',
-          'Avg PF': 'pointsFor / gamesPlayed, 1 dp; empty when no games played',
-          'Avg PA': 'pointsAgainst / gamesPlayed, 1 dp; empty when no games played',
+          'Pts/G': 'pointsFor / gamesPlayed, 1 dp; empty when no games played',
+          'Opp Pts/G': 'pointsAgainst / gamesPlayed, 1 dp; empty when no games played',
           PyPAT: 'pythagoreanPat × 100, 1 dp', Luck: 'winDiff',
           ...Object.fromEntries(sosCols.map(col => [col.exportLabel ?? col.label, `${col.key} × 100, 1 dp; nullable`])),
         },
@@ -193,7 +194,7 @@ export default function StandingsPage() {
   const qualifier = {
     standings: season != null ? `${seasonLabel(season)}${gamesLabel ? ` · ${gamesLabel}` : ''} · ranked by PyPAT` : null,
     history: 'W-L, PyPAT and Luck across every season',
-    weekly: season != null ? `${seasonLabel(season)} · PyPAT week by week` : null,
+    weekly: season != null ? `${seasonLabel(season)} · Each team's PyPAT so far, after every week` : null,
   }[tab]
 
   return (
@@ -222,12 +223,12 @@ export default function StandingsPage() {
       {tab === 'history' && (historyError
         ? (
           <div className="text-bad">
-            Failed to load season history.{' '}
+            Couldn&apos;t load season history. Try again in a moment.{' '}
             <button onClick={loadHistory} className="text-ink font-medium hover:text-accent">Retry</button>
           </div>
         )
         : history === null
-          ? <p className="text-muted">Loading...</p>
+          ? <p className="text-muted">Loading…</p>
           : <SeasonHistoryTab data={history} />)}
 
       {tab === 'weekly' && (season == null && error
@@ -249,11 +250,11 @@ export default function StandingsPage() {
 
             {sosToggleReady && (
               <div className="flex items-center gap-2 text-sm">
-                <InfoTip text="SoS is calculated using opponent-adjusted PyPAT — each opponent's quality is measured without their games against the team being evaluated, so H2H results don't inflate their rating. Previous season is more reliable early in the current season before enough games have been played to produce accurate team ratings.">
-                  <span className="text-muted">SoS opponent PyPAT</span>
+                <InfoTip text="Last season's results are more reliable early on. From Week 10 through the playoffs, this season's results are the default.">
+                  <span className="text-muted">Opponent strength from</span>
                 </InfoTip>
                 <div className="flex border border-line rounded overflow-hidden">
-                  {[['curr', 'This season'], ['prev', 'Prior season']].map(([mode, label]) => (
+                  {[['curr', 'This season'], ['prev', 'Last season']].map(([mode, label]) => (
                     <button
                       key={mode}
                       onClick={() => setSosMode(mode)}
@@ -268,7 +269,7 @@ export default function StandingsPage() {
           </div>
 
           {error && <div className="text-bad mb-4">{error}</div>}
-          {loading && <div className="text-muted">Loading...</div>}
+          {loading && <div className="text-muted">Loading…</div>}
 
           {!loading && !error && groups.map(group => (
             <div key={group.label ?? 'all'} className="mb-8">
@@ -301,7 +302,7 @@ export default function StandingsPage() {
                           className={`th cursor-pointer hover:text-ink${
                             col.stickyLeft ? ` sticky ${col.stickyLeft} z-20 bg-bg ${col.w ?? ''}` : ''
                           }${col.groupStart ? ' border-l border-rule' : ''}`}
-                          title={col.title}
+                          title={col.title ?? col.desc}
                           onClick={() => handleSort(col.sortKey ?? col.key)}
                         >
                           {col.label}
@@ -335,7 +336,7 @@ export default function StandingsPage() {
                 </table>
               </div>
               <p className="text-xs text-muted mt-2">
-                Green = better, red = worse (lower is better for Avg PA and SoS). Luck: blue = won more than expected, orange = fewer.
+                {COLOR_LEGEND}
               </p>
             </div>
           ))}

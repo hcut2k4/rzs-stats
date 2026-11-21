@@ -98,7 +98,7 @@ describe('HomePage', () => {
 
     render(<MemoryRouter><HomePage /></MemoryRouter>)
 
-    await screen.findByText('BUF')
+    await screen.findAllByText('BUF')
     expect(screen.getByText('52%')).toBeInTheDocument()
     expect(screen.getByText('92%')).toBeInTheDocument()
   })

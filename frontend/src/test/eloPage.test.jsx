@@ -55,7 +55,7 @@ describe('EloPage', () => {
     await userEvent.click(head('Games'))
     expect(elos()).toEqual(['1600', '1500', '1400'])
 
-    await userEvent.click(head('Rank move'))
+    await userEvent.click(head('Rank change'))
     expect(elos()).toEqual(['1500', '1600', '1400'])
 
     await userEvent.click(head('Team'))
@@ -93,8 +93,8 @@ describe('EloPage', () => {
   it('explains column headings with tooltips', async () => {
     render(<MemoryRouter><EloPage /></MemoryRouter>)
     await screen.findAllByText('BUFx')
-    expect(screen.getByText('vs 1500')).toHaveAttribute('title', expect.stringContaining('1500 average'))
-    expect(screen.getByText('Rank move')).toHaveAttribute('title', expect.stringContaining('places'))
+    expect(screen.getByText('vs avg')).toHaveAttribute('title', expect.stringContaining('league average of 1500'))
+    expect(screen.getByText('Rank change')).toHaveAttribute('title', expect.stringContaining('places'))
   })
 
   it('offers future weeks on the Games tab with projected win probabilities', async () => {

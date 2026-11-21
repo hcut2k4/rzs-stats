@@ -54,7 +54,7 @@ const BASES = [
 
 const WINDOWS = [
   { value: 1, label: 'Last week' },
-  { value: 4, label: 'Last 4' },
+  { value: 4, label: 'Last 4 weeks' },
   { value: 999, label: 'From start' },
 ]
 
@@ -72,7 +72,7 @@ const SCOPES = [
 ]
 
 const STAGES = [
-  { value: 'regular', label: 'Regular' },
+  { value: 'regular', label: 'Regular season' },
   { value: 'playoffs', label: 'Playoffs' },
   { value: 'both', label: 'Both' },
 ]
@@ -82,7 +82,7 @@ const EST_TIP = 'Estimated. Madden does not expose individual sack yardage or lo
 // Column order defines the table; `presets` controls which views show it.
 const ALL_COLS = [
   { key: 'rank', desc: 'TANY/A rank among qualified quarterbacks; unqualified quarterbacks have an empty rank.', value: row => row.rank, z: '0', tx: (_, i, row) => row.rank ?? '', label: '#', fmt: (_, i, row) => row.rank ?? '', stickyLeft: 'left-0', w: 'w-10', presets: ['efficiency', 'classic', 'rushing', 'all'], sortable: false },
-  { key: 'rankChange', desc: 'Change in rank over the comparison window; positive means a rise, and no change or no prior rank is empty.', tx: signedMove, value: row => row.rankChange, label: 'Move', presets: ['efficiency', 'classic', 'rushing', 'all'], fmt: v => <Move value={v} /> },
+  { key: 'rankChange', desc: 'Places gained or lost since last week. \'new\' means unranked last week.', tx: signedMove, value: row => row.rankChange, label: 'Rank change', presets: ['efficiency', 'classic', 'rushing', 'all'], fmt: v => <Move value={v} /> },
   {
     key: 'playerName', desc: 'Quarterback name.', tx: v => v, align: 'left', label: 'QB', stickyLeft: 'left-10', presets: ['efficiency', 'classic', 'rushing', 'all'],
     fmt: (v, _, row) => (
@@ -102,7 +102,7 @@ const ALL_COLS = [
   { key: 'gamesPlayed', desc: 'Number of games played by the quarterback.', value: row => row.gamesPlayed, z: '0', label: 'GP', presets: ['efficiency', 'classic', 'rushing', 'all'], group: 'Volume', groupStart: true },
   { key: 'passAtt', desc: 'Number of pass attempts.', value: row => row.passAtt, z: '0', label: 'Att', presets: ['efficiency', 'classic', 'rushing', 'all'], group: 'Volume' },
   { key: 'tanya', value: row => row.tanya, z: '0.00', label: 'TANY/A', fmt: n2, heat: 'higher', presets: ['efficiency', 'classic', 'rushing', 'all'], group: 'Efficiency', groupStart: true, title: TANYA_TIP },
-  { key: 'anya', value: row => row.anya, z: '0.00', label: 'ANY/A', fmt: n2, heat: 'higher', presets: ['efficiency', 'all'], group: 'Efficiency', title: 'Adjusted Net Yards per Attempt — passing only, no fumble term. The classic benchmark.' },
+  { key: 'anya', value: row => row.anya, z: '0.00', label: 'ANY/A', fmt: n2, heat: 'higher', presets: ['efficiency', 'all'], group: 'Efficiency', title: 'Adjusted net yards per dropback: passing only, with sacks, touchdowns and interceptions built in. Higher is better.' },
   { key: 'rushValue', value: row => row.rushValue, z: '+0.00;-0.00;0.00', label: 'RUSH+', fmt: signed2, heat: 'higher', presets: ['efficiency', 'rushing', 'all'], group: 'Efficiency', title: RUSHPLUS_TIP },
   { key: 'passerRating', desc: 'Passer rating calculated from completion rate, yards per attempt, touchdown rate and interception rate.', value: row => row.passerRating, z: '0.0', label: 'Rating', fmt: n1, heat: 'higher', presets: ['classic', 'all'], group: 'Efficiency' },
   { key: 'passComp', desc: 'Number of completed passes.', value: row => row.passComp, z: '0', label: 'Cmp', presets: ['classic', 'all'], group: 'Passing', groupStart: true },
@@ -205,7 +205,7 @@ function Leaderboard({ rows, preset, sortKey, sortAsc, onSort, scope, params }) 
                   className={`th${col.sortable === false ? '' : ' cursor-pointer hover:text-ink'}${
                     col.stickyLeft ? ` sticky ${col.stickyLeft} z-20 bg-bg ${col.w ?? ''}` : ''
                   }${col.groupStart ? ' border-l border-rule' : ''}`}
-                  title={col.title}
+                  title={col.title ?? col.desc}
                   onClick={() => col.sortable !== false && onSort(col.key)}
                 >
                   {col.label}
@@ -262,7 +262,7 @@ function MoverList({ title, rows, direction }) {
       <h3 className="font-display font-bold uppercase text-lg mb-2">{title}</h3>
       {rows.length === 0 && (
         <p className="text-muted text-sm">
-          No {direction === 'up' ? 'risers' : 'fallers'} over this window — nobody qualified moved {direction === 'up' ? 'up' : 'down'} the board. Widen "Movers vs" to compare further back.
+          No {direction === 'up' ? 'risers' : 'fallers'} over this window — nobody qualified moved {direction === 'up' ? 'up' : 'down'} the board. Widen "Compare with" to compare further back.
         </p>
       )}
       <div className="border-y border-rule divide-y divide-line">
@@ -304,7 +304,7 @@ export function RankTooltip({ active, payload, label, named, focus }) {
           <span className="num text-muted">#{p.value}</span>
         </div>
       ))}
-      {more > 0 && <div className="text-muted mt-1">+{more} more · click names to pin</div>}
+      {more > 0 && <div className="text-muted mt-1">+{more} more · click names to keep them in the hover card</div>}
     </div>
   )
 }
@@ -312,7 +312,7 @@ export function RankTooltip({ active, payload, label, named, focus }) {
 function Movement({ data, loading, params }) {
   const [focus, setFocus] = useState(new Set())
   const [hover, setHover] = useState(null)
-  if (loading) return <div className="text-muted">Loading...</div>
+  if (loading) return <div className="text-muted">Loading…</div>
   if (!data) return null
 
   const basis = params.basis
@@ -343,7 +343,7 @@ function Movement({ data, loading, params }) {
     rows: [...(data.risers ?? []).map(r => ({ ...r, direction: 'Riser' })), ...(data.fallers ?? []).map(r => ({ ...r, direction: 'Faller' }))],
     cols: [
       { label: 'Direction', desc: 'Riser for a rank gain or Faller for a rank loss.', text: r => r.direction },
-      { label: 'Move', desc: 'Signed rank change over the comparison window; positive means a rise.', text: r => signedMove(r.rankChange), value: r => r.rankChange },
+      { label: 'Rank change', desc: 'Signed rank change over the comparison window; positive means a rise.', text: r => signedMove(r.rankChange), value: r => r.rankChange },
       ...playerCols, rankCol, tanyaCol,
     ],
     api: { path: '/qb/movement', params, note: 'risers followed by fallers from the response.' },
@@ -390,6 +390,7 @@ function Movement({ data, loading, params }) {
         <MoverList title="Fallers" rows={data.fallers ?? []} direction="down" />
       </div>
 
+      {series.length === 0 && <p className="text-muted">No rank history for this selection yet.</p>}
       {series.length > 0 && (
         <div>
           <div className="flex justify-end">{historySpec.rows.length > 0 && <ExportMenu spec={historySpec} />}</div>
@@ -476,7 +477,7 @@ export default function QbPage() {
         setSeasons(s)
         if (s.length) setSeason(s[s.length - 1])
       })
-      .catch(() => setError('Failed to load seasons'))
+      .catch(() => setError("Couldn't load seasons. Try again in a moment."))
   }, [])
 
   // The week list has to follow the stage, or picking Playoffs leaves only unreachable weeks.
@@ -513,7 +514,7 @@ export default function QbPage() {
     }
     getQbLeaderboard(params)
       .then(rows => { if (current) setLeaderboard({ rows, params }) })
-      .catch(() => { if (current) setError('Failed to load QB stats') })
+      .catch(() => { if (current) setError("Couldn't load QB stats. Try again in a moment.") })
       .finally(() => { if (current) setLoading(false) })
     return () => { current = false }
   }, [tab, scope, season, week, stage, minAtt, includeUnqualified])
@@ -527,7 +528,7 @@ export default function QbPage() {
     const params = { ...(season != null ? { season } : {}), stage, basis, window: moverWindow }
     getQbMovement(params)
       .then(data => { if (current) setMovement({ data, params }) })
-      .catch(() => { if (current) setError('Failed to load movement') })
+      .catch(() => { if (current) setError("Couldn't load movement. Try again in a moment.") })
       .finally(() => { if (current) setLoading(false) })
     return () => { current = false }
   }, [tab, season, stage, basis, moverWindow])
@@ -606,7 +607,7 @@ export default function QbPage() {
 
             <label className="flex items-center gap-2 text-sm">
               <InfoTip text="How far back the risers and fallers compare. It does not change the chart, which always plots every week available.">
-                <span className="text-muted">Movers vs</span>
+                <span className="text-muted">Compare with</span>
               </InfoTip>
               <select className="field" value={moverWindow} onChange={e => setMoverWindow(Number(e.target.value))}>
                 {WINDOWS.map(w => <option key={w.value} value={w.value}>{w.label}</option>)}
@@ -640,6 +641,7 @@ export default function QbPage() {
             {PRESETS.map(p => (
               <button
                 key={p.value}
+                title={ALL_COLS.filter(c => c.presets.includes(p.value)).map(c => c.label).join(', ')}
                 onClick={() => setPreset(p.value)}
                 className={`px-2 py-1 text-xs font-medium ${preset === p.value ? 'bg-ink text-bg' : 'text-muted hover:text-ink'}`}
               >
@@ -669,13 +671,13 @@ export default function QbPage() {
               onChange={e => setIncludeUnqualified(e.target.checked)}
               className="accent-accent"
             />
-            Show unqualified
+            <span title="Below the attempt minimum for rankings">Show unqualified</span>
           </label>
         </div>
       )}
 
       {error && <div className="text-bad mb-4">{error}</div>}
-      {loading && <div className="text-muted">Loading...</div>}
+      {loading && <div className="text-muted">Loading…</div>}
 
       {!loading && !error && tab === 'leaderboard' && (
         <Leaderboard

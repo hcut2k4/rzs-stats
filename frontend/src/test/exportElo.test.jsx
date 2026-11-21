@@ -57,9 +57,9 @@ async function getSpec(name) {
   expect(spec.cols.every(c => c.desc?.trim())).toBe(true)
   expect(spec.description).toBeTruthy()
   expect(spec.notes.join(' ')).toContain('Every team starts at 1500')
-  expect(spec.notes.join(' ')).toContain('pulled part of the way back toward 1500')
-  expect(spec.notes.join(' ')).toContain('Mid-season owner changes apply the same regression')
-  expect(spec.notes.join(' ')).toContain('playoffs included')
+  expect(spec.notes.join(' ')).toContain('pulled part of the way back toward it')
+  expect(spec.notes.join(' ')).toContain('when it changes owners mid-season')
+  expect(spec.notes.join(' ')).toContain('Includes playoffs')
   expect(Object.values(spec.api.params)).not.toContain(undefined)
   return spec
 }
@@ -72,7 +72,7 @@ const sheet = spec => { const wb = buildWorkbook(spec); return wb.Sheets[wb.Shee
 
 it('keeps the export-only Ratings headers equal to the rendered table headers', async () => {
   const spec = await show()
-  expect(toRows(spec)[0]).toEqual(['#', 'Team', 'Elo', 'vs 1500', 'Change', 'Rank move', 'Games'])
+  expect(toRows(spec)[0]).toEqual(['#', 'Team', 'Elo', 'vs avg', 'Change', 'Rank change', 'Games'])
   expect(spec.cols.map(c => c.label)).toEqual(screen.getAllByRole('columnheader').map(th => th.textContent))
   expect(toRows(spec)[1]).toEqual(['1', 'Bills', '1620', '+120', '+12.5', '+2', '35'])
   expect(toRows(spec)[2].slice(3, 6)).toEqual(['-20', '-12.5', '-1'])
@@ -111,7 +111,7 @@ it('exports Movers in riser then dropper order with one menu for the pair', asyn
   expect(toRows(spec)).toEqual([
     ['Direction', 'Team', 'Change'],
     ['Riser', 'Bills', '+12.5'], ['Riser', 'Jets', '0.0'], ['Riser', 'Dolphins', '-12.5'],
-    ['Dropper', 'Dolphins', '-12.5'], ['Dropper', 'Jets', '0.0'], ['Dropper', 'Bills', '+12.5'],
+    ['Faller', 'Dolphins', '-12.5'], ['Faller', 'Jets', '0.0'], ['Faller', 'Bills', '+12.5'],
   ])
   expect(spec.api).toMatchObject({ path: '/elo/ratings', params: { season: 2, week: 2 } })
   expect(spec.qualifier).toContain('Season 105 · Week 3')
@@ -122,7 +122,7 @@ it('exports Movers in riser then dropper order with one menu for the pair', asyn
 
 it('splits played game cells into ASCII headers, signed deltas and an empty non-upset result', async () => {
   const spec = await show('games')
-  expect(toRows(spec)[0]).toEqual(['Away', 'Away Elo', 'Away Elo Change', 'Home', 'Home Elo', 'Home Elo Change', 'Away Score', 'Home Score', 'Home Win Prob', 'MOV Mult', 'Result'])
+  expect(toRows(spec)[0]).toEqual(['Away', 'Away Elo', 'Away Elo Change', 'Home', 'Home Elo', 'Home Elo Change', 'Away Score', 'Home Score', 'Home Win Prob', 'Margin mult.', 'Result'])
   expect(toRows(spec)[1]).toEqual(['BUF', '1500', '+12.5', 'MIA', '1600', '-12.5', '24', '10', '70.0%', '1.23', 'Big upset · 30%'])
   expect(toRows(spec)[2].at(-1)).toBe('')
   expect(csvText(spec).split('\n')[2]).toMatch(/1.23,$/)
@@ -147,7 +147,7 @@ it('exports projected games in the current scope with numeric edge, favored prob
   expect(toRows(spec)[1]).toEqual(['BUF', '1620', 'MIA', '1480', '0.50', 'BUF', '75%', 'Likely'])
   expect(spec.rows.map(r => r.game.gameId)).toEqual([3])
   expect(spec.cols.at(-1).color(spec.rows[0])).toBe(lean(upcoming[0]).shade)
-  expect(spec.cols.find(c => c.label === 'Edge').desc).toContain('1 means certain')
+  expect(spec.cols.find(c => c.label === 'Edge').desc).toContain('100% win probability')
   expect(csvText(spec)).toContain(',0.50,')
   expect(aiText(spec)).toContain(',0.50,')
   const edge = spec.cols.find(c => c.label === 'Edge')

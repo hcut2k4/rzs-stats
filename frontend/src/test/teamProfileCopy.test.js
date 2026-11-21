@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { toRows, aiText } from '../utils/exportTable'
-import { TIERS, pct0 } from '../utils/eloLean'
+import { TIERS, tierText, outlookText, upsetText, UPSET_LEVELS } from '../utils/eloLean'
 import {
   possessive, landscapeSummary, truthSummary, roadSummary, roadFooter, outlookTip,
   arcSummary, trajectoryCopy, franchiseSummary, rivalrySummary,
@@ -67,13 +67,17 @@ describe('team profile copy', () => {
     expect(roadSpec(team, 1, [{ winProb: 1 }]).qualifier).toContain('1 game left.')
   })
 
-  it('generates every Outlook range from the tier definitions, including the final endpoint', () => {
-    const tip = outlookTip()
-    TIERS.forEach((tier, i) => {
-      expect(tip).toContain(`${tier.label}: ${pct0(tier.lo)}–${i === TIERS.length - 1 ? '' : 'under '}${pct0(tier.hi)}`)
-    })
-    TIERS.push({ label: 'Test tier', lo: 1, hi: 1.1 })
-    try { expect(outlookTip()).toContain('Test tier: 100%–110%') } finally { TIERS.pop() }
+  it('generates Outlook text from every tier threshold', () => {
+    expect(tierText()).toBe('Toss-up 50–54%, Tilt 55–59%, Lean 60–69%, Likely 70–79%, Solid 80%+')
+    expect(outlookTip()).toContain(tierText())
+    expect(outlookText()).toContain(tierText())
+    const original = TIERS[0].hi
+    TIERS[0].hi = 0.56
+    try {
+      expect(outlookTip()).toContain('Toss-up 50–55%')
+      expect(outlookText()).toContain('Toss-up 50–55%')
+      expect(upsetText()).toContain(UPSET_LEVELS.map(t => t.label).join(', '))
+    } finally { TIERS[0].hi = original }
   })
 
   it('uses singular and plural upset counts and only says So far during an unfinished season', () => {

@@ -31,7 +31,7 @@ describe('GamesPage playoffs', () => {
     client.getGames.mockResolvedValue([])
 
     render(<MemoryRouter><GamesPage /></MemoryRouter>)
-    await userEvent.selectOptions(await screen.findByDisplayValue('Regular Season'), 'Playoffs')
+    await userEvent.selectOptions(await screen.findByDisplayValue('Regular season'), 'Playoffs')
 
     expect(await screen.findByRole('option', { name: 'Wild Card' })).toBeInTheDocument()
     expect(screen.getByRole('option', { name: 'Super Bowl' })).toBeInTheDocument()
