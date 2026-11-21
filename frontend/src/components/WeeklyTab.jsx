@@ -9,6 +9,8 @@ import { weekLabel } from '../utils/playoffRounds'
 import { PYPAT_TIP } from '../utils/siteCopy'
 import { COLORS } from '../utils/chartColors'
 
+export const pyPatPercent = v => (v * 100).toFixed(1) + '%'
+
 export default function WeeklyTab({ season }) {
   const [{ data, dataSeason }, setData] = useState({ data: [], dataSeason: null })
   const [loading, setLoading] = useState(false)
@@ -93,7 +95,7 @@ export default function WeeklyTab({ season }) {
           <Tooltip
             contentStyle={{ background: 'rgb(var(--bg))', border: '1px solid rgb(var(--rule))', borderRadius: 3 }}
             itemSorter={item => -item.value}
-            formatter={v => v.toFixed(4)}
+            formatter={pyPatPercent}
           />
           {allTeams.map((t, i) => (
             <Line

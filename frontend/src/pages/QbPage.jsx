@@ -11,7 +11,7 @@ import { goodBadColor, divergeColor } from '../utils/heat'
 import { COLORS } from '../utils/chartColors'
 import { seasonLabel, seasonNumber } from '../utils/seasons'
 import { shortWeekName } from '../utils/playoffRounds'
-import { n1, n2, signed2, neonPlayerUrl, TANYA_TIP, RUSHPLUS_TIP } from '../utils/qb'
+import { n1, n2, signed2, neonPlayerUrl, TANYA_TIP, RUSHPLUS_TIP, attemptMinimum } from '../utils/qb'
 
 const signedMove = v => v == null || v === 0 ? '' : (v > 0 ? '+' : '') + v
 const stageLabel = stage => stage === 'regular' ? 'Regular season' : stage === 'playoffs' ? 'Playoffs' : 'Both'
@@ -156,7 +156,7 @@ function Leaderboard({ rows, preset, sortKey, sortAsc, onSort, scope, params }) 
     return undefined
   }
 
-  const minimum = params.minAtt ?? (params.scope === 'week' ? '10' : params.scope === 'alltime' ? (params.stage === 'playoffs' ? '50' : '250') : '10 × team games played')
+  const minimum = attemptMinimum(params.scope, params.stage, params.minAtt)
   const slice = params.scope === 'alltime' ? 'All-time' : params.scope === 'week' ? `${seasonLabel(params.season)} · ${weekOptionLabel(params.week)}` : `${seasonLabel(params.season)} · Season`
   const sort = `${ALL_COLS.find(c => c.key === sortKey)?.label} (${sortKey}) ${sortAsc ? 'ascending' : 'descending'}`
   const exportCols = [...cols]
@@ -165,7 +165,7 @@ function Leaderboard({ rows, preset, sortKey, sortAsc, onSort, scope, params }) 
   })
   const exportSpec = {
     name: 'QB Leaderboard',
-    qualifier: `${slice} · ${stageLabel(params.stage)} · minimum attempts: ${minimum} · unqualified ${params.includeUnqualified ? 'shown' : 'hidden'} · ${PRESETS.find(p => p.value === preset).label} preset · sorted by ${sort}`,
+    qualifier: `${slice} · ${stageLabel(params.stage)} · minimum: ${minimum} · unqualified ${params.includeUnqualified ? 'shown' : 'hidden'} · ${PRESETS.find(p => p.value === preset).label} preset · sorted by ${sort}`,
     description: 'One row per QB, sorted as shown. Qualification defaults to 10 pass attempts for a week, 10 × team games played for a season, or 250 career attempts (50 for all-time playoffs); minAtt overrides the default. Unqualified QBs appear only with Show unqualified enabled and export an empty #.',
     rows,
     cols: specCols(exportCols, cellColor),
@@ -451,6 +451,12 @@ function Movement({ data, loading, params }) {
   )
 }
 
+export function leaderboardQualifier({ scope, season, week, stage, minAtt }) {
+  const slice = scope === 'alltime' ? 'All seasons' : scope === 'week'
+    ? `${seasonLabel(season)} · ${week != null ? weekOptionLabel(week) : '—'}` : seasonLabel(season)
+  return `${slice} · ${stageLabel(stage)} · min ${attemptMinimum(scope, stage, minAtt)} · ranked by TANY/A`
+}
+
 export default function QbPage() {
   const [tab, setTab] = useState('leaderboard')
   const [seasons, setSeasons] = useState([])
@@ -546,17 +552,13 @@ export default function QbPage() {
     return sortAsc ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1)
   })
 
-  const qualifier = scope === 'alltime'
-    ? 'All seasons · min 250 attempts'
-    : scope === 'week'
-      ? `${seasonLabel(season)} · Week ${week != null ? week + 1 : '—'} · min 10 attempts`
-      : `${seasonLabel(season)} · min 10 attempts per team game`
-
   return (
     <div>
       <PageHeader
         title="Quarterbacks"
-        qualifier={`${qualifier} · ranked by TANY/A`}
+        qualifier={tab === 'leaderboard'
+          ? leaderboardQualifier({ scope, season, week, stage, minAtt })
+          : `${basis === 'alltime' ? 'All seasons' : seasonLabel(season)} · ${stageLabel(stage)} · rank movement`}
         takeaway="TANY/A folds a quarterback's rushing into his passing efficiency, so scramblers and pocket passers sit on one scale."
       >
         {tab === 'leaderboard' ? (

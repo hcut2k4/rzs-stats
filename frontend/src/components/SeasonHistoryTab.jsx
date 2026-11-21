@@ -118,7 +118,7 @@ export default function SeasonHistoryTab({ data }) {
                           className="px-2 py-1.5 text-center"
                           style={{ backgroundColor: goodBadColor(row?.pythagoreanPat, columnValues[`${d.seasonIndex}-pypat`]) }}
                         >
-                          {row ? row.pythagoreanPat.toFixed(3) : '—'}
+                          {row?.pythagoreanPat != null ? (row.pythagoreanPat * 100).toFixed(1) + '%' : '—'}
                         </td>
                         <td className="px-2 py-1.5 text-center" style={{ backgroundColor: divergeColor(row?.winDiff) }}>
                           {row?.winDiff != null ? (row.winDiff > 0 ? '+' : '') + row.winDiff.toFixed(1) : '—'}

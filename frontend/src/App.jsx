@@ -88,6 +88,7 @@ export default function App() {
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/changelog" element={<ChangelogPage />} />
+          <Route path="*" element={<div><h1 className="font-display font-bold text-3xl mb-2">Page not found</h1><p>Head back to the <Link to="/" className="text-accent hover:underline">home page</Link> or pick a page from the menu.</p></div>} />
         </Routes>
       </main>
 

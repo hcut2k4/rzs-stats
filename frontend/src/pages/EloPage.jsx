@@ -263,7 +263,9 @@ function HistoryTab({ history, teams, params }) {
   )
 }
 
-function MatchupTab({ ratedTeams }) {
+export const homeTeamForSide = (side, a, b) => side === 'a' ? a : side === 'b' ? b : undefined
+
+export function MatchupTab({ ratedTeams }) {
   const teams = useMemo(() => [...ratedTeams].sort((x, y) => x.displayName.localeCompare(y.displayName)), [ratedTeams])
   const [a, setA] = useState(null)
   const [b, setB] = useState(null)
@@ -276,7 +278,9 @@ function MatchupTab({ ratedTeams }) {
 
   useEffect(() => {
     if (a == null || b == null || a === b) { setResult(null); return }
-    getEloMatchup(a, b, home || undefined).then(setResult).catch(() => setResult(null))
+    let current = true
+    getEloMatchup(a, b, homeTeamForSide(home, a, b)).then(r => { if (current) setResult(r) }).catch(() => { if (current) setResult(null) })
+    return () => { current = false }
   }, [a, b, home])
 
   const select = (value, onChange, aria) => (
@@ -295,8 +299,8 @@ function MatchupTab({ ratedTeams }) {
           Home team
           <select className="field" aria-label="Home team" value={home} onChange={e => setHome(e.target.value)}>
             <option value="">Neutral</option>
-            <option value={a ?? ''}>Team A</option>
-            <option value={b ?? ''}>Team B</option>
+            <option value="a">{teams.find(t => t.teamId === a)?.displayName ?? 'Team A'}</option>
+            <option value="b">{teams.find(t => t.teamId === b)?.displayName ?? 'Team B'}</option>
           </select>
         </label>
       </div>

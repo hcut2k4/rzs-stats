@@ -7,3 +7,7 @@ export const neonPlayerUrl = rosterId => `https://neonsportz.com/leagues/RZS/pla
 export const TANYA_BENCHMARK = 'BENCHMARK_TBD'
 export const TANYA_TIP = `Total adjusted net yards per attempt, where an attempt is every dropback or carry. Touchdowns add 20 yards; interceptions and lost fumbles cost 45. Higher is better. ${TANYA_BENCHMARK}`
 export const RUSHPLUS_TIP = "The value a QB's running adds over a 4-yards-per-carry baseline, on the same per-dropback scale as his passing stats. Positive means his running adds value."
+
+export const attemptMinimum = (scope, stage, minAtt) => minAtt != null && minAtt !== ''
+  ? `${minAtt} attempts`
+  : scope === 'week' ? '10 attempts' : scope === 'alltime' ? `${stage === 'playoffs' ? 50 : 250} attempts` : '10 attempts per team game'
