@@ -43,10 +43,11 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 flex items-center h-14">
           <Link
             to="/"
-            className="font-display font-extrabold uppercase text-2xl tracking-tight mr-6 hover:opacity-80 transition-opacity"
+            className="flex items-center gap-2 font-display font-extrabold uppercase text-2xl tracking-tight mr-6 hover:opacity-80 transition-opacity"
             aria-label="RZS Stats home"
           >
-            RZS<span className="text-accent"> Stats</span>
+            <img src="/logo.png" alt="" width="40" height="40" className="h-10 w-10" />
+            <span>RZS<span className="text-accent"> Stats</span></span>
           </Link>
           <nav className="hidden sm:flex items-center gap-1" aria-label="Main">
             {LINKS.map(l => <NavLink key={l.to} to={l.to} end={l.end} className={navClass}>{l.label}</NavLink>)}

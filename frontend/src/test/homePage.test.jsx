@@ -145,7 +145,9 @@ describe('HomePage', () => {
 
     render(<MemoryRouter initialEntries={['/about']}><App /></MemoryRouter>)
 
-    await userEvent.click(screen.getByRole('link', { name: /RZS Stats home/i }))
+    const homeLink = screen.getByRole('link', { name: /RZS Stats home/i })
+    expect(homeLink.querySelector('img[src="/logo.png"]')).not.toBeNull()
+    await userEvent.click(homeLink)
 
     await waitFor(() => expect(screen.getByText('Pat Mahomes')).toBeInTheDocument())
   })
