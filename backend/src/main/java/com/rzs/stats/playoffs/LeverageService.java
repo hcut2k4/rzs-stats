@@ -51,7 +51,12 @@ public class LeverageService {
         return new Key(state.season(), week == null ? state.nextWeek() : week);
     }
 
-    @Cacheable(value = "leverage", key = "new org.springframework.cache.interceptor.SimpleKey(#root.target.canonicalKey(#season, #week), #rules)", sync = true)
+    public Object cacheKey(Integer season, Integer week, String rules) {
+        return new org.springframework.cache.interceptor.SimpleKey(canonicalKey(season, week), rules);
+    }
+
+
+    @Cacheable(value = "leverage", key = "#root.target.cacheKey(#season, #week, #rules)", sync = true)
     public LeverageMatrix matrix(Integer season, Integer week, String rules) {
         if (!"madden".equals(rules) && !"nfl".equals(rules))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rules must be madden or nfl");

@@ -95,7 +95,12 @@ public class OddsService {
         return season == null ? loader.load(null).season() : season;
     }
 
-    @Cacheable(value = "playoffOdds", key = "new org.springframework.cache.interceptor.SimpleKey(#root.target.canonicalSeason(#season, #rules), #rules)", sync = true)
+    public Object cacheKey(Integer season, String rules) {
+        return new org.springframework.cache.interceptor.SimpleKey(canonicalSeason(season, rules), rules);
+    }
+
+
+    @Cacheable(value = "playoffOdds", key = "#root.target.cacheKey(#season, #rules)", sync = true)
     public Response odds(Integer season, String rules) {
         if (!rules.equals("madden") && !rules.equals("nfl")) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rules must be madden or nfl");
