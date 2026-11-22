@@ -14,6 +14,7 @@ public class PlayoffsLeverageController {
     public LeverageService.Response leverage(@RequestParam(required = false) Integer season,
                                              @RequestParam(required = false) Integer week,
                                              @RequestParam(defaultValue = "madden") String rules) {
-        return leverage.response(leverage.matrix(season, week, rules));
+        var key = leverage.canonicalKey(season, week);
+        return leverage.response(leverage.matrix(key.season(), key.week(), rules));
     }
 }

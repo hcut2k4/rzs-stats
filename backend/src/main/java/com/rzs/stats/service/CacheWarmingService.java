@@ -101,7 +101,8 @@ public class CacheWarmingService {
                     log.warn("Cache warming: playoff odds failed", e);
                 }
                 try {
-                    leverage.matrix(null, null, "madden");
+                    var key = leverage.canonicalKey(null, null);
+                    leverage.matrix(key.season(), key.week(), "madden");
                 } catch (Exception e) {
                     log.warn("Cache warming: playoff leverage failed", e);
                 }

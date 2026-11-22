@@ -184,7 +184,9 @@ class WhatIfServiceTest {
             var expected = picture.picture(1, response.rules());
             for (var conference : response.conferences()) {
                 assertThat(conference.seeds().stream().map(WhatIfService.Seed::row).toList())
-                        .isEqualTo(expected.conferences().stream().filter(c -> c.name().equals(conference.name())).findFirst().orElseThrow().seeds());
+                        .isEqualTo(expected.conferences().stream().filter(c -> c.name().equals(conference.name())).findFirst().orElseThrow().seeds().stream()
+                                .map(r -> new PlayoffPictureService.Row(r.seed(), r.rank(), r.team(), r.division(), r.divisionWinner(),
+                                        r.wins(), r.losses(), r.ties(), r.otherRulesSeed(), r.reasons(), null)).toList());
             }
         }
         var wire = postBody(Map.of("season", 1, "simulations", 1), 200);
