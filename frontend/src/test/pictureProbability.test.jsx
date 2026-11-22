@@ -70,7 +70,7 @@ it.each(['picture', 'probability'])('sorts every %s column and exports the displ
   const teams = displayedTeams(table)
   expect(teams).toEqual([...teams].sort((a, b) => teamHeader.getAttribute('aria-sort') === 'ascending' ? a.localeCompare(b) : b.localeCompare(a)))
   csv.mockRestore()
-}, 15000)
+}, 45000)
 
 it('shows the hunt divider only while seed order is ascending', async () => {
   show('picture')

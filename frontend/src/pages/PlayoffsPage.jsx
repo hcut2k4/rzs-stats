@@ -77,7 +77,7 @@ function Conference({ conference, data, clinch }) {
           <td className="px-2 num text-right">{recordText(row)}</td>
           <td className="px-2 text-xs text-muted">{status(row)}</td>
           {hasOdds && <td className="px-2 text-right num" style={{ background: probShade(markerValue(row.odds?.playoffs, row.markers?.playoffs)) }}>{oddsText(row) || '—'}</td>}
-          <td className="px-2 text-center">{row.reasons.length > 0 ? <InfoTip text={row.reasons.join(' ')}><span tabIndex={0} aria-label={`Tiebreak for ${row.team.displayName}`}>ⓘ</span></InfoTip> : '—'}</td>
+          <td className="px-2 text-center">{row.reasons.length > 0 ? <InfoTip text={row.reasons.join(' ')}><span tabIndex={0} aria-label={`Tiebreak for ${row.team.displayName}`} className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-rule text-[10px] font-semibold leading-none cursor-help">i</span></InfoTip> : '—'}</td>
         </tr>
       </Fragment>)}</tbody>
     </table></div>
