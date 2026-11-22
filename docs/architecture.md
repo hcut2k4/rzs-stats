@@ -6,7 +6,7 @@
 backend/src/main/java/com/rzs/stats/
 ├── controller/
 │   ├── StatsController.java       # public API: /api/* (standings, games, trends, elo)
-│   ├── PlayoffsController.java    # public API: /api/playoffs/picture
+│   ├── PlayoffsController.java    # public API: /api/playoffs/picture, /clinch
 │   ├── QbController.java          # public API: /api/qb/*
 │   ├── AdminController.java       # admin tools: /api/admin/*
 │   └── AdminAuthController.java   # GET /api/admin/auth — token probe for the UI
@@ -28,6 +28,8 @@ backend/src/main/java/com/rzs/stats/
 ├── playoffs/
 │   ├── SeasonStateLoader.java     # reusable season schedule, identities, records input and week bounds
 │   ├── PlayoffPictureService.java # Madden/NFL picture and alternate seeds
+│   ├── ClinchService.java         # lazy cached proven markers
+│   ├── ClinchAnalyzer.java        # record bounds and exhaustive W/L/T proofs
 │   ├── TiebreakExplainer.java     # plain-English explanations from engine traces
 │   ├── MaddenSeeding.java         # Madden 27 seeding engine
 │   ├── PlayoffSeeding.java        # NFL seeding engine
@@ -141,6 +143,9 @@ SoS: `oppPyPatCurr/Prev`, `oppPyPatRemainingCurr/Prev`, `oppPyPatTotalCurr/Prev`
 | Method | Path | Params | Returns |
 |--------|------|--------|---------|
 | GET | `/picture` | `season` (optional, latest season with a completed regular-season game), `rules` (`madden` default or `nfl`) | Season index, week bounds, completed/remaining game counts, conference seeds and hunt, alternate seeds and tiebreak reasons |
+| GET | `/clinch` | `season` (optional, current), `rules` (`madden` default or `nfl`) | Proven clinched/eliminated/null markers for playoffs, division and first seed; `exhaustive` indicates a completed search |
+
+`ClinchAnalyzer` first proves markers from strict record bounds (2W+T), reserving missing schedule games up to 17. Madden requests may then enumerate every remaining W/L/T outcome across the entire league, pruning only with those same bounds. Searches split across the first two games, stop when every open goal has both outcomes, and discard all search-derived markers on timeout. Layer 2 requires exactly 17 scheduled games per team and at most `rzs.playoffs.clinch.max-remaining-games` (default 12); `rzs.playoffs.clinch.budget` defaults to `20s`. NFL requests use record math only. Unknown margins and arbitrary alphabetical fallbacks suppress search markers conservatively across their conference using engine `PointTie` metadata. Completed Madden seasons use their actual scores. No monotonicity or irrelevant-game pruning is used.
 
 Uses completed stage 1 games in weeks 0–17. Invalid rules return 400; missing regular-season data or incomplete team conference/division metadata return 404. Shapes follow [the playoff API contract](playoffs-api.md). The loader includes teams from the selected regular-season schedule, including unplayed games.
 
@@ -183,9 +188,11 @@ The game-only NFL engine can leave ties unresolved when net touchdown totals or 
 
 **Caffeine** — max 500 entries, 24h write-through TTL.
 
-Cache names: `standings`, `games`, `weeks`, `seasons`, `seasonTrends`, `weeklyTrends`, `seasonGames`, `eloHistory`, `qbStats`, `teamEfficiency`, `playoffPicture`
+Cache names: `standings`, `games`, `weeks`, `seasons`, `seasonTrends`, `weeklyTrends`, `seasonGames`, `eloHistory`, `qbStats`, `teamEfficiency`, `playoffPicture`, `playoffClinch`
 
-The list lives in one place — [config/CacheNames.java](../backend/src/main/java/com/rzs/stats/config/CacheNames.java), as the `allStatsCaches` resolver. **A new cache must be added there**, or it silently survives eviction and serves stale data after a sync. All eleven are evicted together on sync, force-sync, or cache warm. `seasonGames` is cached directly on `GameRepository.findRegularSeasonGames()` (Spring Data JPA repos support `@Cacheable`) so all callers share the same cache regardless of call site.
+The list lives in one place — [config/CacheNames.java](../backend/src/main/java/com/rzs/stats/config/CacheNames.java), as the `allStatsCaches` resolver. **A new cache must be added there**, or it silently survives eviction and serves stale data after a sync. All listed caches are evicted together on sync, force-sync, or cache warm. `seasonGames` is cached directly on `GameRepository.findRegularSeasonGames()` (Spring Data JPA repos support `@Cacheable`) so all callers share the same cache regardless of call site.
+
+`playoffClinch` computes lazily on the first request after shared sync/force-sync/cache-warm eviction, and caches by season parameter and rules. Its work runs only on clinch requests and its own bounded search workers, so no other endpoint waits for it.
 
 `playoffPicture` caches the complete response by season parameter and rules, including the default-season request. It participates in the same sync, force-sync, and cache-warm eviction resolver.
 

@@ -61,6 +61,6 @@ class TiebreakExplainerTest {
         var records = new HashMap<String, PlayoffSeeding.Record>();
         teams.keySet().forEach(t -> records.put(t, new PlayoffSeeding.Record(10, 7, 0, 0, 0)));
         return new Result(Map.of("NFC", List.of(new Rank(position, Set.of("PHI"), Status.RESOLVED, null))),
-                Map.of(), records, trace, Map.of());
+                Map.of(), records, trace, Map.of(), List.of());
     }
 }

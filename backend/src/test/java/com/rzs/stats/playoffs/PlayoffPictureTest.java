@@ -30,7 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DataJpaTest(showSql = false)
 @AutoConfigureCache(cacheProvider = CacheType.CAFFEINE)
 @EnableCaching
-@Import({SeasonStateLoader.class, PlayoffPictureService.class, PlayoffsController.class, CacheNames.class})
+@Import({SeasonStateLoader.class, PlayoffPictureService.class, ClinchService.class, PlayoffsController.class, CacheNames.class})
 class PlayoffPictureTest {
     record Fixture(List<PlayoffSeeding.Team> teams, List<PlayoffSeeding.Game> games,
                    Map<String, List<String>> maddenSeeds) {}
@@ -175,6 +175,29 @@ class PlayoffPictureTest {
         assertThat(picture("?season=0")).isEqualTo(before);
         new CacheNames().allStatsCaches(caches).resolveCaches(null).forEach(org.springframework.cache.Cache::clear);
         http.perform(get("/api/playoffs/picture?season=0")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void clinchEndpointUsesRealSeasonAndSharedCaffeineEviction() throws Exception {
+        seed(1, fixtures.get("104"));
+        var response = http.perform(get("/api/playoffs/clinch?season=1")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.season").value(1)).andExpect(jsonPath("$.exhaustive").value(true))
+                .andExpect(jsonPath("$.teams.length()").value(32)).andReturn().getResponse().getContentAsString();
+        var rows = json.readTree(response).get("teams");
+        for (var row : rows) {
+            String abbr = row.get("team").get("abbrName").asText();
+            boolean in = fixtures.get("104").maddenSeeds().values().stream().anyMatch(seeds -> seeds.contains(abbr));
+            assertThat(row.get("playoffs").asText()).isEqualTo(in ? "clinched" : "eliminated");
+        }
+        http.perform(get("/api/playoffs/clinch?rules=nfl&season=1")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.exhaustive").value(false));
+        http.perform(get("/api/playoffs/clinch?rules=unknown")).andExpect(status().isBadRequest());
+        http.perform(get("/api/playoffs/clinch?season=99")).andExpect(status().isNotFound());
+        assertThat(caches.getCache("playoffClinch").getNativeCache()).isInstanceOf(com.github.benmanes.caffeine.cache.Cache.class);
+        games.deleteAllInBatch();
+        http.perform(get("/api/playoffs/clinch?season=1")).andExpect(status().isOk()).andExpect(content().json(response));
+        new CacheNames().allStatsCaches(caches).resolveCaches(null).forEach(org.springframework.cache.Cache::clear);
+        http.perform(get("/api/playoffs/clinch?season=1")).andExpect(status().isNotFound());
     }
 
     private JsonNode picture(String query) throws Exception {

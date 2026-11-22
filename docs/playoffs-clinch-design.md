@@ -58,3 +58,12 @@ The step turning an outcome into Games is shared with the Phase 2 simulator.
 ## Risks and cuts
 Risks: incomplete PointTie metadata or engine state leaking between groups (oracle guards it); Layer 2 depends on the tiebreak model (99.85% accurate; strict mode = treat every tie at a goal's cutoff as ambiguous); missing games; runtime in weeks 16-17.
 Cut order if short on time: parallelism, node pruning (cap n at 10), block-position refinement (conference-wide ambiguity), Layer 2 entirely (Layer 1 alone is sound).
+
+## Implementation deviations (2026-11-22)
+
+- Use the requested defaults of 12 remaining games and a 20-second budget, configurable with `rzs.playoffs.clinch.max-remaining-games` and `rzs.playoffs.clinch.budget`.
+- Compute lazily on the first clinch request after eviction, as requested, instead of adding work to sync/cache warming. Cache keys are season parameter plus rules, with shared eviction after sync, matching the existing picture cache.
+- Use the documented conservative conference-wide point-margin ambiguity cut instead of refining tied-block cutoff positions. Alphabetical fallback is ambiguous when tied teams have future games; with no future games the actual completed Madden result is final.
+- Generalize the table's three wild cards to `7 - division count` for the required synthetic two-division conferences. The oracle caught an incorrect elimination when applying the NFL constant to those leagues. For four divisions the original table is unchanged.
+- On incomplete schedules, Layer 1 reserves unlisted games up to 17 per team and compares exact cross-multiplied percentages if scheduled totals differ. Layer 2 is disabled.
+- The deterministic 300-league oracle uses 1–4 remaining games (within the requested n <= 8), enumerating all seven outcome/margin choices per game. Separate runtime cases cover 8, 10 and 12 remaining games.
