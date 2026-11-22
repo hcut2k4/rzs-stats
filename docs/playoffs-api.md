@@ -107,3 +107,19 @@ How accurate the Elo pregame win probabilities were on completed regular-season 
 ```
 
 Calibration buckets are over the home team's pregame win probability in 0.1 steps; `predicted` is the mean probability, `actual` the home win rate (a tie counts half). `brier` is the mean squared error of the home win probability against the home result.
+
+## GET /api/playoffs/clinch
+
+Query: `season` (optional, default current), `rules` = `madden` (default) | `nfl` (nfl: record-math layer only).
+Proven markers only; `null` means "not established", never "no". Computed after each sync (cached).
+
+```json
+{
+  "season": 2, "rules": "madden", "exhaustive": true,
+  "teams": [
+    { "team": { "teamId": 1, "abbrName": "BUF", "displayName": "Bills" },
+      "playoffs": "clinched", "division": null, "oneSeed": "eliminated" }
+  ]
+}
+```
+Marker values: `"clinched"`, `"eliminated"`, or null. `exhaustive` is true when the full outcome search ran (false = record math only). Every team in the league has a row.
