@@ -119,17 +119,19 @@ it.each(['404', 'empty', 'no team'])('hides the team outlook when odds are %s', 
   expect(client.getPlayoffLeverage).not.toHaveBeenCalled()
 })
 
-it('shows the next game outlook for all goals and links to that leverage week', async () => {
+it('shows next game probabilities for all goals and links to the probability tab', async () => {
   client.getPlayoffLeverage.mockImplementation(async (season, week, rules) => ({ ...leverage(season, week, rules), games: leverageFixture.games.filter(g => g.home.abbrName === 'BUF') }))
   render(<MemoryRouter><PlayoffOutlook teamId={1} season={2} nextWeek={12} /></MemoryRouter>)
   const region = await screen.findByRole('region', { name: 'Playoff outlook' })
-  await within(region).findByText(/Next game: Week 13 · vs DAL/)
+  await within(region).findByText(/Next game · Week 17/)
+  await userEvent.click(within(region).getByText('Show data'))
   expect(region).toHaveTextContent('52%90%38 pp')
-  expect(within(region).getByRole('link')).toHaveAttribute('href', '/playoffs?tab=leverage&season=2&week=12')
-  formats(region)
+  expect(within(region).getByRole('link', { name: 'All playoff probabilities →' })).toHaveAttribute('href', '/playoffs?tab=probability&season=2')
+  formats(within(region).getByRole('table', { name: 'Playoff outlook' }).parentElement.parentElement)
 })
 
 it('omits game scenarios when no regular-season games remain', async () => {
+  client.getPlayoffOdds.mockResolvedValue({ ...odds(), nextWeek: null })
   render(<MemoryRouter><PlayoffOutlook teamId={1} season={2} /></MemoryRouter>)
   const region = await screen.findByRole('region', { name: 'Playoff outlook' })
   expect(region).toHaveTextContent('80%')

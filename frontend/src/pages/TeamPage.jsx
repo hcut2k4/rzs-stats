@@ -173,7 +173,7 @@ export default function TeamPage() {
 
   const qbRoom = <QbRoom rows={myQbs} league={qbs.data ?? []} spec={qbSpec(team, season, myQbs, qbParams, qbs.data ?? [])} loading={qbs.loading} />
   const nav = [
-    ['fingerprint', 'Fingerprint'], ['landscape', 'Landscape'], ['truth', 'Wins vs expectation'],
+    ['playoff-outlook', 'Playoff outlook'], ['fingerprint', 'Fingerprint'], ['landscape', 'Landscape'], ['truth', 'Wins vs expectation'],
     ...(showRoad ? [['road', 'Road ahead']] : []), ['arc', 'Season arc'], ['qbs', 'QBs'], ['franchise', 'History'], ['rivalries', 'Rivalries'],
   ]
 
@@ -183,6 +183,7 @@ export default function TeamPage() {
       <SectionNav links={nav} />
       {failed.length > 0 && <p className="text-sm text-bad mb-6">Some sections could not load: {failed.join(', ')}.</p>}
       <div className="space-y-12">
+        <PlayoffOutlook teamId={teamId} season={season} nextWeek={road.filter(r => r.week < 18).sort((a, b) => a.week - b.week)[0]?.week} />
         <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-10 items-start">
           <Fingerprint groups={groups} spec={fingerprintSpec(team, season, groups)} loading={efficiency.loading} />
           <LeagueLandscape rows={effRows} teamId={teamId} season={season} team={team} loading={efficiency.loading} />
@@ -195,7 +196,6 @@ export default function TeamPage() {
                 sosLeft={{ text: sosText(leftField), source: sosSource, tip: `${SOS_TIP} Remaining games only. Uses ${sosSource}.`, rank: leftRank ? `${ordinal(leftRank.rank)} hardest of ${leftRank.of}` : null }} />
             : qbRoom}
         </div>
-        <PlayoffOutlook teamId={teamId} season={season} nextWeek={road.filter(r => r.week < 18).sort((a, b) => a.week - b.week)[0]?.week} />
         <SeasonArc games={seasonGames} spec={arcSpec(team, season, seasonGames, inProgress)} teamHref={teamHref} loading={eloGames.loading} />
         {showRoad && qbRoom}
         <FranchiseHistory points={points} seasons={franchise} allTime={allTimeText} spec={franchiseSpec(team, franchise, points, allTimeText)} loading={trends.loading || history.loading || eloGames.loading} />
