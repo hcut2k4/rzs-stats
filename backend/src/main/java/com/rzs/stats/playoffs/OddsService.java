@@ -20,6 +20,7 @@ public class OddsService {
     public record Conference(String name, List<Row> teams) {}
     public record Response(int season, String rules, Integer throughWeek, Integer nextWeek, int simulations,
                            Instant computedAt, List<Conference> conferences) {}
+    private final ComputeGate gate;
     private final SeasonStateLoader loader;
     private final EloQueryService elo;
     private final SimulationService simulator;
@@ -27,8 +28,9 @@ public class OddsService {
     private final CacheManager caches;
 
     public OddsService(SeasonStateLoader loader, EloQueryService elo, SimulationService simulator,
-                       @Value("${playoffs.simulations:20000}") int simulations, CacheManager caches) {
+                       @Value("${playoffs.simulations:20000}") int simulations, CacheManager caches, ComputeGate gate) {
         if (simulations <= 0) throw new IllegalArgumentException("playoffs.simulations must be positive");
+        this.gate = gate;
         this.loader = loader;
         this.elo = elo;
         this.simulator = simulator;
@@ -40,17 +42,22 @@ public class OddsService {
         var cache = caches.getCache("playoffOdds");
         if (cache == null) return null;
         var result = cache.get(new SimpleKey(season, rules), Response.class);
-        if (result == null) result = cache.get(new SimpleKey(null, rules), Response.class);
         return result != null && Objects.equals(result.season(), season) ? result : null;
     }
 
-    @Cacheable(value = "playoffOdds", sync = true)
+    public int canonicalSeason(Integer season, String rules) {
+        if (!"madden".equals(rules) && !"nfl".equals(rules))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rules must be madden or nfl");
+        return season == null ? loader.load(null).season() : season;
+    }
+
+    @Cacheable(value = "playoffOdds", key = "new org.springframework.cache.interceptor.SimpleKey(#root.target.canonicalSeason(#season, #rules), #rules)", sync = true)
     public Response odds(Integer season, String rules) {
         if (!rules.equals("madden") && !rules.equals("nfl")) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rules must be madden or nfl");
         }
         var state = loader.load(season);
-        return compute(state, rules, state.remainingGames().isEmpty() ? Map.of() : elo.homeWinProbabilities(state.season()));
+        return gate.compute(() -> compute(state, rules, state.remainingGames().isEmpty() ? Map.of() : elo.homeWinProbabilities(state.season())));
     }
 
     int simulationCount() { return simulations; }

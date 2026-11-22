@@ -31,6 +31,19 @@ class SimulationServiceTest {
     }
 
     @Test
+    void trackedWinsIncludeTheSeventeenthWinAtTheSeasonBoundary() {
+        var teams = List.of(new PlayoffSeeding.Team("A", "AFC", "East"), new PlayoffSeeding.Team("B", "AFC", "East"));
+        var completed = new ArrayList<PlayoffSeeding.Game>();
+        for (int week = 0; week < 16; week++) completed.add(new PlayoffSeeding.Game(week, "A", "B", 24, 17));
+        var remaining = List.of(new SeasonStateLoader.RemainingGame(17, 17, "A", "B", 1, 2));
+        var state = new SeasonStateLoader.State(1, teams, Map.of(), completed, remaining, 16, 17);
+        var result = simulator.simulate(state, Map.of(17, 1.0), Map.of(), 20, 42, Rules.MADDEN, false, "A");
+        assertThat(result.wins()).containsOnlyKeys(17);
+        assertThat(result.wins().get(17)).isEqualTo(new WinBucket(20, 20, 20, 20));
+        assertThat(result.teams().get("A").playoffs()).isEqualTo(result.wins().get(17).playoffs());
+    }
+
+    @Test
     void oddsConserveEveryConferenceSpotAndDivisionTitle() throws Exception {
         var state = season(false);
         var result = simulator.simulate(state, probabilities(state), Map.of(), 500, 42, Rules.MADDEN);

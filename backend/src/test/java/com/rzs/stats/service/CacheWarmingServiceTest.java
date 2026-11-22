@@ -29,7 +29,7 @@ class CacheWarmingServiceTest {
 
     @BeforeEach
     void setUp() {
-        warming = new CacheWarmingService(stats, elo, qb, odds, snapshots, leverage, championship);
+        warming = new CacheWarmingService(stats, elo, qb, odds, snapshots, leverage, championship, new com.rzs.stats.playoffs.ComputeGate(2, 100));
         lenient().when(leverage.canonicalKey(null, null)).thenReturn(new com.rzs.stats.playoffs.LeverageService.Key(2, 11));
     }
 

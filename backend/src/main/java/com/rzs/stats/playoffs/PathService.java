@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
-import java.util.concurrent.Semaphore;
 
 @Service
 public class PathService {
@@ -23,6 +22,7 @@ public class PathService {
                            WinOut winOut, Ceiling ceiling, List<WinsNeeded> winsNeeded,
                            List<RootGame> winOutRisks, List<RootGame> rootThisWeek) {}
 
+    private final ComputeGate gate;
     private final SeasonStateLoader loader;
     private final OddsService odds;
     private final ClinchService clinch;
@@ -30,13 +30,13 @@ public class PathService {
     private final SimulationService simulator;
     private final EloQueryService elo;
     private final int simulations, riskSimulations;
-    private final Semaphore capacity = new Semaphore(1);
 
     public PathService(SeasonStateLoader loader, OddsService odds, ClinchService clinch, LeverageService leverage,
                        SimulationService simulator, EloQueryService elo,
                        @Value("${playoffs.path-simulations:5000}") int simulations,
-                       @Value("${playoffs.path-risk-simulations:2000}") int riskSimulations) {
+                       @Value("${playoffs.path-risk-simulations:2000}") int riskSimulations, ComputeGate gate) {
         if (simulations <= 0 || riskSimulations <= 0) throw new IllegalArgumentException("Path simulations must be positive");
+        this.gate = gate;
         this.loader = loader; this.odds = odds; this.clinch = clinch; this.leverage = leverage;
         this.simulator = simulator; this.elo = elo; this.simulations = simulations; this.riskSimulations = riskSimulations;
     }
@@ -48,9 +48,9 @@ public class PathService {
         var state = loader.load(season);
         var team = state.teams().stream().filter(t -> t.abbr().equals(abbr)).findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown team"));
-        if (!capacity.tryAcquire()) throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Path analysis is busy");
-        try {
-            var baseline = odds.odds(state.season(), rules);
+        var baseline = odds.odds(state.season(), rules);
+        var matrix = leverage.matrix(state.season(), state.nextWeek(), rules);
+        return gate.compute(() -> {
             var row = baseline.conferences().stream().flatMap(c -> c.teams().stream())
                     .filter(r -> r.team().abbrName().equals(abbr)).findFirst().orElseThrow();
             var marker = clinch.clinch(state.season(), rules).teams().stream()
@@ -90,7 +90,7 @@ public class PathService {
                 if (row.seedOdds().get(i) > 0 || winning.teams().get(abbr).seedCounts().get(i) > 0) { best = position; break; }
             }
             var roots = new ArrayList<RootGame>();
-            for (var g : leverage.matrix(state.season(), state.nextWeek(), rules).games()) {
+            for (var g : matrix.games()) {
                 if (g.home().abbrName().equals(abbr) || g.away().abbrName().equals(abbr)) continue;
                 var pair = g.teams().get(abbr);
                 roots.add(root(g.gameId(), state.nextWeek(), g.home(), g.away(), pair.homeWin().playoffs() - pair.awayWin().playoffs()));
@@ -114,7 +114,7 @@ public class PathService {
             return new Response(state.season(), rules, row.team(), row.wins(), row.losses(), row.ties(), forced.size(),
                     baseline.simulations(), row.odds(), markers, new WinOut(winOdds.playoffs(), winOdds.division(), winOdds.oneSeed(), destiny),
                     new Ceiling(best, row.seedOdds()), needed, top(risks), top(roots));
-        } finally { capacity.release(); }
+        });
     }
 
     private static boolean involves(SeasonStateLoader.RemainingGame g, String abbr) { return g.home().equals(abbr) || g.away().equals(abbr); }

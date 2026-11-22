@@ -24,10 +24,10 @@ import static org.assertj.core.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@DataJpaTest(showSql = false, properties = "playoffs.simulations=100")
+@DataJpaTest(showSql = false, properties = {"playoffs.simulations=100", "playoffs.compute-timeout-ms=20"})
 @AutoConfigureCache(cacheProvider = CacheType.CAFFEINE)
 @EnableCaching
-@Import({SeasonStateLoader.class, OddsService.class, SimulationService.class, OddsSnapshotService.class,
+@Import({com.rzs.stats.playoffs.ComputeGate.class, SeasonStateLoader.class, OddsService.class, SimulationService.class, OddsSnapshotService.class,
         ChampionshipService.class, OddsHistoryService.class,
         com.rzs.stats.controller.PlayoffsChampionshipController.class, com.rzs.stats.controller.PlayoffsOddsHistoryController.class,
         PlayoffsController.class, ClinchService.class, PlayoffPictureService.class, CacheNames.class, EloQueryService.class,
@@ -38,6 +38,7 @@ class OddsServiceTest {
     @Autowired OddsSnapshotRepository snapshots;
     @Autowired OddsSnapshotService writer;
     @Autowired OddsService odds;
+    @Autowired ComputeGate gate;
     @Autowired ChampionshipService championship;
     @Autowired OddsHistoryService history;
     @Autowired SeasonStateLoader loader;
@@ -251,9 +252,9 @@ class OddsServiceTest {
         writer.save(existing);
         http.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/admin/playoffs/odds/backfill?season=2"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.season").value(2))
-                .andExpect(jsonPath("$.created").value(2)).andExpect(jsonPath("$.skipped").value(1));
-        assertThat(snapshots.count()).isEqualTo(3 * 32);
-        assertThat(history.backfill(2)).isEqualTo(new OddsHistoryService.Backfill(2, 0, 3));
+                .andExpect(jsonPath("$.created").value(4)).andExpect(jsonPath("$.skipped").value(1));
+        assertThat(snapshots.count()).isEqualTo(5 * 32);
+        assertThat(history.backfill(2)).isEqualTo(new OddsHistoryService.Backfill(2, 0, 5));
         snapshots.findBySeasonAndNextWeek(2, 2).forEach(row -> {
             assertThat(row.getComputedAt()).isEqualTo(existing.computedAt());
             assertThat(row.getSimulations()).isEqualTo(existing.simulations());
@@ -263,6 +264,86 @@ class OddsServiceTest {
         });
         http.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/admin/playoffs/odds/backfill?season=99"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void backfillIncludesPreseasonAndCurrentForecastWhenOnlyWeekZeroIsComplete() throws Exception {
+        populate(true);
+        games.findBySeasonIndex(2).forEach(g -> { if (g.getWeekIndex() > 0) g.setStatus(0); });
+        games.flush();
+        assertThat(loader.load(2).throughWeek()).isZero();
+        assertThat(loader.loadAtStart(2, 0).completedGames()).isEmpty();
+        assertThat(elo.ratingsAtStart(2, 0).teams().values()).allMatch(r -> r == 1500);
+        assertThat(history.backfill(2)).isEqualTo(new OddsHistoryService.Backfill(2, 2, 0));
+        assertThat(snapshots.findBySeasonAndNextWeek(2, 0)).hasSize(32);
+        assertThat(snapshots.findBySeasonAndNextWeek(2, 1)).hasSize(32);
+        assertThat(history.backfill(2)).isEqualTo(new OddsHistoryService.Backfill(2, 0, 2));
+    }
+
+    @Test
+    void warmedDefaultSeasonEntriesServeExplicitSeasonRequests() throws Exception {
+        populate(false);
+        gate.warm(() -> {
+            odds.odds(null, "madden");
+            championship.championship(null, "madden");
+        });
+        var warmedOdds = caches.getCache("playoffOdds").get(new org.springframework.cache.interceptor.SimpleKey(2, "madden"), OddsService.Response.class);
+        var warmedChampionship = caches.getCache("playoffChampionship").get(new org.springframework.cache.interceptor.SimpleKey(2, "madden"), ChampionshipService.Response.class);
+        assertThat(warmedOdds).isNotNull();
+        assertThat(warmedChampionship).isNotNull();
+        assertThat(odds.odds(2, "madden")).isSameAs(warmedOdds);
+        assertThat(championship.championship(2, "madden")).isSameAs(warmedChampionship);
+    }
+
+    @Test
+    void cachedOddsAndChampionshipBypassSharedCapacityWhileColdComputationsAreRejected() throws Exception {
+        populate(false);
+        var cachedOdds = odds.odds(2, "madden");
+        var cachedChampionship = championship.championship(2, "madden");
+        var started = new java.util.concurrent.CountDownLatch(2);
+        var finish = new java.util.concurrent.CountDownLatch(1);
+        try (var executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+            var busy = new ArrayList<java.util.concurrent.Future<Boolean>>();
+            for (int i = 0; i < 2; i++) busy.add(executor.submit(() -> gate.compute(() -> {
+                started.countDown();
+                try {
+                    if (!finish.await(5, java.util.concurrent.TimeUnit.SECONDS)) throw new AssertionError("Permit was not released");
+                } catch (InterruptedException e) { throw new AssertionError(e); }
+                return true;
+            })));
+            try {
+                assertThat(started.await(5, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+                assertThat(odds.odds(2, "madden")).isSameAs(cachedOdds);
+                assertThat(championship.championship(2, "madden")).isSameAs(cachedChampionship);
+                assertThatThrownBy(() -> odds.odds(2, "nfl")).isInstanceOf(ComputeGate.BusyException.class);
+                assertThatThrownBy(() -> championship.championship(2, "nfl")).isInstanceOf(ComputeGate.BusyException.class);
+            } finally {
+                finish.countDown();
+            }
+            for (var task : busy) assertThat(task.get(5, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+        }
+    }
+
+    @Test
+    void historicalChampionshipUsesRequestedSeasonRatingsEvenWithANewerSeason() throws Exception {
+        populate(true);
+        var original = championship.championship(2, "madden");
+        var selected = elo.currentRatings(2);
+        var team = teams.findAll().getFirst();
+        var opponent = teams.findAll().get(1);
+        for (int week = 0; week < 18; week++) {
+            var game = new GameEntity();
+            game.setGameId(1000 + week); game.setSeasonIndex(3); game.setStageIndex(1);
+            game.setWeekIndex(week); game.setStatus(2); game.setHomeTeam(team); game.setAwayTeam(opponent);
+            game.setHomeScore(70); game.setAwayScore(0); games.save(game);
+        }
+        games.flush();
+        caches.getCache("eloHistory").clear();
+        caches.getCache("playoffChampionship").clear();
+        assertThat(elo.currentRatings().teams().get(team.getTeamId()))
+                .isGreaterThan(selected.teams().get(team.getTeamId()) + 100);
+        assertThat(elo.currentRatings(2)).isEqualTo(selected);
+        assertThat(championship.championship(2, "madden").teams()).isEqualTo(original.teams());
     }
 
     @Test
@@ -277,7 +358,7 @@ class OddsServiceTest {
         gated.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/admin/playoffs/odds/backfill?season=2")
                 .header("X-Admin-Token", "wrong")).andExpect(status().isUnauthorized());
         gated.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/admin/playoffs/odds/backfill?season=2")
-                .header("X-Admin-Token", "secret")).andExpect(status().isOk()).andExpect(jsonPath("$.created").value(0));
+                .header("X-Admin-Token", "secret")).andExpect(status().isOk()).andExpect(jsonPath("$.created").value(2));
         var open = MockMvcBuilders.standaloneSetup(historyController)
                 .addFilters(new com.rzs.stats.config.AdminTokenFilter("")).build();
         open.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/admin/playoffs/odds/backfill?season=2"))
@@ -303,7 +384,7 @@ class OddsServiceTest {
             assertThat(remaining.awayTeamId()).isEqualTo(game.getAwayTeam().getTeamId());
         }
         assertThat(elo.ratingsAtStart(2, 1).teams().values()).allMatch(r -> r == 1500);
-        assertThat(history.backfill(2)).isEqualTo(new OddsHistoryService.Backfill(2, 1, 0));
+        assertThat(history.backfill(2)).isEqualTo(new OddsHistoryService.Backfill(2, 3, 0));
         assertThat(snapshots.findBySeasonAndNextWeek(2, 1)).hasSize(32);
     }
 

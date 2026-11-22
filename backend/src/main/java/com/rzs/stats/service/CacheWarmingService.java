@@ -2,6 +2,7 @@ package com.rzs.stats.service;
 
 import com.rzs.stats.config.CacheNames;
 import com.rzs.stats.playoffs.OddsService;
+import com.rzs.stats.playoffs.ComputeGate;
 import com.rzs.stats.playoffs.ChampionshipService;
 import com.rzs.stats.playoffs.LeverageService;
 import com.rzs.stats.playoffs.OddsSnapshotService;
@@ -22,6 +23,7 @@ public class CacheWarmingService {
 
     private static final Logger log = LoggerFactory.getLogger(CacheWarmingService.class);
 
+    private final ComputeGate gate;
     private final StatsService statsService;
     private final EloHistoryService eloHistoryService;
     private final QbStatsService qbStatsService;
@@ -42,7 +44,8 @@ public class CacheWarmingService {
         return new WarmStatus(inProgress, startedAt, completedAt, message, success);
     }
 
-    public CacheWarmingService(StatsService statsService, EloHistoryService eloHistoryService, QbStatsService qbStatsService, OddsService odds, OddsSnapshotService snapshots, LeverageService leverage, ChampionshipService championship) {
+    public CacheWarmingService(StatsService statsService, EloHistoryService eloHistoryService, QbStatsService qbStatsService, OddsService odds, OddsSnapshotService snapshots, LeverageService leverage, ChampionshipService championship, ComputeGate gate) {
+        this.gate = gate;
         this.statsService = statsService;
         this.eloHistoryService = eloHistoryService;
         this.qbStatsService = qbStatsService;
@@ -99,18 +102,18 @@ public class CacheWarmingService {
             eloHistoryService.getTimeline();
             if (!seasons.isEmpty()) {
                 try {
-                    snapshots.save(odds.odds(null, "madden"));
+                    gate.warm(() -> snapshots.save(odds.odds(null, "madden")));
                 } catch (Exception e) {
                     log.warn("Cache warming: playoff odds failed", e);
                 }
                 try {
-                    championship.championship(null, "madden");
+                    gate.warm(() -> championship.championship(null, "madden"));
                 } catch (Exception e) {
                     log.warn("Cache warming: playoff championship failed", e);
                 }
                 try {
                     var key = leverage.canonicalKey(null, null);
-                    leverage.matrix(key.season(), key.week(), "madden");
+                    gate.warm(() -> leverage.matrix(key.season(), key.week(), "madden"));
                 } catch (Exception e) {
                     log.warn("Cache warming: playoff leverage failed", e);
                 }

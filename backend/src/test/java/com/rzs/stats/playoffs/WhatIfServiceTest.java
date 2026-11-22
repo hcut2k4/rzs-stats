@@ -32,7 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DataJpaTest(showSql = false, properties = "playoffs.simulations=50")
 @AutoConfigureCache(cacheProvider = CacheType.CAFFEINE)
 @EnableCaching
-@Import({SeasonStateLoader.class, WhatIfService.class, PlayoffsWhatIfController.class, OddsService.class,
+@Import({com.rzs.stats.playoffs.ComputeGate.class, SeasonStateLoader.class, WhatIfService.class, PlayoffsWhatIfController.class, OddsService.class,
         SimulationService.class, PlayoffPictureService.class, CacheNames.class, EloQueryService.class,
         EloHistoryService.class, EloService.class, EloConfigService.class, OwnerChangeService.class})
 class WhatIfServiceTest {
@@ -45,6 +45,7 @@ class WhatIfServiceTest {
     @Autowired PlayoffPictureService picture;
     @Autowired OddsService odds;
     @Autowired EloQueryService elo;
+    @Autowired EloConfigService configs;
     @Autowired CacheManager caches;
     final ObjectMapper json = new ObjectMapper();
     MockMvc http;
@@ -280,6 +281,38 @@ class WhatIfServiceTest {
     }
 
     @Test
+    void changingEloConfigEvictsCachedWhatIfResponses() {
+        smallSchedule(false);
+        var request = new WhatIfService.Request(1, "madden", List.of(), 10);
+        var cached = service.simulate(request);
+        assertThat(service.simulate(request)).isSameAs(cached);
+        configs.update(new com.rzs.stats.model.dto.EloConfig(1500, 25, 400, true, 28, 250, 0.78));
+        assertThat(service.simulate(request)).isNotSameAs(cached);
+    }
+
+    @Test
+    void failedWhatIfComputationReleasesPermitForTheNextRequest() {
+        smallSchedule(false);
+        var state = loader.load(1);
+        var snapshot = new SeasonStateLoader(games) {
+            @Override public State load(Integer season) { return state; }
+        };
+        odds.odds(1, "madden");
+        var fail = new java.util.concurrent.atomic.AtomicBoolean(true);
+        var simulator = new SimulationService() {
+            @Override public Simulation simulate(SeasonStateLoader.State input, Map<Integer, Double> probabilities,
+                                                 Map<Integer, Outcome> forced, int count, long seed, Rules rules, boolean margins) {
+                if (fail.getAndSet(false)) throw new IllegalArgumentException("failed computation");
+                return super.simulate(input, probabilities, forced, count, seed, rules, margins);
+            }
+        };
+        var whatIf = new WhatIfService(snapshot, elo, simulator, odds, caches, new ComputeGate(1, 0));
+        var request = new WhatIfService.Request(1, "madden", List.of(new WhatIfService.Pick(1, "home")), 10);
+        assertThatThrownBy(() -> whatIf.simulate(request)).isInstanceOf(IllegalArgumentException.class);
+        assertThat(whatIf.simulate(request)).isNotNull();
+    }
+
+    @Test
     void twoConcurrentCalculationsAllowCachedRequestsAndRejectExtraWorkWithPlainMessage() throws Exception {
         smallSchedule(false);
         odds.odds(1, "madden");
@@ -301,7 +334,7 @@ class WhatIfServiceTest {
         var snapshot = new SeasonStateLoader(games) {
             @Override public State load(Integer season) { return state; }
         };
-        var whatIf = new WhatIfService(snapshot, elo, simulator, odds, caches);
+        var whatIf = new WhatIfService(snapshot, elo, simulator, odds, caches, new com.rzs.stats.playoffs.ComputeGate(2, 100));
         var cachedRequest = new WhatIfService.Request(1, "madden", List.of(), 1);
         var cached = whatIf.simulate(cachedRequest);
         var picks = List.of(new WhatIfService.Pick(1, "home"), new WhatIfService.Pick(2, "away"));
@@ -327,13 +360,12 @@ class WhatIfServiceTest {
     }
 
     @Test
-    void reusesDefaultSeasonBaselineWithoutCreatingAnExplicitKey() throws Exception {
+    void reusesDefaultSeasonBaselineThroughTheCanonicalSeasonKey() throws Exception {
         smallSchedule(false);
         var expected = odds.odds(null, "madden");
         var cache = caches.getCache("playoffOdds");
-        cache.evict(new org.springframework.cache.interceptor.SimpleKey(1, "madden"));
         var response = service.simulate(new WhatIfService.Request(1, "madden", List.of(), 1));
-        assertThat(cache.get(new org.springframework.cache.interceptor.SimpleKey(1, "madden"))).isNull();
+        assertThat(cache.get(new org.springframework.cache.interceptor.SimpleKey(1, "madden"), OddsService.Response.class)).isSameAs(expected);
         assertThat(response.conferences().getFirst().teams()).allSatisfy(row ->
                 assertThat(row.baseline()).isEqualTo(expected.conferences().getFirst().teams().stream()
                         .filter(r -> r.team().equals(row.team())).findFirst().orElseThrow().odds()));
@@ -359,8 +391,8 @@ class WhatIfServiceTest {
                 return super.simulate(state, probabilities, forced, count, seed, rules, margins);
             }
         };
-        var baseline = new OddsService(loaded, elo, simulator, 50, caches);
-        var whatIf = new WhatIfService(loaded, elo, simulator, baseline, caches);
+        var baseline = new OddsService(loaded, elo, simulator, 50, caches, new com.rzs.stats.playoffs.ComputeGate(2, 100));
+        var whatIf = new WhatIfService(loaded, elo, simulator, baseline, caches, new com.rzs.stats.playoffs.ComputeGate(2, 100));
         whatIf.simulate(new WhatIfService.Request(null, "madden", List.of(new WhatIfService.Pick(1, "home")), 10));
         assertThat(loads).hasSize(1);
         assertThat(simulated).hasSize(2).allSatisfy(state -> assertThat(state).isSameAs(loads.getFirst()));
@@ -377,7 +409,7 @@ class WhatIfServiceTest {
                 return super.simulate(state, probabilities, forced, count, seed, rules, margins);
             }
         };
-        var whatIf = new WhatIfService(loader, elo, simulator, new OddsService(loader, elo, simulator, 50, caches), caches);
+        var whatIf = new WhatIfService(loader, elo, simulator, new OddsService(loader, elo, simulator, 50, caches, new com.rzs.stats.playoffs.ComputeGate(2, 100)), caches, new com.rzs.stats.playoffs.ComputeGate(2, 100));
         var response = whatIf.simulate(new WhatIfService.Request(1, "madden", List.of(
                 new WhatIfService.Pick(1, "home"), new WhatIfService.Pick(2, "home"), new WhatIfService.Pick(3, "home")), 100));
         assertThat(calls).containsExactly(Map.of());
@@ -424,6 +456,10 @@ class WhatIfServiceTest {
         var cascade = afc.seeds().stream().filter(s -> s.row().team().abbrName().equals("Z")).findFirst().orElseThrow();
         assertThat(cascade.dependsOnScores()).isTrue();
         assertThat(cascade.odds().playoffs()).isStrictlyBetween(0.0, 1.0);
+        var seededTeams = afc.seeds().stream().map(s -> s.row().team().abbrName()).toList();
+        assertThat(afc.teams()).filteredOn(t -> !seededTeams.contains(t.team().abbrName()))
+                .filteredOn(t -> t.odds().playoffs() > 0 && t.odds().playoffs() < 1)
+                .isNotEmpty().allSatisfy(t -> assertThat(t.dependsOnScores()).isTrue());
         assertThat(afc.seeds()).filteredOn(s -> !s.dependsOnScores()).allSatisfy(s -> {
             assertThat(s.odds().playoffs()).isIn(0.0, 1.0);
             assertThat(s.odds().division()).isIn(0.0, 1.0);

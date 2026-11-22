@@ -61,9 +61,13 @@ public class EloQueryService {
     public record Ratings(Map<Integer, Double> teams, EloConfig config) {}
 
     public Ratings currentRatings() {
+        return currentRatings(null);
+    }
+
+    public Ratings currentRatings(Integer season) {
         var timeline = history.getTimeline();
         var ratings = new HashMap<Integer, Double>();
-        selected(timeline, null, null).forEach(s -> ratings.put(s.team().teamId(), s.endElo()));
+        selected(timeline, season, null).forEach(s -> ratings.put(s.team().teamId(), s.endElo()));
         return new Ratings(Map.copyOf(ratings), timeline.config());
     }
 

@@ -30,7 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DataJpaTest(showSql = false, properties = "playoffs.simulations=100")
 @AutoConfigureCache(cacheProvider = CacheType.CAFFEINE)
 @EnableCaching
-@Import({SeasonStateLoader.class, PlayoffPictureService.class, PlayoffsController.class, CacheNames.class, OddsService.class, SimulationService.class, ClinchService.class,
+@Import({com.rzs.stats.playoffs.ComputeGate.class, SeasonStateLoader.class, PlayoffPictureService.class, PlayoffsController.class, CacheNames.class, OddsService.class, SimulationService.class, ClinchService.class,
         com.rzs.stats.service.EloQueryService.class, com.rzs.stats.service.EloHistoryService.class,
         com.rzs.stats.service.EloService.class, com.rzs.stats.service.EloConfigService.class,
         com.rzs.stats.service.OwnerChangeService.class})
@@ -238,7 +238,7 @@ class PlayoffPictureTest {
     void missingOrFailedOddsNeverBreakPictureAndAreOmitted() throws Exception {
         seed(0, fixtures.get("103"));
         for (boolean fail : List.of(false, true)) {
-            var unavailable = new OddsService(loader, elo, new SimulationService(), 100, caches) {
+            var unavailable = new OddsService(loader, elo, new SimulationService(), 100, caches, new com.rzs.stats.playoffs.ComputeGate(2, 100)) {
                 @Override public Response available(Integer season, String rules) {
                     if (fail) throw new IllegalStateException("Unavailable baseline");
                     return null;
