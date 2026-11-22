@@ -77,10 +77,8 @@ it.each([
   const { container } = render(<MemoryRouter initialEntries={[`/playoffs?tab=${tab}&rules=nfl`]}><PlayoffsPage /></MemoryRouter>)
   await screen.findByRole('table', { name: table })
   if (tab === 'probability') {
-    await screen.findByRole('table', { name: 'Title probability' })
-    const details = screen.getByText('Probability over time').closest('details')
-    details.open = true
-    fireEvent(details, new Event('toggle'))
+    await waitFor(() => expect(client.getPlayoffChampionship).toHaveBeenCalled())
+    fireEvent.click(screen.getByRole('button', { name: 'Over time' }))
     await screen.findByRole('table', { name: 'Probability history data', hidden: true })
   }
   assertLanguage(container)

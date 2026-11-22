@@ -1,8 +1,10 @@
+import { Fragment, useEffect } from 'react'
+import { SortTh, useSorter } from '../components/SortTh'
+import { probShade } from '../utils/playoffOdds'
 import WhatIfTab from '../components/playoffs/WhatIfTab'
 import ClinchBadge, { useClinch, teamMarker, markerOdds, markerValue } from '../components/playoffs/ClinchBadge'
 import OddsTab from '../components/playoffs/OddsTab'
 import LeverageTab from '../components/playoffs/LeverageTab'
-import { useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { getPlayoffPicture, getSeasons } from '../api/client'
 import PageHeader from '../components/PageHeader'
@@ -25,7 +27,13 @@ function pictureLabel(data) {
 }
 
 function Conference({ conference, data, clinch }) {
-  const rows = [...conference.seeds, ...conference.hunt].map(r => ({ ...r, markers: teamMarker(clinch, r.team.teamId) }))
+  const sorter = useSorter({ key: 'seed', asc: true })
+  const rows = sorter.apply([...conference.seeds, ...conference.hunt].map(r => ({ ...r, markers: teamMarker(clinch, r.team.teamId) })), {
+    seed: r => r.seed ?? r.rank, team: r => r.team.displayName,
+    record: r => (r.wins + (r.ties ?? 0) / 2) / (r.wins + r.losses + (r.ties ?? 0) || 1),
+    position: status, playoffs: r => markerValue(r.odds?.playoffs, r.markers?.playoffs), reasons: r => r.reasons.join(' '),
+  })
+  const showHunt = sorter.sort.key === 'seed' && sorter.sort.asc
   const hasOdds = rows.some(row => row.odds != null)
   const spec = {
     name: `Playoffs — ${conference.name}`,
@@ -39,55 +47,41 @@ function Conference({ conference, data, clinch }) {
       { label: 'Record', desc: 'Completed regular-season wins, losses and ties.', text: recordText },
       { label: 'Position', desc: 'Division leader, wild card or in the hunt.', text: status },
       { label: 'Tiebreakers', desc: 'Reasons a tiebreak determined this position.', text: r => r.reasons.join(' ') },
-      ...(hasOdds ? [{ label: 'Playoff probability', desc: 'Chance of making the playoffs, rounded to a whole percent.', text: oddsText, value: r => markerValue(r.odds?.playoffs, r.markers?.playoffs), z: '0%' }] : []),
+      ...(hasOdds ? [{ label: 'Playoff probability', desc: 'Chance of making the playoffs, rounded to a whole percent.', text: oddsText, value: r => markerValue(r.odds?.playoffs, r.markers?.playoffs), z: '0%', color: r => probShade(markerValue(r.odds?.playoffs, r.markers?.playoffs)) }] : []),
     ],
     api: {
       path: '/playoffs/picture', params: { season: data.season, rules: data.rules },
-      note: `Only ${conference.name}; seeds followed by hunt in API order.`,
+      note: `Only ${conference.name}; sorted by ${sorter.sort.key} ${sorter.sort.asc ? 'ascending' : 'descending'}.`,
       fields: { Seed: 'seeds[].seed; empty for hunt[]', Rank: 'seed or rank', Team: 'team.displayName', Record: 'wins-losses[-ties]', Position: 'seed and divisionWinner', Tiebreakers: 'reasons joined as sentences', ...(hasOdds ? { 'Playoff probability': 'odds.playoffs × 100, whole percent; absent means empty' } : {}) },
     },
   }
-  const renderRow = row => (
-    <tr key={row.team.teamId} className="border-b border-line">
-      <td className="py-3 pr-2 num text-muted align-top">{row.seed ?? '—'}</td>
-      <td className="py-3 pr-2">
-        <div className="flex items-center gap-2">
-          <TeamLogo abbr={row.team.abbrName} />
-          <Link to={`/teams/${row.team.abbrName}?season=${seasonNumber(data.season)}`} className="font-semibold hover:text-accent hover:underline">{row.team.displayName}</Link>
-        </div>
-        <ClinchBadge markers={row.markers} /><div className="text-xs text-muted mt-1">{status(row)}</div>
-        {row.reasons.length > 0 && (
-          <details className="text-xs mt-1">
-            <summary className="cursor-pointer text-muted">Tiebreak details</summary>
-            {row.reasons.map(reason => <p key={reason} className="mt-1">{reason}</p>)}
-          </details>
-        )}
-      </td>
-      <td className="py-3 text-right num align-top whitespace-nowrap">{recordText(row)}</td>
-      {hasOdds && <td className="py-3 pl-3 text-right num align-top">{oddsText(row)}</td>}
-    </tr>
-  )
-  return (
-    <section aria-label={conference.name} className="min-w-0">
-      <div className="flex items-center justify-between flex-wrap gap-2 border-b-2 border-rule pb-2">
-        <h2 className="font-display font-bold text-2xl">{conference.name}</h2>
-        <ExportMenu spec={spec} />
-      </div>
-      <table className="w-full text-sm" aria-label={`${conference.name} playoff picture`}>
-        <thead><tr className="text-xs text-muted border-b border-line">
-          <th scope="col" className="py-2 pr-2 text-left">Seed</th>
-          <th scope="col" className="py-2 text-left">Team</th>
-          <th scope="col" className="py-2 text-right">Record</th>
-          {hasOdds && <th scope="col" className="py-2 pl-3 text-right">Playoff probability</th>}
-        </tr></thead>
-        <tbody>{rows.filter(r => r.seed != null).map(renderRow)}</tbody>
-        <tbody>
-          <tr><th colSpan={hasOdds ? 4 : 3} className="text-left py-3 border-y-2 border-rule bg-surface text-xs uppercase tracking-wide">In the hunt</th></tr>
-          {rows.filter(r => r.seed == null).map(renderRow)}
-        </tbody>
-      </table>
-    </section>
-  )
+  const headers = [
+    ['seed', 'Seed', 'Conference seed; teams outside the field show a dash.'],
+    ['team', 'Team', 'Team and proven clinch or elimination status.'],
+    ['record', 'Record', 'Completed regular-season record; sorts by winning percentage.'],
+    ['position', 'Position', 'Division leader, wild card or in the hunt.'],
+    ...(hasOdds ? [['playoffs', 'Playoff probability', 'Chance of making the playoffs. Green is high; red is low.']] : []),
+    ['reasons', 'Tiebreak', 'Why a tiebreak determined this position.'],
+  ]
+  return <section aria-label={conference.name} className="min-w-0">
+    <div className="flex items-center justify-between flex-wrap gap-2 border-b-2 border-rule pb-2">
+      <h2 className="font-display font-bold text-2xl">{conference.name}</h2><ExportMenu spec={spec} />
+    </div>
+    <div className="overflow-x-auto"><table className="w-full text-sm whitespace-nowrap" aria-label={`${conference.name} playoff picture`}>
+      <thead><tr>{headers.map(([key, label, tip]) => <SortTh key={key} sortKey={key} tip={tip} state={sorter.sort} onSort={sorter.click} className={['seed', 'record', 'playoffs'].includes(key) ? 'text-right' : ''}>{label}</SortTh>)}</tr></thead>
+      <tbody>{rows.map((row, i) => <Fragment key={row.team.teamId}>
+        {showHunt && row.seed == null && (i === 0 || rows[i - 1].seed != null) && <tr><th colSpan={headers.length} className="text-left px-2 py-1 border-y border-rule bg-surface text-xs uppercase tracking-wide">In the hunt</th></tr>}
+        <tr className={`border-t border-line ${i % 2 ? 'bg-surface' : 'bg-bg'}`}>
+          <td className="px-2 py-1.5 num text-muted">{row.seed ?? '—'}</td>
+          <td className="px-2 py-1.5"><span className="inline-flex items-center gap-1.5"><TeamLogo abbr={row.team.abbrName} size={20} /><Link to={`/teams/${row.team.abbrName}?season=${seasonNumber(data.season)}`} className="font-semibold hover:text-accent hover:underline">{row.team.displayName}</Link><ClinchBadge markers={row.markers} compact /></span></td>
+          <td className="px-2 num text-right">{recordText(row)}</td>
+          <td className="px-2 text-xs text-muted">{status(row)}</td>
+          {hasOdds && <td className="px-2 text-right num" style={{ background: probShade(markerValue(row.odds?.playoffs, row.markers?.playoffs)) }}>{oddsText(row) || '—'}</td>}
+          <td className="px-2 text-center">{row.reasons.length > 0 ? <InfoTip text={row.reasons.join(' ')}><span tabIndex={0} aria-label={`Tiebreak for ${row.team.displayName}`}>ⓘ</span></InfoTip> : '—'}</td>
+        </tr>
+      </Fragment>)}</tbody>
+    </table></div>
+  </section>
 }
 
 export default function PlayoffsPage() {

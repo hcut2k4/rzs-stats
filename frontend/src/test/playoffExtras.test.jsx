@@ -1,11 +1,10 @@
 import { cloneElement } from 'react'
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, expect, it, vi } from 'vitest'
 import OddsTab from '../components/playoffs/OddsTab'
 import OddsHistory from '../components/playoffs/OddsHistory'
-import ChampionshipOdds from '../components/playoffs/ChampionshipOdds'
 import PlayoffOutlook from '../components/team/PlayoffOutlook'
 import * as client from '../api/client'
 import * as exports from '../utils/exportTable'
@@ -35,9 +34,6 @@ const history = (season = 2) => ({ ...structuredClone(historyFixture), season,
 const championship = (season = 2, rules = 'madden') => ({ ...structuredClone(championshipFixture), season, rules })
 const show = node => render(<MemoryRouter>{node}</MemoryRouter>)
 const expand = async () => {
-  const summary = screen.getByText('Probability over time')
-  summary.closest('details').open = true
-  fireEvent(summary.closest('details'), new Event('toggle'))
   await screen.findByRole('checkbox', { name: teams[0].displayName })
 }
 const formats = region => {
@@ -55,7 +51,6 @@ beforeEach(() => {
 
 it('defaults to the top six teams, searches all teams and changes the chart goal without refetching history', async () => {
   show(<OddsHistory season={2} currentTeams={current.slice().reverse()} />)
-  expect(client.getPlayoffOddsHistory).not.toHaveBeenCalled()
   await expand()
   expect(screen.getAllByRole('checkbox').filter(c => c.checked)).toHaveLength(6)
   expect(screen.getByRole('checkbox', { name: teams[0].displayName })).not.toBeChecked()
@@ -83,9 +78,6 @@ it('defaults to the top six teams, searches all teams and changes the chart goal
 it.each([0])('shows the history starting message for %i snapshots', async count => {
   client.getPlayoffOddsHistory.mockResolvedValue({ ...history(), snapshots: history().snapshots.slice(0, count) })
   show(<OddsHistory season={2} currentTeams={current} />)
-  const details = screen.getByText('Probability over time').closest('details')
-  details.open = true
-  fireEvent(details, new Event('toggle'))
   expect(await screen.findByText('History starts building after the first sync of the season')).toBeInTheDocument()
   expect(screen.queryByRole('img', { name: /probability history:/ })).not.toBeInTheDocument()
 })
@@ -109,31 +101,15 @@ it('exports a weeks-by-selected-teams table for the selected goal with a chart i
   csv.mockRestore()
 })
 
-it('sorts championship odds by champion and formats whole percent estimates with exports', async () => {
-  const csv = vi.spyOn(exports, 'exportCsv').mockReturnValue('saved')
-  const data = championship(1, 'madden')
-  data.teams.reverse()
-  client.getPlayoffChampionship.mockResolvedValue(data)
-  show(<ChampionshipOdds season={1} rules="nfl" />)
-  const table = await screen.findByRole('table', { name: 'Title probability' })
-  const rows = within(table).getAllByRole('row')
-  expect(rows[1]).toHaveTextContent('SEANFC>99%80%56%39%19%')
-  expect(rows[2]).toHaveTextContent('CINAFC81%61%38%25%14%')
-  expect(rows.at(-1)).toHaveTextContent('<1%')
-  expect(client.getPlayoffChampionship).toHaveBeenCalledExactlyOnceWith(1, 'madden')
-  const region = screen.getByRole('region', { name: 'Title probability' })
-  formats(region)
-  await userEvent.click(within(region).getByRole('button', { name: 'CSV' }))
-  expect(csv.mock.lastCall[0].rows[0].champion).toBe(.19)
-  expect(csv.mock.lastCall[0].api.params).toEqual({ season: 1, rules: 'madden' })
-  csv.mockRestore()
-})
-
-it('places history and championship sections below the current odds tables', async () => {
+it('folds championship chances into each conference table and switches to history', async () => {
   show(<OddsTab season={2} rules="madden" />)
-  await screen.findByRole('table', { name: 'AFC playoff probability' })
-  await screen.findByRole('table', { name: 'Title probability' })
-  expect(screen.getByText('Probability over time')).toBeInTheDocument()
+  const table = await screen.findByRole('table', { name: 'AFC playoff probability' })
+  await waitFor(() => expect(within(table).getByRole('link', { name: 'CIN' }).closest('tr')).toHaveTextContent('25%14%'))
+  expect(screen.queryByRole('table', { name: 'Title probability' })).not.toBeInTheDocument()
+  await userEvent.click(screen.getByRole('button', { name: 'Over time' }))
+  await screen.findByRole('table', { name: 'Probability history data' })
+  expect(screen.queryByRole('table', { name: 'AFC playoff probability' })).not.toBeInTheDocument()
+  expect(screen.getByLabelText('Team line legend').querySelectorAll('line')).toHaveLength(6)
 })
 
 it('adds title odds and a small history SVG to the team outlook', async () => {
@@ -161,10 +137,10 @@ it.each(['failed', 'short', 'missing'])('keeps the team outlook while hiding una
 it('ignores a late championship response from a previous season', async () => {
   let finish
   client.getPlayoffChampionship.mockReturnValueOnce(new Promise(resolve => { finish = resolve }))
-  const view = show(<ChampionshipOdds season={1} rules="nfl" />)
+  const view = show(<OddsTab season={1} rules="madden" />)
   await waitFor(() => expect(client.getPlayoffChampionship).toHaveBeenCalledWith(1, 'madden'))
-  view.rerender(<MemoryRouter><ChampionshipOdds season={2} rules="madden" /></MemoryRouter>)
-  await screen.findByRole('table', { name: 'Title probability' })
+  view.rerender(<MemoryRouter><OddsTab season={2} rules="madden" /></MemoryRouter>)
+  await screen.findByRole('table', { name: 'AFC playoff probability' })
   await act(async () => finish({ ...championship(1, 'nfl'), teams: [{ ...championship().teams[0], team: { ...teams[0], displayName: 'Old team' } }] }))
   expect(screen.queryByText('Old team')).not.toBeInTheDocument()
 })
@@ -208,10 +184,10 @@ it.each([[[null, 0]], [[0, 0]], [[null]]])('keeps the outlook sparkline finite f
 
 it('labels the frozen pre-playoff projection and keeps its table', async () => {
   client.getPlayoffChampionship.mockResolvedValue(preplayoffFixture)
-  show(<ChampionshipOdds season={2} rules="madden" />)
-  expect(await screen.findByRole('heading', { name: 'Pre-playoff projection (end of regular season)' })).toBeInTheDocument()
-  expect(screen.getByText(/Ratings are frozen at the end of the regular season/)).toBeInTheDocument()
-  expect(screen.getByRole('table', { name: 'Title probability' })).toBeInTheDocument()
+  show(<OddsTab season={2} rules="madden" />)
+  expect(await screen.findAllByText('Pre-playoff projection')).toHaveLength(2)
+  expect(screen.getAllByText('Pre-playoff projection')[0].closest('[title]')).toHaveAttribute('title', expect.stringContaining('Ratings are frozen'))
+  expect(screen.getByRole('table', { name: 'AFC playoff probability' })).toBeInTheDocument()
 })
 
 it('shows selected teams and whole percentages in an expandable history table with Final last', async () => {
@@ -220,7 +196,6 @@ it('shows selected teams and whole percentages in an expandable history table wi
   client.getPlayoffOddsHistory.mockResolvedValue(data)
   show(<OddsHistory season={2} currentTeams={current} />)
   await expand()
-  await userEvent.click(screen.getByText('Show data table'))
   const table = screen.getByRole('table', { name: 'Probability history data' })
   expect(within(table).getAllByRole('columnheader')).toHaveLength(7)
   expect(within(table).getAllByRole('row').at(-1)).toHaveTextContent('Final90%')
