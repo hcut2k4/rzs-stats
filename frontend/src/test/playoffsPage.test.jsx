@@ -160,11 +160,11 @@ describe('Playoff picture', () => {
     expect(screen.getByTestId('where')).toHaveTextContent('tab=picture')
   })
 
-  it('registers the page and labels the navigation entry Beta', async () => {
+  it('registers the page and adds the navigation entry without a Beta label', async () => {
     render(<MemoryRouter initialEntries={['/playoffs']}><App /></MemoryRouter>)
     await screen.findByRole('region', { name: 'AFC' })
     const link = within(screen.getByRole('navigation', { name: 'Main' })).getByRole('link', { name: /Playoffs/ })
     expect(link).toHaveAttribute('href', '/playoffs')
-    expect(within(link).getByText('Beta')).toBeInTheDocument()
+    expect(within(link).queryByText('Beta')).not.toBeInTheDocument()
   })
 })
