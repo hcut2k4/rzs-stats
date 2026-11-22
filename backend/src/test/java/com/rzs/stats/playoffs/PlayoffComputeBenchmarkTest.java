@@ -32,7 +32,6 @@ class PlayoffComputeBenchmarkTest {
     @Autowired OddsSnapshotRepository snapshots;
     @Autowired SyncStatusRepository syncRows;
     @Autowired SyncStatusService sync;
-    @Autowired PlayoffCacheInvalidation invalidation;
     @Autowired OddsService odds;
     @Autowired OddsSnapshotService writer;
     @Autowired LeverageService leverage;
@@ -45,7 +44,6 @@ class PlayoffComputeBenchmarkTest {
     void cleanup() { snapshots.deleteAll(); syncRows.deleteAll(); games.deleteAll(); teams.deleteAll(); }
 
     void warmChanged() {
-        if (!invalidation.takeWarm()) return;
         writer.save(odds.odds(2, "madden"));
         var key = leverage.canonicalKey(2, null);
         leverage.matrix(key.season(), key.week(), "madden");

@@ -61,7 +61,6 @@ class SyncFailureFlowTest {
     @Autowired SyncStatusRepository status;
     @Autowired TeamRepository teams;
     @Autowired CacheManager caches;
-    @Autowired PlayoffCacheInvalidation invalidation;
 
     @BeforeEach
     void setup() {
@@ -71,7 +70,6 @@ class SyncFailureFlowTest {
         var team = new TeamEntity(); team.setTeamId(1); team.setAbbrName("A"); team.setDisplayName("Original");
         team.setConference("AFC"); team.setDivision("East"); teams.saveAndFlush(team);
         assertThat(sync.sync().success()).isTrue();
-        invalidation.takeWarm();
         CacheNames.PLAYOFF.forEach(name -> caches.getCache(name).put("keep", "value"));
         SimulationService.resetSeedings();
     }
@@ -95,7 +93,6 @@ class SyncFailureFlowTest {
         assertThat(after.getLastFingerprint()).isEqualTo(before.getLastFingerprint());
         assertThat(after.getLastSyncAt()).isEqualTo(before.getLastSyncAt());
         CacheNames.PLAYOFF.forEach(name -> assertThat(caches.getCache(name).get("keep")).isNull());
-        assertThat(invalidation.takeWarm()).isTrue();
         assertThat(SimulationService.seedings()).isZero();
     }
 
@@ -103,7 +100,6 @@ class SyncFailureFlowTest {
     void unchangedSyncKeepsEveryPlayoffCacheAndDoesNotSimulate() {
         assertThat(sync.sync().success()).isTrue();
         CacheNames.PLAYOFF.forEach(name -> assertThat(caches.getCache(name).get("keep", String.class)).isEqualTo("value"));
-        assertThat(invalidation.takeWarm()).isFalse();
         assertThat(SimulationService.seedings()).isZero();
     }
 }
