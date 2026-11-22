@@ -164,6 +164,23 @@ const PAGES = [
     ],
   },
   {
+    name: 'Odds history',
+    bullets: [
+      'Odds over time tracks saved weekly chances of making the playoffs, winning the division or earning the No. 1 seed under Madden rules. Pick teams and a goal to compare their paths.',
+      'Weekly snapshots are saved after each sync. Snapshots only start accumulating after launch; an admin backfill can fill earlier weeks using Elo ratings as of those weeks. Weeks without a snapshot are not shown.',
+      'Team profiles include a small playoff-odds history chart when at least two snapshots exist. Export the selected teams and goal to Excel, CSV, a chart image or AI-ready text.',
+    ],
+  },
+  {
+    name: 'Championship odds',
+    bullets: [
+      'Each regular-season simulation continues through a seven-seed playoff bracket in each conference. Seed 1 gets a bye; the wild-card games are 2 vs 7, 3 vs 6 and 4 vs 5. The best remaining seed then hosts the lowest remaining seed.',
+      'Games use Elo win probabilities with home field for the better seed, except the neutral-site final. Ratings stay fixed within each simulated season and games have no ties.',
+      'Make playoffs, Reach round 2 (including a bye), Conference final, Final and Champion are the chances of reaching each stage from today, including the chance of missing the playoffs. Title odds also appear on team profiles.',
+      'These are estimates rounded to whole percents, using >99% and <1% at the extremes. The league table sorts by title chance and exports to Excel, CSV, an image or AI-ready text.',
+    ],
+  },
+  {
     name: 'Leverage',
     bullets: [
       'Compare a team’s odds if it wins its next game with its odds if it loses. Swing is the difference in percentage points; 70% minus 45% is a 25-point swing.',

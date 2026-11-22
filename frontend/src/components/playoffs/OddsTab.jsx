@@ -1,3 +1,5 @@
+import OddsHistory from './OddsHistory'
+import ChampionshipOdds from './ChampionshipOdds'
 import ClinchBadge, { useClinch, teamMarker, markerOdds, markerValue } from './ClinchBadge'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -58,6 +60,9 @@ export default function OddsTab({ season, rules }) {
       return <section key={c.name} aria-label={`${c.name} odds`} className="min-w-0"><div className="flex justify-between flex-wrap gap-2 border-b-2 border-rule pb-2"><h2 className="font-display text-2xl font-bold">{c.name}</h2><ExportMenu spec={spec} /></div>
         <div className="overflow-x-auto"><table className="w-full text-sm" aria-label={`${c.name} playoff odds`}><thead><tr><th className="th text-left">Team</th><th className="th">Record</th>{GOALS.map(g => <th className="th text-right whitespace-nowrap" key={g.value}>{g.label}</th>)}<th className="th">Seeds 1–7</th></tr></thead>
           <tbody>{rows.map(r => <tr key={r.team.teamId} className="border-t border-line"><td className="py-3 pr-2"><TeamLink team={r.team} season={data.season} /><ClinchBadge markers={r.markers} /></td><td className="px-2 num whitespace-nowrap">{recordText(r)}</td>{GOALS.map(g => <td className="px-2 text-right num" key={g.value}>{markerOdds(r.odds[g.value], r.markers?.[g.value])}</td>)}<td className="pl-3"><div className="flex w-28 h-3 bg-line overflow-hidden rounded" role="img" aria-label={r.seedOdds.map((p, i) => `Seed ${i + 1}: ${formatOdds(p)}`).join(', ')}>{r.seedOdds.map((p, i) => <span key={i} title={`Seed ${i + 1}: ${formatOdds(p)}`} style={{ width: `${p * 100}%`, background: `hsl(${215 + i * 18} 65% ${35 + i * 5}%)` }} />)}</div></td></tr>)}</tbody></table></div></section>
-    })}</div><Calibration season={data.season} />
+    })}</div>
+    <OddsHistory key={data.season} season={data.season} currentTeams={data.conferences.flatMap(c => c.teams)} />
+    <ChampionshipOdds season={data.season} rules={data.rules} />
+    <Calibration season={data.season} />
   </>
 }
