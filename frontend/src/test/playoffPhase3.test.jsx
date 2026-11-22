@@ -10,6 +10,7 @@ import PlayoffPathPage from '../pages/PlayoffPathPage'
 import { parsePicks, encodePicks, pathScenario } from '../utils/playoffScenario'
 import { clearLoadCache } from '../utils/useLoad'
 import * as client from '../api/client'
+import * as exports from '../utils/exportTable'
 
 vi.mock('../api/client')
 const A = { teamId: 1, abbrName: 'BUF', displayName: 'Bills' }
@@ -66,7 +67,7 @@ it('debounces simulation with only known picks and the current rules', async () 
   await act(async () => vi.advanceTimersByTime(399))
   expect(client.simulatePlayoffs).not.toHaveBeenCalled()
   await act(async () => vi.advanceTimersByTime(1))
-  expect(client.simulatePlayoffs).toHaveBeenCalledWith({ season: 2, rules: 'nfl', picks: [{ gameId: 12, result: 'home' }], simulations: 5000 }, expect.any(AbortSignal))
+  expect(client.simulatePlayoffs).toHaveBeenCalledWith({ season: 2, rules: 'nfl', picks: [{ gameId: 12, result: 'home' }] }, expect.any(AbortSignal))
   const region = screen.getByRole('region', { name: 'AFC What-If' })
   expect(region).toHaveTextContent('↑ 20 pp')
   expect(region).toHaveTextContent('↓ 10 pp')
@@ -203,4 +204,76 @@ it('retries a failed simulation without changing the scenario', async () => {
   await screen.findByRole('table', { name: 'AFC scenario odds' })
   expect(client.simulatePlayoffs).toHaveBeenCalledTimes(2)
   expect(client.simulatePlayoffs.mock.calls[1][0].picks).toEqual([{ gameId: 12, result: 'home' }])
+})
+
+it('uses the baseline simulation count for empty picks and displays the returned count', async () => {
+  client.simulatePlayoffs.mockResolvedValue(result({ simulations: 20000 }))
+  show()
+  expect(await screen.findByText(/20,000 seasons/)).toBeInTheDocument()
+  expect(client.simulatePlayoffs.mock.calls[0][0]).toEqual({ season: 2, rules: 'nfl', picks: [] })
+})
+
+it.each([undefined, false, true])('keeps fractional exact odds unproven for teams outside final seeds (flag %s)', async flag => {
+  const data = result({ exact: true })
+  data.conferences[0].seeds = []
+  data.conferences[0].teams = [{ team: B, dependsOnScores: flag, odds: { playoffs: .001, division: .999, oneSeed: 0 }, baseline: odds }]
+  client.simulatePlayoffs.mockResolvedValue(data)
+  show()
+  const table = await screen.findByRole('table', { name: 'AFC scenario odds' })
+  expect(table).toHaveTextContent('<1%')
+  expect(table).toHaveTextContent('>99%')
+  expect(within(table).getAllByRole('row')[1].children[5]).toHaveTextContent(flag ? '<1%' : '0%')
+  if (flag) expect(within(table).getByText('depends on scores')).toBeInTheDocument()
+  else expect(within(table).queryByText('depends on scores')).not.toBeInTheDocument()
+})
+
+it('shows proven exact endpoints only for teams not dependent on scores', async () => {
+  const data = result({ exact: true })
+  data.conferences[0].seeds = []
+  data.conferences[0].teams = [false, true].map((flag, i) => ({ team: i ? B : A, dependsOnScores: flag, odds: { playoffs: 1, division: 0, oneSeed: .4 }, baseline: odds }))
+  client.simulatePlayoffs.mockResolvedValue(data)
+  show()
+  const rows = within(await screen.findByRole('table', { name: 'AFC scenario odds' })).getAllByRole('row')
+  expect(rows[1].children[1]).toHaveTextContent('100%')
+  expect(rows[1].children[3]).toHaveTextContent('0%')
+  expect(rows[2].children[1]).toHaveTextContent('>99%')
+  expect(rows[2].children[3]).toHaveTextContent('<1%')
+})
+
+it('shows final-week goal statuses, sufficient conditions, assumptions and export controls', async () => {
+  const csv = vi.spyOn(exports, 'exportCsv').mockReturnValue('saved')
+  const scenarios = { assumes: 'No tie games; scores unknown', goals: {
+    playoffs: { status: 'open', clinchedBy: [{ text: 'Bills beat Jets' }, { text: 'Dolphins lose to Jets' }], eliminatedBy: [{ text: 'Bills lose to Jets' }] },
+    division: { status: 'in', clinchedBy: [], eliminatedBy: [] },
+    oneSeed: { status: 'out', clinchedBy: [], eliminatedBy: [] },
+  } }
+  client.getPlayoffPath.mockResolvedValue({ ...path(), scenarios })
+  showPath()
+  const table = await screen.findByRole('table', { name: 'Final-week scenarios' })
+  const rows = within(table).getAllByRole('row')
+  expect(rows.slice(1).map(r => r.children[1].textContent)).toEqual(['open', 'in', 'out'])
+  expect(rows.slice(1).map(r => r.children[0].textContent)).toEqual(['Playoffs', 'Division', 'No. 1 seed'])
+  expect(within(rows[1]).getAllByRole('listitem').map(li => li.textContent)).toEqual(['Bills beat Jets', 'Dolphins lose to Jets', 'Bills lose to Jets'])
+  expect(rows[2]).toHaveTextContent('—')
+  expect(rows[3]).toHaveTextContent('—')
+  const region = screen.getByRole('region', { name: 'Final-week scenarios' })
+  expect(region).toHaveTextContent(scenarios.assumes)
+  expect(region).toHaveTextContent('We clinch with ...')
+  expect(region).toHaveTextContent('We are eliminated if ...')
+  formats(region)
+  await userEvent.click(within(region).getByRole('button', { name: 'CSV' }))
+  const spec = csv.mock.lastCall[0]
+  expect(spec.rows.map(r => r.status)).toEqual(['open', 'in', 'out'])
+  expect(spec.cols[2].text(spec.rows[0])).toBe('Bills beat Jets; Dolphins lose to Jets')
+  expect(spec.cols[3].text(spec.rows[0])).toBe('Bills lose to Jets')
+  expect(spec.cols[2].text(spec.rows[1])).toBe('')
+  expect(spec.notes).toEqual([scenarios.assumes])
+  csv.mockRestore()
+})
+
+it('hides final-week scenarios entirely when the response has null scenarios', async () => {
+  client.getPlayoffPath.mockResolvedValue({ ...path(), scenarios: null })
+  showPath()
+  await screen.findByText('Do we control our destiny?')
+  expect(screen.queryByRole('region', { name: 'Final-week scenarios' })).not.toBeInTheDocument()
 })

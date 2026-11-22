@@ -153,7 +153,7 @@ export function oddsHistoryPanel(ctx, width, rows, teams, weekText) {
     height: plotHeight + 60 + legendRows * 22,
     draw(ctx) {
       const left = 55, right = width - 20, top = 15, bottom = plotHeight
-      const x = i => left + i / (rows.length - 1) * (right - left)
+      const x = i => rows.length <= 1 ? (left + right) / 2 : left + i / (rows.length - 1) * (right - left)
       const y = p => bottom - p * (bottom - top)
       ctx.font = '12px sans-serif'
       ctx.lineWidth = 1

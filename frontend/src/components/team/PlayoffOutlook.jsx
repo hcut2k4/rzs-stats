@@ -18,7 +18,7 @@ export default function PlayoffOutlook({ teamId, season, nextWeek }) {
   const championship = useLoad(row ? `playoffs-championship-${season}-madden` : null, async () => getPlayoffChampionship(season, 'madden'))
   const history = useLoad(row ? `playoffs-history-${season}` : null, async () => getPlayoffOddsHistory(season))
   const title = championship.data?.teams?.find(r => r.team.teamId === teamId)
-  const snapshots = history.data?.snapshots?.slice().sort((a, b) => a.week - b.week) ?? []
+  const snapshots = history.data?.snapshots?.slice().sort((a, b) => (a.week ?? Infinity) - (b.week ?? Infinity)) ?? []
   const points = snapshots.map(s => ({ week: s.week, p: s.teams.find(r => r.team.teamId === teamId)?.playoffs })).filter(s => s.p != null)
   if (!row) return null
   const game = leverage.data?.games?.find(g => g.teams.some(t => t.team.teamId === teamId))
@@ -38,7 +38,7 @@ export default function PlayoffOutlook({ teamId, season, nextWeek }) {
     <ClinchBadge markers={markers} />
     {title?.champion != null && <p className="text-sm font-semibold my-2">Title odds {formatOdds(title.champion)}</p>}
     {points.length >= 2 && <svg className="text-accent my-2" width="160" height="36" viewBox="0 0 160 36" role="img" aria-label="Playoff odds history">
-      <polyline fill="none" stroke="currentColor" strokeWidth="2" points={points.map(s => `${3 + (s.week - points[0].week) / (points.at(-1).week - points[0].week) * 154},${33 - s.p * 30}`).join(' ')} />
+      <polyline fill="none" stroke="currentColor" strokeWidth="2" points={points.map((s, i) => `${3 + i / Math.max(1, points.length - 1) * 154},${33 - s.p * 30}`).join(' ')} />
     </svg>}
     <button className="block text-sm text-accent hover:underline my-2" onClick={() => navigate(`/playoffs/${row.team.abbrName}?season=${season}&rules=madden`)}>Path to the playoffs →</button>
     {next && <p className="text-sm text-muted mb-3">Next game: {weekName(leverage.data.week)} · {next.side === 'home' ? 'vs' : '@'} {opp.displayName}</p>}

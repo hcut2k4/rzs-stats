@@ -58,3 +58,12 @@ it('explains the playoff picture and the season 104 tiebreak examples', async ()
   expect(screen.getByText(/Detroit and Philadelphia ahead of Washington/)).toBeInTheDocument()
   await screen.findByText(/the configured margin cap/)
 })
+
+it('explains simulated scores and final-week scenario proof limits', async () => {
+  render(<MemoryRouter><AboutPage /></MemoryRouter>)
+  expect(screen.getByText(/loser scores 20/)).toHaveTextContent('1, 3, 7, 10, 14 or 21 points, each equally likely')
+  expect(screen.getByText(/loser scores 20/)).toHaveTextContent('only matter for point-differential tiebreakers')
+  expect(screen.getByRole('heading', { name: 'Final-week scenarios' })).toBeInTheDocument()
+  expect(screen.getByText(/In means the goal is secured/)).toHaveTextContent('No ties are assumed and scores are unknown')
+  await screen.findByText(/the configured margin cap/)
+})

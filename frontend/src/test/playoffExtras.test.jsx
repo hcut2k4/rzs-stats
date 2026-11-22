@@ -71,7 +71,7 @@ it('defaults to the top six teams, searches all teams and changes the chart goal
   expect(client.getPlayoffOddsHistory).toHaveBeenCalledExactlyOnceWith(2)
 })
 
-it.each([0, 1])('shows the history starting message for %i snapshots', async count => {
+it.each([0])('shows the history starting message for %i snapshots', async count => {
   client.getPlayoffOddsHistory.mockResolvedValue({ season: 2, snapshots: history().snapshots.slice(0, count) })
   show(<OddsHistory season={2} currentTeams={current} />)
   const details = screen.getByText('Odds over time').closest('details')
@@ -154,4 +154,41 @@ it('ignores a late championship response from a previous season', async () => {
   await screen.findByRole('table', { name: 'Championship odds' })
   await act(async () => finish({ ...championship(1, 'nfl'), teams: [{ ...championship().teams[0], team: { ...teams[0], displayName: 'Old team' } }] }))
   expect(screen.queryByText('Old team')).not.toBeInTheDocument()
+})
+
+it.each([[[null, 0]], [[null]], [[0, 0]]])('renders finite history charts and exports final snapshots last: %j', async weeks => {
+  const csv = vi.spyOn(exports, 'exportCsv').mockReturnValue('saved')
+  client.getPlayoffOddsHistory.mockResolvedValue({ season: 2, snapshots: weeks.map((week, i) => ({ ...history().snapshots[0], week, teams: [{ team: teams[0], playoffs: .6 + i / 10 }] })) })
+  show(<OddsHistory season={2} currentTeams={current.slice(0, 1)} />)
+  await expand()
+  const chart = screen.getByRole('img', { name: /Playoffs odds history:/ })
+  expect(chart.innerHTML).not.toMatch(/NaN|Infinity/)
+  if (weeks.includes(null)) expect(within(chart).getByText('Final')).toBeInTheDocument()
+  await userEvent.click(within(screen.getByRole('region', { name: 'Odds over time' })).getByRole('button', { name: 'CSV' }))
+  const spec = csv.mock.lastCall[0]
+  if (weeks.includes(null)) {
+    expect(spec.rows.at(-1).week).toBeNull()
+    expect(spec.cols[0].text(spec.rows.at(-1))).toBe('Final')
+    const workbook = exports.buildWorkbook(spec)
+    expect(workbook.Sheets[workbook.SheetNames[0]][`A${spec.rows.length + 1}`]).toMatchObject({ t: 's', v: 'Final' })
+  }
+  const coords = []
+  const ctx = new Proxy({}, { get: (_, key) => (...args) => { if (['moveTo', 'lineTo', 'arc'].includes(key)) coords.push(...args) }, set: () => true })
+  spec.image.draw(ctx, 800).draw(ctx)
+  expect(coords.length).toBeGreaterThan(0)
+  expect(coords.every(Number.isFinite)).toBe(true)
+  csv.mockRestore()
+})
+
+it.each([[[null, 0]], [[0, 0]], [[null]]])('keeps the outlook sparkline finite for final or repeated weeks: %j', async weeks => {
+  client.getPlayoffOddsHistory.mockResolvedValue({ season: 2, snapshots: weeks.map((week, i) => ({ ...history().snapshots[i % 2], week })) })
+  show(<PlayoffOutlook teamId={1} season={2} />)
+  await screen.findByText('Title odds <1%')
+  await act(async () => {})
+  const spark = screen.queryByRole('img', { name: 'Playoff odds history' })
+  if (weeks.length === 1) expect(spark).not.toBeInTheDocument()
+  else {
+    expect(spark.querySelector('polyline').getAttribute('points')).not.toMatch(/NaN|Infinity/)
+    if (weeks.includes(null)) expect(spark.querySelector('polyline')).toHaveAttribute('points', '3,12 157,15')
+  }
 })
