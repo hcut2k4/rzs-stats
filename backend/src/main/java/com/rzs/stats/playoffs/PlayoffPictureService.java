@@ -30,13 +30,9 @@ public class PlayoffPictureService {
         }
         var state = loader.load(season);
         var madden = MaddenSeeding.madden27().seed(state.teams(), state.completedGames());
-        var nfl = PlayoffSeeding.seed(state.teams(), state.completedGames());
+        var nfl = PlayoffSeeding.seedForPicture(state.teams(), state.completedGames());
         var result = rules.equals("madden") ? madden : nfl;
         var other = rules.equals("madden") ? nfl : madden;
-        if (!result.unresolvedConferences().isEmpty() || result.conferences().values().stream()
-                .flatMap(Collection::stream).anyMatch(r -> r.teams().size() != 1)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Available game data cannot resolve the requested playoff order");
-        }
         var otherSeeds = new HashMap<String, Integer>();
         other.conferences().values().stream().flatMap(Collection::stream)
                 .filter(r -> r.position() <= 7 && r.teams().size() == 1)

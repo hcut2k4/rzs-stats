@@ -42,6 +42,7 @@ Unknown `rules` -> 400. Season with no data -> 404.
 
 - `seeds` has exactly 7 entries per conference (when at least 7 teams exist), seeds 1-4 are division winners.
 - `hunt` is every remaining team in order (`rank` 8...).
+- Unresolved NFL ties use alphabetical order within each tied rank, including division ties, so both conferences still render. Affected teams receive a reason explaining that the displayed order is arbitrary and the NFL uses a coin toss.
 - `otherRulesSeed`: seed (1-7) the team would hold under the other rule set (`nfl` when `rules=madden`, and the reverse), or null when it would miss the playoffs.
 - `reasons` is empty when no tiebreaker was needed. Sentences are plain English with team names, no internal jargon.
 - `throughWeek` is the last week with a completed regular-season game (null if none); `nextWeek` is the earliest week with an unplayed regular-season game (null once the regular season is complete).

@@ -49,12 +49,14 @@ public final class PlayoffSeeding {
     private record Selection(Set<String> teams, Step unresolvedAt) {}
 
     private final TiebreakerRules rules;
+    private final boolean alphabeticalFallback;
     private final Map<String, Team> teams = new TreeMap<>();
     private final Map<String, List<Game>> games = new HashMap<>();
     private final Map<String, Rank> divisionRanks = new TreeMap<>();
     private final List<Trace> trace = new ArrayList<>();
 
-    private PlayoffSeeding(List<Team> teams, List<Game> schedule, TiebreakerRules rules) {
+    private PlayoffSeeding(List<Team> teams, List<Game> schedule, TiebreakerRules rules, boolean alphabeticalFallback) {
+        this.alphabeticalFallback = alphabeticalFallback;
         this.rules = Objects.requireNonNull(rules);
         for (var team : teams) {
             if (this.teams.putIfAbsent(team.abbr(), team) != null) throw new IllegalArgumentException("Duplicate team " + team.abbr());
@@ -74,7 +76,11 @@ public final class PlayoffSeeding {
     }
 
     public static Result seed(List<Team> teams, List<Game> games, TiebreakerRules rules) {
-        return new PlayoffSeeding(teams, games, rules).seed();
+        return new PlayoffSeeding(teams, games, rules, false).seed();
+    }
+
+    static Result seedForPicture(List<Team> teams, List<Game> games) {
+        return new PlayoffSeeding(teams, games, TiebreakerRules.nfl(), true).seed();
     }
 
     private Result seed() {
@@ -129,8 +135,15 @@ public final class PlayoffSeeding {
             var selections = rules.rankingMode() == TiebreakerRules.RankingMode.TIERED
                     ? tiered(tied, division, context, 0) : List.of(select(tied, division, context));
             for (var selected : selections) {
-                result.add(new Rank(start, selected.teams(), selected.teams().size() == 1 ? Status.RESOLVED : Status.UNRESOLVED,
-                        selected.unresolvedAt()));
+                if (alphabeticalFallback && selected.teams().size() > 1) {
+                    int position = start;
+                    for (var team : new TreeSet<>(selected.teams())) {
+                        result.add(new Rank(position++, Set.of(team), Status.RESOLVED, selected.unresolvedAt()));
+                    }
+                } else {
+                    result.add(new Rank(start, selected.teams(), selected.teams().size() == 1 ? Status.RESOLVED : Status.UNRESOLVED,
+                            selected.unresolvedAt()));
+                }
                 start += selected.teams().size();
                 pending.removeAll(selected.teams());
             }

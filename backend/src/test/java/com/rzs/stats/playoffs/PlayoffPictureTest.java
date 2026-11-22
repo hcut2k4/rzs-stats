@@ -136,14 +136,43 @@ class PlayoffPictureTest {
     }
 
     @Test
-    void unresolvedNflDivisionDoesNotInventSeeds() throws Exception {
-        var entities = seed(0, fixtures.get("103"));
+    void unresolvedNflTiesKeepBothConferencesAndFlagEveryAffectedTeam() throws Exception {
+        var fixture = fixtures.get("103");
+        var entities = seed(0, fixture);
         games.deleteAllInBatch();
-        save(1, 0, 1, 0, 0, entities.get("BUF"), entities.get("NE"), null, null);
-        assertThat(row(picture("?season=0"), "BUF").get("otherRulesSeed").isNull()).isTrue();
-        var response = http.perform(get("/api/playoffs/picture?season=0&rules=nfl"))
-                .andExpect(status().isNotFound()).andReturn();
-        assertThat(response.getResolvedException().getMessage()).contains("cannot resolve");
+        for (int i = 0; i < fixture.teams().size(); i += 2) {
+            save(i + 1, 0, 1, 0, 0, entities.get(fixture.teams().get(i).abbr()),
+                    entities.get(fixture.teams().get(i + 1).abbr()), null, null);
+        }
+        var nfl = picture("?season=0&rules=nfl");
+        var madden = picture("?season=0");
+        assertThat(nfl.get("conferences").size()).isEqualTo(2);
+        for (var conference : nfl.get("conferences")) {
+            assertThat(conference.get("seeds").size()).isEqualTo(7);
+            assertThat(conference.get("hunt").size()).isEqualTo(9);
+            var divisions = fixture.teams().stream().filter(t -> t.conference().equals(conference.get("name").asText()))
+                    .collect(java.util.stream.Collectors.groupingBy(PlayoffSeeding.Team::division)).values().stream()
+                    .map(division -> division.stream().map(PlayoffSeeding.Team::abbr).sorted().toList()).toList();
+            var expected = new ArrayList<String>();
+            for (int position = 0; position < 4; position++) {
+                int divisionPosition = position;
+                expected.addAll(divisions.stream().map(division -> division.get(divisionPosition)).sorted().toList());
+            }
+            var actual = new ArrayList<>(abbreviations(conference.get("seeds")));
+            actual.addAll(abbreviations(conference.get("hunt")));
+            assertThat(actual).containsExactlyElementsOf(expected);
+            for (int i = 0; i < actual.size(); i++) {
+                var team = actual.get(i);
+                var nflRow = row(nfl, team);
+                var maddenRow = row(madden, team);
+                assertThat(nflRow.get("divisionWinner").asBoolean()).isEqualTo(i < 4);
+                assertThat(nflRow.get("reasons").toString()).contains("alphabetical order shown is arbitrary", "coin toss");
+                assertThat(nflRow.get("otherRulesSeed")).isEqualTo(maddenRow.has("seed")
+                        ? maddenRow.get("seed") : com.fasterxml.jackson.databind.node.NullNode.getInstance());
+                assertThat(maddenRow.get("otherRulesSeed")).isEqualTo(nflRow.has("seed")
+                        ? nflRow.get("seed") : com.fasterxml.jackson.databind.node.NullNode.getInstance());
+            }
+        }
     }
 
     @Test
