@@ -82,7 +82,7 @@ it('switches goals, reveals small swings, and refetches the selected week with U
   expect(screen.getByTestId('where')).toHaveTextContent('goal=division')
   expect(screen.getByTestId('where')).toHaveTextContent('week=12')
   expect(screen.getByTestId('where')).toHaveTextContent('small=true')
-  for (const name of ['Win or lose chart', 'Swing table', 'Biggest games']) formats(screen.getByRole('region', { name }))
+  for (const name of ['Swing table', 'Biggest games']) formats(screen.getByRole('region', { name }))
 })
 
 it('restores leverage URL controls and keeps shared season and rules when switching tabs', async () => {
@@ -107,7 +107,7 @@ it('ranks the biggest games by importance and names other affected teams', async
   show('/playoffs?tab=leverage')
   const table = await screen.findByRole('table', { name: 'Biggest games this week' })
   expect(within(table).getAllByRole('row')[1]).toHaveTextContent('NYJ @ MIA90 pp')
-  expect(table).toHaveTextContent('CLE (-15 pp with a home win)')
+  expect(within(table).getAllByText(/CLE/)[0].parentElement).toHaveAttribute('title', expect.stringContaining('CLE (-15 pp with a home win)'))
 })
 
 it.each(['404', 'empty', 'no team'])('hides the team outlook when odds are %s', async mode => {
@@ -149,16 +149,14 @@ it('ignores late odds responses after changing season', async () => {
   expect(screen.queryByText(/123 simulations/)).not.toBeInTheDocument()
 })
 
-it('exports the complete chart while the swing table export follows the small-swing filter', async () => {
+it('exports the combined table and image with the small-swing filter', async () => {
   const csv = vi.spyOn(exports, 'exportCsv').mockReturnValue('saved')
   show('/playoffs?tab=leverage')
   await screen.findByRole('table', { name: 'Game swings' })
-  await userEvent.click(within(screen.getByRole('region', { name: 'Win or lose chart' })).getByRole('button', { name: 'CSV' }))
-  expect(csv.mock.lastCall[0].rows).toHaveLength(2)
-  expect(csv.mock.lastCall[0].image.draw).toBeTypeOf('function')
   const tableCsv = within(screen.getByRole('region', { name: 'Swing table' })).getByRole('button', { name: 'CSV' })
   await userEvent.click(tableCsv)
   expect(csv.mock.lastCall[0].rows).toHaveLength(1)
+  expect(csv.mock.lastCall[0].image.draw).toBeTypeOf('function')
   expect(csv.mock.lastCall[0].api.params).toEqual({ season: 2, rules: 'madden', week: 16 })
   await userEvent.click(screen.getByLabelText('Show small swings'))
   await userEvent.click(tableCsv)
