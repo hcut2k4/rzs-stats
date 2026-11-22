@@ -77,7 +77,7 @@ class TiebreakExplainerTest {
         var original = result(6, List.of(trace));
         var records = Map.of("PHI", new PlayoffSeeding.Record(1, 1, 0, 0, 0),
                 "DET", new PlayoffSeeding.Record(2, 2, 0, 0, 0), "WAS", new PlayoffSeeding.Record(1, 1, 0, 0, 0));
-        var result = new Result(original.conferences(), original.divisionRanks(), records, original.trace(), Map.of());
+        var result = new Result(original.conferences(), original.divisionRanks(), records, original.trace(), Map.of(), List.of());
         var sentence = new TiebreakExplainer().explain(result, teams).get("PHI").getFirst();
         assertThat(sentence).contains("3 teams tied on winning percentage").doesNotContain("tied at", "1-1", "2-2");
     }
