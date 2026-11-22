@@ -1,6 +1,10 @@
 package com.rzs.stats.playoffs;
 
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.interceptor.SimpleKey;
 import com.rzs.stats.service.EloQueryService;
 import com.rzs.stats.service.EloService;
 import org.springframework.http.HttpStatus;
@@ -8,10 +12,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class WhatIfService {
     public record Pick(Integer gameId, String result) {}
+    @JsonDeserialize(using = WhatIfRequestDeserializer.class)
     public record Request(Integer season, String rules, List<Pick> picks, Integer simulations) {}
     public record RemainingGame(int gameId, int week, EloService.Team home, EloService.Team away, double homeWinProb) {}
     public record Remaining(int season, Integer nextWeek, List<RemainingGame> games) {}
@@ -26,12 +33,16 @@ public class WhatIfService {
     private final EloQueryService elo;
     private final SimulationService simulator;
     private final OddsService baseline;
+    private final CacheManager caches;
+    private final Semaphore slots = new Semaphore(2);
+    private record Key(int season, String rules, List<Pick> picks, int simulations) {}
 
-    public WhatIfService(SeasonStateLoader loader, EloQueryService elo, SimulationService simulator, OddsService baseline) {
+    public WhatIfService(SeasonStateLoader loader, EloQueryService elo, SimulationService simulator, OddsService baseline, CacheManager caches) {
         this.loader = loader;
         this.elo = elo;
         this.simulator = simulator;
         this.baseline = baseline;
+        this.caches = caches;
     }
 
     public Remaining remaining(Integer season) {
@@ -46,10 +57,11 @@ public class WhatIfService {
         if (request == null) throw bad("Request is required");
         String rules = request.rules() == null ? "madden" : request.rules();
         if (!rules.equals("madden") && !rules.equals("nfl")) throw bad("Rules must be madden or nfl");
-        int simulations = request.simulations() == null ? 5000 : request.simulations();
+        int simulations = request.simulations() == null ? baseline.simulationCount() : request.simulations();
         if (simulations < 1 || simulations > 20000) throw bad("Simulations must be between 1 and 20000");
-        var state = loader.load(request.season());
         var picks = request.picks() == null ? List.<Pick>of() : request.picks();
+        if (picks.size() > WhatIfRequestDeserializer.MAX_PICKS) throw bad("Too many picks");
+        var state = loader.load(request.season());
         if (picks.size() > state.remainingGames().size()) throw bad("Too many picks for the remaining schedule");
         var ids = new HashSet<Integer>();
         state.remainingGames().forEach(g -> ids.add(g.gameId()));
@@ -65,24 +77,60 @@ public class WhatIfService {
             };
             if (forced.putIfAbsent(pick.gameId(), outcome) != null) throw bad("Duplicate gameId");
         }
+        var key = new Key(state.season(), rules, picks.stream().sorted(Comparator.comparing(Pick::gameId)).toList(), simulations);
+        var cache = caches.getCache("playoffWhatIf");
+        var cached = cache.get(key, Response.class);
+        if (cached != null) return cached;
+        boolean acquired = false;
+        try {
+            acquired = slots.tryAcquire(250, TimeUnit.MILLISECONDS);
+            if (!acquired) throw new BusyException();
+            return cache.get(key, () -> compute(state, rules, forced, simulations));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new BusyException();
+        } catch (Cache.ValueRetrievalException e) {
+            if (e.getCause() instanceof RuntimeException cause) throw cause;
+            throw e;
+        } finally {
+            if (acquired) slots.release();
+        }
+    }
+
+    private Response compute(SeasonStateLoader.State state, String rules,
+                             Map<Integer, SimulationService.Outcome> forced, int simulations) {
         var selected = rules.equals("madden") ? SimulationService.Rules.MADDEN : SimulationService.Rules.NFL;
         long seed = SimulationService.mix(((long) state.season() << 32) ^ Objects.hashCode(state.nextWeek()) ^ rules.hashCode());
+        var baselineResponse = baseline.available(state.season(), rules);
         var probabilities = state.remainingGames().isEmpty() ? Map.<Integer, Double>of() : elo.homeWinProbabilities(state.season());
-        var result = simulator.simulate(state, probabilities, forced, simulations, seed, selected, true);
-        var base = new HashMap<String, OddsService.Odds>();
-        baseline.odds(state.season(), rules).conferences().forEach(c -> c.teams().forEach(r -> base.put(r.team().abbrName(), r.odds())));
+        if (baselineResponse == null || !Objects.equals(baselineResponse.throughWeek(), state.throughWeek())
+                || !Objects.equals(baselineResponse.nextWeek(), state.nextWeek())) {
+            baselineResponse = baseline.compute(state, rules, probabilities);
+            caches.getCache("playoffOdds").put(new SimpleKey(state.season(), rules), baselineResponse);
+        }
+        var base = new HashMap<String, OddsService.Row>();
+        baselineResponse.conferences().forEach(c -> c.teams().forEach(r -> base.put(r.team().abbrName(), r)));
         boolean exact = forced.size() == state.remainingGames().size();
         var exactResult = exact ? SimulationService.seed(state.teams(), syntheticGames(state, forced), selected) : null;
-        var uncertain = exact ? dependsOnScores(exactResult) : Set.<String>of();
+        var uncertain = new HashSet<>(exact ? dependsOnScores(exactResult) : Set.<String>of());
+        var result = !forced.isEmpty() && (!exact || !uncertain.isEmpty())
+                ? simulator.simulate(state, probabilities, forced, simulations, seed, selected, true) : null;
+        if (exact && result != null) result.teams().forEach((team, count) -> {
+            if (fractional(count.playoffs(), result.simulations()) || fractional(count.division(), result.simulations())
+                    || fractional(count.oneSeed(), result.simulations())) uncertain.add(team);
+        });
         var ranks = new HashMap<String, Integer>();
         if (exact) exactResult.conferences().values().forEach(rs -> rs.forEach(r -> r.teams().forEach(t -> ranks.put(t, r.position()))));
         var odds = new HashMap<String, OddsService.Odds>();
         var seedOdds = new HashMap<String, List<Double>>();
-        double denominator = Math.max(1, result.simulations());
+        double denominator = result == null ? 1 : Math.max(1, result.simulations());
         for (var team : state.teams()) {
             String abbr = team.abbr();
-            var count = result.teams().get(abbr);
-            if (exact && !uncertain.contains(abbr)) {
+            var count = result == null ? null : result.teams().get(abbr);
+            if (forced.isEmpty()) {
+                odds.put(abbr, base.get(abbr).odds());
+                seedOdds.put(abbr, base.get(abbr).seedOdds());
+            } else if (exact && !uncertain.contains(abbr)) {
                 int rank = ranks.get(abbr);
                 odds.put(abbr, new OddsService.Odds(rank <= 7 ? 1 : 0,
                         exactResult.divisionRanks().get(abbr).position() == 1 ? 1 : 0, rank == 1 ? 1 : 0));
@@ -97,12 +145,16 @@ public class WhatIfService {
         var exactRows = exact ? exactRows(state, rules, forced, exactResult, uncertain, odds) : Map.<String, List<Seed>>of();
         var conferences = new TreeMap<String, List<Row>>();
         for (var team : state.teams()) conferences.computeIfAbsent(team.conference(), k -> new ArrayList<>())
-                .add(new Row(state.identities().get(team.abbr()), team.division(), odds.get(team.abbr()), base.get(team.abbr()), seedOdds.get(team.abbr())));
-        return new Response(state.season(), rules, picks.size(), state.remainingGames().size(), result.simulations(), exact,
+                .add(new Row(state.identities().get(team.abbr()), team.division(), odds.get(team.abbr()), base.get(team.abbr()).odds(), seedOdds.get(team.abbr())));
+        return new Response(state.season(), rules, forced.size(), state.remainingGames().size(), state.remainingGames().isEmpty() ? 0 : simulations, exact,
                 conferences.entrySet().stream().map(e -> new Conference(e.getKey(), e.getValue().stream()
                         .sorted(Comparator.comparingDouble((Row r) -> r.odds().playoffs()).reversed().thenComparing(r -> r.team().abbrName()))
                         .toList(), exactRows.get(e.getKey()))).toList());
     }
+
+    private static boolean fractional(long count, int simulations) { return count != 0 && count != simulations; }
+
+    static class BusyException extends RuntimeException {}
 
     static List<PlayoffSeeding.Game> syntheticGames(SeasonStateLoader.State state, Map<Integer, SimulationService.Outcome> forced) {
         var games = new ArrayList<>(state.completedGames());

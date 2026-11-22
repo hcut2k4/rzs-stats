@@ -50,11 +50,17 @@ public class OddsService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rules must be madden or nfl");
         }
         var state = loader.load(season);
+        return compute(state, rules, state.remainingGames().isEmpty() ? Map.of() : elo.homeWinProbabilities(state.season()));
+    }
+
+    int simulationCount() { return simulations; }
+
+    Response compute(SeasonStateLoader.State state, String rules, Map<Integer, Double> probabilities) {
         var selected = rules.equals("madden") ? SimulationService.Rules.MADDEN : SimulationService.Rules.NFL;
         long seed = SimulationService.mix(((long) state.season() << 32) ^ Objects.hashCode(state.nextWeek()) ^ rules.hashCode());
         SimulationService.Simulation result;
         try {
-            result = simulator.simulate(state, state.remainingGames().isEmpty() ? Map.of() : elo.homeWinProbabilities(state.season()),
+            result = simulator.simulate(state, probabilities,
                     Map.of(), simulations, seed, selected);
         } catch (IllegalStateException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Available game data cannot resolve the requested playoff order", e);

@@ -52,7 +52,7 @@ class WhatIfServiceTest {
     @BeforeEach
     void setup() {
         caches.getCacheNames().forEach(n -> caches.getCache(n).clear());
-        http = MockMvcBuilders.standaloneSetup(controller).build();
+        http = MockMvcBuilders.standaloneSetup(controller).setControllerAdvice(new WhatIfExceptionHandler()).build();
     }
 
     Fixture populate(String season, boolean remaining) throws Exception {
@@ -140,7 +140,7 @@ class WhatIfServiceTest {
     void emptyPicksShareBaselineDrawsAndBaselineOddsForBothRules() throws Exception {
         populate("104", true);
         for (String rules : List.of("madden", "nfl")) {
-            var response = service.simulate(new WhatIfService.Request(1, rules, List.of(), 50));
+            var response = service.simulate(new WhatIfService.Request(1, rules, List.of(), 1));
             var expected = new HashMap<String, OddsService.Row>();
             odds.odds(1, rules).conferences().forEach(c -> c.teams().forEach(r -> expected.put(r.team().abbrName(), r)));
             assertThat(response.exact()).isFalse();
@@ -242,6 +242,195 @@ class WhatIfServiceTest {
                 .isEqualTo(row.team().abbrName().equals("A") ? 1 : 0));
     }
 
+    @Test
+    void rejectsFractionalNumbersAndUnknownPropertiesForThisRequest() throws Exception {
+        smallSchedule(false);
+        postBody(Map.of("season", 1, "simulations", 1.5), 400);
+        postBody(Map.of("season", 1, "picks", List.of(Map.of("gameId", 1.5, "result", "home"))), 400);
+        postBody(Map.of("season", 1, "unexpected", true), 400);
+        postBody(Map.of("season", 1, "picks", List.of(Map.of("gameId", 1, "result", "home", "unexpected", true))), 400);
+    }
+
+    @Test
+    void nullStatusGamesAreExcludedFromRemainingAndSimulation() throws Exception {
+        smallSchedule(false);
+        var unknown = games.findBySeasonIndex(1).stream().filter(g -> g.getGameId() == 1).findFirst().orElseThrow();
+        unknown.setStatus(null);
+        games.saveAndFlush(unknown);
+        var remaining = service.remaining(1);
+        assertThat(remaining.games()).extracting(WhatIfService.RemainingGame::gameId).containsExactly(2);
+        assertThat(remaining.games().getFirst().homeWinProb()).isStrictlyBetween(0.0, 1.0);
+        postBody(Map.of("season", 1, "simulations", 10), 200);
+        postBody(Map.of("season", 1, "picks", List.of(Map.of("gameId", 1, "result", "home"))), 400);
+    }
+
+    @Test
+    void reusesCanonicalRequestsAndSyncEvictionIncludesTheBoundedCache() throws Exception {
+        smallSchedule(false);
+        var picks = List.of(new WhatIfService.Pick(1, "home"), new WhatIfService.Pick(2, "away"));
+        var response = service.simulate(new WhatIfService.Request(null, null, picks, null));
+        assertThat(service.simulate(new WhatIfService.Request(1, "madden", picks.reversed(), 50))).isSameAs(response);
+        var cache = (org.springframework.cache.caffeine.CaffeineCache) caches.getCache("playoffWhatIf");
+        assertThat(cache.getNativeCache().policy().eviction().orElseThrow().getMaximum()).isEqualTo(128);
+        var resolver = new CacheNames().allStatsCaches(caches);
+        assertThat(resolver.resolveCaches(null).contains(cache)).isTrue();
+        resolver.resolveCaches(null).forEach(org.springframework.cache.Cache::clear);
+        assertThat(cache.getNativeCache().estimatedSize()).isZero();
+        assertThat(service.simulate(new WhatIfService.Request(1, "madden", picks, 50))).isNotSameAs(response);
+    }
+
+    @Test
+    void twoConcurrentCalculationsAllowCachedRequestsAndRejectExtraWorkWithPlainMessage() throws Exception {
+        smallSchedule(false);
+        odds.odds(1, "madden");
+        var state = loader.load(1);
+        var started = new java.util.concurrent.CountDownLatch(2);
+        var finish = new java.util.concurrent.CountDownLatch(1);
+        var simulator = new SimulationService() {
+            @Override public Simulation simulate(SeasonStateLoader.State input, Map<Integer, Double> probabilities,
+                                                 Map<Integer, Outcome> forced, int count, long seed, Rules rules, boolean margins) {
+                started.countDown();
+                try {
+                    assertThat(finish.await(10, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+                } catch (InterruptedException e) {
+                    throw new AssertionError(e);
+                }
+                return super.simulate(input, probabilities, forced, count, seed, rules, margins);
+            }
+        };
+        var snapshot = new SeasonStateLoader(games) {
+            @Override public State load(Integer season) { return state; }
+        };
+        var whatIf = new WhatIfService(snapshot, elo, simulator, odds, caches);
+        var cachedRequest = new WhatIfService.Request(1, "madden", List.of(), 1);
+        var cached = whatIf.simulate(cachedRequest);
+        var picks = List.of(new WhatIfService.Pick(1, "home"), new WhatIfService.Pick(2, "away"));
+        var http = MockMvcBuilders.standaloneSetup(new PlayoffsWhatIfController(whatIf))
+                .setControllerAdvice(new WhatIfExceptionHandler()).build();
+        try (var executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+            var first = executor.submit(() -> whatIf.simulate(new WhatIfService.Request(1, "madden", picks, 50)));
+            var second = executor.submit(() -> whatIf.simulate(new WhatIfService.Request(1, "madden", picks, 51)));
+            try {
+                assertThat(started.await(5, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+                assertThat(whatIf.simulate(cachedRequest)).isSameAs(cached);
+                var response = http.perform(post("/api/playoffs/simulate").contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(new WhatIfService.Request(1, "madden", picks, 52))))
+                        .andExpect(status().isServiceUnavailable()).andReturn().getResponse();
+                assertThat(response.getContentAsString()).isEqualTo("Playoff simulations are busy; try again shortly");
+            } finally {
+                finish.countDown();
+            }
+            assertThat(first.get(5, java.util.concurrent.TimeUnit.SECONDS)).isNotNull();
+            assertThat(second.get(5, java.util.concurrent.TimeUnit.SECONDS)).isNotNull();
+        }
+        assertThat(whatIf.simulate(new WhatIfService.Request(1, "madden", picks, 52))).isNotNull();
+    }
+
+    @Test
+    void reusesDefaultSeasonBaselineWithoutCreatingAnExplicitKey() throws Exception {
+        smallSchedule(false);
+        var expected = odds.odds(null, "madden");
+        var cache = caches.getCache("playoffOdds");
+        cache.evict(new org.springframework.cache.interceptor.SimpleKey(1, "madden"));
+        var response = service.simulate(new WhatIfService.Request(1, "madden", List.of(), 1));
+        assertThat(cache.get(new org.springframework.cache.interceptor.SimpleKey(1, "madden"))).isNull();
+        assertThat(response.conferences().getFirst().teams()).allSatisfy(row ->
+                assertThat(row.baseline()).isEqualTo(expected.conferences().getFirst().teams().stream()
+                        .filter(r -> r.team().equals(row.team())).findFirst().orElseThrow().odds()));
+    }
+
+    @Test
+    void baselineAndForcedRunUseOneLoadedSeasonState() {
+        smallSchedule(false);
+        var loads = new ArrayList<SeasonStateLoader.State>();
+        var loaded = new SeasonStateLoader(games) {
+            @Override public State load(Integer season) {
+                assertThat(loads).isEmpty();
+                var state = super.load(season);
+                loads.add(state);
+                return state;
+            }
+        };
+        var simulated = new ArrayList<SeasonStateLoader.State>();
+        var simulator = new SimulationService() {
+            @Override public Simulation simulate(SeasonStateLoader.State state, Map<Integer, Double> probabilities,
+                                                 Map<Integer, Outcome> forced, int count, long seed, Rules rules, boolean margins) {
+                simulated.add(state);
+                return super.simulate(state, probabilities, forced, count, seed, rules, margins);
+            }
+        };
+        var baseline = new OddsService(loaded, elo, simulator, 50, caches);
+        var whatIf = new WhatIfService(loaded, elo, simulator, baseline, caches);
+        whatIf.simulate(new WhatIfService.Request(null, "madden", List.of(new WhatIfService.Pick(1, "home")), 10));
+        assertThat(loads).hasSize(1);
+        assertThat(simulated).hasSize(2).allSatisfy(state -> assertThat(state).isSameAs(loads.getFirst()));
+    }
+
+    @Test
+    void exactHeadToHeadOrderSkipsForcedSimulations() {
+        smallSchedule(true);
+        var calls = new ArrayList<Map<Integer, SimulationService.Outcome>>();
+        var simulator = new SimulationService() {
+            @Override public Simulation simulate(SeasonStateLoader.State state, Map<Integer, Double> probabilities,
+                                                 Map<Integer, Outcome> forced, int count, long seed, Rules rules, boolean margins) {
+                calls.add(forced);
+                return super.simulate(state, probabilities, forced, count, seed, rules, margins);
+            }
+        };
+        var whatIf = new WhatIfService(loader, elo, simulator, new OddsService(loader, elo, simulator, 50, caches), caches);
+        var response = whatIf.simulate(new WhatIfService.Request(1, "madden", List.of(
+                new WhatIfService.Pick(1, "home"), new WhatIfService.Pick(2, "home"), new WhatIfService.Pick(3, "home")), 100));
+        assertThat(calls).containsExactly(Map.of());
+        assertThat(response.conferences()).flatExtracting(WhatIfService.Conference::seeds).noneMatch(WhatIfService.Seed::dependsOnScores);
+    }
+
+    @Test
+    void divisionScoreTiesFlagTeamsAffectedByTheCascadingWildCardTie() {
+        var entities = new HashMap<String, TeamEntity>();
+        var divisions = Map.of("A", "East", "B", "East", "C", "West", "D", "West", "E", "North",
+                "X", "North", "F", "South", "Y", "South", "Z", "South", "Q", "East");
+        for (String abbr : divisions.keySet().stream().sorted().toList()) {
+            var team = new TeamEntity();
+            team.setTeamId(entities.size() + 1); team.setAbbrName(abbr); team.setDisplayName(abbr);
+            team.setConference(abbr.equals("Q") ? "NFC" : "AFC"); team.setDivision(divisions.get(abbr));
+            entities.put(abbr, teams.save(team));
+        }
+        int id = 0;
+        for (String abbr : List.of("D", "E", "F", "X", "X", "X", "X", "Y", "Y", "Y", "Y")) {
+            var game = new GameEntity();
+            game.setGameId(++id); game.setSeasonIndex(1); game.setStageIndex(1); game.setWeekIndex(0); game.setStatus(2);
+            game.setHomeTeam(entities.get(abbr)); game.setAwayTeam(entities.get("Q"));
+            game.setHomeScore(id == 7 || id == 11 ? 17 : 24); game.setAwayScore(20);
+            games.save(game);
+        }
+        var matchups = List.of(List.of("A", "B"), List.of("B", "A"), List.of("C", "A"),
+                List.of("B", "C"), List.of("A", "Z"), List.of("Z", "B"));
+        var picks = new ArrayList<WhatIfService.Pick>();
+        var forced = new HashMap<Integer, SimulationService.Outcome>();
+        for (var matchup : matchups) {
+            var game = new GameEntity();
+            game.setGameId(++id); game.setSeasonIndex(1); game.setStageIndex(1); game.setWeekIndex(17); game.setStatus(0);
+            game.setHomeTeam(entities.get(matchup.getFirst())); game.setAwayTeam(entities.get(matchup.getLast()));
+            games.save(game);
+            picks.add(new WhatIfService.Pick(id, "home"));
+            forced.put(id, SimulationService.Outcome.HOME);
+        }
+        games.flush();
+        var state = loader.load(1);
+        var seeded = SimulationService.seed(state.teams(), WhatIfService.syntheticGames(state, forced), SimulationService.Rules.MADDEN);
+        assertThat(WhatIfService.dependsOnScores(seeded)).contains("A", "B").doesNotContain("Z");
+        var response = service.simulate(new WhatIfService.Request(1, "madden", picks, 500));
+        var afc = response.conferences().stream().filter(c -> c.name().equals("AFC")).findFirst().orElseThrow();
+        var cascade = afc.seeds().stream().filter(s -> s.row().team().abbrName().equals("Z")).findFirst().orElseThrow();
+        assertThat(cascade.dependsOnScores()).isTrue();
+        assertThat(cascade.odds().playoffs()).isStrictlyBetween(0.0, 1.0);
+        assertThat(afc.seeds()).filteredOn(s -> !s.dependsOnScores()).allSatisfy(s -> {
+            assertThat(s.odds().playoffs()).isIn(0.0, 1.0);
+            assertThat(s.odds().division()).isIn(0.0, 1.0);
+            assertThat(s.odds().oneSeed()).isIn(0.0, 1.0);
+        });
+    }
+
     private void smallSchedule(boolean headToHead) {
         var entities = new HashMap<String, TeamEntity>();
         for (String abbr : headToHead ? List.of("A", "B", "C") : List.of("A", "B")) {
@@ -259,11 +448,16 @@ class WhatIfServiceTest {
             game.setHomeTeam(entities.get(matchup.getFirst())); game.setAwayTeam(entities.get(matchup.getLast()));
             games.save(game);
         }
+        var completed = new GameEntity();
+        completed.setGameId(100); completed.setSeasonIndex(1); completed.setStageIndex(1); completed.setWeekIndex(0);
+        completed.setHomeTeam(entities.get("A")); completed.setAwayTeam(entities.get("B"));
+        completed.setStatus(2); completed.setHomeScore(20); completed.setAwayScore(20);
+        games.save(completed);
         games.flush();
     }
 
     @Test
-    void defaultsToFiveThousandAndAcceptsTwentyThousandSimulations() throws Exception {
+    void defaultsToBaselineSimulationCountAndAcceptsExplicitLowerAndMaximumCounts() throws Exception {
         var a = new TeamEntity();
         a.setTeamId(1); a.setAbbrName("A"); a.setDisplayName("A"); a.setConference("AFC"); a.setDivision("East"); teams.save(a);
         var b = new TeamEntity();
@@ -272,7 +466,9 @@ class WhatIfServiceTest {
         game.setGameId(1); game.setSeasonIndex(1); game.setStageIndex(1); game.setWeekIndex(17); game.setStatus(0);
         game.setHomeTeam(a); game.setAwayTeam(b); games.saveAndFlush(game);
         var defaults = postBody(Map.of("season", 1, "picks", List.of(Map.of("gameId", 1, "result", "home"))), 200);
-        assertThat(defaults.get("simulations").asInt()).isEqualTo(5000);
+        assertThat(defaults.get("simulations").asInt()).isEqualTo(50);
+        var lower = postBody(Map.of("season", 1, "simulations", 1), 200);
+        assertThat(lower.get("simulations").asInt()).isEqualTo(1);
         var maximum = postBody(Map.of("season", 1, "simulations", 20000), 200);
         assertThat(maximum.get("simulations").asInt()).isEqualTo(20000);
     }
