@@ -46,9 +46,8 @@ public final class ClinchAnalyzer {
         if (!season.remaining().containsAll(forced.keySet()) || forced.values().stream().anyMatch(Objects::isNull))
             throw new IllegalArgumentException("Invalid forced matchup");
         var base = records(season, forced);
-        var totals = counts(season);
         if (season.remaining().size() > cap || budget.isZero() || budget.isNegative()
-                || totals.values().stream().anyMatch(n -> n != 17)) return finish(base, false, 0);
+                || !completeSchedule(season)) return finish(base, false, 0);
         var open = new ArrayList<Pair>();
         base.forEach((team, goals) -> goals.forEach((goal, marker) -> {
             if (marker == Marker.NONE) open.add(new Pair(team, goal));
@@ -148,18 +147,9 @@ public final class ClinchAnalyzer {
                 return;
             }
             var result = seeder.apply(games); seeded++;
-            var ambiguous = new HashSet<>(result.unresolvedConferences().keySet());
             var futureTeams = new HashSet<String>();
             season.remaining().forEach(g -> { futureTeams.add(g.home()); futureTeams.add(g.away()); });
-            for (var tie : result.pointTies()) {
-                var step = tie.step();
-                boolean unknown = step == null || step == TiebreakerRules.Step.NET_TOUCHDOWNS
-                        || step == TiebreakerRules.Step.COIN_TOSS
-                        || step == TiebreakerRules.Step.COMBINED_RANKING_ALL
-                        || step == TiebreakerRules.Step.COMBINED_RANKING_CONFERENCE
-                        || tie.tied().stream().anyMatch(futureTeams::contains);
-                if (unknown) ambiguous.add(tie.conference());
-            }
+            var ambiguous = ambiguousConferences(result, futureTeams);
             for (int i = 0; i < pairs.size(); i++) {
                 var p = pairs.get(i);
                 var conference = season.teams().stream().filter(t -> t.abbr().equals(p.team())).findFirst().orElseThrow().conference();
@@ -168,6 +158,24 @@ public final class ClinchAnalyzer {
                 yes[i] |= achieved; no[i] |= !achieved;
             }
         }
+    }
+
+    static boolean completeSchedule(Season season) {
+        return counts(season).values().stream().allMatch(n -> n == 17);
+    }
+
+    static Set<String> ambiguousConferences(Result result, Set<String> futureTeams) {
+        var ambiguous = new HashSet<>(result.unresolvedConferences().keySet());
+        for (var tie : result.pointTies()) {
+            var step = tie.step();
+            boolean unknown = step == null || step == TiebreakerRules.Step.NET_TOUCHDOWNS
+                    || step == TiebreakerRules.Step.COIN_TOSS
+                    || step == TiebreakerRules.Step.COMBINED_RANKING_ALL
+                    || step == TiebreakerRules.Step.COMBINED_RANKING_CONFERENCE
+                    || tie.tied().stream().anyMatch(futureTeams::contains);
+            if (unknown) ambiguous.add(tie.conference());
+        }
+        return ambiguous;
     }
 
     static boolean achieved(Result result, String team, Goal goal) {

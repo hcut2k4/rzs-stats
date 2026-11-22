@@ -55,6 +55,7 @@ public final class PlayoffSeeding {
     private final boolean alphabeticalFallback;
     private final Map<String, Team> teams = new TreeMap<>();
     private final Map<String, List<Game>> games = new HashMap<>();
+    private final Map<String, Ratio> percentages = new HashMap<>();
     private final Map<String, Rank> divisionRanks = new TreeMap<>();
     private final List<Trace> trace = new ArrayList<>();
     private final Set<PointTie> pointTies = new LinkedHashSet<>();
@@ -73,6 +74,7 @@ public final class PlayoffSeeding {
             games.get(game.home()).add(game);
             games.get(game.away()).add(game);
         }
+        this.teams.keySet().forEach(team -> percentages.put(team, percentage(team, game -> true)));
     }
 
     public static Result seed(List<Team> teams, List<Game> games) {
@@ -147,7 +149,7 @@ public final class PlayoffSeeding {
         var pending = new TreeSet<>(clubs);
         var result = new ArrayList<Rank>();
         while (!pending.isEmpty()) {
-            var tied = best(pending, team -> percentage(team, game -> true));
+            var tied = best(pending, percentages::get);
             var selections = rules.rankingMode() == TiebreakerRules.RankingMode.TIERED
                     ? tiered(tied, division, context, 0) : List.of(select(tied, division, context));
             for (var selected : selections) {
@@ -360,7 +362,7 @@ public final class PlayoffSeeding {
         long points = 0, played = 0;
         for (var game : games.get(team)) {
             if (victoriesOnly && net(team, game) <= 0) continue;
-            var record = percentage(opponent(team, game), g -> true);
+            var record = percentages.get(opponent(team, game));
             points += record.numerator();
             played += record.denominator();
         }
