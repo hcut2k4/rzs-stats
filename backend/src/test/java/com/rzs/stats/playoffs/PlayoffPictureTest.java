@@ -27,7 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@DataJpaTest(showSql = false)
+@DataJpaTest(showSql = false, properties = "playoffs.simulations=100")
 @AutoConfigureCache(cacheProvider = CacheType.CAFFEINE)
 @EnableCaching
 @Import({SeasonStateLoader.class, PlayoffPictureService.class, PlayoffsController.class, CacheNames.class, OddsService.class, SimulationService.class,
@@ -43,6 +43,8 @@ class PlayoffPictureTest {
     @Autowired SeasonStateLoader loader;
     @Autowired PlayoffsController controller;
     @Autowired CacheManager caches;
+    @Autowired OddsService odds;
+    @Autowired com.rzs.stats.service.EloQueryService elo;
     private final ObjectMapper json = new ObjectMapper();
     private MockMvc http;
     private Map<String, Fixture> fixtures;
@@ -201,12 +203,56 @@ class PlayoffPictureTest {
     @Test
     void pictureCacheKeepsResponseUntilSharedEviction() throws Exception {
         seed(0, fixtures.get("103"));
+        odds.odds(0, "madden");
         var before = picture("?season=0");
         assertThat(caches.getCache("playoffPicture").getNativeCache()).isInstanceOf(com.github.benmanes.caffeine.cache.Cache.class);
         games.deleteAllInBatch();
         assertThat(picture("?season=0")).isEqualTo(before);
         new CacheNames().allStatsCaches(caches).resolveCaches(null).forEach(org.springframework.cache.Cache::clear);
         http.perform(get("/api/playoffs/picture?season=0")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void pictureRowsCarryTheSameOddsAsTheBaselineForBothRules() throws Exception {
+        seed(0, fixtures.get("103"));
+        for (String rules : List.of("madden", "nfl")) {
+            var body = json.readTree(http.perform(get("/api/playoffs/odds?season=0&rules=" + rules))
+                    .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+            var picture = picture("?season=0&rules=" + rules);
+            for (var conference : body.get("conferences")) for (var baseline : conference.get("teams")) {
+                assertThat(row(picture, baseline.get("team").get("abbrName").asText()).get("odds"))
+                        .isEqualTo(baseline.get("odds"));
+            }
+        }
+    }
+
+    @Test
+    void pictureAddsOddsWhenBaselineBecomesAvailableAfterAnEarlierRequest() throws Exception {
+        seed(0, fixtures.get("103"));
+        assertThat(row(picture("?season=0"), "BUF").has("odds")).isFalse();
+        odds.odds(null, "madden");
+        assertThat(row(picture("?season=0"), "BUF").has("odds")).isTrue();
+    }
+
+    @Test
+    void missingOrFailedOddsNeverBreakPictureAndAreOmitted() throws Exception {
+        seed(0, fixtures.get("103"));
+        for (boolean fail : List.of(false, true)) {
+            var unavailable = new OddsService(loader, elo, new SimulationService(), 100, caches) {
+                @Override public Response available(Integer season, String rules) {
+                    if (fail) throw new IllegalStateException("Unavailable baseline");
+                    return null;
+                }
+            };
+            var service = new PlayoffPictureService(loader, unavailable);
+            var endpoint = new PlayoffsController(service, unavailable);
+            var response = MockMvcBuilders.standaloneSetup(endpoint).build().perform(get("/api/playoffs/picture?season=0"))
+                    .andExpect(status().isOk()).andReturn();
+            var body = json.readTree(response.getResponse().getContentAsString());
+            for (var conference : body.get("conferences")) for (String group : List.of("seeds", "hunt")) {
+                for (var row : conference.get(group)) assertThat(row.has("odds")).isFalse();
+            }
+        }
     }
 
     private JsonNode picture(String query) throws Exception {

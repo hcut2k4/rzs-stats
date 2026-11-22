@@ -22,12 +22,13 @@ class CacheWarmingServiceTest {
     @Mock EloHistoryService elo;
     @Mock QbStatsService qb;
     @Mock OddsService odds;
+    @Mock com.rzs.stats.playoffs.LeverageService leverage;
     @Mock OddsSnapshotService snapshots;
     CacheWarmingService warming;
 
     @BeforeEach
     void setUp() {
-        warming = new CacheWarmingService(stats, elo, qb, odds, snapshots);
+        warming = new CacheWarmingService(stats, elo, qb, odds, snapshots, leverage);
     }
 
     @Test
@@ -44,6 +45,7 @@ class CacheWarmingServiceTest {
         verify(qb).movement(2, REGULAR, 1, QbStatsService.Basis.SEASON);
         verify(odds).odds(null, "madden");
         verify(snapshots).save(baseline);
+        verify(leverage).matrix(null, null, "madden");
         assertThat(warming.getStatus().message()).contains("QB stats");
         assertThat(warming.getStatus().success()).isTrue();
     }
@@ -69,6 +71,7 @@ class CacheWarmingServiceTest {
         warming.warmCaches();
         verify(elo).getTimeline();
         verifyNoInteractions(snapshots);
+        verify(leverage).matrix(null, null, "madden");
         assertThat(warming.getStatus().success()).isTrue();
     }
 
