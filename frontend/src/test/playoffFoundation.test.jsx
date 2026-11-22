@@ -72,7 +72,7 @@ it('labels all seven seed colours and separates division winners from wild cards
 
 it.each([
   ['picture', 'AFC playoff picture'], ['probability', 'AFC playoff probability'],
-  ['leverage', 'Game swings'], ['whatif', 'AFC scenario probabilities'],
+  ['leverage', 'Game swings'], ['whatif', 'Scenario probabilities'],
 ])('uses probability language in the %s tab, including accessible labels', async (tab, table) => {
   const { container } = render(<MemoryRouter initialEntries={[`/playoffs?tab=${tab}&rules=nfl`]}><PlayoffsPage /></MemoryRouter>)
   await screen.findByRole('table', { name: table })
@@ -95,6 +95,7 @@ it.each([
 it('keeps exact What-If seeds free of comparison copy', async () => {
   client.simulatePlayoffs.mockResolvedValue(exact)
   const { container } = render(<MemoryRouter initialEntries={['/playoffs?tab=whatif']}><PlayoffsPage /></MemoryRouter>)
+  fireEvent.click(await screen.findByRole('button', { name: 'Final seeds' }))
   await screen.findByRole('table', { name: 'AFC final seeds' })
   assertLanguage(container)
 })
