@@ -102,7 +102,7 @@ public class CacheWarmingService {
                 }
             }
             eloHistoryService.getTimeline();
-            if (!seasons.isEmpty() && invalidation.takeWarm()) {
+            if (!seasons.isEmpty()) {
                 try {
                     gate.warm(() -> snapshots.save(odds.odds(null, "madden")));
                 } catch (Exception e) {

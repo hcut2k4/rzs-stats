@@ -45,7 +45,6 @@ class SyncPersistenceTest {
     void clear() {
         rows.deleteAll(); games.deleteAll(); teams.deleteAll();
         caches.getCacheNames().forEach(name -> caches.getCache(name).clear());
-        invalidation.takeWarm();
     }
 
     @Test
@@ -54,12 +53,10 @@ class SyncPersistenceTest {
         status.successful(2);
         var saved = rows.findById(1L).orElseThrow();
         assertThat(saved.getLastFingerprint()).hasSize(64);
-        assertThat(invalidation.takeWarm()).isTrue();
         CacheNames.PLAYOFF.forEach(name -> caches.getCache(name).put("keep", "value"));
         var restarted = new SyncStatusService(rows, games, teams, config, invalidation);
         assertThat(restarted.lastSyncAt()).isEqualTo(saved.getLastSyncAt());
         status.successful(2);
-        assertThat(invalidation.takeWarm()).isFalse();
         CacheNames.PLAYOFF.forEach(name -> assertThat(caches.getCache(name).get("keep", String.class)).isEqualTo("value"));
         assertThat(rows.count()).isEqualTo(1);
     }
@@ -71,7 +68,7 @@ class SyncPersistenceTest {
         teams.save(home); teams.save(away);
         var game = new GameEntity(); game.setGameId(1); game.setSeasonIndex(2); game.setStageIndex(1); game.setWeekIndex(1);
         game.setStatus(0); game.setHomeTeam(home); game.setAwayTeam(away); games.save(game);
-        status.successful(2); invalidation.takeWarm();
+        status.successful(2);
         var mutations = java.util.List.<Runnable>of(
                 () -> game.setHomeScore(24), () -> game.setAwayScore(17), () -> game.setStatus(2),
                 () -> game.setWeekIndex(2), () -> game.setSeasonIndex(0), () -> game.setStageIndex(2),
@@ -84,12 +81,10 @@ class SyncPersistenceTest {
             mutate.run(); games.save(game); status.successful(2);
             assertThat(rows.findById(1L).orElseThrow().getLastFingerprint()).isNotEqualTo(previous);
             assertThat(caches.getCache("playoffOdds").get("old")).isNull();
-            assertThat(invalidation.takeWarm()).isTrue();
         }
         caches.getCache("playoffBaseline").put("old", "value");
         config.update(new com.rzs.stats.model.dto.EloConfig(1500, 30, 400, true, 28, 0, .78));
         assertThat(caches.getCache("playoffBaseline").get("old")).isNull();
-        assertThat(invalidation.takeWarm()).isTrue();
     }
 
     @Test

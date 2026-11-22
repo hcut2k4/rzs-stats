@@ -28,9 +28,7 @@ class CacheWarmingServiceTest {
     CacheWarmingService warming;
 
     private com.rzs.stats.config.PlayoffCacheInvalidation invalidation() {
-        var result = new com.rzs.stats.config.PlayoffCacheInvalidation(new org.springframework.cache.concurrent.ConcurrentMapCacheManager());
-        result.changed();
-        return result;
+        return new com.rzs.stats.config.PlayoffCacheInvalidation(new org.springframework.cache.concurrent.ConcurrentMapCacheManager());
     }
 
     @BeforeEach
@@ -57,6 +55,17 @@ class CacheWarmingServiceTest {
         verify(leverage).matrix(2, 11, "madden");
         assertThat(warming.getStatus().message()).contains("QB stats");
         assertThat(warming.getStatus().success()).isTrue();
+    }
+
+    @Test
+    void warmsPlayoffCachesAfterARestartEvenWhenNoSyncChangedData() {
+        when(stats.getAvailableSeasons()).thenReturn(List.of(2));
+        var baseline = new OddsService.Response(2, "madden", 10, 11, 20000, java.time.Instant.now(), List.of());
+        when(odds.odds(null, "madden")).thenReturn(baseline);
+        warming.warmCaches();
+        verify(odds).odds(null, "madden");
+        verify(snapshots).save(baseline);
+        verify(leverage).matrix(2, 11, "madden");
     }
 
     @Test
