@@ -54,16 +54,15 @@ describe('Playoff picture', () => {
     expect(screen.getByTestId('where')).not.toHaveTextContent('rules=')
   })
 
-  it('expands the plain-English reasons for a tiebreak', async () => {
+  it('shows plain-English tiebreak reasons in a compact tooltip', async () => {
     const data = response()
     for (const c of data.conferences) for (const row of [...c.seeds, ...c.hunt]) row.reasons = []
     data.conferences[0].seeds[4].reasons = ['Philadelphia and Detroit won the tiebreak.', 'Washington missed the field.']
     client.getPlayoffPicture.mockResolvedValue(data)
     show()
-    await userEvent.click(await screen.findByText('Tiebreak details'))
-    const reason = screen.getByText('Philadelphia and Detroit won the tiebreak.')
-    expect(reason.closest('details')).toHaveAttribute('open')
-    expect(screen.getByText('Washington missed the field.')).toBeVisible()
+    const icon = await screen.findByLabelText(`Tiebreak for ${data.conferences[0].seeds[4].team.displayName}`)
+    expect(icon.parentElement).toHaveAttribute('title', 'Philadelphia and Detroit won the tiebreak. Washington missed the field.')
+    expect(screen.queryByText('Tiebreak details')).not.toBeInTheDocument()
   })
 
   it('shows an empty state when no regular-season game has been completed', async () => {
@@ -107,8 +106,8 @@ describe('Playoff picture', () => {
     await screen.findByRole('region', { name: 'AFC' })
     const row = afc().getByRole('link', { name: data.conferences[0].seeds[0].team.displayName }).closest('tr')
     expect(within(row).getByText('65%')).toBeInTheDocument()
-    expect(afc().getByRole('columnheader', { name: 'Playoff probability' })).toBeInTheDocument()
-    expect(within(screen.getByRole('region', { name: 'NFC' })).queryByRole('columnheader', { name: 'Playoff probability' })).not.toBeInTheDocument()
+    expect(afc().getByRole('columnheader', { name: /^Playoff probability/ })).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: 'NFC' })).queryByRole('columnheader', { name: /^Playoff probability/ })).not.toBeInTheDocument()
   })
 
   it('ignores a late response for a season the user has left', async () => {

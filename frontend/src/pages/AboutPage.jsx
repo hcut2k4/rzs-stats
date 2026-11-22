@@ -150,13 +150,13 @@ const PAGES = [
       'Picture — “If the season ended today” applies end-of-season tiebreakers to completed regular-season games only. Unplayed games do not count; this is the current field, not a forecast.',
       'The top four seeds in each conference are division leaders; seeds five through seven are wild cards. Every remaining team is shown in the hunt.',
       "Seeds follow Madden 27's tiebreaker rules.",
-      'Each conference exports to Excel, CSV, an image or an AI-ready text block.',
+      'Picture uses compact sortable conference tables, with tiebreak explanations under the info icon. The hunt divider appears only in ascending seed order. Each conference exports the displayed order to Excel, CSV, an image or an AI-ready text block.',
     ],
   },
   {
     name: 'Playoff probability',
     bullets: [
-      'Simulate the remaining regular-season games thousands of times, then apply the Madden 27 tiebreaker rules to count playoff appearances, division wins and No. 1 seeds.',
+      'Simulate the remaining regular-season games thousands of times, then apply the Madden 27 tiebreaker rules to count playoff appearances, division wins and No. 1 seeds. Each conference has one sortable table, ordered by playoff probability by default; exports follow the displayed order.',
       'Each game uses win probabilities from Elo ratings and home field. Ratings stay fixed within a simulated season, and simulated games have no ties.',
       'In a simulated game, the loser scores 20 and the winner wins by 1, 3, 7, 10, 14 or 21 points, each equally likely. These scores only matter for point-differential tiebreakers.',
       'Probabilities round to whole percents. “>99%” replaces 100% (99.5% or higher), and “<1%” replaces 0% (under 0.5%). These are estimates, not clinch or elimination markers.',
@@ -166,7 +166,7 @@ const PAGES = [
   {
     name: 'Probability history',
     bullets: [
-      'Probability over time tracks saved weekly chances of making the playoffs, winning the division or earning the No. 1 seed using Madden 27’s tiebreakers. Pick teams and a goal to compare their paths.',
+      'The Table / Over time switch opens a chart and sortable data table. Team colours and line styles identify each selected team. Probability over time tracks saved weekly chances of making the playoffs, winning the division or earning the No. 1 seed using Madden 27’s tiebreakers. Pick teams and a goal to compare their paths.',
       'Weekly snapshots are saved after each sync. Snapshots only start accumulating after launch; an admin backfill can fill earlier weeks using Elo ratings as of those weeks. Weeks without a snapshot are not shown.',
       'Team profiles include a small playoff probability history chart when at least two snapshots exist. Export the selected teams and goal to Excel, CSV, a chart image or AI-ready text.',
     ],
@@ -177,7 +177,7 @@ const PAGES = [
       'Each regular-season simulation continues through a seven-seed playoff bracket in each conference. Seed 1 gets a bye; the wild-card games are 2 vs 7, 3 vs 6 and 4 vs 5. The best remaining seed then hosts the lowest remaining seed.',
       'Games use Elo win probabilities with home field for the better seed, except the neutral-site final. Ratings stay fixed within each simulated season and games have no ties.',
       'Make playoffs, Reach round 2 (including a bye), Conference final, Final and Champion are the chances of reaching each stage from today, including the chance of missing the playoffs. Title probability also appears on team profiles. Once the regular season ends, this is a pre-playoff projection with ratings frozen at the end of the regular season to show who was favoured going in.',
-      'These are estimates rounded to whole percents, using >99% and <1% at the extremes. The league table sorts by title chance and exports to Excel, CSV, an image or AI-ready text.',
+      'The Probability tables include Conf. title (reaching the final) and Title (winning the championship), shaded by green intensity. Reach round 2 and Conference final chances appear in their tooltips and exports. A Pre-playoff projection chip identifies frozen forecasts. These are estimates rounded to whole percents, using >99% and <1% at the extremes.',
     ],
   },
   {
