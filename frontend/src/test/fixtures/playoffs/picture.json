@@ -19,7 +19,7 @@
       "wins" : 9,
       "losses" : 6,
       "ties" : 0,
-      "otherRulesSeed" : 1,
+      "otherRulesSeed" : null,
       "reasons" : [ "LV had the most wins against the other tied teams (DEN 2, LAC 1, LV 3), ahead of DEN and LAC.", "BUF, IND and LV finished ahead of CIN: among the 4 teams tied on winning percentage, they share the same head-to-head win count, and Madden puts the biggest group of teams with the same count first.", "IND and LV finished ahead of BUF: among the 3 teams tied on winning percentage, they share the same head-to-head win count, and Madden puts the biggest group of teams with the same count first.", "Better record against common opponents: LV ahead of IND." ],
       "odds" : {
         "playoffs" : 0.63,
@@ -38,7 +38,7 @@
       "wins" : 9,
       "losses" : 6,
       "ties" : 0,
-      "otherRulesSeed" : 4,
+      "otherRulesSeed" : null,
       "reasons" : [ "BUF, IND and LV finished ahead of CIN: among the 4 teams tied on winning percentage, they share the same head-to-head win count, and Madden puts the biggest group of teams with the same count first.", "IND and LV finished ahead of BUF: among the 3 teams tied on winning percentage, they share the same head-to-head win count, and Madden puts the biggest group of teams with the same count first.", "Better record against common opponents: LV ahead of IND." ],
       "odds" : {
         "playoffs" : 0.96,
@@ -57,7 +57,7 @@
       "wins" : 9,
       "losses" : 6,
       "ties" : 0,
-      "otherRulesSeed" : 3,
+      "otherRulesSeed" : null,
       "reasons" : [ "Better division record: BUF ahead of NE.", "BUF, IND and LV finished ahead of CIN: among the 4 teams tied on winning percentage, they share the same head-to-head win count, and Madden puts the biggest group of teams with the same count first.", "IND and LV finished ahead of BUF: among the 3 teams tied on winning percentage, they share the same head-to-head win count, and Madden puts the biggest group of teams with the same count first." ],
       "odds" : {
         "playoffs" : 0.8,
@@ -76,7 +76,7 @@
       "wins" : 9,
       "losses" : 6,
       "ties" : 0,
-      "otherRulesSeed" : 6,
+      "otherRulesSeed" : null,
       "reasons" : [ "CIN and CLE finished ahead of PIT: among the 3 teams tied on winning percentage, they share the same head-to-head win count, and Madden puts the biggest group of teams with the same count first.", "Better division record: CIN ahead of CLE.", "BUF, IND and LV finished ahead of CIN: among the 4 teams tied on winning percentage, they share the same head-to-head win count, and Madden puts the biggest group of teams with the same count first." ],
       "odds" : {
         "playoffs" : 0.81,
@@ -114,7 +114,7 @@
       "wins" : 9,
       "losses" : 6,
       "ties" : 0,
-      "otherRulesSeed" : 7,
+      "otherRulesSeed" : null,
       "reasons" : [ "LV had the most wins against the other tied teams (DEN 2, LAC 1, LV 3), ahead of DEN and LAC.", "DEN, LAC, NE and PIT finished ahead of CLE: among the 5 teams tied on winning percentage, they belong to the largest groups with the same head-to-head win count, and Madden puts the biggest group of teams with the same count first.", "LAC and NE finished ahead of DEN and PIT: among the 4 teams tied on winning percentage, they share the same head-to-head win count, and Madden puts the biggest group of teams with the same count first.", "Better division record: NE ahead of LAC." ],
       "odds" : {
         "playoffs" : 0.8,
@@ -133,7 +133,7 @@
       "wins" : 9,
       "losses" : 6,
       "ties" : 0,
-      "otherRulesSeed" : 5,
+      "otherRulesSeed" : null,
       "reasons" : [ "LV had the most wins against the other tied teams (DEN 2, LAC 1, LV 3), ahead of DEN and LAC.", "DEN, LAC, NE and PIT finished ahead of CLE: among the 5 teams tied on winning percentage, they belong to the largest groups with the same head-to-head win count, and Madden puts the biggest group of teams with the same count first.", "LAC and NE finished ahead of DEN and PIT: among the 4 teams tied on winning percentage, they share the same head-to-head win count, and Madden puts the biggest group of teams with the same count first." ],
       "odds" : {
         "playoffs" : 0.65,
@@ -153,7 +153,7 @@
       "wins" : 9,
       "losses" : 6,
       "ties" : 0,
-      "otherRulesSeed" : 2,
+      "otherRulesSeed" : null,
       "reasons" : [ "CIN and CLE finished ahead of PIT: among the 3 teams tied on winning percentage, they share the same head-to-head win count, and Madden puts the biggest group of teams with the same count first.", "DEN, LAC, NE and PIT finished ahead of CLE: among the 5 teams tied on winning percentage, they belong to the largest groups with the same head-to-head win count, and Madden puts the biggest group of teams with the same count first.", "LAC and NE finished ahead of DEN and PIT: among the 4 teams tied on winning percentage, they share the same head-to-head win count, and Madden puts the biggest group of teams with the same count first." ],
       "odds" : {
         "playoffs" : 0.6,
@@ -327,7 +327,7 @@
       "wins" : 10,
       "losses" : 5,
       "ties" : 0,
-      "otherRulesSeed" : 1,
+      "otherRulesSeed" : null,
       "reasons" : [ "Won the head-to-head: LAR ahead of SEA.", "Won the head-to-head: LAR ahead of DET." ],
       "odds" : {
         "playoffs" : 1.0,
@@ -346,7 +346,7 @@
       "wins" : 10,
       "losses" : 5,
       "ties" : 0,
-      "otherRulesSeed" : 2,
+      "otherRulesSeed" : null,
       "reasons" : [ "Won the head-to-head: LAR ahead of DET." ],
       "odds" : {
         "playoffs" : 1.0,
@@ -365,7 +365,7 @@
       "wins" : 9,
       "losses" : 6,
       "ties" : 0,
-      "otherRulesSeed" : 3,
+      "otherRulesSeed" : null,
       "reasons" : [ ],
       "odds" : {
         "playoffs" : 0.92,
@@ -384,7 +384,7 @@
       "wins" : 7,
       "losses" : 8,
       "ties" : 0,
-      "otherRulesSeed" : 4,
+      "otherRulesSeed" : null,
       "reasons" : [ ],
       "odds" : {
         "playoffs" : 0.56,
@@ -403,7 +403,7 @@
       "wins" : 10,
       "losses" : 5,
       "ties" : 0,
-      "otherRulesSeed" : 5,
+      "otherRulesSeed" : null,
       "reasons" : [ "Won the head-to-head: LAR ahead of SEA." ],
       "odds" : {
         "playoffs" : 1.0,
@@ -422,7 +422,7 @@
       "wins" : 9,
       "losses" : 6,
       "ties" : 0,
-      "otherRulesSeed" : 6,
+      "otherRulesSeed" : null,
       "reasons" : [ ],
       "odds" : {
         "playoffs" : 0.86,
@@ -441,7 +441,7 @@
       "wins" : 8,
       "losses" : 7,
       "ties" : 0,
-      "otherRulesSeed" : 7,
+      "otherRulesSeed" : null,
       "reasons" : [ "Better division record: WAS ahead of NYG.", "NYG and WAS finished ahead of GB: among the 3 teams tied on winning percentage, they share the same head-to-head win count, and Madden puts the biggest group of teams with the same count first." ],
       "odds" : {
         "playoffs" : 0.31,

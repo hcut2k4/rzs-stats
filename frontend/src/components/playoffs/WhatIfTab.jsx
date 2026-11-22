@@ -24,15 +24,15 @@ function Results({ data, picks }) {
       { label: g.label, desc: `Chance of ${g.label}.`, text: r => formatOdds(r.odds[g.value], data.exact && (r.odds[g.value] === 0 || r.odds[g.value] === 1) && !dependsOnScores(r)), value: r => r.odds[g.value], z: '0%' },
       { label: `${g.label} change`, desc: 'Change versus baseline, in percentage points; changes under one point hidden.', text: r => delta(r.odds[g.value], r.baseline?.[g.value]) },
     ])]
-    const api = { path: '/playoffs/simulate', params: { season: data.season, rules: data.rules }, note: `POST with picks=${encodePicks(picks)}; simulations=${data.simulations}. ${c.name}.`, fields: { Team: 'team.displayName', Odds: 'odds; changes=(odds-baseline)×100' } }
-    const spec = { name: `${c.name} What-If odds`, qualifier: `${seasonLabel(data.season)} · ${data.rules} rules`, description: 'Picked outcomes are forced; all other games simulated.', rows: c.teams, cols, api }
+    const api = { path: '/playoffs/simulate', params: { season: data.season, rules: data.rules }, note: `POST with picks=${encodePicks(picks)}; simulations=${data.simulations}. ${c.name}.`, fields: { Team: 'team.displayName', Probability: 'odds; changes=(odds-baseline)×100' } }
+    const spec = { name: `${c.name} What-If probabilities`, qualifier: `${seasonLabel(data.season)}`, description: 'Picked outcomes are forced; all other games simulated.', rows: c.teams, cols, api }
     const seedsSpec = { ...spec, name: `${c.name} final seeds`, rows: c.seeds ?? [], cols: [
       { label: 'Seed', desc: 'Final playoff seed.', text: r => String(r.seed), value: r => r.seed, z: '0' }, cols[0],
       { label: 'Record', desc: 'Final regular-season record.', text: recordText },
       { label: 'Tiebreakers', desc: 'Reasons deciding this seed.', text: r => r.reasons.join(' ') },
       { label: 'Depends on scores', desc: SCORE_TIP, text: r => r.dependsOnScores ? 'Yes' : '' },
     ] }
-    return <section key={c.name} aria-label={`${c.name} What-If`} className="space-y-3"><div className="flex justify-between flex-wrap gap-2"><h2 className="font-display text-2xl font-bold">{c.name}</h2><ExportMenu spec={spec} /></div><div className="overflow-x-auto"><table className="w-full text-sm" aria-label={`${c.name} scenario odds`}><thead><tr>{cols.map(col => <th key={col.label} className="th text-left whitespace-nowrap">{col.label}</th>)}</tr></thead><tbody>{c.teams.map(r => <tr key={r.team.teamId} className="border-t border-line">{cols.map(col => <td className="p-2 num" key={col.label}>{col.text(r)}{col.label === 'Team' && dependsOnScores(r) && <small className="block text-muted">depends on scores</small>}</td>)}</tr>)}</tbody></table></div>
+    return <section key={c.name} aria-label={`${c.name} What-If`} className="space-y-3"><div className="flex justify-between flex-wrap gap-2"><h2 className="font-display text-2xl font-bold">{c.name}</h2><ExportMenu spec={spec} /></div><div className="overflow-x-auto"><table className="w-full text-sm" aria-label={`${c.name} scenario probabilities`}><thead><tr>{cols.map(col => <th key={col.label} className="th text-left whitespace-nowrap">{col.label}</th>)}</tr></thead><tbody>{c.teams.map(r => <tr key={r.team.teamId} className="border-t border-line">{cols.map(col => <td className="p-2 num" key={col.label}>{col.text(r)}{col.label === 'Team' && dependsOnScores(r) && <small className="block text-muted">depends on scores</small>}</td>)}</tr>)}</tbody></table></div>
       {data.exact && c.seeds && <><div className="flex justify-between flex-wrap gap-2"><h3 className="font-semibold">Final seeds</h3><ExportMenu spec={seedsSpec} /></div><table className="w-full text-sm" aria-label={`${c.name} final seeds`}><thead><tr>{['Seed', 'Team', 'Record', 'Details'].map(t => <th className="th text-left" key={t}>{t}</th>)}</tr></thead><tbody>{c.seeds.map(r => <tr key={r.team.teamId} className="border-t border-line"><td className="p-2">{r.seed}</td><td className="p-2">{r.team.displayName}</td><td className="p-2 num">{recordText(r)}</td><td className="p-2">{r.dependsOnScores && <InfoTip text={SCORE_TIP}><span tabIndex={0} className="text-xs border border-line rounded px-1">Depends on scores</span></InfoTip>}{r.reasons.length > 0 && <details><summary className="cursor-pointer text-muted">Tiebreak details</summary>{r.reasons.map(reason => <p key={reason}>{reason}</p>)}</details>}</td></tr>)}</tbody></table></>}
     </section>
   })}</div>
@@ -68,7 +68,7 @@ export default function WhatIfTab({ season, rules }) {
     const controller = new AbortController()
     let live = true
     const timer = setTimeout(() => {
-      withBusyRetry(() => simulatePlayoffs({ season: remaining.data.season, rules, picks: parsePicks(encoded, remaining.data.games) }, controller.signal), controller.signal)
+      withBusyRetry(() => simulatePlayoffs({ season: remaining.data.season, rules: 'madden', picks: parsePicks(encoded, remaining.data.games) }, controller.signal), controller.signal)
         .then(data => { if (live) setState({ key, data }) })
         .catch(error => { if (live && !controller.signal.aborted) setState({ key, error }) })
     }, 400)
@@ -96,7 +96,7 @@ export default function WhatIfTab({ season, rules }) {
       url.search = params.toString()
       url.searchParams.set('v', '1')
       url.searchParams.set('season', String(remaining.data.season))
-      url.searchParams.set('rules', rules)
+      url.searchParams.delete('rules')
       url.searchParams.set('tab', 'whatif')
       if (encoded) url.searchParams.set('picks', encoded)
       else url.searchParams.delete('picks')

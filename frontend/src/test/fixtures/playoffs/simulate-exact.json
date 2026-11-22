@@ -324,7 +324,7 @@
       "wins" : 11,
       "losses" : 6,
       "ties" : 0,
-      "otherRulesSeed" : 1,
+      "otherRulesSeed" : null,
       "reasons" : [ "Better division record: BUF ahead of CLE." ],
       "odds" : {
         "playoffs" : 1.0,
@@ -344,7 +344,7 @@
       "wins" : 11,
       "losses" : 6,
       "ties" : 0,
-      "otherRulesSeed" : 2,
+      "otherRulesSeed" : null,
       "reasons" : [ "Better division record: BUF ahead of CLE." ],
       "odds" : {
         "playoffs" : 1.0,
@@ -364,7 +364,7 @@
       "wins" : 10,
       "losses" : 7,
       "ties" : 0,
-      "otherRulesSeed" : 3,
+      "otherRulesSeed" : null,
       "reasons" : [ "Better division record: LV ahead of LAC.", "Better record against common opponents: LV ahead of IND." ],
       "odds" : {
         "playoffs" : 1.0,
@@ -384,7 +384,7 @@
       "wins" : 10,
       "losses" : 7,
       "ties" : 0,
-      "otherRulesSeed" : 4,
+      "otherRulesSeed" : null,
       "reasons" : [ "Better record against common opponents: LV ahead of IND." ],
       "odds" : {
         "playoffs" : 1.0,
@@ -424,7 +424,7 @@
       "wins" : 10,
       "losses" : 7,
       "ties" : 0,
-      "otherRulesSeed" : 7,
+      "otherRulesSeed" : null,
       "reasons" : [ "PIT had the most wins against the other tied teams (BAL 1, CIN 2, PIT 3), ahead of BAL and CIN.", "BAL, CIN, LAC and PIT finished ahead of NE: among the 5 teams tied on winning percentage, they belong to the largest groups with the same head-to-head win count, and Madden puts the biggest group of teams with the same count first.", "BAL and LAC finished ahead of CIN and PIT: among the 4 teams tied on winning percentage, they share the same head-to-head win count, and Madden puts the biggest group of teams with the same count first.", "Won the head-to-head: LAC ahead of BAL." ],
       "odds" : {
         "playoffs" : 1.0,
@@ -444,7 +444,7 @@
       "wins" : 10,
       "losses" : 7,
       "ties" : 0,
-      "otherRulesSeed" : 5,
+      "otherRulesSeed" : null,
       "reasons" : [ "PIT had the most wins against the other tied teams (BAL 1, CIN 2, PIT 3), ahead of BAL and CIN.", "BAL, CIN, LAC and PIT finished ahead of NE: among the 5 teams tied on winning percentage, they belong to the largest groups with the same head-to-head win count, and Madden puts the biggest group of teams with the same count first.", "BAL and LAC finished ahead of CIN and PIT: among the 4 teams tied on winning percentage, they share the same head-to-head win count, and Madden puts the biggest group of teams with the same count first." ],
       "odds" : {
         "playoffs" : 1.0,
@@ -772,7 +772,7 @@
       "wins" : 11,
       "losses" : 6,
       "ties" : 0,
-      "otherRulesSeed" : 2,
+      "otherRulesSeed" : null,
       "reasons" : [ "DET and PHI finished ahead of LAR: among the 3 teams tied on winning percentage, they share the same head-to-head win count, and Madden puts the biggest group of teams with the same count first.", "Better division record: DET ahead of PHI." ],
       "odds" : {
         "playoffs" : 1.0,
@@ -792,7 +792,7 @@
       "wins" : 11,
       "losses" : 6,
       "ties" : 0,
-      "otherRulesSeed" : 3,
+      "otherRulesSeed" : null,
       "reasons" : [ "DET and PHI finished ahead of LAR: among the 3 teams tied on winning percentage, they share the same head-to-head win count, and Madden puts the biggest group of teams with the same count first.", "Better division record: DET ahead of PHI." ],
       "odds" : {
         "playoffs" : 1.0,
@@ -812,7 +812,7 @@
       "wins" : 11,
       "losses" : 6,
       "ties" : 0,
-      "otherRulesSeed" : 1,
+      "otherRulesSeed" : null,
       "reasons" : [ "Won the head-to-head: LAR ahead of SEA.", "DET and PHI finished ahead of LAR: among the 3 teams tied on winning percentage, they share the same head-to-head win count, and Madden puts the biggest group of teams with the same count first." ],
       "odds" : {
         "playoffs" : 1.0,
@@ -832,7 +832,7 @@
       "wins" : 8,
       "losses" : 9,
       "ties" : 0,
-      "otherRulesSeed" : 4,
+      "otherRulesSeed" : null,
       "reasons" : [ ],
       "odds" : {
         "playoffs" : 1.0,
@@ -852,7 +852,7 @@
       "wins" : 11,
       "losses" : 6,
       "ties" : 0,
-      "otherRulesSeed" : 5,
+      "otherRulesSeed" : null,
       "reasons" : [ "Won the head-to-head: LAR ahead of SEA." ],
       "odds" : {
         "playoffs" : 1.0,
@@ -872,7 +872,7 @@
       "wins" : 10,
       "losses" : 7,
       "ties" : 0,
-      "otherRulesSeed" : 6,
+      "otherRulesSeed" : null,
       "reasons" : [ ],
       "odds" : {
         "playoffs" : 1.0,
@@ -892,7 +892,7 @@
       "wins" : 9,
       "losses" : 8,
       "ties" : 0,
-      "otherRulesSeed" : 7,
+      "otherRulesSeed" : null,
       "reasons" : [ "Better division record: WAS ahead of GB." ],
       "odds" : {
         "playoffs" : 1.0,

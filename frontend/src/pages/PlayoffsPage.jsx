@@ -15,12 +15,8 @@ import { seasonLabel, seasonNumber } from '../utils/seasons'
 import { weekName } from '../utils/playoffRounds'
 import { recordText } from '../utils/teamProfile'
 
-const TABS = [{ value: 'picture', label: 'Picture' }, { value: 'odds', label: 'Odds' }, { value: 'leverage', label: 'Leverage' }, { value: 'whatif', label: 'What-If' }]
-const RULES = [{ value: 'madden', label: 'Madden 27' }, { value: 'nfl', label: 'Real NFL' }]
-const RULES_TIP = 'Madden 27 uses different tiebreakers than the real NFL. Switching rules can change which tied teams make the playoffs and their seeds.'
+const TABS = [{ value: 'picture', label: 'Picture' }, { value: 'probability', label: 'Probability' }, { value: 'leverage', label: 'Leverage' }, { value: 'whatif', label: 'What-If' }]
 const status = row => row.seed == null ? 'In the hunt' : row.divisionWinner ? 'Division leader' : 'Wild card'
-const otherSeed = row => row.otherRulesSeed == null ? 'out' : `seed ${row.otherRulesSeed}`
-const otherLabel = rules => rules === 'madden' ? 'Real NFL rules' : 'Madden 27 rules'
 const oddsText = row => row.odds?.playoffs == null ? '' : markerOdds(row.odds.playoffs, row.markers?.playoffs)
 
 function pictureLabel(data) {
@@ -33,7 +29,7 @@ function Conference({ conference, data, clinch }) {
   const hasOdds = rows.some(row => row.odds != null)
   const spec = {
     name: `Playoffs — ${conference.name}`,
-    qualifier: `${pictureLabel(data)} · ${data.rules === 'madden' ? 'Madden 27' : 'Real NFL'} rules`,
+    qualifier: pictureLabel(data),
     description: 'Playoff seeds and every team in the hunt, using completed regular-season games only and end-of-season tiebreakers.',
     rows,
     cols: [
@@ -42,14 +38,13 @@ function Conference({ conference, data, clinch }) {
       { label: 'Team', desc: 'Team name.', text: r => r.team.displayName, logo: r => r.team.abbrName },
       { label: 'Record', desc: 'Completed regular-season wins, losses and ties.', text: recordText },
       { label: 'Position', desc: 'Division leader, wild card or in the hunt.', text: status },
-      { label: otherLabel(data.rules), desc: 'Playoff seed under the other tiebreak rules, or out.', text: otherSeed },
       { label: 'Tiebreakers', desc: 'Reasons a tiebreak determined this position.', text: r => r.reasons.join(' ') },
-      ...(hasOdds ? [{ label: 'Playoffs odds', desc: 'Chance of making the playoffs, rounded to a whole percent.', text: oddsText, value: r => markerValue(r.odds?.playoffs, r.markers?.playoffs), z: '0%' }] : []),
+      ...(hasOdds ? [{ label: 'Playoff probability', desc: 'Chance of making the playoffs, rounded to a whole percent.', text: oddsText, value: r => markerValue(r.odds?.playoffs, r.markers?.playoffs), z: '0%' }] : []),
     ],
     api: {
       path: '/playoffs/picture', params: { season: data.season, rules: data.rules },
       note: `Only ${conference.name}; seeds followed by hunt in API order.`,
-      fields: { Seed: 'seeds[].seed; empty for hunt[]', Rank: 'seed or rank', Team: 'team.displayName', Record: 'wins-losses[-ties]', Position: 'seed and divisionWinner', [otherLabel(data.rules)]: 'otherRulesSeed; null means out', Tiebreakers: 'reasons joined as sentences', ...(hasOdds ? { 'Playoffs odds': 'odds.playoffs × 100, whole percent; absent means empty' } : {}) },
+      fields: { Seed: 'seeds[].seed; empty for hunt[]', Rank: 'seed or rank', Team: 'team.displayName', Record: 'wins-losses[-ties]', Position: 'seed and divisionWinner', Tiebreakers: 'reasons joined as sentences', ...(hasOdds ? { 'Playoff probability': 'odds.playoffs × 100, whole percent; absent means empty' } : {}) },
     },
   }
   const renderRow = row => (
@@ -61,7 +56,6 @@ function Conference({ conference, data, clinch }) {
           <Link to={`/teams/${row.team.abbrName}?season=${seasonNumber(data.season)}`} className="font-semibold hover:text-accent hover:underline">{row.team.displayName}</Link>
         </div>
         <ClinchBadge markers={row.markers} /><div className="text-xs text-muted mt-1">{status(row)}</div>
-        {row.otherRulesSeed !== (row.seed ?? null) && <div className="text-xs text-accent mt-1">{otherLabel(data.rules)}: {otherSeed(row)}</div>}
         {row.reasons.length > 0 && (
           <details className="text-xs mt-1">
             <summary className="cursor-pointer text-muted">Tiebreak details</summary>
@@ -84,7 +78,7 @@ function Conference({ conference, data, clinch }) {
           <th scope="col" className="py-2 pr-2 text-left">Seed</th>
           <th scope="col" className="py-2 text-left">Team</th>
           <th scope="col" className="py-2 text-right">Record</th>
-          {hasOdds && <th scope="col" className="py-2 pl-3 text-right">Playoffs odds</th>}
+          {hasOdds && <th scope="col" className="py-2 pl-3 text-right">Playoff probability</th>}
         </tr></thead>
         <tbody>{rows.filter(r => r.seed != null).map(renderRow)}</tbody>
         <tbody>
@@ -98,19 +92,20 @@ function Conference({ conference, data, clinch }) {
 
 export default function PlayoffsPage() {
   const [params, setParams] = useSearchParams()
-  const tab = TABS.some(t => t.value === params.get('tab')) ? params.get('tab') : 'picture'
-  const rules = params.get('rules') === 'nfl' ? 'nfl' : 'madden'
+  const requestedTab = params.get('tab') === 'odds' ? 'probability' : params.get('tab')
+  const tab = TABS.some(t => t.value === requestedTab) ? requestedTab : 'picture'
+  const rules = 'madden'
   const seasons = useLoad('seasons', getSeasons)
   const requestedSeason = params.get('season')
   const season = requestedSeason != null && seasons.data?.includes(Number(requestedSeason))
     ? Number(requestedSeason) : seasons.data?.at(-1)
-  const picture = useLoad(season == null || tab !== 'picture' ? null : `playoffs-picture-${season}-${rules}`, () => getPlayoffPicture(season, rules))
+  const picture = useLoad(season == null || tab !== 'picture' ? null : `playoffs-picture-${season}-${rules}`, () => getPlayoffPicture(season, 'madden'))
   useEffect(() => {
-    if (params.get('tab') === tab && params.get('rules') === rules) return
+    if (params.get('tab') === tab && !params.has('rules')) return
     setParams(prev => {
       const next = new URLSearchParams(prev)
       next.set('tab', tab)
-      next.set('rules', rules)
+      next.delete('rules')
       return next
     }, { replace: true })
   }, [params, tab, rules, setParams])
@@ -124,20 +119,15 @@ export default function PlayoffsPage() {
   const hasRows = data?.conferences.some(c => c.seeds.length || c.hunt.length)
   return (
     <div>
-      <PageHeader title="Playoffs" qualifier={tab === 'picture' ? (data ? pictureLabel(data) : 'If the season ended today') : tab === 'odds' ? 'Chances of reaching the postseason' : tab === 'whatif' ? 'Pick results and explore playoff scenarios' : 'What a win or loss changes'}>
+      <PageHeader title="Playoffs" qualifier={tab === 'picture' ? (data ? pictureLabel(data) : 'If the season ended today') : tab === 'probability' ? 'Chances of reaching the postseason' : tab === 'whatif' ? 'Pick results and explore playoff scenarios' : 'What a win or loss changes'}>
         <select aria-label="Season" className="field" value={season ?? ''} onChange={e => updateParam('season', e.target.value)}>
           {(seasons.data ?? []).map(s => <option key={s} value={s}>{seasonLabel(s)}</option>)}
         </select>
+        <InfoTip text="Seeds follow Madden 27's tiebreaker rules."><span className="text-xs text-muted" tabIndex={0}>How seeds are decided</span></InfoTip>
       </PageHeader>
       <Tabs tabs={TABS} value={tab} onChange={value => updateParam('tab', value)} />
-      <div className="flex items-center gap-3 flex-wrap mb-5">
-        <div className="flex border border-line rounded overflow-hidden" role="group" aria-label="Tiebreak rules">
-          {RULES.map(rule => <button key={rule.value} aria-pressed={rules === rule.value} onClick={() => updateParam('rules', rule.value)} className={`px-3 py-1.5 text-sm ${rules === rule.value ? 'bg-ink text-bg' : 'text-muted hover:text-ink'}`}>{rule.label}</button>)}
-        </div>
-        <InfoTip text={RULES_TIP}><span className="text-xs text-muted" tabIndex={0}>Why different rules?</span></InfoTip>
-      </div>
       {tab === 'whatif' && season != null && <WhatIfTab season={season} rules={rules} />}
-      {tab === 'odds' && season != null && <OddsTab season={season} rules={rules} />}
+      {tab === 'probability' && season != null && <OddsTab season={season} rules={rules} />}
       {tab === 'leverage' && season != null && <LeverageTab season={season} rules={rules} params={params} updateParam={updateParam} />}
       {tab !== 'picture' && seasons.loading && <p className="text-muted">Loading…</p>}
       {tab !== 'picture' && seasons.data?.length === 0 && <p className="text-muted">No playoff data available.</p>}

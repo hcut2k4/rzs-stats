@@ -3,9 +3,9 @@ const GREEN = '22 163 74'
 const RED = '220 38 38'
 const ORANGE = '234 88 12'
 
-const MAX_ALPHA = 0.42
+export const MAX_ALPHA = 0.42
 
-const tint = (rgb, strength) => `rgb(${rgb} / ${(0.06 + strength * (MAX_ALPHA - 0.06)).toFixed(3)})`
+export const tint = (rgb, strength) => `rgb(${rgb} / ${(0.06 + strength * (MAX_ALPHA - 0.06)).toFixed(3)})`
 
 export function normalize(value, allValues, direction = 'higher') {
   if (value == null || Number.isNaN(value)) return null

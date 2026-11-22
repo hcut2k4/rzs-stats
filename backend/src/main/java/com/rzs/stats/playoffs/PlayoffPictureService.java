@@ -25,6 +25,9 @@ public class PlayoffPictureService {
                       int wins, int losses, int ties, Integer otherRulesSeed, List<String> reasons,
                       @JsonInclude(JsonInclude.Include.NON_NULL) OddsService.Odds odds) {}
 
+    @org.springframework.beans.factory.annotation.Value("${playoffs.nfl-comparison:false}")
+    private boolean nflComparison;
+
     private final SeasonStateLoader loader;
     private final OddsService odds;
 
@@ -39,14 +42,18 @@ public class PlayoffPictureService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rules must be madden or nfl");
         }
         var state = loader.load(season);
-        var madden = MaddenSeeding.madden27().seed(state.teams(), state.completedGames());
-        var nfl = PlayoffSeeding.seedForPicture(state.teams(), state.completedGames());
-        var result = rules.equals("madden") ? madden : nfl;
-        var other = rules.equals("madden") ? nfl : madden;
+        var result = rules.equals("madden")
+                ? MaddenSeeding.madden27().seed(state.teams(), state.completedGames())
+                : PlayoffSeeding.seedForPicture(state.teams(), state.completedGames());
         var otherSeeds = new HashMap<String, Integer>();
-        other.conferences().values().stream().flatMap(Collection::stream)
-                .filter(r -> r.position() <= 7 && r.teams().size() == 1)
-                .forEach(r -> otherSeeds.put(r.teams().iterator().next(), r.position()));
+        if (nflComparison) {
+            var other = rules.equals("madden")
+                    ? PlayoffSeeding.seedForPicture(state.teams(), state.completedGames())
+                    : MaddenSeeding.madden27().seed(state.teams(), state.completedGames());
+            other.conferences().values().stream().flatMap(Collection::stream)
+                    .filter(r -> r.position() <= 7 && r.teams().size() == 1)
+                    .forEach(r -> otherSeeds.put(r.teams().iterator().next(), r.position()));
+        }
         var reasons = new TiebreakExplainer().explain(result, state.identities());
         var teams = new HashMap<String, PlayoffSeeding.Team>();
         state.teams().forEach(t -> teams.put(t.abbr(), t));

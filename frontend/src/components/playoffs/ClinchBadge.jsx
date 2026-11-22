@@ -5,7 +5,7 @@ import InfoTip from '../InfoTip'
 
 export const CLINCH_TIP = 'Guaranteed under Madden 27\'s tiebreak rules for every possible result of the remaining games, including ties. No badge means it isn\'t settled yet.'
 export function useClinch(season, rules) {
-  return useLoad(season == null ? null : `playoffs-clinch-${season}-${rules}`, async () => getPlayoffClinch(season, rules)).data
+  return useLoad(season == null ? null : `playoffs-clinch-${season}-${rules}`, async () => getPlayoffClinch(season, 'madden')).data
 }
 export const teamMarker = (data, teamId) => data?.teams?.find(r => r.team.teamId === teamId)
 export const markerValue = (p, marker) => marker === 'clinched' ? 1 : marker === 'eliminated' ? 0 : p

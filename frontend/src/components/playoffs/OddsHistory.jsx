@@ -27,22 +27,21 @@ export default function OddsHistory({ season, currentTeams }) {
   const rows = snapshots.map(s => ({ week: s.week, label: weekText(s.week), ...Object.fromEntries(s.teams.map(r => [r.team.teamId, r[goal]])) }))
   const goalLabel = GOALS.find(g => g.value === goal).label
   const spec = data && {
-    name: 'Odds over time', qualifier: `${seasonLabel(data.season)} · ${goalLabel} · Madden rules`, rows,
-    description: 'Saved weekly odds for the selected teams.', notes: [NOTE],
+    name: 'Probability over time', qualifier: `${seasonLabel(data.season)} · ${goalLabel}`, rows,
+    description: 'Saved weekly probabilities for the selected teams.', notes: [NOTE],
     cols: [
       { label: 'Week', desc: 'Snapshot week.', text: r => weekText(r.week), value: r => r.week == null ? null : r.week + 1, keepText: true, z: '"Week "0' },
       ...lines.map(t => ({ label: t.abbrName, desc: `${t.displayName}: ${goalLabel} probability.`, text: r => r[t.teamId] == null ? '' : `${Math.round(r[t.teamId] * 100)}%`, value: r => r[t.teamId], z: '0%' })),
     ],
     image: { draw: (ctx, width) => oddsHistoryPanel(ctx, width, rows, lines, weekText) },
-    api: { path: '/playoffs/odds/history', params: { season: data.season }, fields: { Week: 'snapshots[].week', Teams: `snapshots[].teams[].${goal}` }, note: `${goalLabel}; selected teams: ${lines.map(t => t.abbrName).join(', ')}. Madden rules only.` },
+    api: { path: '/playoffs/odds/history', params: { season: data.season }, fields: { Week: 'snapshots[].week', Teams: `snapshots[].teams[].${goal}` }, note: `${goalLabel}; selected teams: ${lines.map(t => t.abbrName).join(', ')}.` },
   }
   return <details className="border-t border-line pt-3 mt-8" onToggle={e => setOpen(e.currentTarget.open)}>
-    <summary className="cursor-pointer font-semibold">Odds over time</summary>
-    <section aria-label="Odds over time" className="mt-3">
+    <summary className="cursor-pointer font-semibold">Probability over time</summary>
+    <section aria-label="Probability over time" className="mt-3">
       <p className="text-sm text-muted">{NOTE}</p>
-      <p className="text-sm text-muted mb-3">Saved with Madden rules.</p>
       {loading && <p className="text-muted">Loading…</p>}
-      {error && <PlayoffError error={error} retry={retry}>Odds history unavailable.</PlayoffError>}
+      {error && <PlayoffError error={error} retry={retry}>Probability history unavailable.</PlayoffError>}
       {data && snapshots.length === 0 && <p className="text-muted">History starts building after the first sync of the season</p>}
       {snapshots.length >= 1 && <>
         <div className="flex flex-wrap items-end justify-between gap-3 mb-3">
@@ -53,9 +52,9 @@ export default function OddsHistory({ season, currentTeams }) {
           <label className="text-sm">Search teams<input type="search" className="block bg-bg border border-line p-2 w-full mb-2" value={search} onChange={e => setSearch(e.target.value)} /></label>
           <div className="max-h-40 overflow-y-auto grid grid-cols-2 sm:grid-cols-4 gap-2">{teams.filter(t => `${t.abbrName} ${t.displayName}`.toLowerCase().includes(search.toLowerCase())).map(t => <label className="text-sm flex items-center gap-2" key={t.teamId}><input type="checkbox" checked={selected.includes(t.teamId)} onChange={e => setSelected(ids => e.target.checked ? [...ids, t.teamId] : ids.filter(id => id !== t.teamId))} />{t.displayName}</label>)}</div>
         </fieldset>
-        {!lines.length ? <p className="text-muted">Select a team to see its odds history.</p> : <>
+        {!lines.length ? <p className="text-muted">Select a team to see its probability history.</p> : <>
           <div className="flex flex-wrap gap-3 text-sm mb-2">{lines.map(t => <span key={t.teamId} className="inline-flex items-center gap-1" style={{ color: t.color }}><svg width="30" height="10" aria-hidden="true"><line x1="0" x2="30" y1="5" y2="5" stroke="currentColor" strokeWidth="2" strokeDasharray={t.dash} /></svg>{t.displayName}</span>)}</div>
-          <div className="h-72" role="img" aria-label={`${goalLabel} odds history: ${lines.map(t => t.displayName).join(', ')}`}>
+          <div className="h-72" role="img" aria-label={`${goalLabel} probability history: ${lines.map(t => t.displayName).join(', ')}`}>
             <ResponsiveContainer width="100%" height="100%"><LineChart data={rows} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
               <CartesianGrid strokeDasharray="2 4" stroke="rgb(var(--line))" />
               <XAxis dataKey="label" stroke="rgb(var(--muted))" />
@@ -64,7 +63,7 @@ export default function OddsHistory({ season, currentTeams }) {
               {lines.map(t => <Line key={t.teamId} name={t.displayName} dataKey={String(t.teamId)} type="linear" stroke={t.color} strokeDasharray={t.dash} strokeWidth={2} dot={{ r: 3 }} isAnimationActive={false} />)}
             </LineChart></ResponsiveContainer>
           </div>
-          <details className="mt-3 overflow-x-auto"><summary className="cursor-pointer text-sm">Show data table</summary><table className="w-full text-sm" aria-label="Odds history data"><thead><tr>{spec.cols.map(c => <th className="th text-left" key={c.label}>{c.label}</th>)}</tr></thead><tbody>{rows.map((r, i) => <tr className="border-t border-line" key={i}>{spec.cols.map(c => <td className="p-2 num" key={c.label}>{c.text(r) || '—'}</td>)}</tr>)}</tbody></table></details>
+          <details className="mt-3 overflow-x-auto"><summary className="cursor-pointer text-sm">Show data table</summary><table className="w-full text-sm" aria-label="Probability history data"><thead><tr>{spec.cols.map(c => <th className="th text-left" key={c.label}>{c.label}</th>)}</tr></thead><tbody>{rows.map((r, i) => <tr className="border-t border-line" key={i}>{spec.cols.map(c => <td className="p-2 num" key={c.label}>{c.text(r) || '—'}</td>)}</tr>)}</tbody></table></details>
         </>}
       </>}
     </section>

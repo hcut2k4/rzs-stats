@@ -89,6 +89,25 @@ class WhatIfServiceTest {
     }
 
     @Test
+    void exactModeOnlyComputesComparisonWhenEnabled() throws Exception {
+        populate("104", false);
+        odds.odds(1, "madden");
+        for (boolean comparison : List.of(false, true)) {
+            caches.getCache("playoffWhatIf").clear();
+            var candidate = new WhatIfService(loader, elo, new SimulationService(), odds, caches, new ComputeGate(2, 100));
+            org.springframework.test.util.ReflectionTestUtils.setField(candidate, "nflComparison", comparison);
+            SimulationService.resetSeedings();
+            var response = candidate.simulate(new WhatIfService.Request(1, "madden", List.of(), 50));
+            assertThat(response.exact()).isTrue();
+            assertThat(SimulationService.seedings()).isEqualTo(comparison ? 2 : 1);
+            if (!comparison) assertThat(response.conferences()).allSatisfy(c ->
+                    assertThat(c.seeds()).allSatisfy(r -> assertThat(r.row().otherRulesSeed()).isNull()));
+            else assertThat(response.conferences()).anySatisfy(c ->
+                    assertThat(c.seeds()).anySatisfy(r -> assertThat(r.row().otherRulesSeed()).isNotNull()));
+        }
+    }
+
+    @Test
     void rejectsInvalidRulesSimulationCountsAndPicksBeforeSimulating() throws Exception {
         populate("104", true);
         int id = loader.load(1).remainingGames().getFirst().gameId();

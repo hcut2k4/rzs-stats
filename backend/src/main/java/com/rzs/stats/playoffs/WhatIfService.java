@@ -28,6 +28,9 @@ public class WhatIfService {
                            List<Conference> conferences) {}
 
     private final ComputeGate gate;
+    @org.springframework.beans.factory.annotation.Value("${playoffs.nfl-comparison:false}")
+    private boolean nflComparison;
+
     private final SeasonStateLoader loader;
     private final EloQueryService elo;
     private final SimulationService simulator;
@@ -181,12 +184,14 @@ public class WhatIfService {
     private Map<String, List<Seed>> exactRows(SeasonStateLoader.State state, String rules,
                                              Map<Integer, SimulationService.Outcome> forced, PlayoffSeeding.Result result,
                                              Set<String> uncertain, Map<String, OddsService.Odds> odds) {
-        var other = SimulationService.seed(state.teams(), syntheticGames(state, forced),
-                rules.equals("madden") ? SimulationService.Rules.NFL : SimulationService.Rules.MADDEN);
         var otherSeeds = new HashMap<String, Integer>();
-        other.conferences().values().stream().flatMap(Collection::stream)
-                .filter(r -> r.position() <= 7 && r.teams().size() == 1)
-                .forEach(r -> otherSeeds.put(r.teams().iterator().next(), r.position()));
+        if (nflComparison) {
+            var other = SimulationService.seed(state.teams(), syntheticGames(state, forced),
+                    rules.equals("madden") ? SimulationService.Rules.NFL : SimulationService.Rules.MADDEN);
+            other.conferences().values().stream().flatMap(Collection::stream)
+                    .filter(r -> r.position() <= 7 && r.teams().size() == 1)
+                    .forEach(r -> otherSeeds.put(r.teams().iterator().next(), r.position()));
+        }
         var reasons = new TiebreakExplainer().explain(result, state.identities());
         var divisions = new HashMap<String, String>();
         state.teams().forEach(t -> divisions.put(t.abbr(), t.division()));
