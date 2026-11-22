@@ -99,6 +99,24 @@ it('keeps a failed source retryable while preserving the rest of the hero', asyn
   expect(screen.getByLabelText('Title probability funnel')).toHaveTextContent('Champion4%')
 })
 
+it('puts the card export menu in the card header, visible without opening the data tables, and PNG exports the whole card', async () => {
+  showHero()
+  const card = await screen.findByRole('region', { name: 'Playoff outlook' })
+  await screen.findByText(/biggest game this week/)
+  const pngButtons = within(card).getAllByRole('button', { name: 'PNG' })
+  const cardPng = pngButtons.find(button => !button.closest('details'))
+  expect(cardPng).toBeTruthy()
+  expect(cardPng.closest('section')).toBe(card)
+  for (const label of ['XLSX', 'CSV', 'AI']) {
+    expect(within(card).getAllByRole('button', { name: label }).some(button => !button.closest('details'))).toBe(true)
+  }
+  const png = vi.spyOn(tableImage, 'copyImage').mockResolvedValue('copied')
+  await userEvent.click(cardPng)
+  expect(png.mock.lastCall[0].name).toMatch(/playoff outlook/i)
+  expect(png.mock.lastCall[0].image.draw).toBeTypeOf('function')
+  png.mockRestore()
+})
+
 it('sorts the disclosed data and exports the visible order with probability shading', async () => {
   const csv = vi.spyOn(exports, 'exportCsv').mockReturnValue('saved')
   showHero()

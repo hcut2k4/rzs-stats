@@ -1,4 +1,5 @@
 import { playoffOutlookImage } from './images'
+import ExportMenu from '../ExportMenu'
 import { Link } from 'react-router-dom'
 import PlayoffError from '../playoffs/PlayoffError'
 import ClinchBadge, { teamMarker, markerOdds, markerValue, clinchTexts } from '../playoffs/ClinchBadge'
@@ -51,7 +52,7 @@ export default function PlayoffOutlook({ teamId, team, season, nextWeek }) {
   const spec = { name: `${row.team.displayName} playoff outlook`, qualifier: seasonLabel(odds.data.season), description: 'Current postseason probabilities and next-game scenarios when available. Title chances are a pre-playoff projection after the regular season ends.', rows, cols,
     image: playoffOutlookImage({ team: team ?? row.team, probability, probabilityText: markerOdds(row.odds.playoffs, markers?.playoffs), badges: clinchTexts(markers), status, finished, story, stages: STAGES.map(([key, label]) => { const p = key === 'playoffs' ? markerValue(title?.playoffs ?? row.odds.playoffs, markers?.playoffs) : title?.[key]; return { label, p, text: formatOdds(p, key === 'playoffs' && !!markers?.playoffs) } }), preplayoff: finished || championship.data?.preplayoff, seedOdds: row.seedOdds, points, next, opp, week, rank }),
     api: { path: '/playoffs/odds', params: { season: odds.data.season, rules: odds.data.rules }, fields: { Current: 'odds.playoffs, odds.division, odds.oneSeed; championship teams[].round2, conferenceFinal, final, champion' }, note: `This team only. Title stages: GET /api/playoffs/championship?season=${odds.data.season}&rules=madden. ${next ? `Scenarios: GET /api/playoffs/leverage?season=${leverage.data.season}&week=${leverage.data.week}&rules=madden; ifWin, ifLoss; swing=(ifWin-ifLoss)×100.` : 'No next-game scenarios available.'}` } }
-  return <Section id="playoff-outlook" title="Playoff outlook" kicker="Postseason chances" className="rounded-lg border border-line p-4 sm:p-5 bg-surface" >
+  return <Section id="playoff-outlook" title="Playoff outlook" kicker="Postseason chances" actions={<ExportMenu spec={spec} />} className="rounded-lg border border-line p-4 sm:p-5 bg-surface" >
     <div className="h-1 rounded-full mb-5" style={{ background: 'var(--team-c)' }} />
     {[picture, leverage, championship, history, clinch].filter(load => load.error).map((load, i) => <PlayoffError key={i} error={load.error} retry={load.retry}>Playoff data unavailable.</PlayoffError>)}
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
