@@ -28,16 +28,18 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @DataJpaTest(showSql = false, properties = {"playoffs.simulations=200", "playoffs.path-simulations=200",
-        "playoffs.path-risk-simulations=40", "playoffs.leverage-simulations=100"})
+        "playoffs.path-risk-simulations=40", "playoffs.leverage-simulations=100",
+        "playoffs.max-concurrent-computations=1", "playoffs.compute-timeout-ms=20"})
 @AutoConfigureCache(cacheProvider = CacheType.CAFFEINE)
 @EnableCaching
-@Import({SeasonStateLoader.class, PathService.class, PlayoffsPathController.class, OddsService.class,
+@Import({com.rzs.stats.playoffs.ComputeGate.class, SeasonStateLoader.class, PathService.class, PlayoffsPathController.class, OddsService.class,
         ClinchService.class, LeverageService.class, SimulationService.class, CacheNames.class, EloQueryService.class,
         EloHistoryService.class, EloService.class, EloConfigService.class, OwnerChangeService.class})
 class PathServiceTest {
     @Autowired GameRepository games;
     @Autowired TeamRepository teams;
     @Autowired PathService paths;
+    @Autowired ComputeGate gate;
     @Autowired PlayoffsPathController controller;
     @Autowired OddsService odds;
     @Autowired ClinchService clinch;
@@ -53,7 +55,7 @@ class PathServiceTest {
     @BeforeEach
     void setup() {
         caches.getCacheNames().forEach(n -> caches.getCache(n).clear());
-        http = MockMvcBuilders.standaloneSetup(controller).build();
+        http = MockMvcBuilders.standaloneSetup(controller).setControllerAdvice(new WhatIfExceptionHandler()).build();
     }
 
     private void populate(List<PlayoffSeeding.Team> league, List<PlayoffSeeding.Game> schedule, Set<Integer> remaining) {
@@ -194,6 +196,63 @@ class PathServiceTest {
     }
 
     @Test
+    void riskAnalysisExaminesOnlyTheFirstFortyEligibleGamesInScheduleOrder() throws Exception {
+        var f = historical();
+        var remaining = new HashSet<Integer>();
+        for (int i = 0; i < f.games().size(); i++) if (f.games().get(i).week() >= 10) remaining.add(i);
+        populate(f.teams(), f.games(), remaining);
+        var state = loader.load(1);
+        var conference = state.teams().stream().filter(t -> t.conference().equals("NFC"))
+                .map(PlayoffSeeding.Team::abbr).collect(java.util.stream.Collectors.toSet());
+        var eligible = state.remainingGames().stream().filter(g -> !g.home().equals("WAS") && !g.away().equals("WAS")
+                        && (conference.contains(g.home()) || conference.contains(g.away())))
+                .sorted(Comparator.comparingInt(SeasonStateLoader.RemainingGame::week)
+                        .thenComparingInt(SeasonStateLoader.RemainingGame::gameId)).toList();
+        assertThat(eligible.size()).isGreaterThan(40);
+        var examined = new ArrayList<Integer>();
+        var recorder = new SimulationService() {
+            @Override public Simulation simulate(SeasonStateLoader.State input, Map<Integer, Double> probabilities,
+                                                 Map<Integer, Outcome> forced, int count, long seed, Rules rules, boolean margins) {
+                if (count == 1) forced.keySet().stream()
+                        .filter(id -> eligible.stream().anyMatch(g -> g.gameId() == id)).forEach(examined::add);
+                return super.simulate(input, probabilities, forced, count, seed, rules, margins);
+            }
+        };
+        var service = new PathService(loader, odds, clinch, leverage, recorder, elo, 2, 1, gate);
+        service.path(1, "WAS", "madden");
+        var expected = eligible.stream().limit(40).flatMap(g -> java.util.stream.Stream.of(g.gameId(), g.gameId())).toList();
+        assertThat(examined).containsExactlyElementsOf(expected);
+    }
+
+    @Test
+    void cachedPathRemainsAvailableWhileTheSharedAdmissionCapRejectsColdPaths() throws Exception {
+        race();
+        var cached = paths.path(1, "A", "madden");
+        var started = new java.util.concurrent.CountDownLatch(1);
+        var finish = new java.util.concurrent.CountDownLatch(1);
+        try (var executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+            var busy = executor.submit(() -> gate.compute(() -> {
+                started.countDown();
+                try {
+                    if (!finish.await(5, java.util.concurrent.TimeUnit.SECONDS)) throw new AssertionError("Permit was not released");
+                } catch (InterruptedException e) { throw new AssertionError(e); }
+                return true;
+            }));
+            try {
+                assertThat(started.await(5, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+                assertThat(paths.path(1, "A", "madden")).isSameAs(cached);
+                http.perform(get("/api/playoffs/path/B?season=1"))
+                        .andExpect(status().isServiceUnavailable())
+                        .andExpect(content().string("Playoff simulations are busy; try again shortly"));
+            } finally {
+                finish.countDown();
+            }
+            assertThat(busy.get(5, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+        }
+        assertThat(paths.path(1, "B", "madden")).isNotNull();
+    }
+
+    @Test
     @Tag("benchmark")
     void reportsPathRuntimeAtTwentyThousandBaselineSimulations() throws Exception {
         var f = historical();
@@ -204,8 +263,8 @@ class PathServiceTest {
         remaining.add(own);
         for (int i = 0; i < f.games().size() && remaining.size() < 3; i++) if (f.games().get(i).week() == 17) remaining.add(i);
         populate(f.teams(), f.games(), remaining);
-        var baseline = new OddsService(loader, elo, simulator, 20000, caches);
-        var service = new PathService(loader, baseline, clinch, leverage, simulator, elo, 5000, 2000);
+        var baseline = new OddsService(loader, elo, simulator, 20000, caches, new com.rzs.stats.playoffs.ComputeGate(2, 100));
+        var service = new PathService(loader, baseline, clinch, leverage, simulator, elo, 5000, 2000, new com.rzs.stats.playoffs.ComputeGate(2, 100));
         long start = System.nanoTime();
         var response = service.path(1, "WAS", "madden");
         assertThat(response.simulations()).isEqualTo(20000);

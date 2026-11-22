@@ -51,7 +51,8 @@ public class OddsHistoryService {
     public Backfill backfill(int season) {
         var current = loader.load(season);
         int created = 0, skipped = 0;
-        for (int week = 1; current.throughWeek() != null && week <= current.throughWeek(); week++) {
+        int nextWeek = current.nextWeek() == null ? current.throughWeek() + 1 : current.nextWeek();
+        for (int week = 0; week <= nextWeek; week++) {
             int selectedWeek = week;
             if (writer.saveIfAbsent(season, week, () -> odds.historical(loader.loadAtStart(season, selectedWeek)))) created++;
             else skipped++;

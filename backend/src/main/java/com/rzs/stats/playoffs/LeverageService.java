@@ -25,14 +25,16 @@ public class LeverageService {
                        List<Participant> teams, OddsService.Odds importance, List<Other> others) {}
     public record Response(int season, Integer week, String rules, int simulations, Instant computedAt, List<Game> games) {}
 
+    private final ComputeGate gate;
     private final SeasonStateLoader loader;
     private final EloQueryService elo;
     private final SimulationService simulator;
     private final int simulations;
 
     public LeverageService(SeasonStateLoader loader, EloQueryService elo, SimulationService simulator,
-                           @Value("${playoffs.leverage-simulations:10000}") int simulations) {
+                           @Value("${playoffs.leverage-simulations:10000}") int simulations, ComputeGate gate) {
         if (simulations <= 0) throw new IllegalArgumentException("playoffs.leverage-simulations must be positive");
+        this.gate = gate;
         this.loader = loader;
         this.elo = elo;
         this.simulator = simulator;
@@ -53,22 +55,24 @@ public class LeverageService {
         if (!"madden".equals(rules) && !"nfl".equals(rules))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rules must be madden or nfl");
         var state = loader.load(season);
-        Integer selectedWeek = week == null ? state.nextWeek() : week;
-        var games = state.remainingGames().stream().filter(g -> Objects.equals(g.week(), selectedWeek)).toList();
-        var probs = games.isEmpty() ? Map.<Integer, Double>of() : elo.homeWinProbabilities(state.season());
-        long seed = SimulationService.mix(((long) state.season() << 32) ^ Objects.hashCode(selectedWeek) ^ rules.hashCode());
-        var selectedRules = rules.equals("madden") ? SimulationService.Rules.MADDEN : SimulationService.Rules.NFL;
-        var result = new ArrayList<GameMatrix>();
-        for (var game : games) {
-            var home = simulator.simulate(state, probs, Map.of(game.gameId(), SimulationService.Outcome.HOME), simulations, seed, selectedRules, true);
-            var away = simulator.simulate(state, probs, Map.of(game.gameId(), SimulationService.Outcome.AWAY), simulations, seed, selectedRules, true);
-            var teams = new TreeMap<String, ConditionalOdds>();
-            for (var team : state.teams()) teams.put(team.abbr(), new ConditionalOdds(
-                    fractions(home.teams().get(team.abbr())), fractions(away.teams().get(team.abbr()))));
-            result.add(new GameMatrix(game.gameId(), state.identities().get(game.home()), state.identities().get(game.away()),
-                    probs.get(game.gameId()), Collections.unmodifiableMap(teams)));
-        }
-        return new LeverageMatrix(state.season(), selectedWeek, rules, simulations, Instant.now(), List.copyOf(result));
+        return gate.compute(() -> {
+            Integer selectedWeek = week == null ? state.nextWeek() : week;
+            var games = state.remainingGames().stream().filter(g -> Objects.equals(g.week(), selectedWeek)).toList();
+            var probs = games.isEmpty() ? Map.<Integer, Double>of() : elo.homeWinProbabilities(state.season());
+            long seed = SimulationService.mix(((long) state.season() << 32) ^ Objects.hashCode(selectedWeek) ^ rules.hashCode());
+            var selectedRules = rules.equals("madden") ? SimulationService.Rules.MADDEN : SimulationService.Rules.NFL;
+            var result = new ArrayList<GameMatrix>();
+            for (var game : games) {
+                var home = simulator.simulate(state, probs, Map.of(game.gameId(), SimulationService.Outcome.HOME), simulations, seed, selectedRules, true);
+                var away = simulator.simulate(state, probs, Map.of(game.gameId(), SimulationService.Outcome.AWAY), simulations, seed, selectedRules, true);
+                var teams = new TreeMap<String, ConditionalOdds>();
+                for (var team : state.teams()) teams.put(team.abbr(), new ConditionalOdds(
+                        fractions(home.teams().get(team.abbr())), fractions(away.teams().get(team.abbr()))));
+                result.add(new GameMatrix(game.gameId(), state.identities().get(game.home()), state.identities().get(game.away()),
+                        probs.get(game.gameId()), Collections.unmodifiableMap(teams)));
+            }
+            return new LeverageMatrix(state.season(), selectedWeek, rules, simulations, Instant.now(), List.copyOf(result));
+        });
     }
 
     public Response response(LeverageMatrix matrix) {

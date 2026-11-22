@@ -27,7 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DataJpaTest(showSql = false, properties = "playoffs.leverage-simulations=100")
 @AutoConfigureCache(cacheProvider = CacheType.CAFFEINE)
 @EnableCaching
-@Import({SeasonStateLoader.class, LeverageService.class, SimulationService.class,
+@Import({com.rzs.stats.playoffs.ComputeGate.class, SeasonStateLoader.class, LeverageService.class, SimulationService.class,
         PlayoffsLeverageController.class, CacheNames.class, EloQueryService.class,
         EloHistoryService.class, EloService.class, EloConfigService.class, OwnerChangeService.class})
 class LeverageServiceTest {
@@ -201,7 +201,7 @@ class LeverageServiceTest {
     @org.junit.jupiter.api.Tag("benchmark")
     void reportsTimeForSixteenGameWeek() throws Exception {
         populate(false);
-        var service = new LeverageService(loader, elo, new SimulationService(), 10000);
+        var service = new LeverageService(loader, elo, new SimulationService(), 10000, new com.rzs.stats.playoffs.ComputeGate(2, 100));
         long start = System.nanoTime();
         var result = service.matrix(2, 16, "madden");
         System.out.printf("BENCHMARK leverage 16-game week, 10,000 paired simulations: %.3f seconds%n", (System.nanoTime() - start) / 1e9);
