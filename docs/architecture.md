@@ -7,6 +7,7 @@ backend/src/main/java/com/rzs/stats/
 ├── controller/
 │   ├── StatsController.java       # public API: /api/* (standings, games, trends, elo)
 │   ├── PlayoffsController.java    # public API: /api/playoffs/picture, /odds
+│   ├── PlayoffsLeverageController.java # public API: /api/playoffs/leverage
 │   ├── EloCalibrationController.java # public API: /api/playoffs/calibration
 │   ├── QbController.java          # public API: /api/qb/*
 │   ├── AdminController.java       # admin tools: /api/admin/*
@@ -31,6 +32,7 @@ backend/src/main/java/com/rzs/stats/
 │   ├── SeasonStateLoader.java     # reusable season schedule, identities, records input and week bounds
 │   ├── PlayoffPictureService.java # Madden/NFL picture and alternate seeds
 │   ├── SimulationService.java    # parallel Monte Carlo with paired, counter-based random draws
+│   ├── LeverageService.java      # cached full conditional matrix and leverage projection
 │   ├── OddsService.java          # cached Elo playoff odds
 │   ├── OddsSnapshotService.java  # first Madden baseline per season/week/team
 │   ├── TiebreakExplainer.java     # plain-English explanations from engine traces
@@ -154,7 +156,7 @@ SoS: `oppPyPatCurr/Prev`, `oppPyPatRemainingCurr/Prev`, `oppPyPatTotalCurr/Prev`
 
 Uses completed stage 1 games in weeks 0–17. Invalid rules return 400; missing regular-season data or incomplete team conference/division metadata return 404. Shapes follow [the playoff API contract](playoffs-api.md). The loader includes teams from the selected regular-season schedule, including unplayed games.
 
-The game-only NFL engine can leave ties unresolved when net touchdown totals or a coin toss are needed. The picture returns 404 if the requested order is unresolved; unresolved alternate seeds are null. This is a contract limitation: the response has no representation for an unknown seed.
+The game-only NFL engine can leave ties unresolved when net touchdown totals or a coin toss are needed. Picture and simulations resolve these orders alphabetically; Picture reasons flag the arbitrary fallback.
 
 ### Public — `EloCalibrationController (/api/playoffs)`
 
@@ -201,19 +203,25 @@ The game-only NFL engine can leave ties unresolved when net touchdown totals or 
 
 `SimulationService.simulate(state, probabilities, forced, simulations, seed, rules)` seeds the full league independently for each parallel simulation and reduces integer counts. `Outcome` supports HOME, AWAY and forced TIE. Its `games` primitive exposes each simulated schedule for paired leverage; `outcomeGame` shares outcome-to-score conversion with future clinch integration. SplitMix64 counters depend only on base seed, simulation index and game ID, so forcing a game leaves every other game's outcome and margin unchanged. Unforced draws never tie. Losers score 20; margins 1, 3, 7, 10, 14 and 21 are equally likely; forced ties score 20-20. Forced margins depend on seed and game ID alone, so fully forced schedules give exact 0/1 odds.
 
-`OddsService` uses the selected season's latest Elo timeline ratings and the same `EloService.probability` plus home field as upcoming games. Teams without a timeline rating start at the configured initial rating. `playoffs.simulations` defaults to 20,000; the baseline seed is stable for season, next week and rules. Completed seasons use exact seeding with zero simulations. Unresolved NFL orders return 404, including when encountered in Monte Carlo; no arbitrary seeds are assigned. This is documented in the API contract.
+`OddsService` uses the selected season's latest Elo timeline ratings and the same `EloService.probability` plus home field as upcoming games. Teams without a timeline rating start at the configured initial rating. `playoffs.simulations` defaults to 20,000; the baseline seed is stable for season, next week and rules. Completed seasons use exact seeding with zero simulations. Unresolved NFL orders use the same alphabetical fallback as Picture, as documented in the API contract.
+
+`LeverageService.matrix(season, week, rules)` returns an immutable `LeverageMatrix` with conditional odds for every team in every remaining game of the selected week (default next week). Each game runs HOME and AWAY with the same base seed and `playoffs.leverage-simulations` (default 10,000). `/api/playoffs/leverage` projects participants, importance summed over the full league, and up to five other teams ranked by their largest absolute goal swing. Empty weeks return an empty list, including completed seasons. Participant `current` is the exact Elo-weighted mixture of the two conditional runs; it can differ from `/odds` due to simulation noise.
+
+Picture rows join the available cached season/rules baseline from `OddsService` without starting simulations; missing or failed odds are omitted without failing the Picture response. Elo configuration updates evict Picture and leverage alongside odds.
 
 ## Caching
 
 **Caffeine** — max 500 entries, 24h write-through TTL.
 
-Cache names: `standings`, `games`, `weeks`, `seasons`, `seasonTrends`, `weeklyTrends`, `seasonGames`, `eloHistory`, `qbStats`, `teamEfficiency`, `playoffPicture`, `playoffOdds`, `eloCalibration`
+Cache names: `standings`, `games`, `weeks`, `seasons`, `seasonTrends`, `weeklyTrends`, `seasonGames`, `eloHistory`, `qbStats`, `teamEfficiency`, `playoffPicture`, `playoffOdds`, `leverage`, `eloCalibration`
 
 The list lives in one place — [config/CacheNames.java](../backend/src/main/java/com/rzs/stats/config/CacheNames.java), as the `allStatsCaches` resolver. **A new cache must be added there**, or it silently survives eviction and serves stale data after a sync. All registered caches are evicted together on sync, force-sync, or cache warm. `seasonGames` is cached directly on `GameRepository.findRegularSeasonGames()` (Spring Data JPA repos support `@Cacheable`) so all callers share the same cache regardless of call site.
 
-`playoffPicture` caches the complete response by season parameter and rules, including the default-season request. It participates in the same sync, force-sync, and cache-warm eviction resolver.
+`playoffPicture` caches the complete response by season parameter and rules, including the default-season request, once odds are present. Responses without a baseline are not cached so a later warmed baseline appears immediately. It participates in the same sync, force-sync, and cache-warm eviction resolver.
 
 `playoffOdds` caches the full response by requested season and rules; Elo configuration updates evict it with the Elo timeline. Cache warming computes the current default season's Madden baseline after Elo, then saves its snapshot. Successful manual, force, verbose and nightly syncs trigger warming on their background execution path; startup does not run simulations. Snapshot persistence is separate from cached reads, so a warmed cached response is still saved once. An odds or snapshot failure is logged without failing the other warmed caches, following the QB warming pattern.
+
+`leverage` caches the full matrix by requested season, week and rules and participates in shared eviction. After sync, warming requests the current season and next week through the default parameters, independently of odds/snapshot failures. Startup does not warm simulations.
 
 `eloCalibration` caches reports separately for each requested season and for all seasons. It participates in shared eviction and is also evicted alongside `eloHistory` when Elo configuration changes.
 

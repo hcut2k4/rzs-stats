@@ -12,18 +12,28 @@ import java.util.*;
 @Service
 public class PlayoffPictureService {
     public record Picture(int season, String rules, Integer throughWeek, Integer nextWeek,
-                          int gamesPlayed, int gamesRemaining, List<Conference> conferences) {}
+                          int gamesPlayed, int gamesRemaining, List<Conference> conferences) {
+        public boolean hasOdds() {
+            return conferences.stream().anyMatch(c -> java.util.stream.Stream.concat(c.seeds().stream(), c.hunt().stream())
+                    .anyMatch(row -> row.odds() != null));
+        }
+    }
     public record Conference(String name, List<Row> seeds, List<Row> hunt) {}
     public record Row(@JsonInclude(JsonInclude.Include.NON_NULL) Integer seed,
                       @JsonInclude(JsonInclude.Include.NON_NULL) Integer rank,
                       EloService.Team team, String division, boolean divisionWinner,
-                      int wins, int losses, int ties, Integer otherRulesSeed, List<String> reasons) {}
+                      int wins, int losses, int ties, Integer otherRulesSeed, List<String> reasons,
+                      @JsonInclude(JsonInclude.Include.NON_NULL) OddsService.Odds odds) {}
 
     private final SeasonStateLoader loader;
+    private final OddsService odds;
 
-    public PlayoffPictureService(SeasonStateLoader loader) { this.loader = loader; }
+    public PlayoffPictureService(SeasonStateLoader loader, OddsService odds) {
+        this.loader = loader;
+        this.odds = odds;
+    }
 
-    @Cacheable("playoffPicture")
+    @Cacheable(value = "playoffPicture", unless = "!#result.hasOdds()")
     public Picture picture(Integer season, String rules) {
         if (!rules.equals("madden") && !rules.equals("nfl")) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rules must be madden or nfl");
@@ -40,6 +50,13 @@ public class PlayoffPictureService {
         var reasons = new TiebreakExplainer().explain(result, state.identities());
         var teams = new HashMap<String, PlayoffSeeding.Team>();
         state.teams().forEach(t -> teams.put(t.abbr(), t));
+        var baseline = new HashMap<String, OddsService.Odds>();
+        try {
+            var response = odds.available(state.season(), rules);
+            if (response != null) response.conferences().forEach(c -> c.teams().forEach(r -> baseline.put(r.team().abbrName(), r.odds())));
+        } catch (RuntimeException e) {
+            org.slf4j.LoggerFactory.getLogger(PlayoffPictureService.class).warn("Picture odds unavailable for season {}", state.season(), e);
+        }
         var conferences = new ArrayList<Conference>();
         result.conferences().forEach((name, ranks) -> {
             var seeds = new ArrayList<Row>();
@@ -51,7 +68,7 @@ public class PlayoffPictureService {
                 var row = new Row(position <= 7 ? position : null, position > 7 ? position : null,
                         state.identities().get(abbr), teams.get(abbr).division(),
                         result.divisionRanks().get(abbr).position() == 1, record.wins(), record.losses(), record.ties(),
-                        otherSeeds.get(abbr), reasons.getOrDefault(abbr, List.of()));
+                        otherSeeds.get(abbr), reasons.getOrDefault(abbr, List.of()), baseline.get(abbr));
                 (position <= 7 ? seeds : hunt).add(row);
             }
             conferences.add(new Conference(name, List.copyOf(seeds), List.copyOf(hunt)));

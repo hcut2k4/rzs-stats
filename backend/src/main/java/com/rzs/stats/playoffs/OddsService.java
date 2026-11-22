@@ -4,6 +4,8 @@ import com.rzs.stats.service.EloQueryService;
 import com.rzs.stats.service.EloService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.interceptor.SimpleKey;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -22,14 +24,24 @@ public class OddsService {
     private final EloQueryService elo;
     private final SimulationService simulator;
     private final int simulations;
+    private final CacheManager caches;
 
     public OddsService(SeasonStateLoader loader, EloQueryService elo, SimulationService simulator,
-                       @Value("${playoffs.simulations:20000}") int simulations) {
+                       @Value("${playoffs.simulations:20000}") int simulations, CacheManager caches) {
         if (simulations <= 0) throw new IllegalArgumentException("playoffs.simulations must be positive");
         this.loader = loader;
         this.elo = elo;
         this.simulator = simulator;
         this.simulations = simulations;
+        this.caches = caches;
+    }
+
+    public Response available(Integer season, String rules) {
+        var cache = caches.getCache("playoffOdds");
+        if (cache == null) return null;
+        var result = cache.get(new SimpleKey(season, rules), Response.class);
+        if (result == null) result = cache.get(new SimpleKey(null, rules), Response.class);
+        return result != null && Objects.equals(result.season(), season) ? result : null;
     }
 
     @Cacheable(value = "playoffOdds", sync = true)

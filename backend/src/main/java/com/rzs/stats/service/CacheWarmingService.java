@@ -2,6 +2,7 @@ package com.rzs.stats.service;
 
 import com.rzs.stats.config.CacheNames;
 import com.rzs.stats.playoffs.OddsService;
+import com.rzs.stats.playoffs.LeverageService;
 import com.rzs.stats.playoffs.OddsSnapshotService;
 import com.rzs.stats.service.QbStatsService.Basis;
 import com.rzs.stats.service.QbStatsService.Scope;
@@ -24,6 +25,7 @@ public class CacheWarmingService {
     private final EloHistoryService eloHistoryService;
     private final QbStatsService qbStatsService;
     private final OddsService odds;
+    private final LeverageService leverage;
     private final OddsSnapshotService snapshots;
 
     private volatile boolean inProgress = false;
@@ -38,12 +40,13 @@ public class CacheWarmingService {
         return new WarmStatus(inProgress, startedAt, completedAt, message, success);
     }
 
-    public CacheWarmingService(StatsService statsService, EloHistoryService eloHistoryService, QbStatsService qbStatsService, OddsService odds, OddsSnapshotService snapshots) {
+    public CacheWarmingService(StatsService statsService, EloHistoryService eloHistoryService, QbStatsService qbStatsService, OddsService odds, OddsSnapshotService snapshots, LeverageService leverage) {
         this.statsService = statsService;
         this.eloHistoryService = eloHistoryService;
         this.qbStatsService = qbStatsService;
         this.odds = odds;
         this.snapshots = snapshots;
+        this.leverage = leverage;
     }
 
     @CacheEvict(cacheResolver = CacheNames.ALL, allEntries = true, beforeInvocation = true)
@@ -96,6 +99,11 @@ public class CacheWarmingService {
                     snapshots.save(odds.odds(null, "madden"));
                 } catch (Exception e) {
                     log.warn("Cache warming: playoff odds failed", e);
+                }
+                try {
+                    leverage.matrix(null, null, "madden");
+                } catch (Exception e) {
+                    log.warn("Cache warming: playoff leverage failed", e);
                 }
             }
             long elapsed = Duration.between(startedAt, Instant.now()).getSeconds();
