@@ -10,5 +10,5 @@ export function useSyncLine() {
   const formatted = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/New_York', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true,
   }).format(date)
-  return `Last synced ${formatted} ET`
+  return `Last synced ${formatted} ET.`
 }
