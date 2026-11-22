@@ -126,7 +126,7 @@ it('places history and championship sections below the current odds tables', asy
 it('adds title odds and a small history SVG to the team outlook', async () => {
   show(<PlayoffOutlook teamId={1} season={2} />)
   expect(await screen.findByText('Title odds <1%')).toBeInTheDocument()
-  const spark = await screen.findByRole('img', { name: 'Playoff odds history' })
+  const spark = await screen.findByRole('img', { name: /Playoff odds went from/ })
   expect(spark.querySelector('polyline')).toHaveAttribute('points', '3,15 157,12')
 })
 
@@ -142,7 +142,7 @@ it.each(['failed', 'short', 'missing'])('keeps the team outlook while hiding una
   await screen.findByRole('region', { name: 'Playoff outlook' })
   await act(async () => {})
   expect(screen.queryByText(/Title odds/)).not.toBeInTheDocument()
-  expect(screen.queryByRole('img', { name: 'Playoff odds history' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('img', { name: /Playoff odds went from/ })).not.toBeInTheDocument()
 })
 
 it('ignores a late championship response from a previous season', async () => {
@@ -185,10 +185,42 @@ it.each([[[null, 0]], [[0, 0]], [[null]]])('keeps the outlook sparkline finite f
   show(<PlayoffOutlook teamId={1} season={2} />)
   await screen.findByText('Title odds <1%')
   await act(async () => {})
-  const spark = screen.queryByRole('img', { name: 'Playoff odds history' })
+  const spark = screen.queryByRole('img', { name: /Playoff odds went from/ })
   if (weeks.length === 1) expect(spark).not.toBeInTheDocument()
   else {
     expect(spark.querySelector('polyline').getAttribute('points')).not.toMatch(/NaN|Infinity/)
     if (weeks.includes(null)) expect(spark.querySelector('polyline')).toHaveAttribute('points', '3,12 157,15')
   }
+})
+
+it('labels the frozen pre-playoff projection and keeps its table', async () => {
+  client.getPlayoffChampionship.mockResolvedValue({ ...championship(), preplayoff: true })
+  show(<ChampionshipOdds season={2} rules="madden" />)
+  expect(await screen.findByRole('heading', { name: 'Pre-playoff projection (end of regular season)' })).toBeInTheDocument()
+  expect(screen.getByText(/Ratings are frozen at the end of the regular season/)).toBeInTheDocument()
+  expect(screen.getByRole('table', { name: 'Championship odds' })).toBeInTheDocument()
+})
+
+it('shows selected teams and whole percentages in an expandable history table with Final last', async () => {
+  const data = history()
+  data.snapshots.push({ ...data.snapshots[1], week: null })
+  client.getPlayoffOddsHistory.mockResolvedValue(data)
+  show(<OddsHistory season={2} currentTeams={current} />)
+  await expand()
+  await userEvent.click(screen.getByText('Show data table'))
+  const table = screen.getByRole('table', { name: 'Odds history data' })
+  expect(within(table).getAllByRole('columnheader')).toHaveLength(7)
+  expect(within(table).getAllByRole('row').at(-1)).toHaveTextContent('Final70%')
+  expect(table).not.toHaveTextContent('T1')
+  const chart = screen.getByRole('img', { name: /Playoffs odds history:/ })
+  expect(chart.querySelectorAll('path[stroke-dasharray]').length).toBeGreaterThan(1)
+})
+
+it('describes the sparkline and exposes its underlying weekly percentages', async () => {
+  show(<PlayoffOutlook teamId={1} season={2} />)
+  expect(await screen.findByRole('img', { name: 'Playoff odds went from 60% to 70% over 2 weeks' })).toBeInTheDocument()
+  await userEvent.click(screen.getByText('Show data table'))
+  const table = screen.getByRole('table', { name: 'Playoff outlook history data' })
+  expect(table).toHaveTextContent('Week 460%')
+  expect(table).toHaveTextContent('Week 670%')
 })

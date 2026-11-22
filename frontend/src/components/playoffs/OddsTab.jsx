@@ -1,3 +1,4 @@
+import PlayoffError from './PlayoffError'
 import OddsHistory from './OddsHistory'
 import ChampionshipOdds from './ChampionshipOdds'
 import ClinchBadge, { useClinch, teamMarker, markerOdds, markerValue } from './ClinchBadge'
@@ -7,6 +8,7 @@ import { getPlayoffOdds, getPlayoffCalibration } from '../../api/client'
 import ExportMenu from '../ExportMenu'
 import { TeamLogo } from '../TeamLogo'
 import { useLoad } from '../../utils/useLoad'
+import { usePlayoffLoad } from '../../utils/usePlayoffLoad'
 import { formatOdds, GOALS } from '../../utils/playoffOdds'
 import { seasonLabel, seasonNumber } from '../../utils/seasons'
 import { recordText } from '../../utils/teamProfile'
@@ -37,9 +39,9 @@ export function Calibration({ season }) {
 
 export default function OddsTab({ season, rules }) {
   const clinch = useClinch(season, rules)
-  const { data, loading, error } = useLoad(season == null ? null : `playoffs-odds-${season}-${rules}`, () => getPlayoffOdds(season, rules))
+  const { data, loading, error, retry } = usePlayoffLoad(season == null ? null : `playoffs-odds-${season}-${rules}`, () => getPlayoffOdds(season, rules))
   if (loading) return <p className="text-muted">Loading…</p>
-  if (error) return <p className="text-bad">Could not load playoff odds.</p>
+  if (error) return <PlayoffError error={error} retry={retry}>Could not load playoff odds.</PlayoffError>
   if (!data?.conferences?.some(c => c.teams.length)) return <p className="text-muted">No playoff odds available.</p>
   return <>
     <p className="text-sm text-muted mb-2">{data.simulations.toLocaleString()} simulations of the remaining games, computed {data.computedAt}</p>

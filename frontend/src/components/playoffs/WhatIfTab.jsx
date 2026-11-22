@@ -1,7 +1,8 @@
+import PlayoffError from './PlayoffError'
+import { withBusyRetry, isBusy, usePlayoffLoad } from '../../utils/usePlayoffLoad'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { getPlayoffRemaining, simulatePlayoffs } from '../../api/client'
-import { useLoad } from '../../utils/useLoad'
 import { encodePicks, parsePicks } from '../../utils/playoffScenario'
 import { GOALS, formatOdds } from '../../utils/playoffOdds'
 import { weekName } from '../../utils/playoffRounds'
@@ -37,29 +38,46 @@ function Results({ data, picks }) {
   })}</div>
 }
 export default function WhatIfTab({ season, rules }) {
-  const remaining = useLoad(`playoffs-remaining-${season}`, () => getPlayoffRemaining(season))
+  const remaining = usePlayoffLoad(`playoffs-remaining-${season}`, () => getPlayoffRemaining(season))
   const [params, setParams] = useSearchParams()
   const games = remaining.data?.games ?? []
-  const picks = parsePicks(params.get('picks'), games)
+  const rawPicks = params.get('v') == null || params.get('v') === '1' ? params.get('picks') : ''
+  const picks = parsePicks(rawPicks, games)
+  const [removed, setRemoved] = useState(0)
   const encoded = encodePicks(picks)
   const [team, setTeam] = useState('')
   const [copy, setCopy] = useState('')
   const [state, setState] = useState(null)
   const [attempt, setAttempt] = useState(0)
+  useEffect(() => {
+    if (!remaining.data) return
+    const count = parsePicks(rawPicks).length - picks.length
+    if (!count) return
+    setRemoved(count)
+    setParams(prev => {
+      const next = new URLSearchParams(prev)
+      if (encoded) next.set('picks', encoded)
+      else next.delete('picks')
+      next.set('v', '1')
+      return next
+    }, { replace: true })
+  }, [remaining.data, rawPicks, encoded, setParams])
   const key = `${season}-${rules}-${encoded}-${attempt}`
   useEffect(() => {
     if (!remaining.data) return
     const controller = new AbortController()
     let live = true
     const timer = setTimeout(() => {
-      simulatePlayoffs({ season, rules, picks: parsePicks(encoded, remaining.data.games) }, controller.signal)
+      withBusyRetry(() => simulatePlayoffs({ season: remaining.data.season, rules, picks: parsePicks(encoded, remaining.data.games) }, controller.signal), controller.signal)
         .then(data => { if (live) setState({ key, data }) })
-        .catch(() => { if (live) setState({ key, error: true }) })
+        .catch(error => { if (live && !controller.signal.aborted) setState({ key, error }) })
     }, 400)
     return () => { live = false; clearTimeout(timer); controller.abort() }
   }, [key, remaining.data])
   const save = nextPicks => setParams(prev => {
     const next = new URLSearchParams(prev)
+    next.set('v', '1')
+    next.set('season', String(remaining.data.season))
     const value = encodePicks(nextPicks)
     if (value) next.set('picks', value)
     else next.delete('picks')
@@ -76,6 +94,10 @@ export default function WhatIfTab({ season, rules }) {
     try {
       const url = new URL(window.location.href)
       url.search = params.toString()
+      url.searchParams.set('v', '1')
+      url.searchParams.set('season', String(remaining.data.season))
+      url.searchParams.set('rules', rules)
+      url.searchParams.set('tab', 'whatif')
       if (encoded) url.searchParams.set('picks', encoded)
       else url.searchParams.delete('picks')
       await navigator.clipboard.writeText(url.toString())
@@ -83,10 +105,11 @@ export default function WhatIfTab({ season, rules }) {
     } catch { setCopy('Could not copy link') }
   }
   if (remaining.loading) return <p className="text-muted">Loading remaining games…</p>
-  if (remaining.error) return <p className="text-bad">Could not load remaining games.</p>
+  if (remaining.error) return <PlayoffError error={remaining.error} retry={remaining.retry}>Could not load remaining games.</PlayoffError>
   const ready = state?.key === key
   return <div className="space-y-5">
     <div className="flex flex-wrap items-center gap-3"><button className="field" onClick={() => pickGames(games, favorite)}>Pick favorites</button><label>Team <select aria-label="Wins out team" className="field" value={team} onChange={e => setTeam(e.target.value)}><option value="">Choose team</option>{teams.map(t => <option key={t.teamId} value={t.teamId}>{t.abbrName}</option>)}</select></label><button className="field" disabled={!team} onClick={() => pickGames(games.filter(g => [g.home.teamId, g.away.teamId].includes(Number(team))), g => g.home.teamId === Number(team) ? 'home' : 'away')}>{teams.find(t => t.teamId === Number(team))?.abbrName ?? 'Team'} wins out</button><button className="field" onClick={() => save([])}>Clear all</button><button className="field" onClick={copyLink}>Copy link</button><span role="status" className="text-sm">{copy}</span></div>
+    {removed > 0 && <p className="text-sm text-muted">{removed} picks were removed because those games are already played</p>}
     {!games.length && <p>No remaining regular-season games.</p>}
     {[...new Set(games.map(g => g.week))].map(week => <details key={`${season}-${week}`} open={week === remaining.data.nextWeek} className="border border-line rounded p-3"><summary className="cursor-pointer font-semibold">{weekName(week)}</summary><div className="my-2"><ExportMenu spec={{ name: `What-If picks — ${weekName(week)}`, qualifier: seasonLabel(remaining.data.season), description: 'Remaining games and selected forced results; unpicked games are simulated.', rows: games.filter(g => g.week === week), cols: [
       { label: 'Home', desc: 'Home team.', text: g => g.home.abbrName, logo: g => g.home.abbrName },
@@ -98,6 +121,6 @@ export default function WhatIfTab({ season, rules }) {
       const selected = picks.some(p => p.gameId === g.gameId && p.result === result)
       return <button key={result} aria-label={t ? `${result === 'home' ? 'Home' : 'Away'} ${t.abbrName}` : 'Tie'} aria-pressed={selected} className={`flex gap-1 items-center px-3 py-2 text-sm ${selected ? 'bg-ink text-bg' : ''}`} onClick={() => selected ? save(picks.filter(p => p.gameId !== g.gameId)) : pickGames([g], () => result)}>{t && <TeamLogo abbr={t.abbrName} size={24} />}{t ? `${result === 'home' ? 'Home' : 'Away'} ${t.abbrName}` : 'Tie'}</button>
     })}</div></div>)}</details>)}
-    {!ready && <p className="text-muted">Simulating scenario…</p>}{ready && state.error && <div><p className="text-bad">Could not simulate this scenario.</p><button className="field mt-2" onClick={() => setAttempt(a => a + 1)}>Retry simulation</button></div>}{ready && state.data && <Results data={state.data} picks={picks} />}
+    {!ready && <p className="text-muted">Simulating scenario…</p>}{ready && state.error && <div><p className="text-bad">{isBusy(state.error) ? 'The server is busy. Try again' : 'Could not simulate this scenario.'}</p><button className="field mt-2" onClick={() => setAttempt(a => a + 1)}>{isBusy(state.error) ? 'Retry' : 'Retry simulation'}</button></div>}{ready && state.data && <Results data={state.data} picks={picks} />}
   </div>
 }

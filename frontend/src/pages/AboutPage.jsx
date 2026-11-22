@@ -1,5 +1,6 @@
+import { useSyncLine } from '../utils/useSyncLine'
 import { Link } from 'react-router-dom'
-import { SYNC_LINE, PYPAT_TIP, SOS_TIP, eloMarginTip } from '../utils/siteCopy'
+import { PYPAT_TIP, SOS_TIP, eloMarginTip } from '../utils/siteCopy'
 import { TANYA_BENCHMARK, RUSHPLUS_TIP } from '../utils/qb'
 import { METRICS } from '../utils/efficiencyMetrics'
 import { getPublicEloConfig } from '../api/client'
@@ -177,7 +178,7 @@ const PAGES = [
     bullets: [
       'Each regular-season simulation continues through a seven-seed playoff bracket in each conference. Seed 1 gets a bye; the wild-card games are 2 vs 7, 3 vs 6 and 4 vs 5. The best remaining seed then hosts the lowest remaining seed.',
       'Games use Elo win probabilities with home field for the better seed, except the neutral-site final. Ratings stay fixed within each simulated season and games have no ties.',
-      'Make playoffs, Reach round 2 (including a bye), Conference final, Final and Champion are the chances of reaching each stage from today, including the chance of missing the playoffs. Title odds also appear on team profiles.',
+      'Make playoffs, Reach round 2 (including a bye), Conference final, Final and Champion are the chances of reaching each stage from today, including the chance of missing the playoffs. Title odds also appear on team profiles. Once the regular season ends, this is a pre-playoff projection with ratings frozen at the end of the regular season to show who was favoured going in.',
       'These are estimates rounded to whole percents, using >99% and <1% at the extremes. The league table sorts by title chance and exports to Excel, CSV, an image or AI-ready text.',
     ],
   },
@@ -200,7 +201,7 @@ const PAGES = [
     name: 'Clinched / Eliminated',
     bullets: [
       'A badge means the result is proven in every possible outcome of the remaining games. Ties and unknown scores are considered. Proven odds show 100% or 0%; simulated estimates keep >99% or <1%.',
-      'A missing badge only means not proven yet. The proof can be conservative and can differ from Madden’s own flags because the game may use different assumptions about ties, scores or tiebreakers.',
+      'No badge means it is not settled yet. The proof relies on Madden 27’s tiebreak rules, which match past decisions about 99.85% of the time.',
     ],
   },
   {
@@ -303,6 +304,7 @@ function Bullets({ items }) {
 }
 
 export default function AboutPage() {
+  const syncLine = useSyncLine()
   const { data: config } = useLoad('elo-config', getPublicEloConfig)
   return (
     <div>
@@ -335,7 +337,7 @@ export default function AboutPage() {
       </div>
 
       <p className="text-sm text-muted border-y border-line py-3 mb-10">
-        {SYNC_LINE}
+        {syncLine}
       </p>
 
       <h2 className="th mb-3">Resources</h2>

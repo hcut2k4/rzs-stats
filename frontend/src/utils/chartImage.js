@@ -168,6 +168,7 @@ export function oddsHistoryPanel(ctx, width, rows, teams, weekText) {
       rows.forEach((r, i) => ctx.fillText(weekText(r.week), x(i), bottom + 22))
       teams.forEach((t, index) => {
         ctx.strokeStyle = t.color
+        ctx.setLineDash(t.dash ? t.dash.split(' ').map(Number) : [])
         ctx.lineWidth = 2
         ctx.beginPath()
         let connected = false
@@ -179,6 +180,7 @@ export function oddsHistoryPanel(ctx, width, rows, teams, weekText) {
           connected = true
         })
         ctx.stroke()
+        ctx.setLineDash([])
         rows.forEach((r, i) => {
           if (r[t.teamId] == null) return
           ctx.fillStyle = t.color

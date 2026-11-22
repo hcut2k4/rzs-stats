@@ -104,7 +104,11 @@ it('copies a scenario URL with normalized picks', async () => {
   const write = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue()
   show('&picks=12h,99a')
   await user.click(await screen.findByRole('button', { name: 'Copy link' }))
-  expect(new URL(write.mock.calls[0][0]).searchParams.get('picks')).toBe('12h')
+  const params = new URL(write.mock.calls[0][0]).searchParams
+  expect(params.get('picks')).toBe('12h')
+  expect(params.get('season')).toBe('2')
+  expect(params.get('v')).toBe('1')
+  expect(screen.getByText('1 picks were removed because those games are already played')).toBeInTheDocument()
   expect(screen.getByText('Link copied')).toBeInTheDocument()
 })
 it.each(['remaining', 'simulation'])('shows a recoverable error for %s failure', async failure => {
@@ -116,7 +120,7 @@ it.each(['remaining', 'simulation'])('shows a recoverable error for %s failure',
 it('prioritizes badges, explains proof and formats proven extremes', () => {
   const { rerender } = render(<ClinchBadge markers={{ playoffs: 'clinched', division: 'clinched', oneSeed: 'clinched' }} />)
   const badge = screen.getByText('Clinched No. 1 seed')
-  expect(badge.parentElement.title).toMatch(/Proven in every possible outcome.*missing badge only means not proven yet/)
+  expect(badge.parentElement.title).toBe("Guaranteed under Madden 27's tiebreak rules for every possible result of the remaining games, including ties. No badge means it isn't settled yet.")
   expect(screen.queryByText('Clinched division')).not.toBeInTheDocument()
   rerender(<ClinchBadge markers={{ playoffs: 'eliminated', division: 'eliminated', oneSeed: 'eliminated' }} />)
   expect(screen.getByText('Eliminated from the playoffs')).toBeInTheDocument()
@@ -276,4 +280,41 @@ it('hides final-week scenarios entirely when the response has null scenarios', a
   showPath()
   await screen.findByText('Do we control our destiny?')
   expect(screen.queryByRole('region', { name: 'Final-week scenarios' })).not.toBeInTheDocument()
+})
+
+it('pins the API-resolved season when copying a latest-season scenario', async () => {
+  const user = userEvent.setup()
+  const write = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue()
+  client.getPlayoffRemaining.mockResolvedValue({ season: 4, nextWeek: 11, games })
+  show('&v=1&picks=12h')
+  await user.click(await screen.findByRole('button', { name: 'Copy link' }))
+  expect(new URL(write.mock.calls[0][0]).searchParams.get('season')).toBe('4')
+})
+
+it('retries a busy scenario once and exposes a manual retry after the second 503', async () => {
+  vi.useFakeTimers()
+  client.simulatePlayoffs.mockRejectedValue({ response: { status: 503 } })
+  show()
+  await act(async () => {})
+  await act(async () => vi.advanceTimersByTimeAsync(400))
+  expect(client.simulatePlayoffs).toHaveBeenCalledTimes(1)
+  await act(async () => vi.advanceTimersByTimeAsync(3001))
+  expect(client.simulatePlayoffs).toHaveBeenCalledTimes(2)
+  expect(screen.getByText('The server is busy. Try again')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument()
+  await act(async () => vi.advanceTimersByTimeAsync(10000))
+  expect(client.simulatePlayoffs).toHaveBeenCalledTimes(2)
+})
+
+it('cancels the delayed busy retry when picks change', async () => {
+  vi.useFakeTimers()
+  client.simulatePlayoffs.mockRejectedValueOnce({ response: { status: 503 } })
+  const view = show()
+  await act(async () => {})
+  await act(async () => vi.advanceTimersByTimeAsync(400))
+  const signal = client.simulatePlayoffs.mock.calls[0][1]
+  view.unmount()
+  expect(signal.aborted).toBe(true)
+  await act(async () => vi.advanceTimersByTimeAsync(5000))
+  expect(client.simulatePlayoffs).toHaveBeenCalledTimes(1)
 })
