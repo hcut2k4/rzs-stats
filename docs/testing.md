@@ -23,3 +23,7 @@ Every bug fix should have a regression test that verifies the exact invariant th
 Frontend tests in `frontend/src/test/` — Vitest + Testing Library. Run with `npm test -- --run`. Tests that render a page must wrap it in a `MemoryRouter`; pages are mocked at the `api/client` boundary with `vi.mock('../api/client')`.
 
 Export specs are tested by mocking `../components/ExportMenu` with a stub that records its `spec` prop (see `exportStandings.test.js`), then asserting through `toRows`, `csvText`, `buildWorkbook` and `aiText`. That keeps the test on the data a user would export rather than on button clicks, and lets it check that `api.params` still matches the rows after out-of-order responses.
+
+Playoff JSON fixtures use real backend responses and production Jackson configuration; plain `cd backend && ./mvnw test` compares them.
+Regenerate with `cd backend && ./mvnw -Dtest=PlayoffFixturesTest -Dfixtures.update=true test`; review `frontend/src/test/fixtures/playoffs/*.json`.
+Fixtures use fixed seeds, stable ordering, and normalized timestamps; `PlayoffComputeBenchmarkTest` (tag `benchmark`, enable with `-Dplayoffs.benchmark=true`) reports seeding counts.

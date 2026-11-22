@@ -22,6 +22,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DataJpaTest
 @Import(EloConfigService.class)
 class EloConfigControllerTest {
+    @org.springframework.boot.test.mock.mockito.MockBean
+    com.rzs.stats.config.PlayoffCacheInvalidation playoffInvalidation;
     @Autowired EloConfigService config;
     @Autowired EntityManager em;
     private MockMvc mvc;

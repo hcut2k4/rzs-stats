@@ -2,7 +2,9 @@ package com.rzs.stats.playoffs;
 
 import org.springframework.stereotype.Service;
 import java.util.*;
-import java.util.concurrent.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.caffeine.CaffeineCacheManager;
 import static com.rzs.stats.playoffs.ClinchAnalyzer.*;
 
 @Service
@@ -15,51 +17,55 @@ public class ScenarioService {
     enum Classification { UNKNOWN, IN, OUT }
     static final int RELEVANT_CAP = 12;
 
+    private final CacheManager caches;
+    private final ComputeGate gate;
+
+    public ScenarioService() { this(new CaffeineCacheManager(), new ComputeGate(2, 10000)); }
+
+    @Autowired
+    public ScenarioService(CacheManager caches, ComputeGate gate) { this.caches = caches; this.gate = gate; }
+
     public Scenarios scenarios(SeasonStateLoader.State state, String abbr, String rules) {
         var season = new Season(state.teams(), state.completedGames(), state.remainingGames().stream()
                 .map(g -> new Matchup(g.week(), g.home(), g.away())).toList());
         int n = season.remaining().size();
         if (n == 0 || n > 16 || !completeSchedule(season)) return null;
-        var values = classify(season, abbr, rules);
-        return new Scenarios(n, "No tie games; point-differential tiebreaks are treated as unknown",
-                new Goals(describe(state, values[0]), describe(state, values[1]), describe(state, values[2])));
+        try {
+            var all = caches.getCache("playoffScenarios").get(new org.springframework.cache.interceptor.SimpleKey(season, rules),
+                    () -> gate.execute(() -> classifyAll(season, rules)));
+            var values = all.get(abbr);
+            return gate.execute(() -> new Scenarios(n, "No tie games; point-differential tiebreaks are treated as unknown",
+                    new Goals(describe(state, values[0]), describe(state, values[1]), describe(state, values[2]))));
+        } catch (org.springframework.cache.Cache.ValueRetrievalException e) {
+            if (e.getCause() instanceof RuntimeException cause) throw cause;
+            throw e;
+        }
     }
 
     static Classification[][] classify(Season season, String abbr, String rules) {
+        return classifyAll(season, rules).get(abbr);
+    }
+
+    static Map<String, Classification[][]> classifyAll(Season season, String rules) {
         int count = 1 << season.remaining().size();
-        var values = new Classification[Goal.values().length][count];
-        String conference = season.teams().stream().filter(t -> t.abbr().equals(abbr)).findFirst().orElseThrow().conference();
+        var values = new HashMap<String, Classification[][]>();
+        season.teams().forEach(t -> values.put(t.abbr(), new Classification[Goal.values().length][count]));
         var futureTeams = new HashSet<String>();
         season.remaining().forEach(g -> { futureTeams.add(g.home()); futureTeams.add(g.away()); });
-        int workers = Math.min(8, Runtime.getRuntime().availableProcessors());
-        try (var executor = Executors.newFixedThreadPool(workers)) {
-            var tasks = new ArrayList<Callable<Void>>();
-            for (int worker = 0; worker < workers; worker++) {
-                int start = worker * count / workers, end = (worker + 1) * count / workers;
-                tasks.add(() -> {
-                    var games = new ArrayList<>(season.completed());
-                    season.remaining().forEach(g -> games.add(outcome(g, 0)));
-                    for (int assignment = start; assignment < end; assignment++) {
-                        for (int i = 0; i < season.remaining().size(); i++)
-                            games.set(season.completed().size() + i, outcome(season.remaining().get(i),
-                                    (assignment & (1 << i)) != 0 ? 0 : 1));
-                        var result = rules.equals("madden") ? MaddenSeeding.madden27().seed(season.teams(), games)
-                                : PlayoffSeeding.seedForPicture(season.teams(), games);
-                        boolean unknown = ambiguousConferences(result, futureTeams).contains(conference);
-                        for (var goal : Goal.values()) values[goal.ordinal()][assignment] = unknown ? Classification.UNKNOWN
-                                : achieved(result, abbr, goal) ? Classification.IN : Classification.OUT;
-                    }
-                    return null;
-                });
-            }
-            for (var future : executor.invokeAll(tasks)) future.get();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("Scenario search interrupted", e);
-        } catch (ExecutionException e) {
-            throw new IllegalStateException("Scenario search failed", e.getCause());
+        var games = new ArrayList<>(season.completed());
+        season.remaining().forEach(g -> games.add(outcome(g, 0)));
+        for (int assignment = 0; assignment < count; assignment++) {
+            ComputeGate.checkpoint();
+            for (int i = 0; i < season.remaining().size(); i++)
+                games.set(season.completed().size() + i, outcome(season.remaining().get(i), (assignment & (1 << i)) != 0 ? 0 : 1));
+            var result = SimulationService.seed(season.teams(), games,
+                    rules.equals("madden") ? SimulationService.Rules.MADDEN : SimulationService.Rules.NFL);
+            var ambiguous = ambiguousConferences(result, futureTeams);
+            for (var team : season.teams()) for (var goal : Goal.values())
+                values.get(team.abbr())[goal.ordinal()][assignment] = ambiguous.contains(team.conference()) ? Classification.UNKNOWN
+                        : achieved(result, team.abbr(), goal) ? Classification.IN : Classification.OUT;
         }
-        return values;
+        return Map.copyOf(values);
     }
 
     static GoalScenarios describe(SeasonStateLoader.State state, Classification[] values) {
@@ -85,6 +91,7 @@ public class ScenarioService {
         var entries = new ArrayList<Entry>();
         // Ternary digits are free, away wins, home wins. Children have larger codes.
         for (int code = size - 1; code >= 0; code--) {
+            ComputeGate.checkpoint();
             int free = -1, assignment = 0;
             for (int i = 0; i < r; i++) {
                 int digit = code / powers[i] % 3;

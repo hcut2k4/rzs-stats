@@ -27,9 +27,15 @@ class CacheWarmingServiceTest {
     @Mock OddsSnapshotService snapshots;
     CacheWarmingService warming;
 
+    private com.rzs.stats.config.PlayoffCacheInvalidation invalidation() {
+        var result = new com.rzs.stats.config.PlayoffCacheInvalidation(new org.springframework.cache.concurrent.ConcurrentMapCacheManager());
+        result.changed();
+        return result;
+    }
+
     @BeforeEach
     void setUp() {
-        warming = new CacheWarmingService(stats, elo, qb, odds, snapshots, leverage, championship, new com.rzs.stats.playoffs.ComputeGate(2, 100));
+        warming = new CacheWarmingService(stats, elo, qb, odds, snapshots, leverage, championship, new com.rzs.stats.playoffs.ComputeGate(2, 100), org.mockito.Mockito.mock(com.rzs.stats.playoffs.ClinchService.class), invalidation());
         lenient().when(leverage.canonicalKey(null, null)).thenReturn(new com.rzs.stats.playoffs.LeverageService.Key(2, 11));
     }
 
@@ -47,7 +53,7 @@ class CacheWarmingServiceTest {
         verify(qb).movement(2, REGULAR, 1, QbStatsService.Basis.SEASON);
         verify(odds).odds(null, "madden");
         verify(snapshots).save(baseline);
-        verify(championship).championship(null, "madden");
+        verifyNoInteractions(championship);
         verify(leverage).matrix(2, 11, "madden");
         assertThat(warming.getStatus().message()).contains("QB stats");
         assertThat(warming.getStatus().success()).isTrue();
@@ -74,16 +80,7 @@ class CacheWarmingServiceTest {
         warming.warmCaches();
         verify(elo).getTimeline();
         verifyNoInteractions(snapshots);
-        verify(championship).championship(null, "madden");
-        verify(leverage).matrix(2, 11, "madden");
-        assertThat(warming.getStatus().success()).isTrue();
-    }
-
-    @Test
-    void championshipFailureDoesNotPreventLeverageWarming() {
-        when(stats.getAvailableSeasons()).thenReturn(List.of(2));
-        when(championship.championship(null, "madden")).thenThrow(new IllegalStateException("failed"));
-        warming.warmCaches();
+        verifyNoInteractions(championship);
         verify(leverage).matrix(2, 11, "madden");
         assertThat(warming.getStatus().success()).isTrue();
     }

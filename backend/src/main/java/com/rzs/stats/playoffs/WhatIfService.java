@@ -96,12 +96,12 @@ public class WhatIfService {
         var probabilities = state.remainingGames().isEmpty() ? Map.<Integer, Double>of() : elo.homeWinProbabilities(state.season());
         if (baselineResponse == null || !Objects.equals(baselineResponse.throughWeek(), state.throughWeek())
                 || !Objects.equals(baselineResponse.nextWeek(), state.nextWeek())) {
-            baselineResponse = gate.compute(() -> baseline.compute(state, rules, probabilities));
+            baselineResponse = baseline.compute(state, rules, probabilities);
             caches.getCache("playoffOdds").put(new SimpleKey(state.season(), rules), baselineResponse);
         }
         var base = new HashMap<String, OddsService.Row>();
         baselineResponse.conferences().forEach(c -> c.teams().forEach(r -> base.put(r.team().abbrName(), r)));
-        return gate.compute(() -> {
+        return gate.execute(() -> {
             boolean exact = forced.size() == state.remainingGames().size();
             var exactResult = exact ? SimulationService.seed(state.teams(), syntheticGames(state, forced), selected) : null;
             var uncertain = new HashSet<>(exact ? dependsOnScores(exactResult) : Set.<String>of());

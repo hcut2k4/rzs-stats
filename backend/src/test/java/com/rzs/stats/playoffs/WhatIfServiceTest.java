@@ -32,7 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DataJpaTest(showSql = false, properties = "playoffs.simulations=50")
 @AutoConfigureCache(cacheProvider = CacheType.CAFFEINE)
 @EnableCaching
-@Import({com.rzs.stats.playoffs.ComputeGate.class, SeasonStateLoader.class, WhatIfService.class, PlayoffsWhatIfController.class, OddsService.class,
+@Import({com.rzs.stats.config.CacheNames.class, com.rzs.stats.playoffs.ComputeGate.class, SeasonStateLoader.class, WhatIfService.class, PlayoffsWhatIfController.class, OddsService.class,
         SimulationService.class, PlayoffPictureService.class, CacheNames.class, EloQueryService.class,
         EloHistoryService.class, EloService.class, EloConfigService.class, OwnerChangeService.class})
 class WhatIfServiceTest {

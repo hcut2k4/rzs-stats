@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Import;
 import static org.assertj.core.api.Assertions.*;
 
 @DataJpaTest
-@Import(EloConfigService.class)
+@Import({EloConfigService.class, com.rzs.stats.config.CacheNames.class})
 class EloPersistenceTest {
     @Autowired GameRepository games;
     @Autowired TeamRepository teams;
