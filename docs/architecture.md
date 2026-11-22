@@ -8,6 +8,7 @@ backend/src/main/java/com/rzs/stats/
 │   ├── StatsController.java       # public API: /api/* (standings, games, trends, elo)
 │   ├── PlayoffsController.java    # public API: /api/playoffs/picture, /odds
 │   ├── PlayoffsLeverageController.java # public API: /api/playoffs/leverage
+│   ├── PlayoffsWhatIfController.java # public API: /api/playoffs/remaining, /simulate
 │   ├── EloCalibrationController.java # public API: /api/playoffs/calibration
 │   ├── QbController.java          # public API: /api/qb/*
 │   ├── AdminController.java       # admin tools: /api/admin/*
@@ -34,6 +35,7 @@ backend/src/main/java/com/rzs/stats/
 │   ├── SimulationService.java    # parallel Monte Carlo with paired, counter-based random draws
 │   ├── LeverageService.java      # cached full conditional matrix and leverage projection
 │   ├── OddsService.java          # cached Elo playoff odds
+│   ├── WhatIfService.java        # validated game picks, fresh paired simulations and score-sensitive exact seeds
 │   ├── OddsSnapshotService.java  # first Madden baseline per season/week/team
 │   ├── TiebreakExplainer.java     # plain-English explanations from engine traces
 │   ├── MaddenSeeding.java         # Madden 27 seeding engine
@@ -157,6 +159,18 @@ SoS: `oppPyPatCurr/Prev`, `oppPyPatRemainingCurr/Prev`, `oppPyPatTotalCurr/Prev`
 Uses completed stage 1 games in weeks 0–17. Invalid rules return 400; missing regular-season data or incomplete team conference/division metadata return 404. Shapes follow [the playoff API contract](playoffs-api.md). The loader includes teams from the selected regular-season schedule, including unplayed games.
 
 The game-only NFL engine can leave ties unresolved when net touchdown totals or a coin toss are needed. Picture and simulations resolve these orders alphabetically; Picture reasons flag the arbitrary fallback.
+The game-only NFL engine resolves unavailable net-touchdown or coin-toss decisions alphabetically for display, with an explicit reason explaining that the order is arbitrary.
+
+### Public — `PlayoffsWhatIfController (/api/playoffs)`
+
+| Method | Path | Params | Returns |
+|--------|------|--------|---------|
+| GET | `/remaining` | `season` (optional) | Remaining regular-season games sorted by week and game ID, with the simulator's unrounded Elo home-win probabilities |
+| POST | `/simulate` | JSON `season`, `rules`, `picks`, `simulations` | Fresh forced odds, baseline odds for the same season/rules, seven seed fractions per team, and exact seed rows when every remaining game is picked |
+
+`WhatIfService` validates all picks before starting simulations or loading baseline odds. Picks must be distinct remaining regular-season games of the selected season, with results `home`, `away`, or `tie`. Rules default to `madden`; simulations default to 5,000 and must be 1–20,000. Pick counts above the remaining schedule size return 400 before per-pick processing. Neither endpoint adds a cache.
+
+Forced runs use `SimulationService` with the baseline's season/week/rules seed, preserving every unpicked game's outcome and margin. What-If opts into varying forced margins across simulations. Exact mode additionally seeds once with synthetic scores (24–17 home, 17–24 away, 20–20 tie). It uses the Picture row type and `TiebreakExplainer` for final seeds, alternate-rule seeds and reasons. Trace groups decided by points, an alphabetical fallback or a coin toss flag every member with `dependsOnScores` when any member is a playoff seed or division winner. Flagged teams retain simulated margin odds; other teams receive deterministic 0/1 odds and seed fractions. Baselines come directly from `OddsService`; forced requests never filter or mutate a baseline run.
 
 ### Public — `EloCalibrationController (/api/playoffs)`
 
@@ -201,13 +215,14 @@ The game-only NFL engine can leave ties unresolved when net touchdown totals or 
 
 ### Playoff simulation
 
-`SimulationService.simulate(state, probabilities, forced, simulations, seed, rules)` seeds the full league independently for each parallel simulation and reduces integer counts. `Outcome` supports HOME, AWAY and forced TIE. Its `games` primitive exposes each simulated schedule for paired leverage; `outcomeGame` shares outcome-to-score conversion with future clinch integration. SplitMix64 counters depend only on base seed, simulation index and game ID, so forcing a game leaves every other game's outcome and margin unchanged. Unforced draws never tie. Losers score 20; margins 1, 3, 7, 10, 14 and 21 are equally likely; forced ties score 20-20. Forced margins depend on seed and game ID alone, so fully forced schedules give exact 0/1 odds.
+`SimulationService.simulate(state, probabilities, forced, simulations, seed, rules)` seeds the full league independently for each parallel simulation and reduces integer counts. `Outcome` supports HOME, AWAY and forced TIE. Its `games` primitive exposes each simulated schedule for paired leverage; `outcomeGame` shares outcome-to-score conversion with future clinch integration. SplitMix64 counters depend only on base seed, simulation index and game ID, so forcing a game leaves every other game's outcome and margin unchanged. Unforced draws never tie. Losers score 20; margins 1, 3, 7, 10, 14 and 21 are equally likely; forced ties score 20-20. By default forced margins depend on seed and game ID alone, so fully forced schedules give exact 0/1 odds. The optional `varyForcedMargins` overload instead uses each simulation's existing margin counter, allowing What-If to model score-sensitive ties while preserving paired draws for unpicked games.
 
 `OddsService` uses the selected season's latest Elo timeline ratings and the same `EloService.probability` plus home field as upcoming games. Teams without a timeline rating start at the configured initial rating. `playoffs.simulations` defaults to 20,000; the baseline seed is stable for season, next week and rules. Completed seasons use exact seeding with zero simulations. Unresolved NFL orders use the same alphabetical fallback as Picture, as documented in the API contract.
 
 `LeverageService.matrix(season, week, rules)` returns an immutable `LeverageMatrix` with conditional odds for every team in every remaining game of the selected week (default next week). Each game runs HOME and AWAY with the same base seed and `playoffs.leverage-simulations` (default 10,000). `/api/playoffs/leverage` projects participants, importance summed over the full league, and up to five other teams ranked by their largest absolute goal swing. Empty weeks return an empty list, including completed seasons. Participant `current` is the exact Elo-weighted mixture of the two conditional runs; it can differ from `/odds` due to simulation noise.
 
 Picture rows join the available cached season/rules baseline from `OddsService` without starting simulations; missing or failed odds are omitted without failing the Picture response. Elo configuration updates evict Picture and leverage alongside odds.
+`OddsService` uses the selected season's latest Elo timeline ratings and the same `EloService.probability` plus home field as upcoming games. Teams without a timeline rating start at the configured initial rating. `playoffs.simulations` defaults to 20,000; the baseline seed is stable for season, next week and rules. Completed seasons use exact seeding with zero simulations. NFL ties requiring unavailable data use the same alphabetical display fallback as Picture.
 
 ## Caching
 

@@ -88,6 +88,22 @@ class SimulationServiceTest {
     }
 
     @Test
+    void varyingForcedMarginsKeepsWinnersAndEveryUnpickedDraw() throws Exception {
+        var state = season(false);
+        var probs = probabilities(state);
+        int picked = state.remainingGames().getFirst().gameId();
+        var margins = new HashSet<Integer>();
+        for (int simulation = 0; simulation < 100; simulation++) {
+            var baseline = simulator.games(state, probs, Map.of(), simulation, 42);
+            var forced = simulator.games(state, probs, Map.of(picked, Outcome.AWAY), simulation, 42, true);
+            assertThat(forced.subList(1, forced.size())).isEqualTo(baseline.subList(1, baseline.size()));
+            assertThat(forced.getFirst().awayScore()).isGreaterThan(forced.getFirst().homeScore());
+            margins.add(forced.getFirst().awayScore() - forced.getFirst().homeScore());
+        }
+        assertThat(margins).containsExactlyInAnyOrder(1, 3, 7, 10, 14, 21);
+    }
+
+    @Test
     void fixedSeedIsDeterministicAndChangingSeedChangesResults() throws Exception {
         var state = season(false);
         var probs = probabilities(state);

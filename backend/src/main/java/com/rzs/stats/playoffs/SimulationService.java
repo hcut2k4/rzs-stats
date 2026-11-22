@@ -14,6 +14,12 @@ public class SimulationService {
 
     public Simulation simulate(SeasonStateLoader.State state, Map<Integer, Double> probs,
                                Map<Integer, Outcome> forced, int sims, long seed, Rules rules) {
+        return simulate(state, probs, forced, sims, seed, rules, false);
+    }
+
+    public Simulation simulate(SeasonStateLoader.State state, Map<Integer, Double> probs,
+                               Map<Integer, Outcome> forced, int sims, long seed, Rules rules,
+                               boolean varyForcedMargins) {
         if (sims <= 0) throw new IllegalArgumentException("Simulations must be positive");
         var ids = new HashSet<Integer>();
         for (var game : state.remainingGames()) {
@@ -30,7 +36,7 @@ public class SimulationService {
         long[][] totals = IntStream.range(0, runs).parallel().collect(
                 () -> new long[state.teams().size()][10],
                 (counts, simulation) -> {
-                    var result = seed(state.teams(), games(state, probs, forced, simulation, seed), rules);
+                    var result = seed(state.teams(), games(state, probs, forced, simulation, seed, varyForcedMargins), rules);
                     result.divisionRanks().forEach((team, rank) -> {
                         if (rank.position() == 1) counts[index.get(team)][1]++;
                     });
@@ -55,12 +61,18 @@ public class SimulationService {
 
     public List<PlayoffSeeding.Game> games(SeasonStateLoader.State state, Map<Integer, Double> probs,
                                           Map<Integer, Outcome> forced, int simulation, long seed) {
+        return games(state, probs, forced, simulation, seed, false);
+    }
+
+    public List<PlayoffSeeding.Game> games(SeasonStateLoader.State state, Map<Integer, Double> probs,
+                                          Map<Integer, Outcome> forced, int simulation, long seed,
+                                          boolean varyForcedMargins) {
         var games = new ArrayList<>(state.completedGames());
         for (var game : state.remainingGames()) {
             long counter = mix(seed ^ mix(simulation) ^ mix(Integer.toUnsignedLong(game.gameId()) + 0x632be59bd9b4e019L));
             var outcome = forced.get(game.gameId());
             if (outcome == null) outcome = (counter >>> 11) * 0x1.0p-53 < probs.get(game.gameId()) ? Outcome.HOME : Outcome.AWAY;
-            long marginCounter = forced.containsKey(game.gameId()) ? mix(seed ^ game.gameId()) : mix(counter);
+            long marginCounter = forced.containsKey(game.gameId()) && !varyForcedMargins ? mix(seed ^ game.gameId()) : mix(counter);
             int margin = MARGINS[(int) Long.remainderUnsigned(marginCounter, MARGINS.length)];
             games.add(outcomeGame(game.week(), game.home(), game.away(), outcome, margin));
         }
