@@ -1,0 +1,4182 @@
+{
+ "103": {
+  "teams": [
+   {
+    "abbr": "JAX",
+    "conference": "AFC",
+    "division": "AFC South"
+   },
+   {
+    "abbr": "BUF",
+    "conference": "AFC",
+    "division": "AFC East"
+   },
+   {
+    "abbr": "DEN",
+    "conference": "AFC",
+    "division": "AFC West"
+   },
+   {
+    "abbr": "HOU",
+    "conference": "AFC",
+    "division": "AFC South"
+   },
+   {
+    "abbr": "BAL",
+    "conference": "AFC",
+    "division": "AFC North"
+   },
+   {
+    "abbr": "GB",
+    "conference": "NFC",
+    "division": "NFC North"
+   },
+   {
+    "abbr": "SF",
+    "conference": "NFC",
+    "division": "NFC West"
+   },
+   {
+    "abbr": "TB",
+    "conference": "NFC",
+    "division": "NFC South"
+   },
+   {
+    "abbr": "CIN",
+    "conference": "AFC",
+    "division": "AFC North"
+   },
+   {
+    "abbr": "WAS",
+    "conference": "NFC",
+    "division": "NFC East"
+   },
+   {
+    "abbr": "NYG",
+    "conference": "NFC",
+    "division": "NFC East"
+   },
+   {
+    "abbr": "IND",
+    "conference": "AFC",
+    "division": "AFC South"
+   },
+   {
+    "abbr": "CLE",
+    "conference": "AFC",
+    "division": "AFC North"
+   },
+   {
+    "abbr": "AZ",
+    "conference": "NFC",
+    "division": "NFC West"
+   },
+   {
+    "abbr": "CHI",
+    "conference": "NFC",
+    "division": "NFC North"
+   },
+   {
+    "abbr": "ATL",
+    "conference": "NFC",
+    "division": "NFC South"
+   },
+   {
+    "abbr": "LAR",
+    "conference": "NFC",
+    "division": "NFC West"
+   },
+   {
+    "abbr": "KC",
+    "conference": "AFC",
+    "division": "AFC West"
+   },
+   {
+    "abbr": "LV",
+    "conference": "AFC",
+    "division": "AFC West"
+   },
+   {
+    "abbr": "DET",
+    "conference": "NFC",
+    "division": "NFC North"
+   },
+   {
+    "abbr": "NO",
+    "conference": "NFC",
+    "division": "NFC South"
+   },
+   {
+    "abbr": "CAR",
+    "conference": "NFC",
+    "division": "NFC South"
+   },
+   {
+    "abbr": "MIN",
+    "conference": "NFC",
+    "division": "NFC North"
+   },
+   {
+    "abbr": "PIT",
+    "conference": "AFC",
+    "division": "AFC North"
+   },
+   {
+    "abbr": "SEA",
+    "conference": "NFC",
+    "division": "NFC West"
+   },
+   {
+    "abbr": "PHI",
+    "conference": "NFC",
+    "division": "NFC East"
+   },
+   {
+    "abbr": "NYJ",
+    "conference": "AFC",
+    "division": "AFC East"
+   },
+   {
+    "abbr": "NE",
+    "conference": "AFC",
+    "division": "AFC East"
+   },
+   {
+    "abbr": "LAC",
+    "conference": "AFC",
+    "division": "AFC West"
+   },
+   {
+    "abbr": "MIA",
+    "conference": "AFC",
+    "division": "AFC East"
+   },
+   {
+    "abbr": "TEN",
+    "conference": "AFC",
+    "division": "AFC South"
+   },
+   {
+    "abbr": "DAL",
+    "conference": "NFC",
+    "division": "NFC East"
+   }
+  ],
+  "games": [
+   {
+    "week": 0,
+    "home": "CIN",
+    "away": "TB",
+    "homeScore": 17,
+    "awayScore": 20
+   },
+   {
+    "week": 0,
+    "home": "PIT",
+    "away": "ATL",
+    "homeScore": 28,
+    "awayScore": 45
+   },
+   {
+    "week": 0,
+    "home": "LAC",
+    "away": "AZ",
+    "homeScore": 33,
+    "awayScore": 45
+   },
+   {
+    "week": 0,
+    "home": "NYG",
+    "away": "DAL",
+    "homeScore": 30,
+    "awayScore": 20
+   },
+   {
+    "week": 0,
+    "home": "TEN",
+    "away": "NYJ",
+    "homeScore": 24,
+    "awayScore": 34
+   },
+   {
+    "week": 0,
+    "home": "MIN",
+    "away": "GB",
+    "homeScore": 23,
+    "awayScore": 33
+   },
+   {
+    "week": 0,
+    "home": "CAR",
+    "away": "CHI",
+    "homeScore": 24,
+    "awayScore": 3
+   },
+   {
+    "week": 0,
+    "home": "PHI",
+    "away": "WAS",
+    "homeScore": 31,
+    "awayScore": 48
+   },
+   {
+    "week": 0,
+    "home": "IND",
+    "away": "BAL",
+    "homeScore": 14,
+    "awayScore": 13
+   },
+   {
+    "week": 0,
+    "home": "LV",
+    "away": "MIA",
+    "homeScore": 34,
+    "awayScore": 7
+   },
+   {
+    "week": 0,
+    "home": "LAR",
+    "away": "SF",
+    "homeScore": 28,
+    "awayScore": 29
+   },
+   {
+    "week": 0,
+    "home": "DET",
+    "away": "NO",
+    "homeScore": 3,
+    "awayScore": 30
+   },
+   {
+    "week": 0,
+    "home": "SEA",
+    "away": "NE",
+    "homeScore": 28,
+    "awayScore": 20
+   },
+   {
+    "week": 0,
+    "home": "HOU",
+    "away": "BUF",
+    "homeScore": 10,
+    "awayScore": 15
+   },
+   {
+    "week": 0,
+    "home": "JAX",
+    "away": "CLE",
+    "homeScore": 27,
+    "awayScore": 13
+   },
+   {
+    "week": 0,
+    "home": "KC",
+    "away": "DEN",
+    "homeScore": 6,
+    "awayScore": 11
+   },
+   {
+    "week": 1,
+    "home": "BUF",
+    "away": "DET",
+    "homeScore": 37,
+    "awayScore": 0
+   },
+   {
+    "week": 1,
+    "home": "ATL",
+    "away": "CAR",
+    "homeScore": 41,
+    "awayScore": 20
+   },
+   {
+    "week": 1,
+    "home": "KC",
+    "away": "IND",
+    "homeScore": 17,
+    "awayScore": 20
+   },
+   {
+    "week": 1,
+    "home": "DAL",
+    "away": "WAS",
+    "homeScore": 17,
+    "awayScore": 29
+   },
+   {
+    "week": 1,
+    "home": "TB",
+    "away": "CLE",
+    "homeScore": 17,
+    "awayScore": 10
+   },
+   {
+    "week": 1,
+    "home": "HOU",
+    "away": "CIN",
+    "homeScore": 23,
+    "awayScore": 19
+   },
+   {
+    "week": 1,
+    "home": "SF",
+    "away": "MIA",
+    "homeScore": 32,
+    "awayScore": 34
+   },
+   {
+    "week": 1,
+    "home": "LAC",
+    "away": "LV",
+    "homeScore": 20,
+    "awayScore": 6
+   },
+   {
+    "week": 1,
+    "home": "NYJ",
+    "away": "GB",
+    "homeScore": 14,
+    "awayScore": 21
+   },
+   {
+    "week": 1,
+    "home": "AZ",
+    "away": "SEA",
+    "homeScore": 10,
+    "awayScore": 30
+   },
+   {
+    "week": 1,
+    "home": "CHI",
+    "away": "MIN",
+    "homeScore": 24,
+    "awayScore": 27
+   },
+   {
+    "week": 1,
+    "home": "DEN",
+    "away": "JAX",
+    "homeScore": 21,
+    "awayScore": 22
+   },
+   {
+    "week": 1,
+    "home": "BAL",
+    "away": "NO",
+    "homeScore": 24,
+    "awayScore": 19
+   },
+   {
+    "week": 1,
+    "home": "NE",
+    "away": "PIT",
+    "homeScore": 34,
+    "awayScore": 26
+   },
+   {
+    "week": 1,
+    "home": "TEN",
+    "away": "PHI",
+    "homeScore": 5,
+    "awayScore": 40
+   },
+   {
+    "week": 1,
+    "home": "LAR",
+    "away": "NYG",
+    "homeScore": 34,
+    "awayScore": 10
+   },
+   {
+    "week": 2,
+    "home": "DET",
+    "away": "NYJ",
+    "homeScore": 27,
+    "awayScore": 17
+   },
+   {
+    "week": 2,
+    "home": "IND",
+    "away": "HOU",
+    "homeScore": 3,
+    "awayScore": 20
+   },
+   {
+    "week": 2,
+    "home": "BUF",
+    "away": "LAC",
+    "homeScore": 41,
+    "awayScore": 12
+   },
+   {
+    "week": 2,
+    "home": "GB",
+    "away": "ATL",
+    "homeScore": 17,
+    "awayScore": 23
+   },
+   {
+    "week": 2,
+    "home": "DAL",
+    "away": "BAL",
+    "homeScore": 0,
+    "awayScore": 27
+   },
+   {
+    "week": 2,
+    "home": "DEN",
+    "away": "LAR",
+    "homeScore": 27,
+    "awayScore": 20
+   },
+   {
+    "week": 2,
+    "home": "TB",
+    "away": "MIN",
+    "homeScore": 34,
+    "awayScore": 31
+   },
+   {
+    "week": 2,
+    "home": "NO",
+    "away": "LV",
+    "homeScore": 20,
+    "awayScore": 23
+   },
+   {
+    "week": 2,
+    "home": "MIA",
+    "away": "KC",
+    "homeScore": 24,
+    "awayScore": 34
+   },
+   {
+    "week": 2,
+    "home": "CLE",
+    "away": "CAR",
+    "homeScore": 31,
+    "awayScore": 10
+   },
+   {
+    "week": 2,
+    "home": "WAS",
+    "away": "SEA",
+    "homeScore": 37,
+    "awayScore": 7
+   },
+   {
+    "week": 2,
+    "home": "NYG",
+    "away": "TEN",
+    "homeScore": 45,
+    "awayScore": 3
+   },
+   {
+    "week": 2,
+    "home": "SF",
+    "away": "AZ",
+    "homeScore": 27,
+    "awayScore": 21
+   },
+   {
+    "week": 2,
+    "home": "CHI",
+    "away": "PHI",
+    "homeScore": 30,
+    "awayScore": 13
+   },
+   {
+    "week": 2,
+    "home": "PIT",
+    "away": "CIN",
+    "homeScore": 29,
+    "awayScore": 21
+   },
+   {
+    "week": 2,
+    "home": "JAX",
+    "away": "NE",
+    "homeScore": 36,
+    "awayScore": 9
+   },
+   {
+    "week": 3,
+    "home": "LV",
+    "away": "KC",
+    "homeScore": 35,
+    "awayScore": 42
+   },
+   {
+    "week": 3,
+    "home": "PHI",
+    "away": "LAR",
+    "homeScore": 17,
+    "awayScore": 34
+   },
+   {
+    "week": 3,
+    "home": "NO",
+    "away": "ATL",
+    "homeScore": 21,
+    "awayScore": 40
+   },
+   {
+    "week": 3,
+    "home": "TB",
+    "away": "GB",
+    "homeScore": 20,
+    "awayScore": 24
+   },
+   {
+    "week": 3,
+    "home": "SEA",
+    "away": "LAC",
+    "homeScore": 34,
+    "awayScore": 31
+   },
+   {
+    "week": 3,
+    "home": "MIN",
+    "away": "MIA",
+    "homeScore": 28,
+    "awayScore": 24
+   },
+   {
+    "week": 3,
+    "home": "HOU",
+    "away": "DAL",
+    "homeScore": 22,
+    "awayScore": 10
+   },
+   {
+    "week": 3,
+    "home": "NYG",
+    "away": "AZ",
+    "homeScore": 13,
+    "awayScore": 12
+   },
+   {
+    "week": 3,
+    "home": "CHI",
+    "away": "NYJ",
+    "homeScore": 34,
+    "awayScore": 17
+   },
+   {
+    "week": 3,
+    "home": "BAL",
+    "away": "TEN",
+    "homeScore": 24,
+    "awayScore": 7
+   },
+   {
+    "week": 3,
+    "home": "BUF",
+    "away": "NE",
+    "homeScore": 24,
+    "awayScore": 7
+   },
+   {
+    "week": 3,
+    "home": "CLE",
+    "away": "PIT",
+    "homeScore": 26,
+    "awayScore": 13
+   },
+   {
+    "week": 3,
+    "home": "WAS",
+    "away": "IND",
+    "homeScore": 29,
+    "awayScore": 26
+   },
+   {
+    "week": 3,
+    "home": "SF",
+    "away": "DEN",
+    "homeScore": 33,
+    "awayScore": 26
+   },
+   {
+    "week": 3,
+    "home": "CIN",
+    "away": "JAX",
+    "homeScore": 26,
+    "awayScore": 31
+   },
+   {
+    "week": 3,
+    "home": "CAR",
+    "away": "DET",
+    "homeScore": 13,
+    "awayScore": 27
+   },
+   {
+    "week": 4,
+    "home": "AZ",
+    "away": "DET",
+    "homeScore": 30,
+    "awayScore": 13
+   },
+   {
+    "week": 4,
+    "home": "GB",
+    "away": "CHI",
+    "homeScore": 24,
+    "awayScore": 26
+   },
+   {
+    "week": 4,
+    "home": "MIA",
+    "away": "CIN",
+    "homeScore": 14,
+    "awayScore": 24
+   },
+   {
+    "week": 4,
+    "home": "TEN",
+    "away": "HOU",
+    "homeScore": 9,
+    "awayScore": 27
+   },
+   {
+    "week": 4,
+    "home": "LAR",
+    "away": "BUF",
+    "homeScore": 15,
+    "awayScore": 44
+   },
+   {
+    "week": 4,
+    "home": "ATL",
+    "away": "BAL",
+    "homeScore": 31,
+    "awayScore": 24
+   },
+   {
+    "week": 4,
+    "home": "PIT",
+    "away": "IND",
+    "homeScore": 7,
+    "awayScore": 31
+   },
+   {
+    "week": 4,
+    "home": "NYJ",
+    "away": "CLE",
+    "homeScore": 7,
+    "awayScore": 14
+   },
+   {
+    "week": 4,
+    "home": "NO",
+    "away": "MIN",
+    "homeScore": 40,
+    "awayScore": 36
+   },
+   {
+    "week": 4,
+    "home": "JAX",
+    "away": "PHI",
+    "homeScore": 26,
+    "awayScore": 0
+   },
+   {
+    "week": 4,
+    "home": "DAL",
+    "away": "TB",
+    "homeScore": 23,
+    "awayScore": 34
+   },
+   {
+    "week": 4,
+    "home": "LAC",
+    "away": "DEN",
+    "homeScore": 6,
+    "awayScore": 33
+   },
+   {
+    "week": 4,
+    "home": "WAS",
+    "away": "NYG",
+    "homeScore": 20,
+    "awayScore": 23
+   },
+   {
+    "week": 4,
+    "home": "NE",
+    "away": "LV",
+    "homeScore": 16,
+    "awayScore": 27
+   },
+   {
+    "week": 4,
+    "home": "SEA",
+    "away": "SF",
+    "homeScore": 29,
+    "awayScore": 34
+   },
+   {
+    "week": 5,
+    "home": "KC",
+    "away": "LAC",
+    "homeScore": 33,
+    "awayScore": 21
+   },
+   {
+    "week": 5,
+    "home": "IND",
+    "away": "TEN",
+    "homeScore": 16,
+    "awayScore": 24
+   },
+   {
+    "week": 5,
+    "home": "LV",
+    "away": "BUF",
+    "homeScore": 24,
+    "awayScore": 31
+   },
+   {
+    "week": 5,
+    "home": "JAX",
+    "away": "HOU",
+    "homeScore": 18,
+    "awayScore": 24
+   },
+   {
+    "week": 5,
+    "home": "PHI",
+    "away": "CAR",
+    "homeScore": 19,
+    "awayScore": 13
+   },
+   {
+    "week": 5,
+    "home": "LAR",
+    "away": "AZ",
+    "homeScore": 10,
+    "awayScore": 14
+   },
+   {
+    "week": 5,
+    "home": "SF",
+    "away": "WAS",
+    "homeScore": 33,
+    "awayScore": 28
+   },
+   {
+    "week": 5,
+    "home": "CLE",
+    "away": "BAL",
+    "homeScore": 9,
+    "awayScore": 30
+   },
+   {
+    "week": 5,
+    "home": "ATL",
+    "away": "CHI",
+    "homeScore": 35,
+    "awayScore": 28
+   },
+   {
+    "week": 5,
+    "home": "GB",
+    "away": "DAL",
+    "homeScore": 42,
+    "awayScore": 40
+   },
+   {
+    "week": 5,
+    "home": "TB",
+    "away": "PIT",
+    "homeScore": 28,
+    "awayScore": 31
+   },
+   {
+    "week": 5,
+    "home": "NYG",
+    "away": "NO",
+    "homeScore": 20,
+    "awayScore": 28
+   },
+   {
+    "week": 5,
+    "home": "NE",
+    "away": "NYJ",
+    "homeScore": 21,
+    "awayScore": 27
+   },
+   {
+    "week": 5,
+    "home": "DEN",
+    "away": "SEA",
+    "homeScore": 17,
+    "awayScore": 35
+   },
+   {
+    "week": 6,
+    "home": "LV",
+    "away": "LAR",
+    "homeScore": 20,
+    "awayScore": 23
+   },
+   {
+    "week": 6,
+    "home": "DET",
+    "away": "GB",
+    "homeScore": 14,
+    "awayScore": 28
+   },
+   {
+    "week": 6,
+    "home": "AZ",
+    "away": "DEN",
+    "homeScore": 9,
+    "awayScore": 22
+   },
+   {
+    "week": 6,
+    "home": "PHI",
+    "away": "DAL",
+    "homeScore": 23,
+    "awayScore": 16
+   },
+   {
+    "week": 6,
+    "home": "SEA",
+    "away": "KC",
+    "homeScore": 3,
+    "awayScore": 20
+   },
+   {
+    "week": 6,
+    "home": "CHI",
+    "away": "NE",
+    "homeScore": 38,
+    "awayScore": 41
+   },
+   {
+    "week": 6,
+    "home": "HOU",
+    "away": "NYG",
+    "homeScore": 15,
+    "awayScore": 10
+   },
+   {
+    "week": 6,
+    "home": "NO",
+    "away": "PIT",
+    "homeScore": 27,
+    "awayScore": 14
+   },
+   {
+    "week": 6,
+    "home": "TEN",
+    "away": "CLE",
+    "homeScore": 14,
+    "awayScore": 24
+   },
+   {
+    "week": 6,
+    "home": "MIN",
+    "away": "IND",
+    "homeScore": 35,
+    "awayScore": 25
+   },
+   {
+    "week": 6,
+    "home": "NYJ",
+    "away": "MIA",
+    "homeScore": 17,
+    "awayScore": 10
+   },
+   {
+    "week": 6,
+    "home": "CAR",
+    "away": "TB",
+    "homeScore": 17,
+    "awayScore": 44
+   },
+   {
+    "week": 6,
+    "home": "ATL",
+    "away": "SF",
+    "homeScore": 39,
+    "awayScore": 49
+   },
+   {
+    "week": 6,
+    "home": "BAL",
+    "away": "CIN",
+    "homeScore": 17,
+    "awayScore": 10
+   },
+   {
+    "week": 7,
+    "home": "GB",
+    "away": "CAR",
+    "homeScore": 34,
+    "awayScore": 31
+   },
+   {
+    "week": 7,
+    "home": "CIN",
+    "away": "TEN",
+    "homeScore": 35,
+    "awayScore": 16
+   },
+   {
+    "week": 7,
+    "home": "DAL",
+    "away": "AZ",
+    "homeScore": 21,
+    "awayScore": 27
+   },
+   {
+    "week": 7,
+    "home": "DET",
+    "away": "MIN",
+    "homeScore": 20,
+    "awayScore": 24
+   },
+   {
+    "week": 7,
+    "home": "JAX",
+    "away": "IND",
+    "homeScore": 17,
+    "awayScore": 10
+   },
+   {
+    "week": 7,
+    "home": "LAR",
+    "away": "LAC",
+    "homeScore": 27,
+    "awayScore": 24
+   },
+   {
+    "week": 7,
+    "home": "BUF",
+    "away": "BAL",
+    "homeScore": 34,
+    "awayScore": 13
+   },
+   {
+    "week": 7,
+    "home": "DEN",
+    "away": "KC",
+    "homeScore": 23,
+    "awayScore": 10
+   },
+   {
+    "week": 7,
+    "home": "MIA",
+    "away": "NE",
+    "homeScore": 10,
+    "awayScore": 34
+   },
+   {
+    "week": 7,
+    "home": "WAS",
+    "away": "PHI",
+    "homeScore": 30,
+    "awayScore": 12
+   },
+   {
+    "week": 7,
+    "home": "SEA",
+    "away": "CHI",
+    "homeScore": 17,
+    "awayScore": 41
+   },
+   {
+    "week": 7,
+    "home": "NYJ",
+    "away": "LV",
+    "homeScore": 13,
+    "awayScore": 16
+   },
+   {
+    "week": 7,
+    "home": "PIT",
+    "away": "CLE",
+    "homeScore": 14,
+    "awayScore": 22
+   },
+   {
+    "week": 7,
+    "home": "TB",
+    "away": "ATL",
+    "homeScore": 19,
+    "awayScore": 16
+   },
+   {
+    "week": 8,
+    "home": "NO",
+    "away": "CLE",
+    "homeScore": 3,
+    "awayScore": 13
+   },
+   {
+    "week": 8,
+    "home": "PHI",
+    "away": "NYG",
+    "homeScore": 10,
+    "awayScore": 24
+   },
+   {
+    "week": 8,
+    "home": "WAS",
+    "away": "LAR",
+    "homeScore": 47,
+    "awayScore": 14
+   },
+   {
+    "week": 8,
+    "home": "LAC",
+    "away": "HOU",
+    "homeScore": 3,
+    "awayScore": 34
+   },
+   {
+    "week": 8,
+    "home": "SEA",
+    "away": "AZ",
+    "homeScore": 3,
+    "awayScore": 17
+   },
+   {
+    "week": 8,
+    "home": "CHI",
+    "away": "TB",
+    "homeScore": 24,
+    "awayScore": 34
+   },
+   {
+    "week": 8,
+    "home": "MIN",
+    "away": "BUF",
+    "homeScore": 28,
+    "awayScore": 55
+   },
+   {
+    "week": 8,
+    "home": "BAL",
+    "away": "JAX",
+    "homeScore": 6,
+    "awayScore": 34
+   },
+   {
+    "week": 8,
+    "home": "ATL",
+    "away": "CIN",
+    "homeScore": 6,
+    "awayScore": 21
+   },
+   {
+    "week": 8,
+    "home": "IND",
+    "away": "DAL",
+    "homeScore": 35,
+    "awayScore": 21
+   },
+   {
+    "week": 8,
+    "home": "KC",
+    "away": "NYJ",
+    "homeScore": 30,
+    "awayScore": 14
+   },
+   {
+    "week": 8,
+    "home": "MIA",
+    "away": "DET",
+    "homeScore": 40,
+    "awayScore": 28
+   },
+   {
+    "week": 8,
+    "home": "CAR",
+    "away": "DEN",
+    "homeScore": 17,
+    "awayScore": 41
+   },
+   {
+    "week": 8,
+    "home": "SF",
+    "away": "LV",
+    "homeScore": 31,
+    "awayScore": 24
+   },
+   {
+    "week": 8,
+    "home": "NE",
+    "away": "GB",
+    "homeScore": 17,
+    "awayScore": 27
+   },
+   {
+    "week": 9,
+    "home": "ATL",
+    "away": "KC",
+    "homeScore": 17,
+    "awayScore": 38
+   },
+   {
+    "week": 9,
+    "home": "CLE",
+    "away": "HOU",
+    "homeScore": 33,
+    "awayScore": 17
+   },
+   {
+    "week": 9,
+    "home": "GB",
+    "away": "MIN",
+    "homeScore": 31,
+    "awayScore": 0
+   },
+   {
+    "week": 9,
+    "home": "TEN",
+    "away": "JAX",
+    "homeScore": 10,
+    "awayScore": 17
+   },
+   {
+    "week": 9,
+    "home": "IND",
+    "away": "MIA",
+    "homeScore": 17,
+    "awayScore": 14
+   },
+   {
+    "week": 9,
+    "home": "NYJ",
+    "away": "BUF",
+    "homeScore": 14,
+    "awayScore": 28
+   },
+   {
+    "week": 9,
+    "home": "LV",
+    "away": "SEA",
+    "homeScore": 52,
+    "awayScore": 24
+   },
+   {
+    "week": 9,
+    "home": "AZ",
+    "away": "LAR",
+    "homeScore": 22,
+    "awayScore": 7
+   },
+   {
+    "week": 9,
+    "home": "DAL",
+    "away": "SF",
+    "homeScore": 7,
+    "awayScore": 29
+   },
+   {
+    "week": 9,
+    "home": "CIN",
+    "away": "PIT",
+    "homeScore": 21,
+    "awayScore": 41
+   },
+   {
+    "week": 9,
+    "home": "NYG",
+    "away": "WAS",
+    "homeScore": 17,
+    "awayScore": 13
+   },
+   {
+    "week": 9,
+    "home": "DET",
+    "away": "NE",
+    "homeScore": 52,
+    "awayScore": 27
+   },
+   {
+    "week": 9,
+    "home": "BAL",
+    "away": "LAC",
+    "homeScore": 28,
+    "awayScore": 0
+   },
+   {
+    "week": 9,
+    "home": "NO",
+    "away": "CAR",
+    "homeScore": 24,
+    "awayScore": 31
+   },
+   {
+    "week": 10,
+    "home": "BUF",
+    "away": "MIA",
+    "homeScore": 44,
+    "awayScore": 16
+   },
+   {
+    "week": 10,
+    "home": "CHI",
+    "away": "NO",
+    "homeScore": 28,
+    "awayScore": 20
+   },
+   {
+    "week": 10,
+    "home": "DAL",
+    "away": "TEN",
+    "homeScore": 14,
+    "awayScore": 26
+   },
+   {
+    "week": 10,
+    "home": "DET",
+    "away": "TB",
+    "homeScore": 24,
+    "awayScore": 31
+   },
+   {
+    "week": 10,
+    "home": "KC",
+    "away": "AZ",
+    "homeScore": 9,
+    "awayScore": 15
+   },
+   {
+    "week": 10,
+    "home": "NYG",
+    "away": "JAX",
+    "homeScore": 10,
+    "awayScore": 31
+   },
+   {
+    "week": 10,
+    "home": "CAR",
+    "away": "BAL",
+    "homeScore": 10,
+    "awayScore": 33
+   },
+   {
+    "week": 10,
+    "home": "LAC",
+    "away": "NYJ",
+    "homeScore": 26,
+    "awayScore": 6
+   },
+   {
+    "week": 10,
+    "home": "HOU",
+    "away": "IND",
+    "homeScore": 24,
+    "awayScore": 45
+   },
+   {
+    "week": 10,
+    "home": "DEN",
+    "away": "LV",
+    "homeScore": 8,
+    "awayScore": 14
+   },
+   {
+    "week": 10,
+    "home": "PHI",
+    "away": "PIT",
+    "homeScore": 13,
+    "awayScore": 20
+   },
+   {
+    "week": 10,
+    "home": "SF",
+    "away": "MIN",
+    "homeScore": 10,
+    "awayScore": 16
+   },
+   {
+    "week": 10,
+    "home": "WAS",
+    "away": "CIN",
+    "homeScore": 20,
+    "awayScore": 24
+   },
+   {
+    "week": 11,
+    "home": "LAC",
+    "away": "NE",
+    "homeScore": 26,
+    "awayScore": 23
+   },
+   {
+    "week": 11,
+    "home": "LAR",
+    "away": "GB",
+    "homeScore": 20,
+    "awayScore": 24
+   },
+   {
+    "week": 11,
+    "home": "DET",
+    "away": "CHI",
+    "homeScore": 30,
+    "awayScore": 27
+   },
+   {
+    "week": 11,
+    "home": "DAL",
+    "away": "PHI",
+    "homeScore": 12,
+    "awayScore": 27
+   },
+   {
+    "week": 11,
+    "home": "BUF",
+    "away": "KC",
+    "homeScore": 34,
+    "awayScore": 31
+   },
+   {
+    "week": 11,
+    "home": "PIT",
+    "away": "DEN",
+    "homeScore": 27,
+    "awayScore": 21
+   },
+   {
+    "week": 11,
+    "home": "TB",
+    "away": "CAR",
+    "homeScore": 24,
+    "awayScore": 38
+   },
+   {
+    "week": 11,
+    "home": "SF",
+    "away": "SEA",
+    "homeScore": 24,
+    "awayScore": 16
+   },
+   {
+    "week": 11,
+    "home": "CLE",
+    "away": "LV",
+    "homeScore": 30,
+    "awayScore": 20
+   },
+   {
+    "week": 11,
+    "home": "CIN",
+    "away": "NO",
+    "homeScore": 24,
+    "awayScore": 19
+   },
+   {
+    "week": 11,
+    "home": "IND",
+    "away": "NYG",
+    "homeScore": 24,
+    "awayScore": 16
+   },
+   {
+    "week": 11,
+    "home": "MIA",
+    "away": "NYJ",
+    "homeScore": 7,
+    "awayScore": 28
+   },
+   {
+    "week": 11,
+    "home": "MIN",
+    "away": "ATL",
+    "homeScore": 17,
+    "awayScore": 52
+   },
+   {
+    "week": 11,
+    "home": "HOU",
+    "away": "BAL",
+    "homeScore": 10,
+    "awayScore": 20
+   },
+   {
+    "week": 11,
+    "home": "JAX",
+    "away": "TEN",
+    "homeScore": 44,
+    "awayScore": 17
+   },
+   {
+    "week": 11,
+    "home": "AZ",
+    "away": "WAS",
+    "homeScore": 16,
+    "awayScore": 34
+   },
+   {
+    "week": 12,
+    "home": "LAR",
+    "away": "KC",
+    "homeScore": 38,
+    "awayScore": 30
+   },
+   {
+    "week": 12,
+    "home": "ATL",
+    "away": "DET",
+    "homeScore": 27,
+    "awayScore": 14
+   },
+   {
+    "week": 12,
+    "home": "CLE",
+    "away": "CIN",
+    "homeScore": 0,
+    "awayScore": 28
+   },
+   {
+    "week": 12,
+    "home": "TEN",
+    "away": "WAS",
+    "homeScore": 14,
+    "awayScore": 34
+   },
+   {
+    "week": 12,
+    "home": "NO",
+    "away": "GB",
+    "homeScore": 23,
+    "awayScore": 27
+   },
+   {
+    "week": 12,
+    "home": "TB",
+    "away": "LAC",
+    "homeScore": 24,
+    "awayScore": 3
+   },
+   {
+    "week": 12,
+    "home": "CHI",
+    "away": "JAX",
+    "homeScore": 17,
+    "awayScore": 14
+   },
+   {
+    "week": 12,
+    "home": "NYG",
+    "away": "SF",
+    "homeScore": 24,
+    "awayScore": 23
+   },
+   {
+    "week": 12,
+    "home": "DEN",
+    "away": "MIA",
+    "homeScore": 23,
+    "awayScore": 14
+   },
+   {
+    "week": 12,
+    "home": "SEA",
+    "away": "DAL",
+    "homeScore": 17,
+    "awayScore": 23
+   },
+   {
+    "week": 12,
+    "home": "AZ",
+    "away": "PHI",
+    "homeScore": 17,
+    "awayScore": 31
+   },
+   {
+    "week": 12,
+    "home": "MIN",
+    "away": "CAR",
+    "homeScore": 16,
+    "awayScore": 19
+   },
+   {
+    "week": 12,
+    "home": "NE",
+    "away": "BUF",
+    "homeScore": 17,
+    "awayScore": 33
+   },
+   {
+    "week": 12,
+    "home": "PIT",
+    "away": "HOU",
+    "homeScore": 16,
+    "awayScore": 24
+   },
+   {
+    "week": 13,
+    "home": "NE",
+    "away": "MIN",
+    "homeScore": 26,
+    "awayScore": 7
+   },
+   {
+    "week": 13,
+    "home": "CLE",
+    "away": "ATL",
+    "homeScore": 3,
+    "awayScore": 7
+   },
+   {
+    "week": 13,
+    "home": "DET",
+    "away": "TEN",
+    "homeScore": 31,
+    "awayScore": 10
+   },
+   {
+    "week": 13,
+    "home": "MIA",
+    "away": "CHI",
+    "homeScore": 8,
+    "awayScore": 45
+   },
+   {
+    "week": 13,
+    "home": "SEA",
+    "away": "NYG",
+    "homeScore": 17,
+    "awayScore": 37
+   },
+   {
+    "week": 13,
+    "home": "GB",
+    "away": "BUF",
+    "homeScore": 24,
+    "awayScore": 21
+   },
+   {
+    "week": 13,
+    "home": "JAX",
+    "away": "PIT",
+    "homeScore": 40,
+    "awayScore": 13
+   },
+   {
+    "week": 13,
+    "home": "NYJ",
+    "away": "DEN",
+    "homeScore": 17,
+    "awayScore": 26
+   },
+   {
+    "week": 13,
+    "home": "PHI",
+    "away": "IND",
+    "homeScore": 0,
+    "awayScore": 24
+   },
+   {
+    "week": 13,
+    "home": "WAS",
+    "away": "HOU",
+    "homeScore": 10,
+    "awayScore": 16
+   },
+   {
+    "week": 13,
+    "home": "CAR",
+    "away": "NO",
+    "homeScore": 34,
+    "awayScore": 39
+   },
+   {
+    "week": 13,
+    "home": "BAL",
+    "away": "TB",
+    "homeScore": 20,
+    "awayScore": 17
+   },
+   {
+    "week": 13,
+    "home": "LV",
+    "away": "LAC",
+    "homeScore": 10,
+    "awayScore": 6
+   },
+   {
+    "week": 13,
+    "home": "CIN",
+    "away": "KC",
+    "homeScore": 28,
+    "awayScore": 20
+   },
+   {
+    "week": 13,
+    "home": "SF",
+    "away": "LAR",
+    "homeScore": 35,
+    "awayScore": 42
+   },
+   {
+    "week": 14,
+    "home": "LAC",
+    "away": "SF",
+    "homeScore": 7,
+    "awayScore": 34
+   },
+   {
+    "week": 14,
+    "home": "PHI",
+    "away": "SEA",
+    "homeScore": 7,
+    "awayScore": 31
+   },
+   {
+    "week": 14,
+    "home": "WAS",
+    "away": "ATL",
+    "homeScore": 42,
+    "awayScore": 31
+   },
+   {
+    "week": 14,
+    "home": "LAR",
+    "away": "DAL",
+    "homeScore": 38,
+    "awayScore": 21
+   },
+   {
+    "week": 14,
+    "home": "BUF",
+    "away": "CHI",
+    "homeScore": 38,
+    "awayScore": 14
+   },
+   {
+    "week": 14,
+    "home": "GB",
+    "away": "MIA",
+    "homeScore": 28,
+    "awayScore": 21
+   },
+   {
+    "week": 14,
+    "home": "TEN",
+    "away": "IND",
+    "homeScore": 9,
+    "awayScore": 17
+   },
+   {
+    "week": 14,
+    "home": "NYG",
+    "away": "CLE",
+    "homeScore": 19,
+    "awayScore": 27
+   },
+   {
+    "week": 14,
+    "home": "LV",
+    "away": "DEN",
+    "homeScore": 14,
+    "awayScore": 16
+   },
+   {
+    "week": 14,
+    "home": "PIT",
+    "away": "BAL",
+    "homeScore": 3,
+    "awayScore": 27
+   },
+   {
+    "week": 14,
+    "home": "TB",
+    "away": "NO",
+    "homeScore": 20,
+    "awayScore": 24
+   },
+   {
+    "week": 14,
+    "home": "CAR",
+    "away": "CIN",
+    "homeScore": 10,
+    "awayScore": 28
+   },
+   {
+    "week": 14,
+    "home": "HOU",
+    "away": "JAX",
+    "homeScore": 10,
+    "awayScore": 20
+   },
+   {
+    "week": 14,
+    "home": "AZ",
+    "away": "NYJ",
+    "homeScore": 45,
+    "awayScore": 24
+   },
+   {
+    "week": 14,
+    "home": "MIN",
+    "away": "DET",
+    "homeScore": 27,
+    "awayScore": 31
+   },
+   {
+    "week": 14,
+    "home": "KC",
+    "away": "NE",
+    "homeScore": 60,
+    "awayScore": 13
+   },
+   {
+    "week": 15,
+    "home": "BAL",
+    "away": "CLE",
+    "homeScore": 27,
+    "awayScore": 21
+   },
+   {
+    "week": 15,
+    "home": "PHI",
+    "away": "HOU",
+    "homeScore": 13,
+    "awayScore": 21
+   },
+   {
+    "week": 15,
+    "home": "CHI",
+    "away": "GB",
+    "homeScore": 27,
+    "awayScore": 21
+   },
+   {
+    "week": 15,
+    "home": "DEN",
+    "away": "BUF",
+    "homeScore": 24,
+    "awayScore": 19
+   },
+   {
+    "week": 15,
+    "home": "KC",
+    "away": "SF",
+    "homeScore": 20,
+    "awayScore": 23
+   },
+   {
+    "week": 15,
+    "home": "IND",
+    "away": "CIN",
+    "homeScore": 29,
+    "awayScore": 31
+   },
+   {
+    "week": 15,
+    "home": "SEA",
+    "away": "LAR",
+    "homeScore": 14,
+    "awayScore": 33
+   },
+   {
+    "week": 15,
+    "home": "ATL",
+    "away": "TB",
+    "homeScore": 24,
+    "awayScore": 38
+   },
+   {
+    "week": 15,
+    "home": "MIN",
+    "away": "WAS",
+    "homeScore": 10,
+    "awayScore": 14
+   },
+   {
+    "week": 15,
+    "home": "MIA",
+    "away": "LAC",
+    "homeScore": 23,
+    "awayScore": 15
+   },
+   {
+    "week": 15,
+    "home": "NO",
+    "away": "AZ",
+    "homeScore": 24,
+    "awayScore": 17
+   },
+   {
+    "week": 15,
+    "home": "NYJ",
+    "away": "NE",
+    "homeScore": 21,
+    "awayScore": 14
+   },
+   {
+    "week": 15,
+    "home": "DET",
+    "away": "NYG",
+    "homeScore": 38,
+    "awayScore": 23
+   },
+   {
+    "week": 15,
+    "home": "PIT",
+    "away": "CAR",
+    "homeScore": 24,
+    "awayScore": 27
+   },
+   {
+    "week": 15,
+    "home": "LV",
+    "away": "TEN",
+    "homeScore": 31,
+    "awayScore": 0
+   },
+   {
+    "week": 15,
+    "home": "DAL",
+    "away": "JAX",
+    "homeScore": 27,
+    "awayScore": 28
+   },
+   {
+    "week": 16,
+    "home": "MIA",
+    "away": "BUF",
+    "homeScore": 17,
+    "awayScore": 20
+   },
+   {
+    "week": 16,
+    "home": "TEN",
+    "away": "PIT",
+    "homeScore": 21,
+    "awayScore": 24
+   },
+   {
+    "week": 16,
+    "home": "LAC",
+    "away": "KC",
+    "homeScore": 13,
+    "awayScore": 33
+   },
+   {
+    "week": 16,
+    "home": "CIN",
+    "away": "BAL",
+    "homeScore": 28,
+    "awayScore": 20
+   },
+   {
+    "week": 16,
+    "home": "NE",
+    "away": "DEN",
+    "homeScore": 16,
+    "awayScore": 37
+   },
+   {
+    "week": 16,
+    "home": "ATL",
+    "away": "NO",
+    "homeScore": 23,
+    "awayScore": 26
+   },
+   {
+    "week": 16,
+    "home": "CLE",
+    "away": "IND",
+    "homeScore": 17,
+    "awayScore": 31
+   },
+   {
+    "week": 16,
+    "home": "DAL",
+    "away": "NYG",
+    "homeScore": 14,
+    "awayScore": 33
+   },
+   {
+    "week": 16,
+    "home": "JAX",
+    "away": "WAS",
+    "homeScore": 26,
+    "awayScore": 16
+   },
+   {
+    "week": 16,
+    "home": "AZ",
+    "away": "LV",
+    "homeScore": 7,
+    "awayScore": 26
+   },
+   {
+    "week": 16,
+    "home": "NYJ",
+    "away": "MIN",
+    "homeScore": 7,
+    "awayScore": 12
+   },
+   {
+    "week": 16,
+    "home": "CAR",
+    "away": "SEA",
+    "homeScore": 31,
+    "awayScore": 24
+   },
+   {
+    "week": 16,
+    "home": "CHI",
+    "away": "DET",
+    "homeScore": 17,
+    "awayScore": 21
+   },
+   {
+    "week": 16,
+    "home": "TB",
+    "away": "LAR",
+    "homeScore": 30,
+    "awayScore": 26
+   },
+   {
+    "week": 16,
+    "home": "SF",
+    "away": "PHI",
+    "homeScore": 31,
+    "awayScore": 3
+   },
+   {
+    "week": 16,
+    "home": "GB",
+    "away": "HOU",
+    "homeScore": 0,
+    "awayScore": 17
+   },
+   {
+    "week": 17,
+    "home": "DEN",
+    "away": "LAC",
+    "homeScore": 21,
+    "awayScore": 3
+   },
+   {
+    "week": 17,
+    "home": "WAS",
+    "away": "DAL",
+    "homeScore": 24,
+    "awayScore": 21
+   },
+   {
+    "week": 17,
+    "home": "BUF",
+    "away": "NYJ",
+    "homeScore": 22,
+    "awayScore": 3
+   },
+   {
+    "week": 17,
+    "home": "GB",
+    "away": "DET",
+    "homeScore": 30,
+    "awayScore": 31
+   },
+   {
+    "week": 17,
+    "home": "BAL",
+    "away": "PIT",
+    "homeScore": 21,
+    "awayScore": 17
+   },
+   {
+    "week": 17,
+    "home": "HOU",
+    "away": "TEN",
+    "homeScore": 31,
+    "awayScore": 13
+   },
+   {
+    "week": 17,
+    "home": "LAR",
+    "away": "SEA",
+    "homeScore": 21,
+    "awayScore": 15
+   },
+   {
+    "week": 17,
+    "home": "CIN",
+    "away": "CLE",
+    "homeScore": 17,
+    "awayScore": 3
+   },
+   {
+    "week": 17,
+    "home": "CAR",
+    "away": "ATL",
+    "homeScore": 27,
+    "awayScore": 24
+   },
+   {
+    "week": 17,
+    "home": "MIN",
+    "away": "CHI",
+    "homeScore": 10,
+    "awayScore": 24
+   },
+   {
+    "week": 17,
+    "home": "NE",
+    "away": "MIA",
+    "homeScore": 24,
+    "awayScore": 17
+   },
+   {
+    "week": 17,
+    "home": "NO",
+    "away": "TB",
+    "homeScore": 15,
+    "awayScore": 21
+   },
+   {
+    "week": 17,
+    "home": "NYG",
+    "away": "PHI",
+    "homeScore": 17,
+    "awayScore": 12
+   },
+   {
+    "week": 17,
+    "home": "AZ",
+    "away": "SF",
+    "homeScore": 16,
+    "awayScore": 6
+   },
+   {
+    "week": 17,
+    "home": "IND",
+    "away": "JAX",
+    "homeScore": 27,
+    "awayScore": 33
+   },
+   {
+    "week": 17,
+    "home": "KC",
+    "away": "LV",
+    "homeScore": 20,
+    "awayScore": 13
+   }
+  ],
+  "maddenSeeds": {
+   "AFC": [
+    "BUF",
+    "JAX",
+    "DEN",
+    "BAL",
+    "HOU",
+    "CIN",
+    "IND"
+   ],
+   "NFC": [
+    "TB",
+    "SF",
+    "GB",
+    "WAS",
+    "NYG",
+    "CHI",
+    "LAR"
+   ]
+  }
+ },
+ "104": {
+  "teams": [
+   {
+    "abbr": "BUF",
+    "conference": "AFC",
+    "division": "AFC East"
+   },
+   {
+    "abbr": "IND",
+    "conference": "AFC",
+    "division": "AFC South"
+   },
+   {
+    "abbr": "ATL",
+    "conference": "NFC",
+    "division": "NFC South"
+   },
+   {
+    "abbr": "HOU",
+    "conference": "AFC",
+    "division": "AFC South"
+   },
+   {
+    "abbr": "NO",
+    "conference": "NFC",
+    "division": "NFC South"
+   },
+   {
+    "abbr": "CHI",
+    "conference": "NFC",
+    "division": "NFC North"
+   },
+   {
+    "abbr": "NYG",
+    "conference": "NFC",
+    "division": "NFC East"
+   },
+   {
+    "abbr": "CLE",
+    "conference": "AFC",
+    "division": "AFC North"
+   },
+   {
+    "abbr": "WAS",
+    "conference": "NFC",
+    "division": "NFC East"
+   },
+   {
+    "abbr": "PHI",
+    "conference": "NFC",
+    "division": "NFC East"
+   },
+   {
+    "abbr": "KC",
+    "conference": "AFC",
+    "division": "AFC West"
+   },
+   {
+    "abbr": "SF",
+    "conference": "NFC",
+    "division": "NFC West"
+   },
+   {
+    "abbr": "LV",
+    "conference": "AFC",
+    "division": "AFC West"
+   },
+   {
+    "abbr": "DET",
+    "conference": "NFC",
+    "division": "NFC North"
+   },
+   {
+    "abbr": "SEA",
+    "conference": "NFC",
+    "division": "NFC West"
+   },
+   {
+    "abbr": "MIN",
+    "conference": "NFC",
+    "division": "NFC North"
+   },
+   {
+    "abbr": "GB",
+    "conference": "NFC",
+    "division": "NFC North"
+   },
+   {
+    "abbr": "PIT",
+    "conference": "AFC",
+    "division": "AFC North"
+   },
+   {
+    "abbr": "BAL",
+    "conference": "AFC",
+    "division": "AFC North"
+   },
+   {
+    "abbr": "CIN",
+    "conference": "AFC",
+    "division": "AFC North"
+   },
+   {
+    "abbr": "DEN",
+    "conference": "AFC",
+    "division": "AFC West"
+   },
+   {
+    "abbr": "NYJ",
+    "conference": "AFC",
+    "division": "AFC East"
+   },
+   {
+    "abbr": "LAR",
+    "conference": "NFC",
+    "division": "NFC West"
+   },
+   {
+    "abbr": "CAR",
+    "conference": "NFC",
+    "division": "NFC South"
+   },
+   {
+    "abbr": "LAC",
+    "conference": "AFC",
+    "division": "AFC West"
+   },
+   {
+    "abbr": "TB",
+    "conference": "NFC",
+    "division": "NFC South"
+   },
+   {
+    "abbr": "NE",
+    "conference": "AFC",
+    "division": "AFC East"
+   },
+   {
+    "abbr": "TEN",
+    "conference": "AFC",
+    "division": "AFC South"
+   },
+   {
+    "abbr": "JAX",
+    "conference": "AFC",
+    "division": "AFC South"
+   },
+   {
+    "abbr": "AZ",
+    "conference": "NFC",
+    "division": "NFC West"
+   },
+   {
+    "abbr": "DAL",
+    "conference": "NFC",
+    "division": "NFC East"
+   },
+   {
+    "abbr": "MIA",
+    "conference": "AFC",
+    "division": "AFC East"
+   }
+  ],
+  "games": [
+   {
+    "week": 0,
+    "home": "LV",
+    "away": "DET",
+    "homeScore": 31,
+    "awayScore": 3
+   },
+   {
+    "week": 0,
+    "home": "WAS",
+    "away": "SF",
+    "homeScore": 6,
+    "awayScore": 12
+   },
+   {
+    "week": 0,
+    "home": "NYJ",
+    "away": "TEN",
+    "homeScore": 21,
+    "awayScore": 24
+   },
+   {
+    "week": 0,
+    "home": "BAL",
+    "away": "KC",
+    "homeScore": 31,
+    "awayScore": 23
+   },
+   {
+    "week": 0,
+    "home": "CHI",
+    "away": "DEN",
+    "homeScore": 23,
+    "awayScore": 20
+   },
+   {
+    "week": 0,
+    "home": "NO",
+    "away": "DAL",
+    "homeScore": 23,
+    "awayScore": 0
+   },
+   {
+    "week": 0,
+    "home": "HOU",
+    "away": "CIN",
+    "homeScore": 28,
+    "awayScore": 19
+   },
+   {
+    "week": 0,
+    "home": "JAX",
+    "away": "MIA",
+    "homeScore": 34,
+    "awayScore": 31
+   },
+   {
+    "week": 0,
+    "home": "MIN",
+    "away": "LAC",
+    "homeScore": 37,
+    "awayScore": 16
+   },
+   {
+    "week": 0,
+    "home": "BUF",
+    "away": "IND",
+    "homeScore": 38,
+    "awayScore": 16
+   },
+   {
+    "week": 0,
+    "home": "SEA",
+    "away": "CAR",
+    "homeScore": 34,
+    "awayScore": 27
+   },
+   {
+    "week": 0,
+    "home": "CLE",
+    "away": "NE",
+    "homeScore": 23,
+    "awayScore": 13
+   },
+   {
+    "week": 0,
+    "home": "GB",
+    "away": "AZ",
+    "homeScore": 15,
+    "awayScore": 16
+   },
+   {
+    "week": 0,
+    "home": "PIT",
+    "away": "LAR",
+    "homeScore": 19,
+    "awayScore": 17
+   },
+   {
+    "week": 0,
+    "home": "ATL",
+    "away": "TB",
+    "homeScore": 38,
+    "awayScore": 14
+   },
+   {
+    "week": 0,
+    "home": "PHI",
+    "away": "NYG",
+    "homeScore": 17,
+    "awayScore": 10
+   },
+   {
+    "week": 1,
+    "home": "BAL",
+    "away": "CLE",
+    "homeScore": 9,
+    "awayScore": 16
+   },
+   {
+    "week": 1,
+    "home": "LV",
+    "away": "MIN",
+    "homeScore": 21,
+    "awayScore": 22
+   },
+   {
+    "week": 1,
+    "home": "KC",
+    "away": "GB",
+    "homeScore": 38,
+    "awayScore": 45
+   },
+   {
+    "week": 1,
+    "home": "NO",
+    "away": "NE",
+    "homeScore": 22,
+    "awayScore": 9
+   },
+   {
+    "week": 1,
+    "home": "SEA",
+    "away": "TEN",
+    "homeScore": 31,
+    "awayScore": 24
+   },
+   {
+    "week": 1,
+    "home": "DET",
+    "away": "NYG",
+    "homeScore": 17,
+    "awayScore": 27
+   },
+   {
+    "week": 1,
+    "home": "DAL",
+    "away": "MIA",
+    "homeScore": 22,
+    "awayScore": 10
+   },
+   {
+    "week": 1,
+    "home": "DEN",
+    "away": "LAC",
+    "homeScore": 12,
+    "awayScore": 29
+   },
+   {
+    "week": 1,
+    "home": "CAR",
+    "away": "TB",
+    "homeScore": 34,
+    "awayScore": 31
+   },
+   {
+    "week": 1,
+    "home": "ATL",
+    "away": "HOU",
+    "homeScore": 23,
+    "awayScore": 20
+   },
+   {
+    "week": 1,
+    "home": "PHI",
+    "away": "BUF",
+    "homeScore": 13,
+    "awayScore": 34
+   },
+   {
+    "week": 1,
+    "home": "NYJ",
+    "away": "WAS",
+    "homeScore": 27,
+    "awayScore": 14
+   },
+   {
+    "week": 1,
+    "home": "LAR",
+    "away": "AZ",
+    "homeScore": 31,
+    "awayScore": 17
+   },
+   {
+    "week": 1,
+    "home": "IND",
+    "away": "JAX",
+    "homeScore": 10,
+    "awayScore": 7
+   },
+   {
+    "week": 1,
+    "home": "SF",
+    "away": "CHI",
+    "homeScore": 10,
+    "awayScore": 41
+   },
+   {
+    "week": 1,
+    "home": "PIT",
+    "away": "CIN",
+    "homeScore": 17,
+    "awayScore": 22
+   },
+   {
+    "week": 2,
+    "home": "GB",
+    "away": "DEN",
+    "homeScore": 6,
+    "awayScore": 16
+   },
+   {
+    "week": 2,
+    "home": "PHI",
+    "away": "DAL",
+    "homeScore": 27,
+    "awayScore": 7
+   },
+   {
+    "week": 2,
+    "home": "LAC",
+    "away": "PIT",
+    "homeScore": 27,
+    "awayScore": 24
+   },
+   {
+    "week": 2,
+    "home": "CIN",
+    "away": "BAL",
+    "homeScore": 17,
+    "awayScore": 24
+   },
+   {
+    "week": 2,
+    "home": "NYG",
+    "away": "NYJ",
+    "homeScore": 24,
+    "awayScore": 10
+   },
+   {
+    "week": 2,
+    "home": "MIA",
+    "away": "WAS",
+    "homeScore": 14,
+    "awayScore": 49
+   },
+   {
+    "week": 2,
+    "home": "DET",
+    "away": "LAR",
+    "homeScore": 23,
+    "awayScore": 30
+   },
+   {
+    "week": 2,
+    "home": "CHI",
+    "away": "SEA",
+    "homeScore": 3,
+    "awayScore": 31
+   },
+   {
+    "week": 2,
+    "home": "TB",
+    "away": "NO",
+    "homeScore": 13,
+    "awayScore": 31
+   },
+   {
+    "week": 2,
+    "home": "TEN",
+    "away": "BUF",
+    "homeScore": 20,
+    "awayScore": 34
+   },
+   {
+    "week": 2,
+    "home": "ATL",
+    "away": "CAR",
+    "homeScore": 45,
+    "awayScore": 10
+   },
+   {
+    "week": 2,
+    "home": "NE",
+    "away": "JAX",
+    "homeScore": 35,
+    "awayScore": 32
+   },
+   {
+    "week": 2,
+    "home": "LV",
+    "away": "IND",
+    "homeScore": 7,
+    "awayScore": 22
+   },
+   {
+    "week": 2,
+    "home": "CLE",
+    "away": "AZ",
+    "homeScore": 27,
+    "awayScore": 7
+   },
+   {
+    "week": 2,
+    "home": "KC",
+    "away": "HOU",
+    "homeScore": 6,
+    "awayScore": 48
+   },
+   {
+    "week": 2,
+    "home": "MIN",
+    "away": "SF",
+    "homeScore": 23,
+    "awayScore": 6
+   },
+   {
+    "week": 3,
+    "home": "DET",
+    "away": "MIN",
+    "homeScore": 33,
+    "awayScore": 7
+   },
+   {
+    "week": 3,
+    "home": "CHI",
+    "away": "LV",
+    "homeScore": 33,
+    "awayScore": 29
+   },
+   {
+    "week": 3,
+    "home": "KC",
+    "away": "DEN",
+    "homeScore": 30,
+    "awayScore": 20
+   },
+   {
+    "week": 3,
+    "home": "IND",
+    "away": "CLE",
+    "homeScore": 41,
+    "awayScore": 18
+   },
+   {
+    "week": 3,
+    "home": "AZ",
+    "away": "ATL",
+    "homeScore": 14,
+    "awayScore": 30
+   },
+   {
+    "week": 3,
+    "home": "CIN",
+    "away": "NYJ",
+    "homeScore": 27,
+    "awayScore": 24
+   },
+   {
+    "week": 3,
+    "home": "TEN",
+    "away": "PIT",
+    "homeScore": 3,
+    "awayScore": 24
+   },
+   {
+    "week": 3,
+    "home": "DAL",
+    "away": "SEA",
+    "homeScore": 17,
+    "awayScore": 30
+   },
+   {
+    "week": 3,
+    "home": "JAX",
+    "away": "HOU",
+    "homeScore": 13,
+    "awayScore": 38
+   },
+   {
+    "week": 3,
+    "home": "BAL",
+    "away": "LAC",
+    "homeScore": 20,
+    "awayScore": 12
+   },
+   {
+    "week": 3,
+    "home": "TB",
+    "away": "GB",
+    "homeScore": 5,
+    "awayScore": 23
+   },
+   {
+    "week": 3,
+    "home": "LAR",
+    "away": "SF",
+    "homeScore": 22,
+    "awayScore": 26
+   },
+   {
+    "week": 3,
+    "home": "MIA",
+    "away": "BUF",
+    "homeScore": 10,
+    "awayScore": 34
+   },
+   {
+    "week": 3,
+    "home": "WAS",
+    "away": "NE",
+    "homeScore": 28,
+    "awayScore": 3
+   },
+   {
+    "week": 3,
+    "home": "NYG",
+    "away": "PHI",
+    "homeScore": 21,
+    "awayScore": 41
+   },
+   {
+    "week": 3,
+    "home": "NO",
+    "away": "CAR",
+    "homeScore": 31,
+    "awayScore": 20
+   },
+   {
+    "week": 4,
+    "home": "KC",
+    "away": "LV",
+    "homeScore": 24,
+    "awayScore": 16
+   },
+   {
+    "week": 4,
+    "home": "GB",
+    "away": "MIN",
+    "homeScore": 38,
+    "awayScore": 20
+   },
+   {
+    "week": 4,
+    "home": "SEA",
+    "away": "AZ",
+    "homeScore": 37,
+    "awayScore": 27
+   },
+   {
+    "week": 4,
+    "home": "SF",
+    "away": "TB",
+    "homeScore": 27,
+    "awayScore": 17
+   },
+   {
+    "week": 4,
+    "home": "ATL",
+    "away": "WAS",
+    "homeScore": 26,
+    "awayScore": 33
+   },
+   {
+    "week": 4,
+    "home": "DAL",
+    "away": "LAC",
+    "homeScore": 10,
+    "awayScore": 41
+   },
+   {
+    "week": 4,
+    "home": "LAR",
+    "away": "BAL",
+    "homeScore": 14,
+    "awayScore": 20
+   },
+   {
+    "week": 4,
+    "home": "DEN",
+    "away": "DET",
+    "homeScore": 22,
+    "awayScore": 13
+   },
+   {
+    "week": 4,
+    "home": "BUF",
+    "away": "JAX",
+    "homeScore": 28,
+    "awayScore": 21
+   },
+   {
+    "week": 4,
+    "home": "NO",
+    "away": "NYG",
+    "homeScore": 23,
+    "awayScore": 30
+   },
+   {
+    "week": 4,
+    "home": "PIT",
+    "away": "MIA",
+    "homeScore": 14,
+    "awayScore": 7
+   },
+   {
+    "week": 4,
+    "home": "CLE",
+    "away": "CIN",
+    "homeScore": 17,
+    "awayScore": 12
+   },
+   {
+    "week": 4,
+    "home": "CAR",
+    "away": "TEN",
+    "homeScore": 28,
+    "awayScore": 21
+   },
+   {
+    "week": 4,
+    "home": "HOU",
+    "away": "IND",
+    "homeScore": 28,
+    "awayScore": 31
+   },
+   {
+    "week": 4,
+    "home": "NYJ",
+    "away": "NE",
+    "homeScore": 27,
+    "awayScore": 3
+   },
+   {
+    "week": 4,
+    "home": "CHI",
+    "away": "PHI",
+    "homeScore": 25,
+    "awayScore": 14
+   },
+   {
+    "week": 5,
+    "home": "TEN",
+    "away": "HOU",
+    "homeScore": 15,
+    "awayScore": 31
+   },
+   {
+    "week": 5,
+    "home": "ATL",
+    "away": "DET",
+    "homeScore": 12,
+    "awayScore": 0
+   },
+   {
+    "week": 5,
+    "home": "BUF",
+    "away": "NYG",
+    "homeScore": 24,
+    "awayScore": 17
+   },
+   {
+    "week": 5,
+    "home": "GB",
+    "away": "CHI",
+    "homeScore": 3,
+    "awayScore": 13
+   },
+   {
+    "week": 5,
+    "home": "LAC",
+    "away": "DEN",
+    "homeScore": 17,
+    "awayScore": 38
+   },
+   {
+    "week": 5,
+    "home": "NYJ",
+    "away": "MIA",
+    "homeScore": 16,
+    "awayScore": 24
+   },
+   {
+    "week": 5,
+    "home": "SF",
+    "away": "JAX",
+    "homeScore": 49,
+    "awayScore": 43
+   },
+   {
+    "week": 5,
+    "home": "PHI",
+    "away": "LV",
+    "homeScore": 19,
+    "awayScore": 23
+   },
+   {
+    "week": 5,
+    "home": "TB",
+    "away": "IND",
+    "homeScore": 28,
+    "awayScore": 34
+   },
+   {
+    "week": 5,
+    "home": "CIN",
+    "away": "PIT",
+    "homeScore": 13,
+    "awayScore": 28
+   },
+   {
+    "week": 5,
+    "home": "MIN",
+    "away": "KC",
+    "homeScore": 6,
+    "awayScore": 27
+   },
+   {
+    "week": 5,
+    "home": "AZ",
+    "away": "LAR",
+    "homeScore": 24,
+    "awayScore": 29
+   },
+   {
+    "week": 5,
+    "home": "BAL",
+    "away": "SEA",
+    "homeScore": 24,
+    "awayScore": 27
+   },
+   {
+    "week": 5,
+    "home": "WAS",
+    "away": "NO",
+    "homeScore": 14,
+    "awayScore": 19
+   },
+   {
+    "week": 6,
+    "home": "DEN",
+    "away": "JAX",
+    "homeScore": 20,
+    "awayScore": 16
+   },
+   {
+    "week": 6,
+    "home": "LAR",
+    "away": "GB",
+    "homeScore": 19,
+    "awayScore": 24
+   },
+   {
+    "week": 6,
+    "home": "KC",
+    "away": "LAC",
+    "homeScore": 27,
+    "awayScore": 17
+   },
+   {
+    "week": 6,
+    "home": "IND",
+    "away": "TEN",
+    "homeScore": 27,
+    "awayScore": 20
+   },
+   {
+    "week": 6,
+    "home": "NE",
+    "away": "BUF",
+    "homeScore": 17,
+    "awayScore": 24
+   },
+   {
+    "week": 6,
+    "home": "CIN",
+    "away": "SF",
+    "homeScore": 42,
+    "awayScore": 30
+   },
+   {
+    "week": 6,
+    "home": "ATL",
+    "away": "NYJ",
+    "homeScore": 7,
+    "awayScore": 30
+   },
+   {
+    "week": 6,
+    "home": "LV",
+    "away": "CLE",
+    "homeScore": 3,
+    "awayScore": 17
+   },
+   {
+    "week": 6,
+    "home": "MIA",
+    "away": "PHI",
+    "homeScore": 14,
+    "awayScore": 20
+   },
+   {
+    "week": 6,
+    "home": "DAL",
+    "away": "CAR",
+    "homeScore": 10,
+    "awayScore": 30
+   },
+   {
+    "week": 6,
+    "home": "NYG",
+    "away": "WAS",
+    "homeScore": 36,
+    "awayScore": 33
+   },
+   {
+    "week": 6,
+    "home": "AZ",
+    "away": "SEA",
+    "homeScore": 16,
+    "awayScore": 20
+   },
+   {
+    "week": 6,
+    "home": "MIN",
+    "away": "CHI",
+    "homeScore": 9,
+    "awayScore": 24
+   },
+   {
+    "week": 7,
+    "home": "MIN",
+    "away": "DAL",
+    "homeScore": 30,
+    "awayScore": 3
+   },
+   {
+    "week": 7,
+    "home": "BUF",
+    "away": "DEN",
+    "homeScore": 48,
+    "awayScore": 27
+   },
+   {
+    "week": 7,
+    "home": "CHI",
+    "away": "CLE",
+    "homeScore": 34,
+    "awayScore": 31
+   },
+   {
+    "week": 7,
+    "home": "IND",
+    "away": "ATL",
+    "homeScore": 23,
+    "awayScore": 26
+   },
+   {
+    "week": 7,
+    "home": "PIT",
+    "away": "SF",
+    "homeScore": 14,
+    "awayScore": 10
+   },
+   {
+    "week": 7,
+    "home": "NYJ",
+    "away": "KC",
+    "homeScore": 21,
+    "awayScore": 20
+   },
+   {
+    "week": 7,
+    "home": "GB",
+    "away": "DET",
+    "homeScore": 23,
+    "awayScore": 25
+   },
+   {
+    "week": 7,
+    "home": "WAS",
+    "away": "TB",
+    "homeScore": 42,
+    "awayScore": 14
+   },
+   {
+    "week": 7,
+    "home": "CAR",
+    "away": "PHI",
+    "homeScore": 20,
+    "awayScore": 23
+   },
+   {
+    "week": 7,
+    "home": "BAL",
+    "away": "CIN",
+    "homeScore": 21,
+    "awayScore": 24
+   },
+   {
+    "week": 7,
+    "home": "MIA",
+    "away": "HOU",
+    "homeScore": 17,
+    "awayScore": 34
+   },
+   {
+    "week": 7,
+    "home": "NE",
+    "away": "LV",
+    "homeScore": 10,
+    "awayScore": 20
+   },
+   {
+    "week": 7,
+    "home": "NO",
+    "away": "JAX",
+    "homeScore": 34,
+    "awayScore": 20
+   },
+   {
+    "week": 7,
+    "home": "SEA",
+    "away": "LAR",
+    "homeScore": 21,
+    "awayScore": 13
+   },
+   {
+    "week": 7,
+    "home": "LAC",
+    "away": "TEN",
+    "homeScore": 14,
+    "awayScore": 10
+   },
+   {
+    "week": 8,
+    "home": "AZ",
+    "away": "HOU",
+    "homeScore": 7,
+    "awayScore": 20
+   },
+   {
+    "week": 8,
+    "home": "SF",
+    "away": "CLE",
+    "homeScore": 9,
+    "awayScore": 27
+   },
+   {
+    "week": 8,
+    "home": "LAC",
+    "away": "CHI",
+    "homeScore": 23,
+    "awayScore": 30
+   },
+   {
+    "week": 8,
+    "home": "DET",
+    "away": "KC",
+    "homeScore": 24,
+    "awayScore": 15
+   },
+   {
+    "week": 8,
+    "home": "IND",
+    "away": "NYJ",
+    "homeScore": 30,
+    "awayScore": 7
+   },
+   {
+    "week": 8,
+    "home": "PHI",
+    "away": "LAR",
+    "homeScore": 24,
+    "awayScore": 23
+   },
+   {
+    "week": 8,
+    "home": "PIT",
+    "away": "DEN",
+    "homeScore": 14,
+    "awayScore": 22
+   },
+   {
+    "week": 8,
+    "home": "NYG",
+    "away": "MIA",
+    "homeScore": 24,
+    "awayScore": 7
+   },
+   {
+    "week": 8,
+    "home": "CAR",
+    "away": "MIN",
+    "homeScore": 24,
+    "awayScore": 3
+   },
+   {
+    "week": 8,
+    "home": "BUF",
+    "away": "NE",
+    "homeScore": 37,
+    "awayScore": 7
+   },
+   {
+    "week": 8,
+    "home": "GB",
+    "away": "BAL",
+    "homeScore": 30,
+    "awayScore": 20
+   },
+   {
+    "week": 8,
+    "home": "DAL",
+    "away": "ATL",
+    "homeScore": 17,
+    "awayScore": 31
+   },
+   {
+    "week": 8,
+    "home": "NO",
+    "away": "TB",
+    "homeScore": 17,
+    "awayScore": 24
+   },
+   {
+    "week": 8,
+    "home": "SEA",
+    "away": "CIN",
+    "homeScore": 28,
+    "awayScore": 21
+   },
+   {
+    "week": 9,
+    "home": "DEN",
+    "away": "MIN",
+    "homeScore": 27,
+    "awayScore": 3
+   },
+   {
+    "week": 9,
+    "home": "WAS",
+    "away": "NYG",
+    "homeScore": 24,
+    "awayScore": 34
+   },
+   {
+    "week": 9,
+    "home": "CAR",
+    "away": "HOU",
+    "homeScore": 0,
+    "awayScore": 35
+   },
+   {
+    "week": 9,
+    "home": "NE",
+    "away": "DAL",
+    "homeScore": 24,
+    "awayScore": 20
+   },
+   {
+    "week": 9,
+    "home": "CLE",
+    "away": "SEA",
+    "homeScore": 30,
+    "awayScore": 13
+   },
+   {
+    "week": 9,
+    "home": "DET",
+    "away": "LAC",
+    "homeScore": 24,
+    "awayScore": 13
+   },
+   {
+    "week": 9,
+    "home": "TEN",
+    "away": "TB",
+    "homeScore": 10,
+    "awayScore": 30
+   },
+   {
+    "week": 9,
+    "home": "JAX",
+    "away": "NYJ",
+    "homeScore": 30,
+    "awayScore": 28
+   },
+   {
+    "week": 9,
+    "home": "ATL",
+    "away": "NO",
+    "homeScore": 47,
+    "awayScore": 17
+   },
+   {
+    "week": 9,
+    "home": "BAL",
+    "away": "AZ",
+    "homeScore": 24,
+    "awayScore": 13
+   },
+   {
+    "week": 9,
+    "home": "LAR",
+    "away": "IND",
+    "homeScore": 13,
+    "awayScore": 27
+   },
+   {
+    "week": 9,
+    "home": "PIT",
+    "away": "LV",
+    "homeScore": 10,
+    "awayScore": 38
+   },
+   {
+    "week": 9,
+    "home": "KC",
+    "away": "CIN",
+    "homeScore": 34,
+    "awayScore": 29
+   },
+   {
+    "week": 9,
+    "home": "BUF",
+    "away": "MIA",
+    "homeScore": 33,
+    "awayScore": 14
+   },
+   {
+    "week": 10,
+    "home": "NYG",
+    "away": "CAR",
+    "homeScore": 41,
+    "awayScore": 10
+   },
+   {
+    "week": 10,
+    "home": "WAS",
+    "away": "DAL",
+    "homeScore": 27,
+    "awayScore": 0
+   },
+   {
+    "week": 10,
+    "home": "TB",
+    "away": "JAX",
+    "homeScore": 37,
+    "awayScore": 34
+   },
+   {
+    "week": 10,
+    "home": "CHI",
+    "away": "MIN",
+    "homeScore": 7,
+    "awayScore": 19
+   },
+   {
+    "week": 10,
+    "home": "KC",
+    "away": "PIT",
+    "homeScore": 52,
+    "awayScore": 31
+   },
+   {
+    "week": 10,
+    "home": "ATL",
+    "away": "PHI",
+    "homeScore": 35,
+    "awayScore": 21
+   },
+   {
+    "week": 10,
+    "home": "GB",
+    "away": "SEA",
+    "homeScore": 24,
+    "awayScore": 19
+   },
+   {
+    "week": 10,
+    "home": "TEN",
+    "away": "NO",
+    "homeScore": 0,
+    "awayScore": 41
+   },
+   {
+    "week": 10,
+    "home": "AZ",
+    "away": "DET",
+    "homeScore": 10,
+    "awayScore": 24
+   },
+   {
+    "week": 10,
+    "home": "DEN",
+    "away": "CLE",
+    "homeScore": 27,
+    "awayScore": 23
+   },
+   {
+    "week": 10,
+    "home": "CIN",
+    "away": "LAR",
+    "homeScore": 21,
+    "awayScore": 24
+   },
+   {
+    "week": 10,
+    "home": "LAC",
+    "away": "LV",
+    "homeScore": 14,
+    "awayScore": 37
+   },
+   {
+    "week": 10,
+    "home": "SF",
+    "away": "BAL",
+    "homeScore": 41,
+    "awayScore": 38
+   },
+   {
+    "week": 10,
+    "home": "HOU",
+    "away": "BUF",
+    "homeScore": 27,
+    "awayScore": 24
+   },
+   {
+    "week": 10,
+    "home": "NE",
+    "away": "NYJ",
+    "homeScore": 21,
+    "awayScore": 31
+   },
+   {
+    "week": 11,
+    "home": "PIT",
+    "away": "CLE",
+    "homeScore": 25,
+    "awayScore": 24
+   },
+   {
+    "week": 11,
+    "home": "NE",
+    "away": "MIA",
+    "homeScore": 38,
+    "awayScore": 14
+   },
+   {
+    "week": 11,
+    "home": "AZ",
+    "away": "MIN",
+    "homeScore": 14,
+    "awayScore": 24
+   },
+   {
+    "week": 11,
+    "home": "SEA",
+    "away": "SF",
+    "homeScore": 21,
+    "awayScore": 38
+   },
+   {
+    "week": 11,
+    "home": "WAS",
+    "away": "BUF",
+    "homeScore": 6,
+    "awayScore": 34
+   },
+   {
+    "week": 11,
+    "home": "TB",
+    "away": "ATL",
+    "homeScore": 17,
+    "awayScore": 27
+   },
+   {
+    "week": 11,
+    "home": "CAR",
+    "away": "NO",
+    "homeScore": 11,
+    "awayScore": 21
+   },
+   {
+    "week": 11,
+    "home": "GB",
+    "away": "LV",
+    "homeScore": 30,
+    "awayScore": 31
+   },
+   {
+    "week": 11,
+    "home": "NYG",
+    "away": "KC",
+    "homeScore": 38,
+    "awayScore": 24
+   },
+   {
+    "week": 11,
+    "home": "HOU",
+    "away": "TEN",
+    "homeScore": 37,
+    "awayScore": 21
+   },
+   {
+    "week": 11,
+    "home": "DEN",
+    "away": "BAL",
+    "homeScore": 14,
+    "awayScore": 28
+   },
+   {
+    "week": 11,
+    "home": "LAC",
+    "away": "CIN",
+    "homeScore": 33,
+    "awayScore": 35
+   },
+   {
+    "week": 11,
+    "home": "DET",
+    "away": "CHI",
+    "homeScore": 13,
+    "awayScore": 30
+   },
+   {
+    "week": 11,
+    "home": "DAL",
+    "away": "PHI",
+    "homeScore": 31,
+    "awayScore": 52
+   },
+   {
+    "week": 11,
+    "home": "JAX",
+    "away": "IND",
+    "homeScore": 13,
+    "awayScore": 38
+   },
+   {
+    "week": 12,
+    "home": "IND",
+    "away": "MIA",
+    "homeScore": 31,
+    "awayScore": 7
+   },
+   {
+    "week": 12,
+    "home": "TB",
+    "away": "NYG",
+    "homeScore": 27,
+    "awayScore": 45
+   },
+   {
+    "week": 12,
+    "home": "DAL",
+    "away": "WAS",
+    "homeScore": 21,
+    "awayScore": 45
+   },
+   {
+    "week": 12,
+    "home": "MIN",
+    "away": "PIT",
+    "homeScore": 23,
+    "awayScore": 24
+   },
+   {
+    "week": 12,
+    "home": "TEN",
+    "away": "NE",
+    "homeScore": 20,
+    "awayScore": 38
+   },
+   {
+    "week": 12,
+    "home": "CAR",
+    "away": "ATL",
+    "homeScore": 3,
+    "awayScore": 30
+   },
+   {
+    "week": 12,
+    "home": "NYJ",
+    "away": "PHI",
+    "homeScore": 20,
+    "awayScore": 26
+   },
+   {
+    "week": 12,
+    "home": "DET",
+    "away": "CIN",
+    "homeScore": 10,
+    "awayScore": 7
+   },
+   {
+    "week": 12,
+    "home": "SF",
+    "away": "AZ",
+    "homeScore": 33,
+    "awayScore": 17
+   },
+   {
+    "week": 12,
+    "home": "LAR",
+    "away": "CLE",
+    "homeScore": 9,
+    "awayScore": 31
+   },
+   {
+    "week": 12,
+    "home": "DEN",
+    "away": "LV",
+    "homeScore": 20,
+    "awayScore": 39
+   },
+   {
+    "week": 12,
+    "home": "CHI",
+    "away": "GB",
+    "homeScore": 24,
+    "awayScore": 21
+   },
+   {
+    "week": 12,
+    "home": "JAX",
+    "away": "BAL",
+    "homeScore": 26,
+    "awayScore": 10
+   },
+   {
+    "week": 12,
+    "home": "HOU",
+    "away": "NO",
+    "homeScore": 17,
+    "awayScore": 30
+   },
+   {
+    "week": 13,
+    "home": "GB",
+    "away": "WAS",
+    "homeScore": 33,
+    "awayScore": 27
+   },
+   {
+    "week": 13,
+    "home": "CHI",
+    "away": "DET",
+    "homeScore": 18,
+    "awayScore": 22
+   },
+   {
+    "week": 13,
+    "home": "AZ",
+    "away": "PIT",
+    "homeScore": 14,
+    "awayScore": 14
+   },
+   {
+    "week": 13,
+    "home": "LAR",
+    "away": "NO",
+    "homeScore": 36,
+    "awayScore": 39
+   },
+   {
+    "week": 13,
+    "home": "BUF",
+    "away": "DAL",
+    "homeScore": 42,
+    "awayScore": 3
+   },
+   {
+    "week": 13,
+    "home": "MIA",
+    "away": "LAC",
+    "homeScore": 24,
+    "awayScore": 27
+   },
+   {
+    "week": 13,
+    "home": "NYJ",
+    "away": "HOU",
+    "homeScore": 6,
+    "awayScore": 37
+   },
+   {
+    "week": 13,
+    "home": "JAX",
+    "away": "CAR",
+    "homeScore": 17,
+    "awayScore": 29
+   },
+   {
+    "week": 13,
+    "home": "TEN",
+    "away": "IND",
+    "homeScore": 14,
+    "awayScore": 35
+   },
+   {
+    "week": 13,
+    "home": "PHI",
+    "away": "TB",
+    "homeScore": 18,
+    "awayScore": 16
+   },
+   {
+    "week": 13,
+    "home": "NE",
+    "away": "NYG",
+    "homeScore": 23,
+    "awayScore": 37
+   },
+   {
+    "week": 13,
+    "home": "CLE",
+    "away": "KC",
+    "homeScore": 24,
+    "awayScore": 31
+   },
+   {
+    "week": 13,
+    "home": "LV",
+    "away": "BAL",
+    "homeScore": 29,
+    "awayScore": 21
+   },
+   {
+    "week": 13,
+    "home": "SF",
+    "away": "SEA",
+    "homeScore": 19,
+    "awayScore": 16
+   },
+   {
+    "week": 14,
+    "home": "SF",
+    "away": "LAR",
+    "homeScore": 19,
+    "awayScore": 21
+   },
+   {
+    "week": 14,
+    "home": "BAL",
+    "away": "PIT",
+    "homeScore": 28,
+    "awayScore": 16
+   },
+   {
+    "week": 14,
+    "home": "BUF",
+    "away": "NYJ",
+    "homeScore": 14,
+    "awayScore": 9
+   },
+   {
+    "week": 14,
+    "home": "NYG",
+    "away": "DAL",
+    "homeScore": 28,
+    "awayScore": 15
+   },
+   {
+    "week": 14,
+    "home": "LV",
+    "away": "DEN",
+    "homeScore": 31,
+    "awayScore": 19
+   },
+   {
+    "week": 14,
+    "home": "TB",
+    "away": "CAR",
+    "homeScore": 33,
+    "awayScore": 3
+   },
+   {
+    "week": 14,
+    "home": "ATL",
+    "away": "TEN",
+    "homeScore": 31,
+    "awayScore": 7
+   },
+   {
+    "week": 14,
+    "home": "MIA",
+    "away": "NE",
+    "homeScore": 20,
+    "awayScore": 27
+   },
+   {
+    "week": 14,
+    "home": "NO",
+    "away": "IND",
+    "homeScore": 26,
+    "awayScore": 29
+   },
+   {
+    "week": 14,
+    "home": "CHI",
+    "away": "AZ",
+    "homeScore": 20,
+    "awayScore": 10
+   },
+   {
+    "week": 14,
+    "home": "SEA",
+    "away": "MIN",
+    "homeScore": 16,
+    "awayScore": 22
+   },
+   {
+    "week": 14,
+    "home": "LAC",
+    "away": "KC",
+    "homeScore": 18,
+    "awayScore": 32
+   },
+   {
+    "week": 14,
+    "home": "DET",
+    "away": "GB",
+    "homeScore": 31,
+    "awayScore": 24
+   },
+   {
+    "week": 14,
+    "home": "HOU",
+    "away": "JAX",
+    "homeScore": 35,
+    "awayScore": 23
+   },
+   {
+    "week": 14,
+    "home": "CIN",
+    "away": "CLE",
+    "homeScore": 7,
+    "awayScore": 13
+   },
+   {
+    "week": 14,
+    "home": "WAS",
+    "away": "PHI",
+    "homeScore": 20,
+    "awayScore": 6
+   },
+   {
+    "week": 15,
+    "home": "LAC",
+    "away": "GB",
+    "homeScore": 20,
+    "awayScore": 27
+   },
+   {
+    "week": 15,
+    "home": "NYG",
+    "away": "ATL",
+    "homeScore": 19,
+    "awayScore": 20
+   },
+   {
+    "week": 15,
+    "home": "DAL",
+    "away": "NYJ",
+    "homeScore": 16,
+    "awayScore": 21
+   },
+   {
+    "week": 15,
+    "home": "DET",
+    "away": "SF",
+    "homeScore": 41,
+    "awayScore": 20
+   },
+   {
+    "week": 15,
+    "home": "TEN",
+    "away": "JAX",
+    "homeScore": 32,
+    "awayScore": 28
+   },
+   {
+    "week": 15,
+    "home": "TB",
+    "away": "BUF",
+    "homeScore": 14,
+    "awayScore": 45
+   },
+   {
+    "week": 15,
+    "home": "CLE",
+    "away": "BAL",
+    "homeScore": 13,
+    "awayScore": 12
+   },
+   {
+    "week": 15,
+    "home": "PHI",
+    "away": "NE",
+    "homeScore": 13,
+    "awayScore": 10
+   },
+   {
+    "week": 15,
+    "home": "IND",
+    "away": "HOU",
+    "homeScore": 30,
+    "awayScore": 21
+   },
+   {
+    "week": 15,
+    "home": "CAR",
+    "away": "MIA",
+    "homeScore": 22,
+    "awayScore": 21
+   },
+   {
+    "week": 15,
+    "home": "NO",
+    "away": "CHI",
+    "homeScore": 33,
+    "awayScore": 27
+   },
+   {
+    "week": 15,
+    "home": "MIN",
+    "away": "LAR",
+    "homeScore": 39,
+    "awayScore": 36
+   },
+   {
+    "week": 15,
+    "home": "LV",
+    "away": "KC",
+    "homeScore": 23,
+    "awayScore": 26
+   },
+   {
+    "week": 15,
+    "home": "WAS",
+    "away": "DEN",
+    "homeScore": 20,
+    "awayScore": 10
+   },
+   {
+    "week": 15,
+    "home": "SEA",
+    "away": "PIT",
+    "homeScore": 18,
+    "awayScore": 24
+   },
+   {
+    "week": 15,
+    "home": "AZ",
+    "away": "CIN",
+    "homeScore": 18,
+    "awayScore": 24
+   },
+   {
+    "week": 16,
+    "home": "HOU",
+    "away": "TB",
+    "homeScore": 34,
+    "awayScore": 6
+   },
+   {
+    "week": 16,
+    "home": "NYJ",
+    "away": "BUF",
+    "homeScore": 19,
+    "awayScore": 38
+   },
+   {
+    "week": 16,
+    "home": "MIA",
+    "away": "TEN",
+    "homeScore": 7,
+    "awayScore": 23
+   },
+   {
+    "week": 16,
+    "home": "CLE",
+    "away": "LAC",
+    "homeScore": 24,
+    "awayScore": 3
+   },
+   {
+    "week": 16,
+    "home": "NE",
+    "away": "IND",
+    "homeScore": 7,
+    "awayScore": 41
+   },
+   {
+    "week": 16,
+    "home": "MIN",
+    "away": "GB",
+    "homeScore": 20,
+    "awayScore": 34
+   },
+   {
+    "week": 16,
+    "home": "CIN",
+    "away": "LV",
+    "homeScore": 24,
+    "awayScore": 10
+   },
+   {
+    "week": 16,
+    "home": "CAR",
+    "away": "WAS",
+    "homeScore": 20,
+    "awayScore": 31
+   },
+   {
+    "week": 16,
+    "home": "JAX",
+    "away": "ATL",
+    "homeScore": 21,
+    "awayScore": 45
+   },
+   {
+    "week": 16,
+    "home": "PIT",
+    "away": "BAL",
+    "homeScore": 9,
+    "awayScore": 14
+   },
+   {
+    "week": 16,
+    "home": "PHI",
+    "away": "NO",
+    "homeScore": 28,
+    "awayScore": 47
+   },
+   {
+    "week": 16,
+    "home": "SEA",
+    "away": "DET",
+    "homeScore": 19,
+    "awayScore": 20
+   },
+   {
+    "week": 16,
+    "home": "DAL",
+    "away": "NYG",
+    "homeScore": 32,
+    "awayScore": 36
+   },
+   {
+    "week": 16,
+    "home": "LAR",
+    "away": "CHI",
+    "homeScore": 15,
+    "awayScore": 37
+   },
+   {
+    "week": 16,
+    "home": "DEN",
+    "away": "KC",
+    "homeScore": 21,
+    "awayScore": 31
+   },
+   {
+    "week": 16,
+    "home": "AZ",
+    "away": "SF",
+    "homeScore": 16,
+    "awayScore": 28
+   },
+   {
+    "week": 17,
+    "home": "PHI",
+    "away": "WAS",
+    "homeScore": 13,
+    "awayScore": 35
+   },
+   {
+    "week": 17,
+    "home": "MIN",
+    "away": "DET",
+    "homeScore": 34,
+    "awayScore": 33
+   },
+   {
+    "week": 17,
+    "home": "JAX",
+    "away": "TEN",
+    "homeScore": 25,
+    "awayScore": 27
+   },
+   {
+    "week": 17,
+    "home": "LV",
+    "away": "LAC",
+    "homeScore": 19,
+    "awayScore": 7
+   },
+   {
+    "week": 17,
+    "home": "CIN",
+    "away": "DEN",
+    "homeScore": 19,
+    "awayScore": 13
+   },
+   {
+    "week": 17,
+    "home": "MIA",
+    "away": "NYJ",
+    "homeScore": 7,
+    "awayScore": 24
+   },
+   {
+    "week": 17,
+    "home": "IND",
+    "away": "CAR",
+    "homeScore": 37,
+    "awayScore": 12
+   },
+   {
+    "week": 17,
+    "home": "SF",
+    "away": "GB",
+    "homeScore": 38,
+    "awayScore": 9
+   },
+   {
+    "week": 17,
+    "home": "LAR",
+    "away": "SEA",
+    "homeScore": 27,
+    "awayScore": 24
+   },
+   {
+    "week": 17,
+    "home": "BAL",
+    "away": "BUF",
+    "homeScore": 7,
+    "awayScore": 26
+   },
+   {
+    "week": 17,
+    "home": "NYG",
+    "away": "AZ",
+    "homeScore": 43,
+    "awayScore": 21
+   },
+   {
+    "week": 17,
+    "home": "KC",
+    "away": "CHI",
+    "homeScore": 34,
+    "awayScore": 37
+   },
+   {
+    "week": 17,
+    "home": "NO",
+    "away": "ATL",
+    "homeScore": 26,
+    "awayScore": 0
+   },
+   {
+    "week": 17,
+    "home": "CLE",
+    "away": "PIT",
+    "homeScore": 30,
+    "awayScore": 0
+   },
+   {
+    "week": 17,
+    "home": "TB",
+    "away": "DAL",
+    "homeScore": 31,
+    "awayScore": 30
+   },
+   {
+    "week": 17,
+    "home": "HOU",
+    "away": "NE",
+    "homeScore": 35,
+    "awayScore": 14
+   }
+  ],
+  "maddenSeeds": {
+   "AFC": [
+    "BUF",
+    "IND",
+    "CLE",
+    "KC",
+    "HOU",
+    "LV",
+    "PIT"
+   ],
+   "NFC": [
+    "ATL",
+    "NYG",
+    "CHI",
+    "SF",
+    "NO",
+    "PHI",
+    "DET"
+   ]
+  }
+ }
+}

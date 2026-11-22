@@ -1,0 +1,1179 @@
+# NeonSportz Madden 27 inventory
+
+Directory collected/count: 1130; equality checked before limiting.
+Leagues inspected: 1130; Madden 27: 1130; with completed season: 696.
+Tier 1 leagues: 495; complete seasons: 627; verified completed games: 238493.
+Failures: 0 (see failures.csv).
+
+## Tier 1
+
+- [BSD](https://neonsportz.com/leagues/BSD/): 7 complete / 7 completed seasons; calendar_year differs from 2026 + season index; possible reset; 2026: 1 ties; 2027: 1 ties; 2028: 2 ties; 2029: 1 ties; 2030: 1 ties
+- [M27GM](https://neonsportz.com/leagues/M27GM/): 6 complete / 7 completed seasons; calendar_year differs from 2026 + season index; possible reset; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [GMGSI](https://neonsportz.com/leagues/GMGSI/): 6 complete / 6 completed seasons; 2026: 3 ties; 2029: 1 ties; 2030: 4 ties
+- [H19](https://neonsportz.com/leagues/H19/): 5 complete / 15 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset; 2027: extra/missing weeks; 2027: invalid playoff conference counts; 2027: postseason rounds differ from 6/4/2/0/1; 2027: regular season requires 272 games and 17/team; 2027: team count 0 != 32; 2027: wild-card winners/byes inconsistent; 2027: zero games; possible missing early season/reset; 2028: extra/missing weeks; 2028: invalid playoff conference counts; 2028: postseason rounds differ from 6/4/2/0/1; 2028: regular season requires 272 games and 17/team; 2028: team count 0 != 32; 2028: wild-card winners/byes inconsistent; 2028: zero games; possible missing early season/reset; 2029: extra/missing weeks; 2029: invalid playoff conference counts; 2029: postseason rounds differ from 6/4/2/0/1; 2029: regular season requires 272 games and 17/team; 2029: team count 0 != 32; 2029: wild-card winners/byes inconsistent; 2029: zero games; possible missing early season/reset; 2030: extra/missing weeks; 2030: invalid playoff conference counts; 2030: postseason rounds differ from 6/4/2/0/1; 2030: regular season requires 272 games and 17/team; 2030: team count 0 != 32; 2030: wild-card winners/byes inconsistent; 2030: zero games; possible missing early season/reset; 2031: extra/missing weeks; 2031: invalid playoff conference counts; 2031: postseason rounds differ from 6/4/2/0/1; 2031: regular season requires 272 games and 17/team; 2031: team count 0 != 32; 2031: wild-card winners/byes inconsistent; 2031: zero games; possible missing early season/reset; 2032: extra/missing weeks; 2032: invalid playoff conference counts; 2032: postseason rounds differ from 6/4/2/0/1; 2032: regular season requires 272 games and 17/team; 2032: team count 0 != 32; 2032: wild-card winners/byes inconsistent; 2032: zero games; possible missing early season/reset; 2033: extra/missing weeks; 2033: invalid playoff conference counts; 2033: postseason rounds differ from 6/4/2/0/1; 2033: regular season requires 272 games and 17/team; 2033: team count 0 != 32; 2033: wild-card winners/byes inconsistent; 2033: zero games; possible missing early season/reset; 2034: extra/missing weeks; 2034: invalid playoff conference counts; 2034: postseason rounds differ from 6/4/2/0/1; 2034: regular season requires 272 games and 17/team; 2034: team count 0 != 32; 2034: wild-card winners/byes inconsistent; 2034: zero games; possible missing early season/reset; 2035: extra/missing weeks; 2035: invalid playoff conference counts; 2035: postseason rounds differ from 6/4/2/0/1; 2035: regular season requires 272 games and 17/team; 2035: team count 0 != 32; 2035: wild-card winners/byes inconsistent; 2035: zero games; possible missing early season/reset; 2037: 1 ties; 2039: 1 ties
+- [GMLG](https://neonsportz.com/leagues/GMLG/): 5 complete / 5 completed seasons; 2027: 2 ties; 2028: 1 ties; 2030: 1 ties
+- [GGC27](https://neonsportz.com/leagues/GGC27/): 4 complete / 4 completed seasons; 2027: 1 ties; 2028: 1 ties; 2029: 1 ties
+- [27](https://neonsportz.com/leagues/27/): 3 complete / 3 completed seasons; no concerns
+- [AGS27](https://neonsportz.com/leagues/AGS27/): 3 complete / 3 completed seasons; 2028: 1 ties
+- [AS27](https://neonsportz.com/leagues/AS27/): 3 complete / 3 completed seasons; 2027: 1 ties
+- [BS2](https://neonsportz.com/leagues/BS2/): 3 complete / 3 completed seasons; 2026: 2 ties; 2027: 3 ties; 2028: 2 ties; 2029: zero games; possible missing early season/reset
+- [RDU](https://neonsportz.com/leagues/RDU/): 3 complete / 3 completed seasons; no concerns
+- [TLM27](https://neonsportz.com/leagues/TLM27/): 3 complete / 3 completed seasons; 2028: 1 ties
+- [WLM27](https://neonsportz.com/leagues/WLM27/): 3 complete / 3 completed seasons; no concerns
+- [HMSL](https://neonsportz.com/leagues/HMSL/): 2 complete / 3 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset; 2027: 3 ties; 2028: 2 ties; 2029: zero games; possible missing early season/reset
+- [KOOL](https://neonsportz.com/leagues/KOOL/): 2 complete / 3 completed seasons; 2026: 1 ties; 2028: playoff winners do not advance; 2028: postseason rounds differ from 6/4/2/0/1
+- [STT](https://neonsportz.com/leagues/STT/): 2 complete / 3 completed seasons; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1
+- [2MF](https://neonsportz.com/leagues/2MF/): 2 complete / 2 completed seasons; 2027: 1 ties
+- [3GC](https://neonsportz.com/leagues/3GC/): 2 complete / 2 completed seasons; 2027: 1 ties
+- [48HR](https://neonsportz.com/leagues/48HR/): 2 complete / 2 completed seasons; no concerns
+- [4THN1](https://neonsportz.com/leagues/4THN1/): 2 complete / 2 completed seasons; no concerns
+- [9TO5](https://neonsportz.com/leagues/9TO5/): 2 complete / 2 completed seasons; 2026: 2 ties; 2027: 1 ties
+- [ACL](https://neonsportz.com/leagues/ACL/): 2 complete / 2 completed seasons; 2026: 1 ties
+- [AGS4L](https://neonsportz.com/leagues/AGS4L/): 2 complete / 2 completed seasons; 2026: 1 ties
+- [AMLOB](https://neonsportz.com/leagues/AMLOB/): 2 complete / 2 completed seasons; 2027: 1 ties
+- [ANG](https://neonsportz.com/leagues/ANG/): 2 complete / 2 completed seasons; no concerns
+- [ASL27](https://neonsportz.com/leagues/ASL27/): 2 complete / 2 completed seasons; no concerns
+- [AUOL](https://neonsportz.com/leagues/AUOL/): 2 complete / 2 completed seasons; no concerns
+- [BM2](https://neonsportz.com/leagues/BM2/): 2 complete / 2 completed seasons; no concerns
+- [BTL27](https://neonsportz.com/leagues/BTL27/): 2 complete / 2 completed seasons; 2026: 1 ties
+- [BXB](https://neonsportz.com/leagues/BXB/): 2 complete / 2 completed seasons; no concerns
+- [CNFL](https://neonsportz.com/leagues/CNFL/): 2 complete / 2 completed seasons; no concerns
+- [CP](https://neonsportz.com/leagues/CP/): 2 complete / 2 completed seasons; 2026: 2 ties
+- [CREB](https://neonsportz.com/leagues/CREB/): 2 complete / 2 completed seasons; no concerns
+- [CS](https://neonsportz.com/leagues/CS/): 2 complete / 2 completed seasons; no concerns
+- [DCL](https://neonsportz.com/leagues/DCL/): 2 complete / 2 completed seasons; 2026: 1 ties
+- [DM2](https://neonsportz.com/leagues/DM2/): 2 complete / 2 completed seasons; no concerns
+- [DS](https://neonsportz.com/leagues/DS/): 2 complete / 2 completed seasons; no concerns
+- [DWC27](https://neonsportz.com/leagues/DWC27/): 2 complete / 2 completed seasons; 2026: 1 ties
+- [EFL2](https://neonsportz.com/leagues/EFL2/): 2 complete / 2 completed seasons; 2026: 1 ties
+- [EQL](https://neonsportz.com/leagues/EQL/): 2 complete / 2 completed seasons; 2026: 2 ties
+- [FFL41](https://neonsportz.com/leagues/FFL41/): 2 complete / 2 completed seasons; 2027: 1 ties
+- [FM2](https://neonsportz.com/leagues/FM2/): 2 complete / 2 completed seasons; 2026: 1 ties; 2028: zero games; possible missing early season/reset
+- [FNLL](https://neonsportz.com/leagues/FNLL/): 2 complete / 2 completed seasons; no concerns
+- [FNSL](https://neonsportz.com/leagues/FNSL/): 2 complete / 2 completed seasons; no concerns
+- [FQL26](https://neonsportz.com/leagues/FQL26/): 2 complete / 2 completed seasons; no concerns
+- [GFM27](https://neonsportz.com/leagues/GFM27/): 2 complete / 2 completed seasons; 2026: 1 ties; 2027: 2 ties
+- [GGMEN](https://neonsportz.com/leagues/GGMEN/): 2 complete / 2 completed seasons; 2026: 1 ties
+- [GMS](https://neonsportz.com/leagues/GMS/): 2 complete / 2 completed seasons; 2027: 1 ties; 2028: zero games; possible missing early season/reset
+- [GOATZ](https://neonsportz.com/leagues/GOATZ/): 2 complete / 2 completed seasons; 2027: 2 ties
+- [GZ](https://neonsportz.com/leagues/GZ/): 2 complete / 2 completed seasons; no concerns
+- [HCL](https://neonsportz.com/leagues/HCL/): 2 complete / 2 completed seasons; 2028: zero games; possible missing early season/reset
+- [HFML](https://neonsportz.com/leagues/HFML/): 2 complete / 2 completed seasons; 2028: zero games; possible missing early season/reset
+- [HR](https://neonsportz.com/leagues/HR/): 2 complete / 2 completed seasons; no concerns
+- [HTMZ](https://neonsportz.com/leagues/HTMZ/): 2 complete / 2 completed seasons; no concerns
+- [LD](https://neonsportz.com/leagues/LD/): 2 complete / 2 completed seasons; 2027: 1 ties
+- [LGNDS](https://neonsportz.com/leagues/LGNDS/): 2 complete / 2 completed seasons; 2028: zero games; possible missing early season/reset
+- [LMGG](https://neonsportz.com/leagues/LMGG/): 2 complete / 2 completed seasons; 2027: 1 ties
+- [LND69](https://neonsportz.com/leagues/LND69/): 2 complete / 2 completed seasons; 2026: 2 ties; 2027: 1 ties
+- [LTL27](https://neonsportz.com/leagues/LTL27/): 2 complete / 2 completed seasons; 2026: 1 ties; 2027: 1 ties
+- [MC](https://neonsportz.com/leagues/MC/): 2 complete / 2 completed seasons; 2026: 1 ties
+- [MCFL](https://neonsportz.com/leagues/MCFL/): 2 complete / 2 completed seasons; 2027: 1 ties
+- [MF](https://neonsportz.com/leagues/MF/): 2 complete / 2 completed seasons; 2027: 1 ties
+- [MFL27](https://neonsportz.com/leagues/MFL27/): 2 complete / 2 completed seasons; 2027: 1 ties; 2028: zero games; possible missing early season/reset
+- [MFLSL](https://neonsportz.com/leagues/MFLSL/): 2 complete / 2 completed seasons; no concerns
+- [MIL](https://neonsportz.com/leagues/MIL/): 2 complete / 2 completed seasons; 2028: zero games; possible missing early season/reset
+- [MMGA6](https://neonsportz.com/leagues/MMGA6/): 2 complete / 2 completed seasons; no concerns
+- [MN](https://neonsportz.com/leagues/MN/): 2 complete / 2 completed seasons; 2026: 1 ties; 2028: zero games; possible missing early season/reset
+- [MNL](https://neonsportz.com/leagues/MNL/): 2 complete / 2 completed seasons; no concerns
+- [MOE](https://neonsportz.com/leagues/MOE/): 2 complete / 2 completed seasons; no concerns
+- [MSS](https://neonsportz.com/leagues/MSS/): 2 complete / 2 completed seasons; no concerns
+- [MTC](https://neonsportz.com/leagues/MTC/): 2 complete / 2 completed seasons; no concerns
+- [MVPL](https://neonsportz.com/leagues/MVPL/): 2 complete / 2 completed seasons; no concerns
+- [MWL](https://neonsportz.com/leagues/MWL/): 2 complete / 2 completed seasons; 2026: 1 ties; 2027: 2 ties
+- [NDO](https://neonsportz.com/leagues/NDO/): 2 complete / 2 completed seasons; 2027: 1 ties
+- [NS27](https://neonsportz.com/leagues/NS27/): 2 complete / 2 completed seasons; no concerns
+- [O1](https://neonsportz.com/leagues/O1/): 2 complete / 2 completed seasons; no concerns
+- [RSF2](https://neonsportz.com/leagues/RSF2/): 2 complete / 2 completed seasons; 2027: 2 ties
+- [RTGM](https://neonsportz.com/leagues/RTGM/): 2 complete / 2 completed seasons; no concerns
+- [RTTSB](https://neonsportz.com/leagues/RTTSB/): 2 complete / 2 completed seasons; 2026: 1 ties; 2027: 1 ties
+- [RZS](https://neonsportz.com/leagues/RZS/): 2 complete / 2 completed seasons; 2027: 1 ties
+- [SDSK](https://neonsportz.com/leagues/SDSK/): 2 complete / 2 completed seasons; no concerns
+- [SL27](https://neonsportz.com/leagues/SL27/): 2 complete / 2 completed seasons; no concerns
+- [SML](https://neonsportz.com/leagues/SML/): 2 complete / 2 completed seasons; 2026: 1 ties
+- [SMLP](https://neonsportz.com/leagues/SMLP/): 2 complete / 2 completed seasons; no concerns
+- [SOM27](https://neonsportz.com/leagues/SOM27/): 2 complete / 2 completed seasons; no concerns
+- [STB](https://neonsportz.com/leagues/STB/): 2 complete / 2 completed seasons; 2026: 4 ties; 2027: 5 ties
+- [TCJ27](https://neonsportz.com/leagues/TCJ27/): 2 complete / 2 completed seasons; 2027: 1 ties
+- [TFL](https://neonsportz.com/leagues/TFL/): 2 complete / 2 completed seasons; 2026: 2 ties
+- [TGF](https://neonsportz.com/leagues/TGF/): 2 complete / 2 completed seasons; no concerns
+- [TGNL](https://neonsportz.com/leagues/TGNL/): 2 complete / 2 completed seasons; 2027: 3 ties
+- [TGNP](https://neonsportz.com/leagues/TGNP/): 2 complete / 2 completed seasons; no concerns
+- [TL](https://neonsportz.com/leagues/TL/): 2 complete / 2 completed seasons; 2028: zero games; possible missing early season/reset
+- [TR](https://neonsportz.com/leagues/TR/): 2 complete / 2 completed seasons; no concerns
+- [TSFL](https://neonsportz.com/leagues/TSFL/): 2 complete / 2 completed seasons; 2027: 1 ties
+- [TSGN](https://neonsportz.com/leagues/TSGN/): 2 complete / 2 completed seasons; no concerns
+- [TSL](https://neonsportz.com/leagues/TSL/): 2 complete / 2 completed seasons; no concerns
+- [TUFT](https://neonsportz.com/leagues/TUFT/): 2 complete / 2 completed seasons; no concerns
+- [UFL](https://neonsportz.com/leagues/UFL/): 2 complete / 2 completed seasons; 2026: 1 ties
+- [UML2](https://neonsportz.com/leagues/UML2/): 2 complete / 2 completed seasons; no concerns
+- [UPR](https://neonsportz.com/leagues/UPR/): 2 complete / 2 completed seasons; 2027: 1 ties
+- [VEFL2](https://neonsportz.com/leagues/VEFL2/): 2 complete / 2 completed seasons; 2026: 2 ties
+- [VFLFR](https://neonsportz.com/leagues/VFLFR/): 2 complete / 2 completed seasons; no concerns
+- [WPCFM](https://neonsportz.com/leagues/WPCFM/): 2 complete / 2 completed seasons; no concerns
+- [XBL](https://neonsportz.com/leagues/XBL/): 2 complete / 2 completed seasons; 2026: 3 ties; 2027: 2 ties; 2028: zero games; possible missing early season/reset
+- [BV](https://neonsportz.com/leagues/BV/): 1 complete / 11 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset; 2027: extra/missing weeks; 2027: invalid playoff conference counts; 2027: postseason rounds differ from 6/4/2/0/1; 2027: regular season requires 272 games and 17/team; 2027: team count 0 != 32; 2027: wild-card winners/byes inconsistent; 2027: zero games; possible missing early season/reset; 2028: extra/missing weeks; 2028: invalid playoff conference counts; 2028: postseason rounds differ from 6/4/2/0/1; 2028: regular season requires 272 games and 17/team; 2028: team count 0 != 32; 2028: wild-card winners/byes inconsistent; 2028: zero games; possible missing early season/reset; 2029: extra/missing weeks; 2029: invalid playoff conference counts; 2029: postseason rounds differ from 6/4/2/0/1; 2029: regular season requires 272 games and 17/team; 2029: team count 0 != 32; 2029: wild-card winners/byes inconsistent; 2029: zero games; possible missing early season/reset; 2030: extra/missing weeks; 2030: invalid playoff conference counts; 2030: postseason rounds differ from 6/4/2/0/1; 2030: regular season requires 272 games and 17/team; 2030: team count 0 != 32; 2030: wild-card winners/byes inconsistent; 2030: zero games; possible missing early season/reset; 2031: extra/missing weeks; 2031: invalid playoff conference counts; 2031: postseason rounds differ from 6/4/2/0/1; 2031: regular season requires 272 games and 17/team; 2031: team count 0 != 32; 2031: wild-card winners/byes inconsistent; 2031: zero games; possible missing early season/reset; 2032: extra/missing weeks; 2032: invalid playoff conference counts; 2032: postseason rounds differ from 6/4/2/0/1; 2032: regular season requires 272 games and 17/team; 2032: team count 0 != 32; 2032: wild-card winners/byes inconsistent; 2032: zero games; possible missing early season/reset; 2033: extra/missing weeks; 2033: invalid playoff conference counts; 2033: postseason rounds differ from 6/4/2/0/1; 2033: regular season requires 272 games and 17/team; 2033: team count 0 != 32; 2033: wild-card winners/byes inconsistent; 2033: zero games; possible missing early season/reset; 2034: extra/missing weeks; 2034: invalid playoff conference counts; 2034: postseason rounds differ from 6/4/2/0/1; 2034: regular season requires 272 games and 17/team; 2034: team count 0 != 32; 2034: wild-card winners/byes inconsistent; 2034: zero games; possible missing early season/reset; 2035: extra/missing weeks; 2035: invalid playoff conference counts; 2035: postseason rounds differ from 6/4/2/0/1; 2035: regular season requires 272 games and 17/team; 2035: team count 0 != 32; 2035: wild-card winners/byes inconsistent; 2035: zero games; possible missing early season/reset
+- [EBJS](https://neonsportz.com/leagues/EBJS/): 1 complete / 4 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset; 2027: extra/missing weeks; 2027: invalid playoff conference counts; 2027: postseason rounds differ from 6/4/2/0/1; 2027: regular season requires 272 games and 17/team; 2027: team count 0 != 32; 2027: wild-card winners/byes inconsistent; 2027: zero games; possible missing early season/reset; 2028: playoff winners do not advance; 2028: postseason rounds differ from 6/4/2/0/1
+- [FN27](https://neonsportz.com/leagues/FN27/): 1 complete / 4 completed seasons; 2027: 1 ties; 2027: extra/missing weeks; 2027: invalid playoff conference counts; 2027: postseason rounds differ from 6/4/2/0/1; 2027: regular season requires 272 games and 17/team; 2027: wild-card winners/byes inconsistent; 2028: 1 ties; 2028: playoff winners do not advance; 2028: postseason rounds differ from 6/4/2/0/1; 2029: extra/missing weeks; 2029: regular season requires 272 games and 17/team
+- [D](https://neonsportz.com/leagues/D/): 1 complete / 3 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset; 2027: invalid playoff conference counts; 2027: postseason rounds differ from 6/4/2/0/1; 2027: wild-card winners/byes inconsistent
+- [M2L](https://neonsportz.com/leagues/M2L/): 1 complete / 3 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset; 2027: extra/missing weeks; 2027: invalid playoff conference counts; 2027: postseason rounds differ from 6/4/2/0/1; 2027: regular season requires 272 games and 17/team; 2027: team count 0 != 32; 2027: wild-card winners/byes inconsistent; 2027: zero games; possible missing early season/reset
+- [MSFTS](https://neonsportz.com/leagues/MSFTS/): 1 complete / 3 completed seasons; 2027: 1 ties; 2027: invalid playoff conference counts; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1; 2027: regular season requires 272 games and 17/team; 2027: wild-card winners/byes inconsistent; 2028: extra/missing weeks; 2028: regular season requires 272 games and 17/team; 2028: team count 15 != 32
+- [STM27](https://neonsportz.com/leagues/STM27/): 1 complete / 3 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset; 2027: extra/missing weeks; 2027: invalid playoff conference counts; 2027: postseason rounds differ from 6/4/2/0/1; 2027: regular season requires 272 games and 17/team; 2027: team count 0 != 32; 2027: wild-card winners/byes inconsistent; 2027: zero games; possible missing early season/reset; 2029: zero games; possible missing early season/reset
+- [THREE](https://neonsportz.com/leagues/THREE/): 1 complete / 3 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset; 2027: extra/missing weeks; 2027: invalid playoff conference counts; 2027: postseason rounds differ from 6/4/2/0/1; 2027: regular season requires 272 games and 17/team; 2027: team count 0 != 32; 2027: wild-card winners/byes inconsistent; 2027: zero games; possible missing early season/reset
+- [A0B](https://neonsportz.com/leagues/A0B/): 1 complete / 2 completed seasons; 2027: invalid playoff conference counts; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1; 2027: regular season requires 272 games and 17/team; 2027: wild-card winners/byes inconsistent
+- [ACR](https://neonsportz.com/leagues/ACR/): 1 complete / 2 completed seasons; 2026: 1 ties; 2027: 1 ties; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1
+- [AFL](https://neonsportz.com/leagues/AFL/): 1 complete / 2 completed seasons; 2026: 1 ties; 2027: extra/missing weeks; 2027: regular season requires 272 games and 17/team
+- [AMO27](https://neonsportz.com/leagues/AMO27/): 1 complete / 2 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [BTA27](https://neonsportz.com/leagues/BTA27/): 1 complete / 2 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset; 2027: 1 ties
+- [C](https://neonsportz.com/leagues/C/): 1 complete / 2 completed seasons; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1
+- [CLF](https://neonsportz.com/leagues/CLF/): 1 complete / 2 completed seasons; 2026: 1 ties; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [CM27](https://neonsportz.com/leagues/CM27/): 1 complete / 2 completed seasons; 2026: 2 ties; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: wild-card winners/byes inconsistent; 2027: 1 ties
+- [EXOO](https://neonsportz.com/leagues/EXOO/): 1 complete / 2 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2027: 1 ties
+- [FTL27](https://neonsportz.com/leagues/FTL27/): 1 complete / 2 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2027: 2 ties
+- [FTML](https://neonsportz.com/leagues/FTML/): 1 complete / 2 completed seasons; 2027: extra/missing weeks; 2027: regular season requires 272 games and 17/team
+- [FTPM2](https://neonsportz.com/leagues/FTPM2/): 1 complete / 2 completed seasons; 2027: invalid playoff conference counts; 2027: postseason rounds differ from 6/4/2/0/1; 2027: wild-card winners/byes inconsistent
+- [JSFL](https://neonsportz.com/leagues/JSFL/): 1 complete / 2 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset; 2027: 1 ties
+- [JVSG](https://neonsportz.com/leagues/JVSG/): 1 complete / 2 completed seasons; 2026: 1 ties; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [LEGN](https://neonsportz.com/leagues/LEGN/): 1 complete / 2 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent
+- [M18](https://neonsportz.com/leagues/M18/): 1 complete / 2 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent; 2027: 2 ties
+- [MADD](https://neonsportz.com/leagues/MADD/): 1 complete / 2 completed seasons; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1
+- [MCE](https://neonsportz.com/leagues/MCE/): 1 complete / 2 completed seasons; 2026: 1 ties; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [MF4S](https://neonsportz.com/leagues/MF4S/): 1 complete / 2 completed seasons; 2026: 1 ties; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1
+- [MFL](https://neonsportz.com/leagues/MFL/): 1 complete / 2 completed seasons; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: wild-card winners/byes inconsistent; 2027: 1 ties
+- [MFLRZ](https://neonsportz.com/leagues/MFLRZ/): 1 complete / 2 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2027: 2 ties
+- [MLX](https://neonsportz.com/leagues/MLX/): 1 complete / 2 completed seasons; 2026: 1 ties; 2027: 1 ties; 2027: invalid playoff conference counts; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1; 2027: regular season requires 272 games and 17/team
+- [MMML](https://neonsportz.com/leagues/MMML/): 1 complete / 2 completed seasons; 2027: invalid playoff conference counts; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1
+- [MNCO](https://neonsportz.com/leagues/MNCO/): 1 complete / 2 completed seasons; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1
+- [NFZ](https://neonsportz.com/leagues/NFZ/): 1 complete / 2 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset; 2028: zero games; possible missing early season/reset
+- [NIFL](https://neonsportz.com/leagues/NIFL/): 1 complete / 2 completed seasons; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1
+- [NM27](https://neonsportz.com/leagues/NM27/): 1 complete / 2 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [NOFL1](https://neonsportz.com/leagues/NOFL1/): 1 complete / 2 completed seasons; 2027: 1 ties; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1
+- [PTA](https://neonsportz.com/leagues/PTA/): 1 complete / 2 completed seasons; 2027: 1 ties; 2027: extra/missing weeks; 2027: regular season requires 272 games and 17/team
+- [RTG](https://neonsportz.com/leagues/RTG/): 1 complete / 2 completed seasons; 2026: 1 ties; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1
+- [SGA](https://neonsportz.com/leagues/SGA/): 1 complete / 2 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent
+- [SIM](https://neonsportz.com/leagues/SIM/): 1 complete / 2 completed seasons; 2027: invalid playoff conference counts; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1; 2027: regular season requires 272 games and 17/team; 2027: wild-card winners/byes inconsistent
+- [SSBML](https://neonsportz.com/leagues/SSBML/): 1 complete / 2 completed seasons; 2026: 1 ties; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2028: zero games; possible missing early season/reset
+- [TDCR](https://neonsportz.com/leagues/TDCR/): 1 complete / 2 completed seasons; 2027: extra/missing weeks; 2027: regular season requires 272 games and 17/team
+- [TDYC](https://neonsportz.com/leagues/TDYC/): 1 complete / 2 completed seasons; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1
+- [TFL27](https://neonsportz.com/leagues/TFL27/): 1 complete / 2 completed seasons; 2026: 1 ties; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [TG27](https://neonsportz.com/leagues/TG27/): 1 complete / 2 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent
+- [TGC27](https://neonsportz.com/leagues/TGC27/): 1 complete / 2 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [TGIB](https://neonsportz.com/leagues/TGIB/): 1 complete / 2 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset; 2027: 1 ties
+- [TNW](https://neonsportz.com/leagues/TNW/): 1 complete / 2 completed seasons; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1
+- [VFL1](https://neonsportz.com/leagues/VFL1/): 1 complete / 2 completed seasons; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2027: 1 ties; 2028: zero games; possible missing early season/reset
+- [VL27](https://neonsportz.com/leagues/VL27/): 1 complete / 2 completed seasons; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [X32](https://neonsportz.com/leagues/X32/): 1 complete / 2 completed seasons; 2027: 2 ties; 2027: invalid playoff conference counts; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1; 2027: regular season requires 272 games and 17/team; 2027: wild-card winners/byes inconsistent
+- [0MFL](https://neonsportz.com/leagues/0MFL/): 1 complete / 1 completed seasons; no concerns
+- [1ML](https://neonsportz.com/leagues/1ML/): 1 complete / 1 completed seasons; no concerns
+- [27MFL](https://neonsportz.com/leagues/27MFL/): 1 complete / 1 completed seasons; no concerns
+- [3F](https://neonsportz.com/leagues/3F/): 1 complete / 1 completed seasons; no concerns
+- [4THDS](https://neonsportz.com/leagues/4THDS/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [4VS](https://neonsportz.com/leagues/4VS/): 1 complete / 1 completed seasons; no concerns
+- [500](https://neonsportz.com/leagues/500/): 1 complete / 1 completed seasons; no concerns
+- [A32](https://neonsportz.com/leagues/A32/): 1 complete / 1 completed seasons; no concerns
+- [ACME](https://neonsportz.com/leagues/ACME/): 1 complete / 1 completed seasons; no concerns
+- [AEF](https://neonsportz.com/leagues/AEF/): 1 complete / 1 completed seasons; no concerns
+- [AFL2](https://neonsportz.com/leagues/AFL2/): 1 complete / 1 completed seasons; 2026: 3 ties
+- [AFL3](https://neonsportz.com/leagues/AFL3/): 1 complete / 1 completed seasons; 2026: 2 ties
+- [AGD2](https://neonsportz.com/leagues/AGD2/): 1 complete / 1 completed seasons; no concerns
+- [AGS2](https://neonsportz.com/leagues/AGS2/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [ALS27](https://neonsportz.com/leagues/ALS27/): 1 complete / 1 completed seasons; no concerns
+- [AMG](https://neonsportz.com/leagues/AMG/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [AOG](https://neonsportz.com/leagues/AOG/): 1 complete / 1 completed seasons; no concerns
+- [APEX](https://neonsportz.com/leagues/APEX/): 1 complete / 1 completed seasons; no concerns
+- [ARAIG](https://neonsportz.com/leagues/ARAIG/): 1 complete / 1 completed seasons; no concerns
+- [ASAP](https://neonsportz.com/leagues/ASAP/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [ASS](https://neonsportz.com/leagues/ASS/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [B27M2](https://neonsportz.com/leagues/B27M2/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [B69](https://neonsportz.com/leagues/B69/): 1 complete / 1 completed seasons; no concerns
+- [BARDI](https://neonsportz.com/leagues/BARDI/): 1 complete / 1 completed seasons; no concerns
+- [BAWLS](https://neonsportz.com/leagues/BAWLS/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [BBR](https://neonsportz.com/leagues/BBR/): 1 complete / 1 completed seasons; no concerns
+- [BFL](https://neonsportz.com/leagues/BFL/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [BGC](https://neonsportz.com/leagues/BGC/): 1 complete / 1 completed seasons; no concerns
+- [BLESS](https://neonsportz.com/leagues/BLESS/): 1 complete / 1 completed seasons; no concerns
+- [BM27](https://neonsportz.com/leagues/BM27/): 1 complete / 1 completed seasons; no concerns
+- [BML](https://neonsportz.com/leagues/BML/): 1 complete / 1 completed seasons; 2026: 2 ties
+- [BNB](https://neonsportz.com/leagues/BNB/): 1 complete / 1 completed seasons; 2026: 3 ties
+- [BOA](https://neonsportz.com/leagues/BOA/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [BOBL](https://neonsportz.com/leagues/BOBL/): 1 complete / 1 completed seasons; no concerns
+- [BS27](https://neonsportz.com/leagues/BS27/): 1 complete / 1 completed seasons; no concerns
+- [BST](https://neonsportz.com/leagues/BST/): 1 complete / 1 completed seasons; 2026: 2 ties
+- [BTB](https://neonsportz.com/leagues/BTB/): 1 complete / 1 completed seasons; no concerns
+- [BTR](https://neonsportz.com/leagues/BTR/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [BUL](https://neonsportz.com/leagues/BUL/): 1 complete / 1 completed seasons; no concerns
+- [BXI](https://neonsportz.com/leagues/BXI/): 1 complete / 1 completed seasons; no concerns
+- [C123](https://neonsportz.com/leagues/C123/): 1 complete / 1 completed seasons; no concerns
+- [C2C](https://neonsportz.com/leagues/C2C/): 1 complete / 1 completed seasons; no concerns
+- [CAVE](https://neonsportz.com/leagues/CAVE/): 1 complete / 1 completed seasons; 2027: zero games; possible missing early season/reset
+- [CBP](https://neonsportz.com/leagues/CBP/): 1 complete / 1 completed seasons; no concerns
+- [CCFB](https://neonsportz.com/leagues/CCFB/): 1 complete / 1 completed seasons; no concerns
+- [CCFL](https://neonsportz.com/leagues/CCFL/): 1 complete / 1 completed seasons; 2026: 2 ties
+- [CFL](https://neonsportz.com/leagues/CFL/): 1 complete / 1 completed seasons; no concerns
+- [CGC27](https://neonsportz.com/leagues/CGC27/): 1 complete / 1 completed seasons; no concerns
+- [CHML](https://neonsportz.com/leagues/CHML/): 1 complete / 1 completed seasons; no concerns
+- [CL27](https://neonsportz.com/leagues/CL27/): 1 complete / 1 completed seasons; 2026: 2 ties
+- [CMF](https://neonsportz.com/leagues/CMF/): 1 complete / 1 completed seasons; no concerns
+- [CQB](https://neonsportz.com/leagues/CQB/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [CSFL](https://neonsportz.com/leagues/CSFL/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [D4L](https://neonsportz.com/leagues/D4L/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [DAWG](https://neonsportz.com/leagues/DAWG/): 1 complete / 1 completed seasons; no concerns
+- [DEMRL](https://neonsportz.com/leagues/DEMRL/): 1 complete / 1 completed seasons; no concerns
+- [DEV27](https://neonsportz.com/leagues/DEV27/): 1 complete / 1 completed seasons; no concerns
+- [DFB](https://neonsportz.com/leagues/DFB/): 1 complete / 1 completed seasons; no concerns
+- [DG](https://neonsportz.com/leagues/DG/): 1 complete / 1 completed seasons; no concerns
+- [DIST](https://neonsportz.com/leagues/DIST/): 1 complete / 1 completed seasons; no concerns
+- [DLN](https://neonsportz.com/leagues/DLN/): 1 complete / 1 completed seasons; 2026: 2 ties
+- [DNAFL](https://neonsportz.com/leagues/DNAFL/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [DOC](https://neonsportz.com/leagues/DOC/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [DRML](https://neonsportz.com/leagues/DRML/): 1 complete / 1 completed seasons; no concerns
+- [DROW](https://neonsportz.com/leagues/DROW/): 1 complete / 1 completed seasons; no concerns
+- [E32](https://neonsportz.com/leagues/E32/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [ECML](https://neonsportz.com/leagues/ECML/): 1 complete / 1 completed seasons; no concerns
+- [EML](https://neonsportz.com/leagues/EML/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [EZE](https://neonsportz.com/leagues/EZE/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [EZG](https://neonsportz.com/leagues/EZG/): 1 complete / 1 completed seasons; no concerns
+- [FB](https://neonsportz.com/leagues/FB/): 1 complete / 1 completed seasons; no concerns
+- [FCL](https://neonsportz.com/leagues/FCL/): 1 complete / 1 completed seasons; no concerns
+- [FF](https://neonsportz.com/leagues/FF/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [FIRST](https://neonsportz.com/leagues/FIRST/): 1 complete / 1 completed seasons; no concerns
+- [FM27](https://neonsportz.com/leagues/FM27/): 1 complete / 1 completed seasons; no concerns
+- [FMF26](https://neonsportz.com/leagues/FMF26/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [FML](https://neonsportz.com/leagues/FML/): 1 complete / 1 completed seasons; no concerns
+- [FNF](https://neonsportz.com/leagues/FNF/): 1 complete / 1 completed seasons; no concerns
+- [FTC](https://neonsportz.com/leagues/FTC/): 1 complete / 1 completed seasons; 2026: 2 ties
+- [FYT](https://neonsportz.com/leagues/FYT/): 1 complete / 1 completed seasons; no concerns
+- [G25](https://neonsportz.com/leagues/G25/): 1 complete / 1 completed seasons; no concerns
+- [GE27](https://neonsportz.com/leagues/GE27/): 1 complete / 1 completed seasons; no concerns
+- [GFL1](https://neonsportz.com/leagues/GFL1/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [GFL2](https://neonsportz.com/leagues/GFL2/): 1 complete / 1 completed seasons; 2026: 1 ties; 2027: zero games; possible missing early season/reset
+- [GFL27](https://neonsportz.com/leagues/GFL27/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [GFML](https://neonsportz.com/leagues/GFML/): 1 complete / 1 completed seasons; no concerns
+- [GFSSL](https://neonsportz.com/leagues/GFSSL/): 1 complete / 1 completed seasons; no concerns
+- [GG1](https://neonsportz.com/leagues/GG1/): 1 complete / 1 completed seasons; no concerns
+- [GGF](https://neonsportz.com/leagues/GGF/): 1 complete / 1 completed seasons; no concerns
+- [GGML](https://neonsportz.com/leagues/GGML/): 1 complete / 1 completed seasons; no concerns
+- [GGN27](https://neonsportz.com/leagues/GGN27/): 1 complete / 1 completed seasons; no concerns
+- [GGR](https://neonsportz.com/leagues/GGR/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [GKS](https://neonsportz.com/leagues/GKS/): 1 complete / 1 completed seasons; no concerns
+- [GL2](https://neonsportz.com/leagues/GL2/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [GL27](https://neonsportz.com/leagues/GL27/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [GM2](https://neonsportz.com/leagues/GM2/): 1 complete / 1 completed seasons; no concerns
+- [GMCL](https://neonsportz.com/leagues/GMCL/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [GMG27](https://neonsportz.com/leagues/GMG27/): 1 complete / 1 completed seasons; no concerns
+- [GOAT](https://neonsportz.com/leagues/GOAT/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [GOR](https://neonsportz.com/leagues/GOR/): 1 complete / 1 completed seasons; no concerns
+- [GS](https://neonsportz.com/leagues/GS/): 1 complete / 1 completed seasons; no concerns
+- [GSI27](https://neonsportz.com/leagues/GSI27/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [GTM](https://neonsportz.com/leagues/GTM/): 1 complete / 1 completed seasons; 2026: 3 ties
+- [GTMC](https://neonsportz.com/leagues/GTMC/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [GW27](https://neonsportz.com/leagues/GW27/): 1 complete / 1 completed seasons; 2026: 2 ties
+- [GWRS](https://neonsportz.com/leagues/GWRS/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [GZML](https://neonsportz.com/leagues/GZML/): 1 complete / 1 completed seasons; no concerns
+- [HFFL](https://neonsportz.com/leagues/HFFL/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [HML](https://neonsportz.com/leagues/HML/): 1 complete / 1 completed seasons; no concerns
+- [HSM27](https://neonsportz.com/leagues/HSM27/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [IIML](https://neonsportz.com/leagues/IIML/): 1 complete / 1 completed seasons; no concerns
+- [IM](https://neonsportz.com/leagues/IM/): 1 complete / 1 completed seasons; no concerns
+- [IMFL](https://neonsportz.com/leagues/IMFL/): 1 complete / 1 completed seasons; no concerns
+- [ITC](https://neonsportz.com/leagues/ITC/): 1 complete / 1 completed seasons; no concerns
+- [ITGL](https://neonsportz.com/leagues/ITGL/): 1 complete / 1 completed seasons; no concerns
+- [JET](https://neonsportz.com/leagues/JET/): 1 complete / 1 completed seasons; no concerns
+- [JMCL](https://neonsportz.com/leagues/JMCL/): 1 complete / 1 completed seasons; no concerns
+- [JML](https://neonsportz.com/leagues/JML/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [JPM](https://neonsportz.com/leagues/JPM/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [KG](https://neonsportz.com/leagues/KG/): 1 complete / 1 completed seasons; no concerns
+- [KN](https://neonsportz.com/leagues/KN/): 1 complete / 1 completed seasons; no concerns
+- [KOK](https://neonsportz.com/leagues/KOK/): 1 complete / 1 completed seasons; no concerns
+- [KOS](https://neonsportz.com/leagues/KOS/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [KRASH](https://neonsportz.com/leagues/KRASH/): 1 complete / 1 completed seasons; no concerns
+- [LBFA](https://neonsportz.com/leagues/LBFA/): 1 complete / 1 completed seasons; no concerns
+- [LCFM](https://neonsportz.com/leagues/LCFM/): 1 complete / 1 completed seasons; 2027: zero games; possible missing early season/reset
+- [LDC27](https://neonsportz.com/leagues/LDC27/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [LF](https://neonsportz.com/leagues/LF/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [LGA](https://neonsportz.com/leagues/LGA/): 1 complete / 1 completed seasons; no concerns
+- [LGL](https://neonsportz.com/leagues/LGL/): 1 complete / 1 completed seasons; no concerns
+- [LGSIM](https://neonsportz.com/leagues/LGSIM/): 1 complete / 1 completed seasons; no concerns
+- [LH](https://neonsportz.com/leagues/LH/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [LL2](https://neonsportz.com/leagues/LL2/): 1 complete / 1 completed seasons; no concerns
+- [LMBD](https://neonsportz.com/leagues/LMBD/): 1 complete / 1 completed seasons; no concerns
+- [LMS](https://neonsportz.com/leagues/LMS/): 1 complete / 1 completed seasons; 2026: 3 ties
+- [LOBM2](https://neonsportz.com/leagues/LOBM2/): 1 complete / 1 completed seasons; no concerns
+- [M](https://neonsportz.com/leagues/M/): 1 complete / 1 completed seasons; no concerns
+- [M2](https://neonsportz.com/leagues/M2/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [M27A](https://neonsportz.com/leagues/M27A/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [M2B](https://neonsportz.com/leagues/M2B/): 1 complete / 1 completed seasons; no concerns
+- [M2LL3](https://neonsportz.com/leagues/M2LL3/): 1 complete / 1 completed seasons; no concerns
+- [MAD27](https://neonsportz.com/leagues/MAD27/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [MADMX](https://neonsportz.com/leagues/MADMX/): 1 complete / 1 completed seasons; no concerns
+- [MANGM](https://neonsportz.com/leagues/MANGM/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [MANIA](https://neonsportz.com/leagues/MANIA/): 1 complete / 1 completed seasons; 2026: 2 ties
+- [MANIC](https://neonsportz.com/leagues/MANIC/): 1 complete / 1 completed seasons; no concerns
+- [MAS](https://neonsportz.com/leagues/MAS/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [MASS](https://neonsportz.com/leagues/MASS/): 1 complete / 1 completed seasons; no concerns
+- [MB](https://neonsportz.com/leagues/MB/): 1 complete / 1 completed seasons; no concerns
+- [MB27](https://neonsportz.com/leagues/MB27/): 1 complete / 1 completed seasons; 2026: 2 ties
+- [MC27](https://neonsportz.com/leagues/MC27/): 1 complete / 1 completed seasons; no concerns
+- [MCL](https://neonsportz.com/leagues/MCL/): 1 complete / 1 completed seasons; no concerns
+- [MCLG](https://neonsportz.com/leagues/MCLG/): 1 complete / 1 completed seasons; no concerns
+- [MDR27](https://neonsportz.com/leagues/MDR27/): 1 complete / 1 completed seasons; 2026: 2 ties
+- [MEFL](https://neonsportz.com/leagues/MEFL/): 1 complete / 1 completed seasons; no concerns
+- [MELF](https://neonsportz.com/leagues/MELF/): 1 complete / 1 completed seasons; 2027: zero games; possible missing early season/reset
+- [MELN](https://neonsportz.com/leagues/MELN/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [MERGE](https://neonsportz.com/leagues/MERGE/): 1 complete / 1 completed seasons; no concerns
+- [MF27](https://neonsportz.com/leagues/MF27/): 1 complete / 1 completed seasons; no concerns
+- [MFDL](https://neonsportz.com/leagues/MFDL/): 1 complete / 1 completed seasons; 2026: 2 ties
+- [MFL1](https://neonsportz.com/leagues/MFL1/): 1 complete / 1 completed seasons; no concerns
+- [MFLA](https://neonsportz.com/leagues/MFLA/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [MFLPA](https://neonsportz.com/leagues/MFLPA/): 1 complete / 1 completed seasons; no concerns
+- [MFRL](https://neonsportz.com/leagues/MFRL/): 1 complete / 1 completed seasons; no concerns
+- [MFT3](https://neonsportz.com/leagues/MFT3/): 1 complete / 1 completed seasons; no concerns
+- [MG27](https://neonsportz.com/leagues/MG27/): 1 complete / 1 completed seasons; no concerns
+- [MGC](https://neonsportz.com/leagues/MGC/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [MJFL](https://neonsportz.com/leagues/MJFL/): 1 complete / 1 completed seasons; no concerns
+- [MK](https://neonsportz.com/leagues/MK/): 1 complete / 1 completed seasons; no concerns
+- [MKL27](https://neonsportz.com/leagues/MKL27/): 1 complete / 1 completed seasons; no concerns
+- [ML](https://neonsportz.com/leagues/ML/): 1 complete / 1 completed seasons; no concerns
+- [ML27](https://neonsportz.com/leagues/ML27/): 1 complete / 1 completed seasons; no concerns
+- [MLG](https://neonsportz.com/leagues/MLG/): 1 complete / 1 completed seasons; no concerns
+- [MLK](https://neonsportz.com/leagues/MLK/): 1 complete / 1 completed seasons; no concerns
+- [MLM27](https://neonsportz.com/leagues/MLM27/): 1 complete / 1 completed seasons; no concerns
+- [MM](https://neonsportz.com/leagues/MM/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [MMGA](https://neonsportz.com/leagues/MMGA/): 1 complete / 1 completed seasons; no concerns
+- [MMR](https://neonsportz.com/leagues/MMR/): 1 complete / 1 completed seasons; no concerns
+- [MOF](https://neonsportz.com/leagues/MOF/): 1 complete / 1 completed seasons; no concerns
+- [MOG](https://neonsportz.com/leagues/MOG/): 1 complete / 1 completed seasons; no concerns
+- [MRSL](https://neonsportz.com/leagues/MRSL/): 1 complete / 1 completed seasons; 2026: 3 ties
+- [MS26](https://neonsportz.com/leagues/MS26/): 1 complete / 1 completed seasons; no concerns
+- [MSC](https://neonsportz.com/leagues/MSC/): 1 complete / 1 completed seasons; no concerns
+- [MSH](https://neonsportz.com/leagues/MSH/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [MTS](https://neonsportz.com/leagues/MTS/): 1 complete / 1 completed seasons; no concerns
+- [MUFL](https://neonsportz.com/leagues/MUFL/): 1 complete / 1 completed seasons; no concerns
+- [MUKL](https://neonsportz.com/leagues/MUKL/): 1 complete / 1 completed seasons; no concerns
+- [MWO](https://neonsportz.com/leagues/MWO/): 1 complete / 1 completed seasons; no concerns
+- [MXOS](https://neonsportz.com/leagues/MXOS/): 1 complete / 1 completed seasons; no concerns
+- [MZ](https://neonsportz.com/leagues/MZ/): 1 complete / 1 completed seasons; no concerns
+- [NAL](https://neonsportz.com/leagues/NAL/): 1 complete / 1 completed seasons; 2026: 4 ties
+- [NBL](https://neonsportz.com/leagues/NBL/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [NC](https://neonsportz.com/leagues/NC/): 1 complete / 1 completed seasons; no concerns
+- [NC1](https://neonsportz.com/leagues/NC1/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [NC3](https://neonsportz.com/leagues/NC3/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [NCFL](https://neonsportz.com/leagues/NCFL/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [NDR](https://neonsportz.com/leagues/NDR/): 1 complete / 1 completed seasons; no concerns
+- [NE](https://neonsportz.com/leagues/NE/): 1 complete / 1 completed seasons; no concerns
+- [NEM2](https://neonsportz.com/leagues/NEM2/): 1 complete / 1 completed seasons; 2026: 2 ties
+- [NES](https://neonsportz.com/leagues/NES/): 1 complete / 1 completed seasons; no concerns
+- [NFF](https://neonsportz.com/leagues/NFF/): 1 complete / 1 completed seasons; no concerns
+- [NFL](https://neonsportz.com/leagues/NFL/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [NFLSL](https://neonsportz.com/leagues/NFLSL/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [NFML](https://neonsportz.com/leagues/NFML/): 1 complete / 1 completed seasons; no concerns
+- [NFR](https://neonsportz.com/leagues/NFR/): 1 complete / 1 completed seasons; no concerns
+- [NGA](https://neonsportz.com/leagues/NGA/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [NGEL](https://neonsportz.com/leagues/NGEL/): 1 complete / 1 completed seasons; no concerns
+- [NHN](https://neonsportz.com/leagues/NHN/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [NLG](https://neonsportz.com/leagues/NLG/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [NM](https://neonsportz.com/leagues/NM/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [NPILE](https://neonsportz.com/leagues/NPILE/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [NSB](https://neonsportz.com/leagues/NSB/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [NT27](https://neonsportz.com/leagues/NT27/): 1 complete / 1 completed seasons; no concerns
+- [NXL](https://neonsportz.com/leagues/NXL/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [ODM](https://neonsportz.com/leagues/ODM/): 1 complete / 1 completed seasons; no concerns
+- [OFM](https://neonsportz.com/leagues/OFM/): 1 complete / 1 completed seasons; no concerns
+- [OG](https://neonsportz.com/leagues/OG/): 1 complete / 1 completed seasons; no concerns
+- [OGC](https://neonsportz.com/leagues/OGC/): 1 complete / 1 completed seasons; no concerns
+- [OGLV](https://neonsportz.com/leagues/OGLV/): 1 complete / 1 completed seasons; 2026: 2 ties
+- [OLG](https://neonsportz.com/leagues/OLG/): 1 complete / 1 completed seasons; no concerns
+- [OLR](https://neonsportz.com/leagues/OLR/): 1 complete / 1 completed seasons; no concerns
+- [OMFL](https://neonsportz.com/leagues/OMFL/): 1 complete / 1 completed seasons; no concerns
+- [OML2](https://neonsportz.com/leagues/OML2/): 1 complete / 1 completed seasons; no concerns
+- [OMY](https://neonsportz.com/leagues/OMY/): 1 complete / 1 completed seasons; no concerns
+- [OPM27](https://neonsportz.com/leagues/OPM27/): 1 complete / 1 completed seasons; no concerns
+- [OSML](https://neonsportz.com/leagues/OSML/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [OTCN](https://neonsportz.com/leagues/OTCN/): 1 complete / 1 completed seasons; no concerns
+- [OTE](https://neonsportz.com/leagues/OTE/): 1 complete / 1 completed seasons; no concerns
+- [PDE](https://neonsportz.com/leagues/PDE/): 1 complete / 1 completed seasons; no concerns
+- [PE27](https://neonsportz.com/leagues/PE27/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [PERC](https://neonsportz.com/leagues/PERC/): 1 complete / 1 completed seasons; no concerns
+- [PL](https://neonsportz.com/leagues/PL/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [PML](https://neonsportz.com/leagues/PML/): 1 complete / 1 completed seasons; no concerns
+- [PMLX](https://neonsportz.com/leagues/PMLX/): 1 complete / 1 completed seasons; no concerns
+- [PPL27](https://neonsportz.com/leagues/PPL27/): 1 complete / 1 completed seasons; no concerns
+- [PRI](https://neonsportz.com/leagues/PRI/): 1 complete / 1 completed seasons; no concerns
+- [PRK](https://neonsportz.com/leagues/PRK/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [PS](https://neonsportz.com/leagues/PS/): 1 complete / 1 completed seasons; no concerns
+- [PSL](https://neonsportz.com/leagues/PSL/): 1 complete / 1 completed seasons; 2027: zero games; possible missing early season/reset
+- [PTE](https://neonsportz.com/leagues/PTE/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [PTE27](https://neonsportz.com/leagues/PTE27/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [PXML](https://neonsportz.com/leagues/PXML/): 1 complete / 1 completed seasons; no concerns
+- [Q](https://neonsportz.com/leagues/Q/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [R](https://neonsportz.com/leagues/R/): 1 complete / 1 completed seasons; no concerns
+- [RDFL](https://neonsportz.com/leagues/RDFL/): 1 complete / 1 completed seasons; no concerns
+- [RDZ](https://neonsportz.com/leagues/RDZ/): 1 complete / 1 completed seasons; no concerns
+- [RDZLG](https://neonsportz.com/leagues/RDZLG/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [RFL27](https://neonsportz.com/leagues/RFL27/): 1 complete / 1 completed seasons; no concerns
+- [RFLC](https://neonsportz.com/leagues/RFLC/): 1 complete / 1 completed seasons; no concerns
+- [RGD](https://neonsportz.com/leagues/RGD/): 1 complete / 1 completed seasons; no concerns
+- [RGL](https://neonsportz.com/leagues/RGL/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [RJFL](https://neonsportz.com/leagues/RJFL/): 1 complete / 1 completed seasons; no concerns
+- [RLFL](https://neonsportz.com/leagues/RLFL/): 1 complete / 1 completed seasons; no concerns
+- [RN](https://neonsportz.com/leagues/RN/): 1 complete / 1 completed seasons; no concerns
+- [RNR](https://neonsportz.com/leagues/RNR/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [ROC27](https://neonsportz.com/leagues/ROC27/): 1 complete / 1 completed seasons; no concerns
+- [RPO](https://neonsportz.com/leagues/RPO/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [RSGN](https://neonsportz.com/leagues/RSGN/): 1 complete / 1 completed seasons; 2026: 2 ties
+- [RSSIM](https://neonsportz.com/leagues/RSSIM/): 1 complete / 1 completed seasons; no concerns
+- [RZH](https://neonsportz.com/leagues/RZH/): 1 complete / 1 completed seasons; no concerns
+- [RZSL](https://neonsportz.com/leagues/RZSL/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [S](https://neonsportz.com/leagues/S/): 1 complete / 1 completed seasons; 2026: 2 ties
+- [S2N](https://neonsportz.com/leagues/S2N/): 1 complete / 1 completed seasons; no concerns
+- [SB27](https://neonsportz.com/leagues/SB27/): 1 complete / 1 completed seasons; no concerns
+- [SBC](https://neonsportz.com/leagues/SBC/): 1 complete / 1 completed seasons; no concerns
+- [SCZ](https://neonsportz.com/leagues/SCZ/): 1 complete / 1 completed seasons; no concerns
+- [SFE](https://neonsportz.com/leagues/SFE/): 1 complete / 1 completed seasons; no concerns
+- [SFL](https://neonsportz.com/leagues/SFL/): 1 complete / 1 completed seasons; no concerns
+- [SH](https://neonsportz.com/leagues/SH/): 1 complete / 1 completed seasons; no concerns
+- [SJ](https://neonsportz.com/leagues/SJ/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [SJB](https://neonsportz.com/leagues/SJB/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [SMF](https://neonsportz.com/leagues/SMF/): 1 complete / 1 completed seasons; no concerns
+- [SMWUG](https://neonsportz.com/leagues/SMWUG/): 1 complete / 1 completed seasons; no concerns
+- [SNC27](https://neonsportz.com/leagues/SNC27/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [SOHK2](https://neonsportz.com/leagues/SOHK2/): 1 complete / 1 completed seasons; no concerns
+- [SOM](https://neonsportz.com/leagues/SOM/): 1 complete / 1 completed seasons; 2026: 3 ties
+- [SPA](https://neonsportz.com/leagues/SPA/): 1 complete / 1 completed seasons; no concerns
+- [SPC](https://neonsportz.com/leagues/SPC/): 1 complete / 1 completed seasons; no concerns
+- [SR](https://neonsportz.com/leagues/SR/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [SSFL](https://neonsportz.com/leagues/SSFL/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [SSMK](https://neonsportz.com/leagues/SSMK/): 1 complete / 1 completed seasons; no concerns
+- [STQ](https://neonsportz.com/leagues/STQ/): 1 complete / 1 completed seasons; no concerns
+- [SUPRM](https://neonsportz.com/leagues/SUPRM/): 1 complete / 1 completed seasons; no concerns
+- [SWJ27](https://neonsportz.com/leagues/SWJ27/): 1 complete / 1 completed seasons; 2027: zero games; possible missing early season/reset
+- [SWTGD](https://neonsportz.com/leagues/SWTGD/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [T](https://neonsportz.com/leagues/T/): 1 complete / 1 completed seasons; no concerns
+- [T220](https://neonsportz.com/leagues/T220/): 1 complete / 1 completed seasons; no concerns
+- [T2H](https://neonsportz.com/leagues/T2H/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [TB3](https://neonsportz.com/leagues/TB3/): 1 complete / 1 completed seasons; no concerns
+- [TBC](https://neonsportz.com/leagues/TBC/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [TBL](https://neonsportz.com/leagues/TBL/): 1 complete / 1 completed seasons; no concerns
+- [TBP](https://neonsportz.com/leagues/TBP/): 1 complete / 1 completed seasons; no concerns
+- [TCBU](https://neonsportz.com/leagues/TCBU/): 1 complete / 1 completed seasons; no concerns
+- [TDE](https://neonsportz.com/leagues/TDE/): 1 complete / 1 completed seasons; no concerns
+- [TGL](https://neonsportz.com/leagues/TGL/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [TJ2T](https://neonsportz.com/leagues/TJ2T/): 1 complete / 1 completed seasons; no concerns
+- [TJDDL](https://neonsportz.com/leagues/TJDDL/): 1 complete / 1 completed seasons; no concerns
+- [TJDRL](https://neonsportz.com/leagues/TJDRL/): 1 complete / 1 completed seasons; no concerns
+- [TL27](https://neonsportz.com/leagues/TL27/): 1 complete / 1 completed seasons; no concerns
+- [TMB](https://neonsportz.com/leagues/TMB/): 1 complete / 1 completed seasons; no concerns
+- [TMD](https://neonsportz.com/leagues/TMD/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [TMG](https://neonsportz.com/leagues/TMG/): 1 complete / 1 completed seasons; no concerns
+- [TML](https://neonsportz.com/leagues/TML/): 1 complete / 1 completed seasons; no concerns
+- [TML27](https://neonsportz.com/leagues/TML27/): 1 complete / 1 completed seasons; 2026: 2 ties
+- [TMM](https://neonsportz.com/leagues/TMM/): 1 complete / 1 completed seasons; 2026: 2 ties
+- [TNE](https://neonsportz.com/leagues/TNE/): 1 complete / 1 completed seasons; 2026: 2 ties; 2027: zero games; possible missing early season/reset
+- [TOWER](https://neonsportz.com/leagues/TOWER/): 1 complete / 1 completed seasons; no concerns
+- [TPL](https://neonsportz.com/leagues/TPL/): 1 complete / 1 completed seasons; no concerns
+- [TRL](https://neonsportz.com/leagues/TRL/): 1 complete / 1 completed seasons; no concerns
+- [TRPC](https://neonsportz.com/leagues/TRPC/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [TRR](https://neonsportz.com/leagues/TRR/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [TS](https://neonsportz.com/leagues/TS/): 1 complete / 1 completed seasons; 2027: zero games; possible missing early season/reset
+- [TS2](https://neonsportz.com/leagues/TS2/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [TS4](https://neonsportz.com/leagues/TS4/): 1 complete / 1 completed seasons; no concerns
+- [TTTT](https://neonsportz.com/leagues/TTTT/): 1 complete / 1 completed seasons; no concerns
+- [TTZ](https://neonsportz.com/leagues/TTZ/): 1 complete / 1 completed seasons; no concerns
+- [UD](https://neonsportz.com/leagues/UD/): 1 complete / 1 completed seasons; 2026: 2 ties
+- [UGK](https://neonsportz.com/leagues/UGK/): 1 complete / 1 completed seasons; no concerns
+- [UGSL](https://neonsportz.com/leagues/UGSL/): 1 complete / 1 completed seasons; no concerns
+- [UKFL](https://neonsportz.com/leagues/UKFL/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [UME](https://neonsportz.com/leagues/UME/): 1 complete / 1 completed seasons; no concerns
+- [UMFL](https://neonsportz.com/leagues/UMFL/): 1 complete / 1 completed seasons; no concerns
+- [UML](https://neonsportz.com/leagues/UML/): 1 complete / 1 completed seasons; no concerns
+- [UNC](https://neonsportz.com/leagues/UNC/): 1 complete / 1 completed seasons; no concerns
+- [US](https://neonsportz.com/leagues/US/): 1 complete / 1 completed seasons; no concerns
+- [USSL](https://neonsportz.com/leagues/USSL/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [VFLFL](https://neonsportz.com/leagues/VFLFL/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [W](https://neonsportz.com/leagues/W/): 1 complete / 1 completed seasons; no concerns
+- [W2FS](https://neonsportz.com/leagues/W2FS/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [WM](https://neonsportz.com/leagues/WM/): 1 complete / 1 completed seasons; no concerns
+- [WOT](https://neonsportz.com/leagues/WOT/): 1 complete / 1 completed seasons; no concerns
+- [WPG](https://neonsportz.com/leagues/WPG/): 1 complete / 1 completed seasons; no concerns
+- [WWX](https://neonsportz.com/leagues/WWX/): 1 complete / 1 completed seasons; no concerns
+- [XM](https://neonsportz.com/leagues/XM/): 1 complete / 1 completed seasons; no concerns
+- [XS](https://neonsportz.com/leagues/XS/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [YARD](https://neonsportz.com/leagues/YARD/): 1 complete / 1 completed seasons; no concerns
+- [YM](https://neonsportz.com/leagues/YM/): 1 complete / 1 completed seasons; no concerns
+- [YPL](https://neonsportz.com/leagues/YPL/): 1 complete / 1 completed seasons; 2026: 1 ties
+- [YSF](https://neonsportz.com/leagues/YSF/): 1 complete / 1 completed seasons; no concerns
+- [ZERO](https://neonsportz.com/leagues/ZERO/): 1 complete / 1 completed seasons; 2026: 1 ties
+
+## Tier 2
+
+- [DOB](https://neonsportz.com/leagues/DOB/): 0 complete / 3 completed seasons; 2026: 1 ties; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2027: invalid playoff conference counts; 2027: postseason rounds differ from 6/4/2/0/1; 2027: wild-card winners/byes inconsistent; 2028: invalid playoff conference counts; 2028: playoff winners do not advance; 2028: postseason rounds differ from 6/4/2/0/1
+- [VBL](https://neonsportz.com/leagues/VBL/): 0 complete / 3 completed seasons; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1; 2028: invalid playoff conference counts; 2028: playoff winners do not advance; 2028: postseason rounds differ from 6/4/2/0/1
+- [CRACB](https://neonsportz.com/leagues/CRACB/): 0 complete / 2 completed seasons; 2026: 1 ties; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent; 2027: invalid playoff conference counts; 2027: postseason rounds differ from 6/4/2/0/1; 2027: regular season requires 272 games and 17/team; 2027: wild-card winners/byes inconsistent
+- [DAS](https://neonsportz.com/leagues/DAS/): 0 complete / 2 completed seasons; 2026: 1 ties; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: wild-card winners/byes inconsistent; 2027: invalid playoff conference counts; 2027: postseason rounds differ from 6/4/2/0/1; 2027: wild-card winners/byes inconsistent
+- [GC](https://neonsportz.com/leagues/GC/): 0 complete / 2 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent; 2027: extra/missing weeks; 2027: invalid playoff conference counts; 2027: postseason rounds differ from 6/4/2/0/1; 2027: regular season requires 272 games and 17/team; 2027: wild-card winners/byes inconsistent
+- [GIJ](https://neonsportz.com/leagues/GIJ/): 0 complete / 2 completed seasons; 2026: 2 ties; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent; 2027: extra/missing weeks; 2027: regular season requires 272 games and 17/team
+- [GOI](https://neonsportz.com/leagues/GOI/): 0 complete / 2 completed seasons; 2026: regular season requires 272 games and 17/team; 2027: extra/missing weeks; 2027: regular season requires 272 games and 17/team; 2027: team count 19 != 32
+- [GZGL](https://neonsportz.com/leagues/GZGL/): 0 complete / 2 completed seasons; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1
+- [HAWGZ](https://neonsportz.com/leagues/HAWGZ/): 0 complete / 2 completed seasons; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent; 2027: extra/missing weeks; 2027: regular season requires 272 games and 17/team
+- [HCE](https://neonsportz.com/leagues/HCE/): 0 complete / 2 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1
+- [HSL](https://neonsportz.com/leagues/HSL/): 0 complete / 2 completed seasons; 2026: 1 ties; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1
+- [IDK](https://neonsportz.com/leagues/IDK/): 0 complete / 2 completed seasons; 2026: 1 ties; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: wild-card winners/byes inconsistent; 2027: 1 ties; 2027: invalid playoff conference counts; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1; 2027: wild-card winners/byes inconsistent
+- [KD](https://neonsportz.com/leagues/KD/): 0 complete / 2 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 4 != 32; 2026: wild-card winners/byes inconsistent; 2027: invalid playoff conference counts; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1; 2027: wild-card winners/byes inconsistent
+- [LSM](https://neonsportz.com/leagues/LSM/): 0 complete / 2 completed seasons; 2026: 1 ties; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1
+- [M3H](https://neonsportz.com/leagues/M3H/): 0 complete / 2 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1
+- [MCL27](https://neonsportz.com/leagues/MCL27/): 0 complete / 2 completed seasons; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 33 != 32; 2026: wild-card winners/byes inconsistent; 2027: extra/missing weeks; 2027: regular season requires 272 games and 17/team
+- [NMU](https://neonsportz.com/leagues/NMU/): 0 complete / 2 completed seasons; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent; 2027: extra/missing weeks; 2027: regular season requires 272 games and 17/team
+- [PC](https://neonsportz.com/leagues/PC/): 0 complete / 2 completed seasons; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2027: 2 ties; 2027: invalid playoff conference counts; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1
+- [SBD](https://neonsportz.com/leagues/SBD/): 0 complete / 2 completed seasons; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2027: invalid playoff conference counts; 2027: postseason rounds differ from 6/4/2/0/1; 2027: wild-card winners/byes inconsistent
+- [SBM](https://neonsportz.com/leagues/SBM/): 0 complete / 2 completed seasons; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent; 2027: 1 ties; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1
+- [SFL2](https://neonsportz.com/leagues/SFL2/): 0 complete / 2 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1
+- [SML0](https://neonsportz.com/leagues/SML0/): 0 complete / 2 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2027: invalid playoff conference counts; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1
+- [SW27](https://neonsportz.com/leagues/SW27/): 0 complete / 2 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 6 != 32; 2026: wild-card winners/byes inconsistent; 2027: invalid playoff conference counts; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1; 2027: regular season requires 272 games and 17/team
+- [TAML](https://neonsportz.com/leagues/TAML/): 0 complete / 2 completed seasons; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: wild-card winners/byes inconsistent; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1
+- [TIL](https://neonsportz.com/leagues/TIL/): 0 complete / 2 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2027: 1 ties; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1
+- [VILLE](https://neonsportz.com/leagues/VILLE/): 0 complete / 2 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2027: invalid playoff conference counts; 2027: postseason rounds differ from 6/4/2/0/1; 2027: wild-card winners/byes inconsistent
+- [WANTS](https://neonsportz.com/leagues/WANTS/): 0 complete / 2 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2027: extra/missing weeks; 2027: regular season requires 272 games and 17/team
+- [1MSL](https://neonsportz.com/leagues/1MSL/): 0 complete / 1 completed seasons; 2026: 4 ties; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [27SSL](https://neonsportz.com/leagues/27SSL/): 0 complete / 1 completed seasons; 2026: 3 ties; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [2KFB](https://neonsportz.com/leagues/2KFB/): 0 complete / 1 completed seasons; 2026: 1 ties; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team
+- [3MILE](https://neonsportz.com/leagues/3MILE/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [4VC](https://neonsportz.com/leagues/4VC/): 0 complete / 1 completed seasons; 2026: 1 ties; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [5280](https://neonsportz.com/leagues/5280/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [810](https://neonsportz.com/leagues/810/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent
+- [9F](https://neonsportz.com/leagues/9F/): 0 complete / 1 completed seasons; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: wild-card winners/byes inconsistent
+- [A2](https://neonsportz.com/leagues/A2/): 0 complete / 1 completed seasons; 2026: 1 ties; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent
+- [AAC](https://neonsportz.com/leagues/AAC/): 0 complete / 1 completed seasons; 2026: 2 ties; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [AFGC](https://neonsportz.com/leagues/AFGC/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent
+- [AFL27](https://neonsportz.com/leagues/AFL27/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent
+- [AGNBS](https://neonsportz.com/leagues/AGNBS/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent
+- [AGS](https://neonsportz.com/leagues/AGS/): 0 complete / 1 completed seasons; 2026: 2 ties; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [ALLX](https://neonsportz.com/leagues/ALLX/): 0 complete / 1 completed seasons; 2026: 1 ties; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [AMFL1](https://neonsportz.com/leagues/AMFL1/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [AML](https://neonsportz.com/leagues/AML/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [APG](https://neonsportz.com/leagues/APG/): 0 complete / 1 completed seasons; 2026: 1 ties; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent
+- [B](https://neonsportz.com/leagues/B/): 0 complete / 1 completed seasons; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent
+- [B4DF](https://neonsportz.com/leagues/B4DF/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [BC](https://neonsportz.com/leagues/BC/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [BFL27](https://neonsportz.com/leagues/BFL27/): 0 complete / 1 completed seasons; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [BOT](https://neonsportz.com/leagues/BOT/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [BTYL](https://neonsportz.com/leagues/BTYL/): 0 complete / 1 completed seasons; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [CMD27](https://neonsportz.com/leagues/CMD27/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 2 != 32; 2026: wild-card winners/byes inconsistent
+- [CMMYT](https://neonsportz.com/leagues/CMMYT/): 0 complete / 1 completed seasons; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: wild-card winners/byes inconsistent
+- [COMP](https://neonsportz.com/leagues/COMP/): 0 complete / 1 completed seasons; 2026: 1 ties; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [CRL27](https://neonsportz.com/leagues/CRL27/): 0 complete / 1 completed seasons; 2026: 1 ties; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [CT](https://neonsportz.com/leagues/CT/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [DAD](https://neonsportz.com/leagues/DAD/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent
+- [DDS](https://neonsportz.com/leagues/DDS/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [DEMO](https://neonsportz.com/leagues/DEMO/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 6 != 32; 2026: wild-card winners/byes inconsistent
+- [DL2](https://neonsportz.com/leagues/DL2/): 0 complete / 1 completed seasons; 2026: 1 ties; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [DMV](https://neonsportz.com/leagues/DMV/): 0 complete / 1 completed seasons; 2026: 1 ties; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [DOZIT](https://neonsportz.com/leagues/DOZIT/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [DRM](https://neonsportz.com/leagues/DRM/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [DRM2](https://neonsportz.com/leagues/DRM2/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [DSF2](https://neonsportz.com/leagues/DSF2/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent
+- [DSM](https://neonsportz.com/leagues/DSM/): 0 complete / 1 completed seasons; calendar_year differs from 2026 + season index; possible reset; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: wild-card winners/byes inconsistent
+- [ELMF](https://neonsportz.com/leagues/ELMF/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [EOE](https://neonsportz.com/leagues/EOE/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [ES](https://neonsportz.com/leagues/ES/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [F48](https://neonsportz.com/leagues/F48/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [FAT](https://neonsportz.com/leagues/FAT/): 0 complete / 1 completed seasons; 2026: 1 ties; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: wild-card winners/byes inconsistent
+- [FDMML](https://neonsportz.com/leagues/FDMML/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [FEND](https://neonsportz.com/leagues/FEND/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [FL](https://neonsportz.com/leagues/FL/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [FMLL](https://neonsportz.com/leagues/FMLL/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [FRM27](https://neonsportz.com/leagues/FRM27/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [GC1](https://neonsportz.com/leagues/GC1/): 0 complete / 1 completed seasons; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: wild-card winners/byes inconsistent
+- [GFM2](https://neonsportz.com/leagues/GFM2/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [GG2](https://neonsportz.com/leagues/GG2/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent
+- [GKZ](https://neonsportz.com/leagues/GKZ/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team
+- [GL](https://neonsportz.com/leagues/GL/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: regular season requires 272 games and 17/team
+- [GLMF](https://neonsportz.com/leagues/GLMF/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [GMM2](https://neonsportz.com/leagues/GMM2/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [GTR](https://neonsportz.com/leagues/GTR/): 0 complete / 1 completed seasons; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2026: wild-card winners/byes inconsistent
+- [GX](https://neonsportz.com/leagues/GX/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent
+- [HBL](https://neonsportz.com/leagues/HBL/): 0 complete / 1 completed seasons; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [HCLM2](https://neonsportz.com/leagues/HCLM2/): 0 complete / 1 completed seasons; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent
+- [HEIR](https://neonsportz.com/leagues/HEIR/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent
+- [HHK](https://neonsportz.com/leagues/HHK/): 0 complete / 1 completed seasons; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [IFL27](https://neonsportz.com/leagues/IFL27/): 0 complete / 1 completed seasons; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [IG](https://neonsportz.com/leagues/IG/): 0 complete / 1 completed seasons; 2026: 1 ties; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [J](https://neonsportz.com/leagues/J/): 0 complete / 1 completed seasons; 2026: regular season requires 272 games and 17/team
+- [JCS](https://neonsportz.com/leagues/JCS/): 0 complete / 1 completed seasons; 2026: 1 ties; 2026: extra/missing weeks; 2026: regular season requires 272 games and 17/team
+- [KC](https://neonsportz.com/leagues/KC/): 0 complete / 1 completed seasons; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [KLCFL](https://neonsportz.com/leagues/KLCFL/): 0 complete / 1 completed seasons; calendar_year differs from 2026 + season index; possible reset; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 31 != 32; 2026: wild-card winners/byes inconsistent
+- [LML27](https://neonsportz.com/leagues/LML27/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [LOB](https://neonsportz.com/leagues/LOB/): 0 complete / 1 completed seasons; 2026: 1 ties; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [LOB27](https://neonsportz.com/leagues/LOB27/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [LXG2](https://neonsportz.com/leagues/LXG2/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent
+- [LY2](https://neonsportz.com/leagues/LY2/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent
+- [M2P](https://neonsportz.com/leagues/M2P/): 0 complete / 1 completed seasons; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2026: wild-card winners/byes inconsistent
+- [MA2](https://neonsportz.com/leagues/MA2/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [MBP](https://neonsportz.com/leagues/MBP/): 0 complete / 1 completed seasons; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [MD27](https://neonsportz.com/leagues/MD27/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [MGL](https://neonsportz.com/leagues/MGL/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent
+- [MGM](https://neonsportz.com/leagues/MGM/): 0 complete / 1 completed seasons; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent
+- [MKE](https://neonsportz.com/leagues/MKE/): 0 complete / 1 completed seasons; 2026: 1 ties; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [ML2](https://neonsportz.com/leagues/ML2/): 0 complete / 1 completed seasons; 2026: 1 ties; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: wild-card winners/byes inconsistent
+- [MP](https://neonsportz.com/leagues/MP/): 0 complete / 1 completed seasons; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: wild-card winners/byes inconsistent
+- [MSFL2](https://neonsportz.com/leagues/MSFL2/): 0 complete / 1 completed seasons; 2026: 1 ties; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent
+- [MSL](https://neonsportz.com/leagues/MSL/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [MW](https://neonsportz.com/leagues/MW/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent
+- [NEEZY](https://neonsportz.com/leagues/NEEZY/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent
+- [NFGL2](https://neonsportz.com/leagues/NFGL2/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 16 != 32; 2026: wild-card winners/byes inconsistent
+- [NOE](https://neonsportz.com/leagues/NOE/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [NWFL](https://neonsportz.com/leagues/NWFL/): 0 complete / 1 completed seasons; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent
+- [OTE23](https://neonsportz.com/leagues/OTE23/): 0 complete / 1 completed seasons; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: wild-card winners/byes inconsistent
+- [OTM](https://neonsportz.com/leagues/OTM/): 0 complete / 1 completed seasons; 2026: 1 ties; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent
+- [OUT32](https://neonsportz.com/leagues/OUT32/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [PCB](https://neonsportz.com/leagues/PCB/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent
+- [PFCCM](https://neonsportz.com/leagues/PFCCM/): 0 complete / 1 completed seasons; 2026: regular season requires 272 games and 17/team
+- [PTG27](https://neonsportz.com/leagues/PTG27/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [R27](https://neonsportz.com/leagues/R27/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [RBOL](https://neonsportz.com/leagues/RBOL/): 0 complete / 1 completed seasons; 2026: 1 ties; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: wild-card winners/byes inconsistent
+- [REGS2](https://neonsportz.com/leagues/REGS2/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent
+- [RFLF2](https://neonsportz.com/leagues/RFLF2/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [RIV](https://neonsportz.com/leagues/RIV/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team
+- [RRBT](https://neonsportz.com/leagues/RRBT/): 0 complete / 1 completed seasons; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: wild-card winners/byes inconsistent
+- [RSCOM](https://neonsportz.com/leagues/RSCOM/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [RSFL](https://neonsportz.com/leagues/RSFL/): 0 complete / 1 completed seasons; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [RZL27](https://neonsportz.com/leagues/RZL27/): 0 complete / 1 completed seasons; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: wild-card winners/byes inconsistent
+- [SALB](https://neonsportz.com/leagues/SALB/): 0 complete / 1 completed seasons; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: wild-card winners/byes inconsistent
+- [SEXFL](https://neonsportz.com/leagues/SEXFL/): 0 complete / 1 completed seasons; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent
+- [SHO](https://neonsportz.com/leagues/SHO/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [SLS](https://neonsportz.com/leagues/SLS/): 0 complete / 1 completed seasons; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [TBA](https://neonsportz.com/leagues/TBA/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team
+- [TD](https://neonsportz.com/leagues/TD/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [TEZ2](https://neonsportz.com/leagues/TEZ2/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [THUMP](https://neonsportz.com/leagues/THUMP/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 2 != 32; 2026: wild-card winners/byes inconsistent
+- [TK27](https://neonsportz.com/leagues/TK27/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 8 != 32; 2026: wild-card winners/byes inconsistent
+- [TM2](https://neonsportz.com/leagues/TM2/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [TO](https://neonsportz.com/leagues/TO/): 0 complete / 1 completed seasons; 2026: 1 ties; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [TRZ](https://neonsportz.com/leagues/TRZ/): 0 complete / 1 completed seasons; 2026: 1 ties; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [TRZL](https://neonsportz.com/leagues/TRZL/): 0 complete / 1 completed seasons; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent
+- [TTG27](https://neonsportz.com/leagues/TTG27/): 0 complete / 1 completed seasons; 2026: 2 ties; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+- [XYZ](https://neonsportz.com/leagues/XYZ/): 0 complete / 1 completed seasons; 2026: 1 ties; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1
+
+## Tier 3
+
+- [XAFFL](https://neonsportz.com/leagues/XAFFL/): 0 complete / 15 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset; 2027: extra/missing weeks; 2027: invalid playoff conference counts; 2027: postseason rounds differ from 6/4/2/0/1; 2027: regular season requires 272 games and 17/team; 2027: team count 0 != 32; 2027: wild-card winners/byes inconsistent; 2027: zero games; possible missing early season/reset; 2028: extra/missing weeks; 2028: invalid playoff conference counts; 2028: postseason rounds differ from 6/4/2/0/1; 2028: regular season requires 272 games and 17/team; 2028: team count 0 != 32; 2028: wild-card winners/byes inconsistent; 2028: zero games; possible missing early season/reset; 2029: extra/missing weeks; 2029: invalid playoff conference counts; 2029: postseason rounds differ from 6/4/2/0/1; 2029: regular season requires 272 games and 17/team; 2029: team count 0 != 32; 2029: wild-card winners/byes inconsistent; 2029: zero games; possible missing early season/reset; 2030: extra/missing weeks; 2030: invalid playoff conference counts; 2030: postseason rounds differ from 6/4/2/0/1; 2030: regular season requires 272 games and 17/team; 2030: team count 0 != 32; 2030: wild-card winners/byes inconsistent; 2030: zero games; possible missing early season/reset; 2031: extra/missing weeks; 2031: invalid playoff conference counts; 2031: postseason rounds differ from 6/4/2/0/1; 2031: regular season requires 272 games and 17/team; 2031: team count 0 != 32; 2031: wild-card winners/byes inconsistent; 2031: zero games; possible missing early season/reset; 2032: extra/missing weeks; 2032: invalid playoff conference counts; 2032: postseason rounds differ from 6/4/2/0/1; 2032: regular season requires 272 games and 17/team; 2032: team count 0 != 32; 2032: wild-card winners/byes inconsistent; 2032: zero games; possible missing early season/reset; 2033: extra/missing weeks; 2033: invalid playoff conference counts; 2033: postseason rounds differ from 6/4/2/0/1; 2033: regular season requires 272 games and 17/team; 2033: team count 0 != 32; 2033: wild-card winners/byes inconsistent; 2033: zero games; possible missing early season/reset; 2034: extra/missing weeks; 2034: invalid playoff conference counts; 2034: postseason rounds differ from 6/4/2/0/1; 2034: regular season requires 272 games and 17/team; 2034: team count 0 != 32; 2034: wild-card winners/byes inconsistent; 2034: zero games; possible missing early season/reset; 2035: extra/missing weeks; 2035: invalid playoff conference counts; 2035: postseason rounds differ from 6/4/2/0/1; 2035: regular season requires 272 games and 17/team; 2035: team count 0 != 32; 2035: wild-card winners/byes inconsistent; 2035: zero games; possible missing early season/reset; 2036: extra/missing weeks; 2036: invalid playoff conference counts; 2036: postseason rounds differ from 6/4/2/0/1; 2036: regular season requires 272 games and 17/team; 2036: team count 0 != 32; 2036: wild-card winners/byes inconsistent; 2036: zero games; possible missing early season/reset; 2037: extra/missing weeks; 2037: invalid playoff conference counts; 2037: postseason rounds differ from 6/4/2/0/1; 2037: regular season requires 272 games and 17/team; 2037: team count 0 != 32; 2037: wild-card winners/byes inconsistent; 2037: zero games; possible missing early season/reset; 2038: extra/missing weeks; 2038: invalid playoff conference counts; 2038: postseason rounds differ from 6/4/2/0/1; 2038: regular season requires 272 games and 17/team; 2038: team count 0 != 32; 2038: wild-card winners/byes inconsistent; 2038: zero games; possible missing early season/reset; 2039: extra/missing weeks; 2039: invalid playoff conference counts; 2039: postseason rounds differ from 6/4/2/0/1; 2039: regular season requires 272 games and 17/team; 2039: team count 0 != 32; 2039: wild-card winners/byes inconsistent; 2039: zero games; possible missing early season/reset; 2040: extra/missing weeks; 2040: invalid playoff conference counts; 2040: postseason rounds differ from 6/4/2/0/1; 2040: regular season requires 272 games and 17/team; 2040: team count 0 != 32; 2040: wild-card winners/byes inconsistent; 2040: zero games; possible missing early season/reset
+- [VML](https://neonsportz.com/leagues/VML/): 0 complete / 9 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset; 2027: extra/missing weeks; 2027: invalid playoff conference counts; 2027: postseason rounds differ from 6/4/2/0/1; 2027: regular season requires 272 games and 17/team; 2027: team count 0 != 32; 2027: wild-card winners/byes inconsistent; 2027: zero games; possible missing early season/reset; 2028: extra/missing weeks; 2028: invalid playoff conference counts; 2028: postseason rounds differ from 6/4/2/0/1; 2028: regular season requires 272 games and 17/team; 2028: team count 0 != 32; 2028: wild-card winners/byes inconsistent; 2028: zero games; possible missing early season/reset; 2029: extra/missing weeks; 2029: invalid playoff conference counts; 2029: postseason rounds differ from 6/4/2/0/1; 2029: regular season requires 272 games and 17/team; 2029: team count 0 != 32; 2029: wild-card winners/byes inconsistent; 2029: zero games; possible missing early season/reset; 2030: extra/missing weeks; 2030: invalid playoff conference counts; 2030: postseason rounds differ from 6/4/2/0/1; 2030: regular season requires 272 games and 17/team; 2030: team count 0 != 32; 2030: wild-card winners/byes inconsistent; 2030: zero games; possible missing early season/reset; 2031: extra/missing weeks; 2031: invalid playoff conference counts; 2031: postseason rounds differ from 6/4/2/0/1; 2031: regular season requires 272 games and 17/team; 2031: team count 0 != 32; 2031: wild-card winners/byes inconsistent; 2031: zero games; possible missing early season/reset; 2032: extra/missing weeks; 2032: invalid playoff conference counts; 2032: postseason rounds differ from 6/4/2/0/1; 2032: regular season requires 272 games and 17/team; 2032: team count 0 != 32; 2032: wild-card winners/byes inconsistent; 2032: zero games; possible missing early season/reset; 2033: extra/missing weeks; 2033: invalid playoff conference counts; 2033: postseason rounds differ from 6/4/2/0/1; 2033: regular season requires 272 games and 17/team; 2033: team count 0 != 32; 2033: wild-card winners/byes inconsistent; 2033: zero games; possible missing early season/reset; 2034: extra/missing weeks; 2034: invalid playoff conference counts; 2034: postseason rounds differ from 6/4/2/0/1; 2034: regular season requires 272 games and 17/team; 2034: team count 0 != 32; 2034: wild-card winners/byes inconsistent; 2034: zero games; possible missing early season/reset
+- [JSL](https://neonsportz.com/leagues/JSL/): 0 complete / 7 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset; 2027: extra/missing weeks; 2027: invalid playoff conference counts; 2027: postseason rounds differ from 6/4/2/0/1; 2027: regular season requires 272 games and 17/team; 2027: team count 0 != 32; 2027: wild-card winners/byes inconsistent; 2027: zero games; possible missing early season/reset; 2028: extra/missing weeks; 2028: invalid playoff conference counts; 2028: postseason rounds differ from 6/4/2/0/1; 2028: regular season requires 272 games and 17/team; 2028: team count 0 != 32; 2028: wild-card winners/byes inconsistent; 2028: zero games; possible missing early season/reset; 2029: extra/missing weeks; 2029: invalid playoff conference counts; 2029: postseason rounds differ from 6/4/2/0/1; 2029: regular season requires 272 games and 17/team; 2029: team count 0 != 32; 2029: wild-card winners/byes inconsistent; 2029: zero games; possible missing early season/reset; 2030: extra/missing weeks; 2030: invalid playoff conference counts; 2030: postseason rounds differ from 6/4/2/0/1; 2030: regular season requires 272 games and 17/team; 2030: team count 0 != 32; 2030: wild-card winners/byes inconsistent; 2030: zero games; possible missing early season/reset; 2031: extra/missing weeks; 2031: invalid playoff conference counts; 2031: postseason rounds differ from 6/4/2/0/1; 2031: regular season requires 272 games and 17/team; 2031: team count 0 != 32; 2031: wild-card winners/byes inconsistent; 2031: zero games; possible missing early season/reset; 2032: extra/missing weeks; 2032: invalid playoff conference counts; 2032: postseason rounds differ from 6/4/2/0/1; 2032: regular season requires 272 games and 17/team; 2032: team count 0 != 32; 2032: wild-card winners/byes inconsistent; 2032: zero games; possible missing early season/reset
+- [JS](https://neonsportz.com/leagues/JS/): 0 complete / 5 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset; 2027: extra/missing weeks; 2027: invalid playoff conference counts; 2027: postseason rounds differ from 6/4/2/0/1; 2027: regular season requires 272 games and 17/team; 2027: team count 0 != 32; 2027: wild-card winners/byes inconsistent; 2027: zero games; possible missing early season/reset; 2028: invalid playoff conference counts; 2028: postseason rounds differ from 6/4/2/0/1; 2028: wild-card winners/byes inconsistent; 2029: extra/missing weeks; 2029: invalid playoff conference counts; 2029: postseason rounds differ from 6/4/2/0/1; 2029: regular season requires 272 games and 17/team; 2029: team count 0 != 32; 2029: wild-card winners/byes inconsistent; 2029: zero games; possible missing early season/reset; 2030: extra/missing weeks; 2030: invalid playoff conference counts; 2030: postseason rounds differ from 6/4/2/0/1; 2030: regular season requires 272 games and 17/team; 2030: wild-card winners/byes inconsistent; 2031: zero games; possible missing early season/reset
+- [SOA](https://neonsportz.com/leagues/SOA/): 0 complete / 3 completed seasons; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2027: 1 ties; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1; 2028: 2 ties; 2028: extra/missing weeks; 2028: invalid playoff conference counts; 2028: playoff winners do not advance; 2028: postseason rounds differ from 6/4/2/0/1; 2028: regular season requires 272 games and 17/team; 2028: wild-card winners/byes inconsistent; 2029: zero games; possible missing early season/reset
+- [ACO](https://neonsportz.com/leagues/ACO/): 0 complete / 2 completed seasons; calendar_year differs from 2026 + season index; possible reset; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset; 2027: extra/missing weeks; 2027: invalid playoff conference counts; 2027: postseason rounds differ from 6/4/2/0/1; 2027: regular season requires 272 games and 17/team; 2027: team count 0 != 32; 2027: wild-card winners/byes inconsistent; 2027: zero games; possible missing early season/reset
+- [ATL](https://neonsportz.com/leagues/ATL/): 0 complete / 2 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset; 2027: extra/missing weeks; 2027: invalid playoff conference counts; 2027: postseason rounds differ from 6/4/2/0/1; 2027: regular season requires 272 games and 17/team; 2027: team count 0 != 32; 2027: wild-card winners/byes inconsistent; 2027: zero games; possible missing early season/reset
+- [MDCL](https://neonsportz.com/leagues/MDCL/): 0 complete / 2 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset; 2027: extra/missing weeks; 2027: invalid playoff conference counts; 2027: postseason rounds differ from 6/4/2/0/1; 2027: regular season requires 272 games and 17/team; 2027: team count 0 != 32; 2027: wild-card winners/byes inconsistent; 2027: zero games; possible missing early season/reset
+- [MG](https://neonsportz.com/leagues/MG/): 0 complete / 2 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1; 2028: zero games; possible missing early season/reset
+- [NBL27](https://neonsportz.com/leagues/NBL27/): 0 complete / 2 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset; 2027: extra/missing weeks; 2027: invalid playoff conference counts; 2027: postseason rounds differ from 6/4/2/0/1; 2027: regular season requires 272 games and 17/team; 2027: team count 0 != 32; 2027: wild-card winners/byes inconsistent; 2027: zero games; possible missing early season/reset
+- [RW](https://neonsportz.com/leagues/RW/): 0 complete / 2 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset; 2027: playoff winners do not advance; 2027: postseason rounds differ from 6/4/2/0/1
+- [AGSX2](https://neonsportz.com/leagues/AGSX2/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [AM27](https://neonsportz.com/leagues/AM27/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [AMFLG](https://neonsportz.com/leagues/AMFLG/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [BSAB](https://neonsportz.com/leagues/BSAB/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [CGL](https://neonsportz.com/leagues/CGL/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 9 != 32; 2026: wild-card winners/byes inconsistent; 2027: zero games; possible missing early season/reset
+- [CPG](https://neonsportz.com/leagues/CPG/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2027: zero games; possible missing early season/reset
+- [DFL](https://neonsportz.com/leagues/DFL/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [DGL](https://neonsportz.com/leagues/DGL/): 0 complete / 1 completed seasons; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2027: zero games; possible missing early season/reset
+- [DTS](https://neonsportz.com/leagues/DTS/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [FAM27](https://neonsportz.com/leagues/FAM27/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [FSGC](https://neonsportz.com/leagues/FSGC/): 0 complete / 1 completed seasons; 2026: 1 ties; 2026: extra/missing weeks; 2026: regular season requires 272 games and 17/team; 2027: zero games; possible missing early season/reset
+- [GWI](https://neonsportz.com/leagues/GWI/): 0 complete / 1 completed seasons; 2026: 2 ties; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: wild-card winners/byes inconsistent; 2027: zero games; possible missing early season/reset
+- [HIM2](https://neonsportz.com/leagues/HIM2/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent; 2027: zero games; possible missing early season/reset
+- [HTTR](https://neonsportz.com/leagues/HTTR/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [KW](https://neonsportz.com/leagues/KW/): 0 complete / 1 completed seasons; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2027: zero games; possible missing early season/reset
+- [LDDL](https://neonsportz.com/leagues/LDDL/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [LFA](https://neonsportz.com/leagues/LFA/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [M2S](https://neonsportz.com/leagues/M2S/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [MBM](https://neonsportz.com/leagues/MBM/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [MH](https://neonsportz.com/leagues/MH/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [MMG](https://neonsportz.com/leagues/MMG/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [MNFA](https://neonsportz.com/leagues/MNFA/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [MYKOR](https://neonsportz.com/leagues/MYKOR/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [NLB](https://neonsportz.com/leagues/NLB/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: wild-card winners/byes inconsistent; 2027: zero games; possible missing early season/reset
+- [NOFL](https://neonsportz.com/leagues/NOFL/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [NR27](https://neonsportz.com/leagues/NR27/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [NRML](https://neonsportz.com/leagues/NRML/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [PBL](https://neonsportz.com/leagues/PBL/): 0 complete / 1 completed seasons; 2026: 2 ties; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2027: zero games; possible missing early season/reset
+- [REDFL](https://neonsportz.com/leagues/REDFL/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [RFUM](https://neonsportz.com/leagues/RFUM/): 0 complete / 1 completed seasons; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2027: zero games; possible missing early season/reset
+- [RLF](https://neonsportz.com/leagues/RLF/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [ROC](https://neonsportz.com/leagues/ROC/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset; 2027: zero games; possible missing early season/reset
+- [S2F](https://neonsportz.com/leagues/S2F/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [SM2S](https://neonsportz.com/leagues/SM2S/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [SMFL1](https://neonsportz.com/leagues/SMFL1/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 6 != 32; 2026: wild-card winners/byes inconsistent; 2027: zero games; possible missing early season/reset
+- [SOS](https://neonsportz.com/leagues/SOS/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [SS](https://neonsportz.com/leagues/SS/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [SWJ](https://neonsportz.com/leagues/SWJ/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset; 2027: zero games; possible missing early season/reset
+- [TGG](https://neonsportz.com/leagues/TGG/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [THALG](https://neonsportz.com/leagues/THALG/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [TKC](https://neonsportz.com/leagues/TKC/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [TL2](https://neonsportz.com/leagues/TL2/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [TST](https://neonsportz.com/leagues/TST/): 0 complete / 1 completed seasons; 2026: invalid playoff conference counts; 2026: playoff winners do not advance; 2026: postseason rounds differ from 6/4/2/0/1; 2026: wild-card winners/byes inconsistent; 2027: zero games; possible missing early season/reset
+- [TT](https://neonsportz.com/leagues/TT/): 0 complete / 1 completed seasons; 2026: extra/missing weeks; 2026: invalid playoff conference counts; 2026: postseason rounds differ from 6/4/2/0/1; 2026: regular season requires 272 games and 17/team; 2026: team count 0 != 32; 2026: wild-card winners/byes inconsistent; 2026: zero games; possible missing early season/reset
+- [1](https://neonsportz.com/leagues/1/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [100](https://neonsportz.com/leagues/100/): 0 complete / 0 completed seasons; no concerns
+- [27TML](https://neonsportz.com/leagues/27TML/): 0 complete / 0 completed seasons; no concerns
+- [2MD](https://neonsportz.com/leagues/2MD/): 0 complete / 0 completed seasons; no concerns
+- [422](https://neonsportz.com/leagues/422/): 0 complete / 0 completed seasons; no concerns
+- [44](https://neonsportz.com/leagues/44/): 0 complete / 0 completed seasons; no concerns
+- [4A](https://neonsportz.com/leagues/4A/): 0 complete / 0 completed seasons; no concerns
+- [4ML](https://neonsportz.com/leagues/4ML/): 0 complete / 0 completed seasons; calendar_year differs from 2026 + season index; possible reset; 2026: zero games; possible missing early season/reset
+- [4QG](https://neonsportz.com/leagues/4QG/): 0 complete / 0 completed seasons; no concerns
+- [4THSL](https://neonsportz.com/leagues/4THSL/): 0 complete / 0 completed seasons; no concerns
+- [4TOX](https://neonsportz.com/leagues/4TOX/): 0 complete / 0 completed seasons; no concerns
+- [5AFIS](https://neonsportz.com/leagues/5AFIS/): 0 complete / 0 completed seasons; no concerns
+- [702](https://neonsportz.com/leagues/702/): 0 complete / 0 completed seasons; no concerns
+- [8M](https://neonsportz.com/leagues/8M/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [937B](https://neonsportz.com/leagues/937B/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [A4L](https://neonsportz.com/leagues/A4L/): 0 complete / 0 completed seasons; no concerns
+- [ABM](https://neonsportz.com/leagues/ABM/): 0 complete / 0 completed seasons; no concerns
+- [ADML](https://neonsportz.com/leagues/ADML/): 0 complete / 0 completed seasons; no concerns
+- [AFC](https://neonsportz.com/leagues/AFC/): 0 complete / 0 completed seasons; no concerns
+- [AFFL](https://neonsportz.com/leagues/AFFL/): 0 complete / 0 completed seasons; no concerns
+- [AFLV2](https://neonsportz.com/leagues/AFLV2/): 0 complete / 0 completed seasons; no concerns
+- [AGSFL](https://neonsportz.com/leagues/AGSFL/): 0 complete / 0 completed seasons; no concerns
+- [AGSLG](https://neonsportz.com/leagues/AGSLG/): 0 complete / 0 completed seasons; no concerns
+- [AJS](https://neonsportz.com/leagues/AJS/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [AM2](https://neonsportz.com/leagues/AM2/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [AMB1](https://neonsportz.com/leagues/AMB1/): 0 complete / 0 completed seasons; no concerns
+- [AMFL](https://neonsportz.com/leagues/AMFL/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [AMML](https://neonsportz.com/leagues/AMML/): 0 complete / 0 completed seasons; no concerns
+- [AMTB](https://neonsportz.com/leagues/AMTB/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [AWF27](https://neonsportz.com/leagues/AWF27/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [B2](https://neonsportz.com/leagues/B2/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [BB2](https://neonsportz.com/leagues/BB2/): 0 complete / 0 completed seasons; no concerns
+- [BBBC](https://neonsportz.com/leagues/BBBC/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [BBF](https://neonsportz.com/leagues/BBF/): 0 complete / 0 completed seasons; no concerns
+- [BBL](https://neonsportz.com/leagues/BBL/): 0 complete / 0 completed seasons; no concerns
+- [BCCL](https://neonsportz.com/leagues/BCCL/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [BDML](https://neonsportz.com/leagues/BDML/): 0 complete / 0 completed seasons; no concerns
+- [BENFL](https://neonsportz.com/leagues/BENFL/): 0 complete / 0 completed seasons; no concerns
+- [BF](https://neonsportz.com/leagues/BF/): 0 complete / 0 completed seasons; no concerns
+- [BFTP](https://neonsportz.com/leagues/BFTP/): 0 complete / 0 completed seasons; no concerns
+- [BFTV](https://neonsportz.com/leagues/BFTV/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [BFTV2](https://neonsportz.com/leagues/BFTV2/): 0 complete / 0 completed seasons; no concerns
+- [BM2C](https://neonsportz.com/leagues/BM2C/): 0 complete / 0 completed seasons; no concerns
+- [BMFL](https://neonsportz.com/leagues/BMFL/): 0 complete / 0 completed seasons; no concerns
+- [BOOM](https://neonsportz.com/leagues/BOOM/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [BPL](https://neonsportz.com/leagues/BPL/): 0 complete / 0 completed seasons; no concerns
+- [BSML](https://neonsportz.com/leagues/BSML/): 0 complete / 0 completed seasons; no concerns
+- [BTE](https://neonsportz.com/leagues/BTE/): 0 complete / 0 completed seasons; no concerns
+- [BTGL](https://neonsportz.com/leagues/BTGL/): 0 complete / 0 completed seasons; no concerns
+- [BTM](https://neonsportz.com/leagues/BTM/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [BULLS](https://neonsportz.com/leagues/BULLS/): 0 complete / 0 completed seasons; no concerns
+- [CCL](https://neonsportz.com/leagues/CCL/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [CEML](https://neonsportz.com/leagues/CEML/): 0 complete / 0 completed seasons; no concerns
+- [CFB](https://neonsportz.com/leagues/CFB/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [CFFL](https://neonsportz.com/leagues/CFFL/): 0 complete / 0 completed seasons; no concerns
+- [CFM](https://neonsportz.com/leagues/CFM/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [CFML](https://neonsportz.com/leagues/CFML/): 0 complete / 0 completed seasons; no concerns
+- [CGC](https://neonsportz.com/leagues/CGC/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [CGM](https://neonsportz.com/leagues/CGM/): 0 complete / 0 completed seasons; no concerns
+- [CL](https://neonsportz.com/leagues/CL/): 0 complete / 0 completed seasons; no concerns
+- [CLX](https://neonsportz.com/leagues/CLX/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [CNG](https://neonsportz.com/leagues/CNG/): 0 complete / 0 completed seasons; no concerns
+- [CO2CO](https://neonsportz.com/leagues/CO2CO/): 0 complete / 0 completed seasons; no concerns
+- [COACH](https://neonsportz.com/leagues/COACH/): 0 complete / 0 completed seasons; no concerns
+- [CONL](https://neonsportz.com/leagues/CONL/): 0 complete / 0 completed seasons; no concerns
+- [CPG3](https://neonsportz.com/leagues/CPG3/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [CRL](https://neonsportz.com/leagues/CRL/): 0 complete / 0 completed seasons; no concerns
+- [CRLFD](https://neonsportz.com/leagues/CRLFD/): 0 complete / 0 completed seasons; no concerns
+- [CSALT](https://neonsportz.com/leagues/CSALT/): 0 complete / 0 completed seasons; no concerns
+- [CTK](https://neonsportz.com/leagues/CTK/): 0 complete / 0 completed seasons; no concerns
+- [CWML](https://neonsportz.com/leagues/CWML/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [CYB](https://neonsportz.com/leagues/CYB/): 0 complete / 0 completed seasons; no concerns
+- [DAP](https://neonsportz.com/leagues/DAP/): 0 complete / 0 completed seasons; no concerns
+- [DBBML](https://neonsportz.com/leagues/DBBML/): 0 complete / 0 completed seasons; no concerns
+- [DBFL](https://neonsportz.com/leagues/DBFL/): 0 complete / 0 completed seasons; no concerns
+- [DD](https://neonsportz.com/leagues/DD/): 0 complete / 0 completed seasons; no concerns
+- [DFL2](https://neonsportz.com/leagues/DFL2/): 0 complete / 0 completed seasons; no concerns
+- [DFL3](https://neonsportz.com/leagues/DFL3/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [DFM](https://neonsportz.com/leagues/DFM/): 0 complete / 0 completed seasons; no concerns
+- [DGC](https://neonsportz.com/leagues/DGC/): 0 complete / 0 completed seasons; no concerns
+- [DGS](https://neonsportz.com/leagues/DGS/): 0 complete / 0 completed seasons; no concerns
+- [DH](https://neonsportz.com/leagues/DH/): 0 complete / 0 completed seasons; no concerns
+- [DM32](https://neonsportz.com/leagues/DM32/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [DML](https://neonsportz.com/leagues/DML/): 0 complete / 0 completed seasons; no concerns
+- [DMZ](https://neonsportz.com/leagues/DMZ/): 0 complete / 0 completed seasons; no concerns
+- [DNDFL](https://neonsportz.com/leagues/DNDFL/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [DOA](https://neonsportz.com/leagues/DOA/): 0 complete / 0 completed seasons; no concerns
+- [DRRML](https://neonsportz.com/leagues/DRRML/): 0 complete / 0 completed seasons; no concerns
+- [DSB](https://neonsportz.com/leagues/DSB/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [DVM27](https://neonsportz.com/leagues/DVM27/): 0 complete / 0 completed seasons; no concerns
+- [DYNX](https://neonsportz.com/leagues/DYNX/): 0 complete / 0 completed seasons; no concerns
+- [ECFM](https://neonsportz.com/leagues/ECFM/): 0 complete / 0 completed seasons; no concerns
+- [EE27](https://neonsportz.com/leagues/EE27/): 0 complete / 0 completed seasons; no concerns
+- [EF](https://neonsportz.com/leagues/EF/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [EFL](https://neonsportz.com/leagues/EFL/): 0 complete / 0 completed seasons; no concerns
+- [EGL](https://neonsportz.com/leagues/EGL/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [ELTP](https://neonsportz.com/leagues/ELTP/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [ESW](https://neonsportz.com/leagues/ESW/): 0 complete / 0 completed seasons; no concerns
+- [EV](https://neonsportz.com/leagues/EV/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [EVO](https://neonsportz.com/leagues/EVO/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [EX1A](https://neonsportz.com/leagues/EX1A/): 0 complete / 0 completed seasons; no concerns
+- [F](https://neonsportz.com/leagues/F/): 0 complete / 0 completed seasons; no concerns
+- [FA](https://neonsportz.com/leagues/FA/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [FAF](https://neonsportz.com/leagues/FAF/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [FAT2](https://neonsportz.com/leagues/FAT2/): 0 complete / 0 completed seasons; no concerns
+- [FBS](https://neonsportz.com/leagues/FBS/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [FCFL](https://neonsportz.com/leagues/FCFL/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [FFAF](https://neonsportz.com/leagues/FFAF/): 0 complete / 0 completed seasons; no concerns
+- [FFTH](https://neonsportz.com/leagues/FFTH/): 0 complete / 0 completed seasons; no concerns
+- [FFV2](https://neonsportz.com/leagues/FFV2/): 0 complete / 0 completed seasons; no concerns
+- [FL414](https://neonsportz.com/leagues/FL414/): 0 complete / 0 completed seasons; no concerns
+- [FLAW](https://neonsportz.com/leagues/FLAW/): 0 complete / 0 completed seasons; no concerns
+- [FML2](https://neonsportz.com/leagues/FML2/): 0 complete / 0 completed seasons; no concerns
+- [FML27](https://neonsportz.com/leagues/FML27/): 0 complete / 0 completed seasons; no concerns
+- [FMNL](https://neonsportz.com/leagues/FMNL/): 0 complete / 0 completed seasons; no concerns
+- [FNGML](https://neonsportz.com/leagues/FNGML/): 0 complete / 0 completed seasons; no concerns
+- [FNL](https://neonsportz.com/leagues/FNL/): 0 complete / 0 completed seasons; no concerns
+- [FNTFF](https://neonsportz.com/leagues/FNTFF/): 0 complete / 0 completed seasons; no concerns
+- [FOD](https://neonsportz.com/leagues/FOD/): 0 complete / 0 completed seasons; no concerns
+- [FOFML](https://neonsportz.com/leagues/FOFML/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [FREEZ](https://neonsportz.com/leagues/FREEZ/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [FTA](https://neonsportz.com/leagues/FTA/): 0 complete / 0 completed seasons; no concerns
+- [FTBL](https://neonsportz.com/leagues/FTBL/): 0 complete / 0 completed seasons; no concerns
+- [FTMF](https://neonsportz.com/leagues/FTMF/): 0 complete / 0 completed seasons; no concerns
+- [FWML](https://neonsportz.com/leagues/FWML/): 0 complete / 0 completed seasons; no concerns
+- [G](https://neonsportz.com/leagues/G/): 0 complete / 0 completed seasons; no concerns
+- [G77](https://neonsportz.com/leagues/G77/): 0 complete / 0 completed seasons; no concerns
+- [GARAG](https://neonsportz.com/leagues/GARAG/): 0 complete / 0 completed seasons; no concerns
+- [GBB16](https://neonsportz.com/leagues/GBB16/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [GCFB](https://neonsportz.com/leagues/GCFB/): 0 complete / 0 completed seasons; no concerns
+- [GD](https://neonsportz.com/leagues/GD/): 0 complete / 0 completed seasons; no concerns
+- [GDF](https://neonsportz.com/leagues/GDF/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [GDL](https://neonsportz.com/leagues/GDL/): 0 complete / 0 completed seasons; no concerns
+- [GENX](https://neonsportz.com/leagues/GENX/): 0 complete / 0 completed seasons; no concerns
+- [GG](https://neonsportz.com/leagues/GG/): 0 complete / 0 completed seasons; no concerns
+- [GGS](https://neonsportz.com/leagues/GGS/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [GGV2](https://neonsportz.com/leagues/GGV2/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [GHC27](https://neonsportz.com/leagues/GHC27/): 0 complete / 0 completed seasons; no concerns
+- [GIG27](https://neonsportz.com/leagues/GIG27/): 0 complete / 0 completed seasons; no concerns
+- [GKFL](https://neonsportz.com/leagues/GKFL/): 0 complete / 0 completed seasons; no concerns
+- [GLLFG](https://neonsportz.com/leagues/GLLFG/): 0 complete / 0 completed seasons; no concerns
+- [GLM2](https://neonsportz.com/leagues/GLM2/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [GLS](https://neonsportz.com/leagues/GLS/): 0 complete / 0 completed seasons; no concerns
+- [GLV2](https://neonsportz.com/leagues/GLV2/): 0 complete / 0 completed seasons; no concerns
+- [GML](https://neonsportz.com/leagues/GML/): 0 complete / 0 completed seasons; no concerns
+- [GNE](https://neonsportz.com/leagues/GNE/): 0 complete / 0 completed seasons; no concerns
+- [GOID](https://neonsportz.com/leagues/GOID/): 0 complete / 0 completed seasons; no concerns
+- [GOO](https://neonsportz.com/leagues/GOO/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [GOTG](https://neonsportz.com/leagues/GOTG/): 0 complete / 0 completed seasons; no concerns
+- [GPILL](https://neonsportz.com/leagues/GPILL/): 0 complete / 0 completed seasons; no concerns
+- [GRIDL](https://neonsportz.com/leagues/GRIDL/): 0 complete / 0 completed seasons; no concerns
+- [GTBB](https://neonsportz.com/leagues/GTBB/): 0 complete / 0 completed seasons; no concerns
+- [GU](https://neonsportz.com/leagues/GU/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [H2H](https://neonsportz.com/leagues/H2H/): 0 complete / 0 completed seasons; no concerns
+- [HB](https://neonsportz.com/leagues/HB/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [HCS](https://neonsportz.com/leagues/HCS/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [HFL](https://neonsportz.com/leagues/HFL/): 0 complete / 0 completed seasons; no concerns
+- [HMH](https://neonsportz.com/leagues/HMH/): 0 complete / 0 completed seasons; no concerns
+- [HOF](https://neonsportz.com/leagues/HOF/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [HOFML](https://neonsportz.com/leagues/HOFML/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [HON](https://neonsportz.com/leagues/HON/): 0 complete / 0 completed seasons; no concerns
+- [HON3](https://neonsportz.com/leagues/HON3/): 0 complete / 0 completed seasons; no concerns
+- [HSL27](https://neonsportz.com/leagues/HSL27/): 0 complete / 0 completed seasons; no concerns
+- [HTM](https://neonsportz.com/leagues/HTM/): 0 complete / 0 completed seasons; no concerns
+- [HTMZ2](https://neonsportz.com/leagues/HTMZ2/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [HVC](https://neonsportz.com/leagues/HVC/): 0 complete / 0 completed seasons; no concerns
+- [IGM](https://neonsportz.com/leagues/IGM/): 0 complete / 0 completed seasons; no concerns
+- [IMT](https://neonsportz.com/leagues/IMT/): 0 complete / 0 completed seasons; no concerns
+- [INT](https://neonsportz.com/leagues/INT/): 0 complete / 0 completed seasons; no concerns
+- [IONNF](https://neonsportz.com/leagues/IONNF/): 0 complete / 0 completed seasons; no concerns
+- [IR](https://neonsportz.com/leagues/IR/): 0 complete / 0 completed seasons; no concerns
+- [ISB27](https://neonsportz.com/leagues/ISB27/): 0 complete / 0 completed seasons; no concerns
+- [ITML](https://neonsportz.com/leagues/ITML/): 0 complete / 0 completed seasons; no concerns
+- [IUOH](https://neonsportz.com/leagues/IUOH/): 0 complete / 0 completed seasons; no concerns
+- [J3](https://neonsportz.com/leagues/J3/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [JCHC](https://neonsportz.com/leagues/JCHC/): 0 complete / 0 completed seasons; no concerns
+- [JM2L](https://neonsportz.com/leagues/JM2L/): 0 complete / 0 completed seasons; no concerns
+- [JWB](https://neonsportz.com/leagues/JWB/): 0 complete / 0 completed seasons; no concerns
+- [K](https://neonsportz.com/leagues/K/): 0 complete / 0 completed seasons; no concerns
+- [K3](https://neonsportz.com/leagues/K3/): 0 complete / 0 completed seasons; no concerns
+- [K3R](https://neonsportz.com/leagues/K3R/): 0 complete / 0 completed seasons; no concerns
+- [KF](https://neonsportz.com/leagues/KF/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [KH](https://neonsportz.com/leagues/KH/): 0 complete / 0 completed seasons; no concerns
+- [KNFL](https://neonsportz.com/leagues/KNFL/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [KONG](https://neonsportz.com/leagues/KONG/): 0 complete / 0 completed seasons; no concerns
+- [KRM2](https://neonsportz.com/leagues/KRM2/): 0 complete / 0 completed seasons; no concerns
+- [KS](https://neonsportz.com/leagues/KS/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [L](https://neonsportz.com/leagues/L/): 0 complete / 0 completed seasons; no concerns
+- [LABCZ](https://neonsportz.com/leagues/LABCZ/): 0 complete / 0 completed seasons; no concerns
+- [LEG](https://neonsportz.com/leagues/LEG/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [LFA1](https://neonsportz.com/leagues/LFA1/): 0 complete / 0 completed seasons; no concerns
+- [LFDMD](https://neonsportz.com/leagues/LFDMD/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [LFG](https://neonsportz.com/leagues/LFG/): 0 complete / 0 completed seasons; no concerns
+- [LFL](https://neonsportz.com/leagues/LFL/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [LGA27](https://neonsportz.com/leagues/LGA27/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [LIC](https://neonsportz.com/leagues/LIC/): 0 complete / 0 completed seasons; no concerns
+- [LIL27](https://neonsportz.com/leagues/LIL27/): 0 complete / 0 completed seasons; no concerns
+- [LL](https://neonsportz.com/leagues/LL/): 0 complete / 0 completed seasons; no concerns
+- [LLAW](https://neonsportz.com/leagues/LLAW/): 0 complete / 0 completed seasons; no concerns
+- [LML](https://neonsportz.com/leagues/LML/): 0 complete / 0 completed seasons; no concerns
+- [LND](https://neonsportz.com/leagues/LND/): 0 complete / 0 completed seasons; no concerns
+- [LOC](https://neonsportz.com/leagues/LOC/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [LOR](https://neonsportz.com/leagues/LOR/): 0 complete / 0 completed seasons; no concerns
+- [LOS](https://neonsportz.com/leagues/LOS/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [LOYAL](https://neonsportz.com/leagues/LOYAL/): 0 complete / 0 completed seasons; no concerns
+- [LYFE](https://neonsportz.com/leagues/LYFE/): 0 complete / 0 completed seasons; no concerns
+- [M12R](https://neonsportz.com/leagues/M12R/): 0 complete / 0 completed seasons; no concerns
+- [M27](https://neonsportz.com/leagues/M27/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [M27F](https://neonsportz.com/leagues/M27F/): 0 complete / 0 completed seasons; no concerns
+- [M27OL](https://neonsportz.com/leagues/M27OL/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [M27PH](https://neonsportz.com/leagues/M27PH/): 0 complete / 0 completed seasons; no concerns
+- [M2F](https://neonsportz.com/leagues/M2F/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [M2FD](https://neonsportz.com/leagues/M2FD/): 0 complete / 0 completed seasons; no concerns
+- [M2FD1](https://neonsportz.com/leagues/M2FD1/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [M2FO](https://neonsportz.com/leagues/M2FO/): 0 complete / 0 completed seasons; no concerns
+- [M2LL](https://neonsportz.com/leagues/M2LL/): 0 complete / 0 completed seasons; no concerns
+- [M2M27](https://neonsportz.com/leagues/M2M27/): 0 complete / 0 completed seasons; no concerns
+- [M4E](https://neonsportz.com/leagues/M4E/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [M4EL](https://neonsportz.com/leagues/M4EL/): 0 complete / 0 completed seasons; no concerns
+- [MA](https://neonsportz.com/leagues/MA/): 0 complete / 0 completed seasons; no concerns
+- [MACL](https://neonsportz.com/leagues/MACL/): 0 complete / 0 completed seasons; no concerns
+- [MB273](https://neonsportz.com/leagues/MB273/): 0 complete / 0 completed seasons; no concerns
+- [MBC](https://neonsportz.com/leagues/MBC/): 0 complete / 0 completed seasons; no concerns
+- [MBL](https://neonsportz.com/leagues/MBL/): 0 complete / 0 completed seasons; no concerns
+- [MCL1](https://neonsportz.com/leagues/MCL1/): 0 complete / 0 completed seasons; no concerns
+- [MCLFL](https://neonsportz.com/leagues/MCLFL/): 0 complete / 0 completed seasons; no concerns
+- [MCRR](https://neonsportz.com/leagues/MCRR/): 0 complete / 0 completed seasons; no concerns
+- [MD](https://neonsportz.com/leagues/MD/): 0 complete / 0 completed seasons; no concerns
+- [MDNS](https://neonsportz.com/leagues/MDNS/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [ME27](https://neonsportz.com/leagues/ME27/): 0 complete / 0 completed seasons; no concerns
+- [MEC](https://neonsportz.com/leagues/MEC/): 0 complete / 0 completed seasons; no concerns
+- [MEFL7](https://neonsportz.com/leagues/MEFL7/): 0 complete / 0 completed seasons; no concerns
+- [MEGA](https://neonsportz.com/leagues/MEGA/): 0 complete / 0 completed seasons; no concerns
+- [MEL](https://neonsportz.com/leagues/MEL/): 0 complete / 0 completed seasons; no concerns
+- [MEN1](https://neonsportz.com/leagues/MEN1/): 0 complete / 0 completed seasons; no concerns
+- [MF2](https://neonsportz.com/leagues/MF2/): 0 complete / 0 completed seasons; no concerns
+- [MFFL](https://neonsportz.com/leagues/MFFL/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [MFL2](https://neonsportz.com/leagues/MFL2/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [MFN27](https://neonsportz.com/leagues/MFN27/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [MFUN](https://neonsportz.com/leagues/MFUN/): 0 complete / 0 completed seasons; no concerns
+- [MG33](https://neonsportz.com/leagues/MG33/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [MKL](https://neonsportz.com/leagues/MKL/): 0 complete / 0 completed seasons; no concerns
+- [MKLT2](https://neonsportz.com/leagues/MKLT2/): 0 complete / 0 completed seasons; no concerns
+- [MLG27](https://neonsportz.com/leagues/MLG27/): 0 complete / 0 completed seasons; no concerns
+- [MLL](https://neonsportz.com/leagues/MLL/): 0 complete / 0 completed seasons; no concerns
+- [MM27](https://neonsportz.com/leagues/MM27/): 0 complete / 0 completed seasons; no concerns
+- [MMAGC](https://neonsportz.com/leagues/MMAGC/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [MMD](https://neonsportz.com/leagues/MMD/): 0 complete / 0 completed seasons; no concerns
+- [MML](https://neonsportz.com/leagues/MML/): 0 complete / 0 completed seasons; no concerns
+- [MMLM](https://neonsportz.com/leagues/MMLM/): 0 complete / 0 completed seasons; no concerns
+- [MMLSS](https://neonsportz.com/leagues/MMLSS/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [MMW27](https://neonsportz.com/leagues/MMW27/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [MNFL](https://neonsportz.com/leagues/MNFL/): 0 complete / 0 completed seasons; no concerns
+- [MNNFL](https://neonsportz.com/leagues/MNNFL/): 0 complete / 0 completed seasons; no concerns
+- [MOF27](https://neonsportz.com/leagues/MOF27/): 0 complete / 0 completed seasons; no concerns
+- [MOFL](https://neonsportz.com/leagues/MOFL/): 0 complete / 0 completed seasons; no concerns
+- [MOM](https://neonsportz.com/leagues/MOM/): 0 complete / 0 completed seasons; no concerns
+- [MR](https://neonsportz.com/leagues/MR/): 0 complete / 0 completed seasons; no concerns
+- [MS](https://neonsportz.com/leagues/MS/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [MTCL](https://neonsportz.com/leagues/MTCL/): 0 complete / 0 completed seasons; no concerns
+- [MUW27](https://neonsportz.com/leagues/MUW27/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [MWDV](https://neonsportz.com/leagues/MWDV/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [MYNFL](https://neonsportz.com/leagues/MYNFL/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [N2](https://neonsportz.com/leagues/N2/): 0 complete / 0 completed seasons; no concerns
+- [NA](https://neonsportz.com/leagues/NA/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [NBS](https://neonsportz.com/leagues/NBS/): 0 complete / 0 completed seasons; no concerns
+- [NCI](https://neonsportz.com/leagues/NCI/): 0 complete / 0 completed seasons; no concerns
+- [NCL](https://neonsportz.com/leagues/NCL/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [NCLS2](https://neonsportz.com/leagues/NCLS2/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [NCM](https://neonsportz.com/leagues/NCM/): 0 complete / 0 completed seasons; no concerns
+- [ND2](https://neonsportz.com/leagues/ND2/): 0 complete / 0 completed seasons; no concerns
+- [NEML](https://neonsportz.com/leagues/NEML/): 0 complete / 0 completed seasons; no concerns
+- [NEON2](https://neonsportz.com/leagues/NEON2/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [NEXT](https://neonsportz.com/leagues/NEXT/): 0 complete / 0 completed seasons; no concerns
+- [NFCL](https://neonsportz.com/leagues/NFCL/): 0 complete / 0 completed seasons; no concerns
+- [NGL](https://neonsportz.com/leagues/NGL/): 0 complete / 0 completed seasons; no concerns
+- [NGMS](https://neonsportz.com/leagues/NGMS/): 0 complete / 0 completed seasons; no concerns
+- [NJ27](https://neonsportz.com/leagues/NJ27/): 0 complete / 0 completed seasons; no concerns
+- [NM2L](https://neonsportz.com/leagues/NM2L/): 0 complete / 0 completed seasons; no concerns
+- [NML](https://neonsportz.com/leagues/NML/): 0 complete / 0 completed seasons; no concerns
+- [NNL](https://neonsportz.com/leagues/NNL/): 0 complete / 0 completed seasons; no concerns
+- [NNML](https://neonsportz.com/leagues/NNML/): 0 complete / 0 completed seasons; no concerns
+- [NOES](https://neonsportz.com/leagues/NOES/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [NOFLX](https://neonsportz.com/leagues/NOFLX/): 0 complete / 0 completed seasons; no concerns
+- [NQMLL](https://neonsportz.com/leagues/NQMLL/): 0 complete / 0 completed seasons; no concerns
+- [NT1](https://neonsportz.com/leagues/NT1/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [NT22](https://neonsportz.com/leagues/NT22/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [NTJW](https://neonsportz.com/leagues/NTJW/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [NWL](https://neonsportz.com/leagues/NWL/): 0 complete / 0 completed seasons; no concerns
+- [NWO](https://neonsportz.com/leagues/NWO/): 0 complete / 0 completed seasons; no concerns
+- [NWOFL](https://neonsportz.com/leagues/NWOFL/): 0 complete / 0 completed seasons; no concerns
+- [O](https://neonsportz.com/leagues/O/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [OB4LL](https://neonsportz.com/leagues/OB4LL/): 0 complete / 0 completed seasons; no concerns
+- [OGH](https://neonsportz.com/leagues/OGH/): 0 complete / 0 completed seasons; no concerns
+- [OGML](https://neonsportz.com/leagues/OGML/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [OGNM](https://neonsportz.com/leagues/OGNM/): 0 complete / 0 completed seasons; no concerns
+- [OML27](https://neonsportz.com/leagues/OML27/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [OMM](https://neonsportz.com/leagues/OMM/): 0 complete / 0 completed seasons; no concerns
+- [OTG](https://neonsportz.com/leagues/OTG/): 0 complete / 0 completed seasons; no concerns
+- [OVT](https://neonsportz.com/leagues/OVT/): 0 complete / 0 completed seasons; no concerns
+- [P](https://neonsportz.com/leagues/P/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [P2](https://neonsportz.com/leagues/P2/): 0 complete / 0 completed seasons; no concerns
+- [P6](https://neonsportz.com/leagues/P6/): 0 complete / 0 completed seasons; no concerns
+- [P6FL](https://neonsportz.com/leagues/P6FL/): 0 complete / 0 completed seasons; no concerns
+- [PBLR](https://neonsportz.com/leagues/PBLR/): 0 complete / 0 completed seasons; no concerns
+- [PF](https://neonsportz.com/leagues/PF/): 0 complete / 0 completed seasons; no concerns
+- [PFAG](https://neonsportz.com/leagues/PFAG/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [PFAP](https://neonsportz.com/leagues/PFAP/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [PFL](https://neonsportz.com/leagues/PFL/): 0 complete / 0 completed seasons; no concerns
+- [PFL2](https://neonsportz.com/leagues/PFL2/): 0 complete / 0 completed seasons; no concerns
+- [PFL2K](https://neonsportz.com/leagues/PFL2K/): 0 complete / 0 completed seasons; no concerns
+- [PFML](https://neonsportz.com/leagues/PFML/): 0 complete / 0 completed seasons; no concerns
+- [PHFL](https://neonsportz.com/leagues/PHFL/): 0 complete / 0 completed seasons; no concerns
+- [PKCFM](https://neonsportz.com/leagues/PKCFM/): 0 complete / 0 completed seasons; no concerns
+- [PM2R](https://neonsportz.com/leagues/PM2R/): 0 complete / 0 completed seasons; no concerns
+- [PR](https://neonsportz.com/leagues/PR/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [PRKG](https://neonsportz.com/leagues/PRKG/): 0 complete / 0 completed seasons; no concerns
+- [PTGF](https://neonsportz.com/leagues/PTGF/): 0 complete / 0 completed seasons; no concerns
+- [PTGFL](https://neonsportz.com/leagues/PTGFL/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [PTR](https://neonsportz.com/leagues/PTR/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [PUYG](https://neonsportz.com/leagues/PUYG/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [PVP](https://neonsportz.com/leagues/PVP/): 0 complete / 0 completed seasons; no concerns
+- [QMRL](https://neonsportz.com/leagues/QMRL/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [R2SB](https://neonsportz.com/leagues/R2SB/): 0 complete / 0 completed seasons; no concerns
+- [RBR](https://neonsportz.com/leagues/RBR/): 0 complete / 0 completed seasons; no concerns
+- [RDC](https://neonsportz.com/leagues/RDC/): 0 complete / 0 completed seasons; no concerns
+- [RDZN](https://neonsportz.com/leagues/RDZN/): 0 complete / 0 completed seasons; no concerns
+- [RESM](https://neonsportz.com/leagues/RESM/): 0 complete / 0 completed seasons; no concerns
+- [REV](https://neonsportz.com/leagues/REV/): 0 complete / 0 completed seasons; no concerns
+- [RFLR](https://neonsportz.com/leagues/RFLR/): 0 complete / 0 completed seasons; no concerns
+- [RFLU](https://neonsportz.com/leagues/RFLU/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [RFUA](https://neonsportz.com/leagues/RFUA/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [RML1](https://neonsportz.com/leagues/RML1/): 0 complete / 0 completed seasons; no concerns
+- [RNFZ](https://neonsportz.com/leagues/RNFZ/): 0 complete / 0 completed seasons; no concerns
+- [RPO27](https://neonsportz.com/leagues/RPO27/): 0 complete / 0 completed seasons; no concerns
+- [RR](https://neonsportz.com/leagues/RR/): 0 complete / 0 completed seasons; no concerns
+- [RRML](https://neonsportz.com/leagues/RRML/): 0 complete / 0 completed seasons; no concerns
+- [RRV](https://neonsportz.com/leagues/RRV/): 0 complete / 0 completed seasons; no concerns
+- [RSL27](https://neonsportz.com/leagues/RSL27/): 0 complete / 0 completed seasons; no concerns
+- [RTCML](https://neonsportz.com/leagues/RTCML/): 0 complete / 0 completed seasons; no concerns
+- [RTM](https://neonsportz.com/leagues/RTM/): 0 complete / 0 completed seasons; no concerns
+- [RUNIT](https://neonsportz.com/leagues/RUNIT/): 0 complete / 0 completed seasons; no concerns
+- [S27](https://neonsportz.com/leagues/S27/): 0 complete / 0 completed seasons; no concerns
+- [SAI](https://neonsportz.com/leagues/SAI/): 0 complete / 0 completed seasons; no concerns
+- [SAKH](https://neonsportz.com/leagues/SAKH/): 0 complete / 0 completed seasons; no concerns
+- [SB](https://neonsportz.com/leagues/SB/): 0 complete / 0 completed seasons; no concerns
+- [SBF](https://neonsportz.com/leagues/SBF/): 0 complete / 0 completed seasons; no concerns
+- [SBPL](https://neonsportz.com/leagues/SBPL/): 0 complete / 0 completed seasons; no concerns
+- [SCFML](https://neonsportz.com/leagues/SCFML/): 0 complete / 0 completed seasons; no concerns
+- [SDFL](https://neonsportz.com/leagues/SDFL/): 0 complete / 0 completed seasons; no concerns
+- [SFG](https://neonsportz.com/leagues/SFG/): 0 complete / 0 completed seasons; no concerns
+- [SFR](https://neonsportz.com/leagues/SFR/): 0 complete / 0 completed seasons; no concerns
+- [SG](https://neonsportz.com/leagues/SG/): 0 complete / 0 completed seasons; no concerns
+- [SGL](https://neonsportz.com/leagues/SGL/): 0 complete / 0 completed seasons; no concerns
+- [SGN](https://neonsportz.com/leagues/SGN/): 0 complete / 0 completed seasons; no concerns
+- [SIM27](https://neonsportz.com/leagues/SIM27/): 0 complete / 0 completed seasons; no concerns
+- [SL](https://neonsportz.com/leagues/SL/): 0 complete / 0 completed seasons; no concerns
+- [SLN](https://neonsportz.com/leagues/SLN/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [SM](https://neonsportz.com/leagues/SM/): 0 complete / 0 completed seasons; no concerns
+- [SMASH](https://neonsportz.com/leagues/SMASH/): 0 complete / 0 completed seasons; no concerns
+- [SMDL](https://neonsportz.com/leagues/SMDL/): 0 complete / 0 completed seasons; no concerns
+- [SMFL](https://neonsportz.com/leagues/SMFL/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [SMLC](https://neonsportz.com/leagues/SMLC/): 0 complete / 0 completed seasons; no concerns
+- [SMM](https://neonsportz.com/leagues/SMM/): 0 complete / 0 completed seasons; no concerns
+- [SMML](https://neonsportz.com/leagues/SMML/): 0 complete / 0 completed seasons; no concerns
+- [SMVP](https://neonsportz.com/leagues/SMVP/): 0 complete / 0 completed seasons; no concerns
+- [SN](https://neonsportz.com/leagues/SN/): 0 complete / 0 completed seasons; no concerns
+- [SOSML](https://neonsportz.com/leagues/SOSML/): 0 complete / 0 completed seasons; no concerns
+- [ST](https://neonsportz.com/leagues/ST/): 0 complete / 0 completed seasons; no concerns
+- [ST27](https://neonsportz.com/leagues/ST27/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [STEEZ](https://neonsportz.com/leagues/STEEZ/): 0 complete / 0 completed seasons; no concerns
+- [STEP](https://neonsportz.com/leagues/STEP/): 0 complete / 0 completed seasons; no concerns
+- [STFL](https://neonsportz.com/leagues/STFL/): 0 complete / 0 completed seasons; no concerns
+- [STW](https://neonsportz.com/leagues/STW/): 0 complete / 0 completed seasons; no concerns
+- [SUN](https://neonsportz.com/leagues/SUN/): 0 complete / 0 completed seasons; no concerns
+- [SUNDA](https://neonsportz.com/leagues/SUNDA/): 0 complete / 0 completed seasons; no concerns
+- [T2DG](https://neonsportz.com/leagues/T2DG/): 0 complete / 0 completed seasons; no concerns
+- [T3](https://neonsportz.com/leagues/T3/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [TB](https://neonsportz.com/leagues/TB/): 0 complete / 0 completed seasons; no concerns
+- [TCM](https://neonsportz.com/leagues/TCM/): 0 complete / 0 completed seasons; no concerns
+- [TDL](https://neonsportz.com/leagues/TDL/): 0 complete / 0 completed seasons; no concerns
+- [TDN](https://neonsportz.com/leagues/TDN/): 0 complete / 0 completed seasons; no concerns
+- [TDT](https://neonsportz.com/leagues/TDT/): 0 complete / 0 completed seasons; no concerns
+- [TFGO](https://neonsportz.com/leagues/TFGO/): 0 complete / 0 completed seasons; no concerns
+- [TFL1](https://neonsportz.com/leagues/TFL1/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [TG](https://neonsportz.com/leagues/TG/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [TGA27](https://neonsportz.com/leagues/TGA27/): 0 complete / 0 completed seasons; no concerns
+- [TGF27](https://neonsportz.com/leagues/TGF27/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [TGL27](https://neonsportz.com/leagues/TGL27/): 0 complete / 0 completed seasons; no concerns
+- [TGS](https://neonsportz.com/leagues/TGS/): 0 complete / 0 completed seasons; no concerns
+- [THEDU](https://neonsportz.com/leagues/THEDU/): 0 complete / 0 completed seasons; no concerns
+- [THM](https://neonsportz.com/leagues/THM/): 0 complete / 0 completed seasons; no concerns
+- [THM2](https://neonsportz.com/leagues/THM2/): 0 complete / 0 completed seasons; no concerns
+- [THSL](https://neonsportz.com/leagues/THSL/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [TI](https://neonsportz.com/leagues/TI/): 0 complete / 0 completed seasons; no concerns
+- [TKL](https://neonsportz.com/leagues/TKL/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [TLC21](https://neonsportz.com/leagues/TLC21/): 0 complete / 0 completed seasons; no concerns
+- [TM](https://neonsportz.com/leagues/TM/): 0 complete / 0 completed seasons; no concerns
+- [TM27](https://neonsportz.com/leagues/TM27/): 0 complete / 0 completed seasons; no concerns
+- [TMLL](https://neonsportz.com/leagues/TMLL/): 0 complete / 0 completed seasons; no concerns
+- [TNE27](https://neonsportz.com/leagues/TNE27/): 0 complete / 0 completed seasons; no concerns
+- [TOGL](https://neonsportz.com/leagues/TOGL/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [TP](https://neonsportz.com/leagues/TP/): 0 complete / 0 completed seasons; no concerns
+- [TP7](https://neonsportz.com/leagues/TP7/): 0 complete / 0 completed seasons; no concerns
+- [TRS](https://neonsportz.com/leagues/TRS/): 0 complete / 0 completed seasons; no concerns
+- [TSC](https://neonsportz.com/leagues/TSC/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [TSFLX](https://neonsportz.com/leagues/TSFLX/): 0 complete / 0 completed seasons; no concerns
+- [TSPL](https://neonsportz.com/leagues/TSPL/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [TTEST](https://neonsportz.com/leagues/TTEST/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [TTL](https://neonsportz.com/leagues/TTL/): 0 complete / 0 completed seasons; no concerns
+- [TTML](https://neonsportz.com/leagues/TTML/): 0 complete / 0 completed seasons; no concerns
+- [UC](https://neonsportz.com/leagues/UC/): 0 complete / 0 completed seasons; no concerns
+- [UFA](https://neonsportz.com/leagues/UFA/): 0 complete / 0 completed seasons; no concerns
+- [UFLD](https://neonsportz.com/leagues/UFLD/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [UMF2](https://neonsportz.com/leagues/UMF2/): 0 complete / 0 completed seasons; no concerns
+- [VAL26](https://neonsportz.com/leagues/VAL26/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [VETS](https://neonsportz.com/leagues/VETS/): 0 complete / 0 completed seasons; no concerns
+- [VFL](https://neonsportz.com/leagues/VFL/): 0 complete / 0 completed seasons; no concerns
+- [VFLL](https://neonsportz.com/leagues/VFLL/): 0 complete / 0 completed seasons; no concerns
+- [VSG](https://neonsportz.com/leagues/VSG/): 0 complete / 0 completed seasons; no concerns
+- [WCL](https://neonsportz.com/leagues/WCL/): 0 complete / 0 completed seasons; no concerns
+- [WGHML](https://neonsportz.com/leagues/WGHML/): 0 complete / 0 completed seasons; no concerns
+- [WGML](https://neonsportz.com/leagues/WGML/): 0 complete / 0 completed seasons; no concerns
+- [WML](https://neonsportz.com/leagues/WML/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [WT](https://neonsportz.com/leagues/WT/): 0 complete / 0 completed seasons; no concerns
+- [WTTG](https://neonsportz.com/leagues/WTTG/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [WUT](https://neonsportz.com/leagues/WUT/): 0 complete / 0 completed seasons; no concerns
+- [WWB](https://neonsportz.com/leagues/WWB/): 0 complete / 0 completed seasons; no concerns
+- [X](https://neonsportz.com/leagues/X/): 0 complete / 0 completed seasons; 2026: zero games; possible missing early season/reset
+- [XCS](https://neonsportz.com/leagues/XCS/): 0 complete / 0 completed seasons; no concerns
+- [XFL](https://neonsportz.com/leagues/XFL/): 0 complete / 0 completed seasons; no concerns
+- [YKS](https://neonsportz.com/leagues/YKS/): 0 complete / 0 completed seasons; no concerns
+- [YML](https://neonsportz.com/leagues/YML/): 0 complete / 0 completed seasons; no concerns
+- [ZMD](https://neonsportz.com/leagues/ZMD/): 0 complete / 0 completed seasons; no concerns
+
+## API evidence
+
+- `https://neonsportz.com/api/leagues/0MFL/`: madden_year=2027, season=1; counts and validated schedules: `{"2026": {"complete_285": true, "completed": true, "concerns": [], "count_completed": 285, "count_postseason": 13, "count_sb": 1, "postseason": 13, "regular": 272, "sb_found": true, "season_index": 0, "verified_games": 285}, "2027": {"complete_285": false, "completed": false, "concerns": [], "count_completed": 208, "count_postseason": 0, "count_sb": 0, "postseason": 0, "regular": 208, "sb_found": false, "season_index": 1}}`
+- `https://neonsportz.com/api/leagues/1/`: madden_year=2027, season=0; counts and validated schedules: `{"2026": {"complete_285": false, "completed": false, "concerns": ["zero games; possible missing early season/reset"], "count_completed": 0, "count_postseason": 0, "count_sb": 0, "postseason": 0, "regular": 0, "sb_found": false, "season_index": 0}}`
+- `https://neonsportz.com/api/leagues/100/`: madden_year=2027, season=0; counts and validated schedules: `{"2026": {"complete_285": false, "completed": false, "concerns": [], "count_completed": 240, "count_postseason": 0, "count_sb": 0, "postseason": 0, "regular": 240, "sb_found": false, "season_index": 0}}`
+- `https://neonsportz.com/api/leagues/1ML/`: madden_year=2027, season=1; counts and validated schedules: `{"2026": {"complete_285": true, "completed": true, "concerns": [], "count_completed": 285, "count_postseason": 13, "count_sb": 1, "postseason": 13, "regular": 272, "sb_found": true, "season_index": 0, "verified_games": 285}, "2027": {"complete_285": false, "completed": false, "concerns": [], "count_completed": 26, "count_postseason": 0, "count_sb": 0, "postseason": 0, "regular": 26, "sb_found": false, "season_index": 1}}`
+- `https://neonsportz.com/api/leagues/1MSL/`: madden_year=2027, season=1; counts and validated schedules: `{"2026": {"complete_285": false, "completed": true, "concerns": ["4 ties", "playoff winners do not advance", "postseason rounds differ from 6/4/2/0/1"], "count_completed": 284, "count_postseason": 12, "count_sb": 0, "postseason": 12, "regular": 272, "sb_found": false, "season_index": 0, "verified_games": 284}, "2027": {"complete_285": false, "completed": false, "concerns": [], "count_completed": 122, "count_postseason": 0, "count_sb": 0, "postseason": 0, "regular": 122, "sb_found": false, "season_index": 1}}`
+
+## Seed-snapshot finding
+
+- `https://neonsportz.com/api/leagues/0MFL/standings/?seasonIndex=0`: `[]`
+- `https://neonsportz.com/api/leagues/0MFL/teams/?seasonIndex=0`: `{"count": 0}`
+- `https://neonsportz.com/api/leagues/0MFL/playoff-machine/`: `{"availableSeasons": [0, 1], "seasonIndex": 1}`
+- `https://neonsportz.com/api/leagues/1ML/standings/?seasonIndex=0`: `[]`
+- `https://neonsportz.com/api/leagues/1ML/teams/?seasonIndex=0`: `{"count": 0}`
+- `https://neonsportz.com/api/leagues/1ML/playoff-machine/`: `{"availableSeasons": [0, 1], "seasonIndex": 1}`
+- `https://neonsportz.com/api/leagues/27/standings/?seasonIndex=0`: `[]`
+- `https://neonsportz.com/api/leagues/27/teams/?seasonIndex=0`: `{"count": 0}`
+- `https://neonsportz.com/api/leagues/27/playoff-machine/`: `{"availableSeasons": [0, 1, 2, 3], "seasonIndex": 3}`
+- `https://neonsportz.com/api/leagues/27MFL/standings/?seasonIndex=0`: `[]`
+- `https://neonsportz.com/api/leagues/27MFL/teams/?seasonIndex=0`: `{"count": 0}`
+- `https://neonsportz.com/api/leagues/27MFL/playoff-machine/`: `{"availableSeasons": [0, 1], "seasonIndex": 1}`
+- `https://neonsportz.com/api/leagues/2MF/standings/?seasonIndex=0`: `[]`
+- `https://neonsportz.com/api/leagues/2MF/teams/?seasonIndex=0`: `{"count": 0}`
+- `https://neonsportz.com/api/leagues/2MF/playoff-machine/`: `{"availableSeasons": [0, 1, 2], "seasonIndex": 2}`
+Historical seed snapshots are not established by these endpoints. Empty historical responses and current playoff-machine data cannot recover historical seeds.
+
+## Limitations
+
+CSV includes Madden 27 leagues and unknown detail failures; confirmed other Madden editions are excluded. Partial run when --only or --limit is used. Failures are unknowns, never negative Madden 27 findings. Tier 3 includes leagues with no completed season yet. Tier 1 means at least one complete season; other seasons may still have errors.
+Count queries are API evidence before deduplication; complete flags use full validated schedules. Completed means a completed Super Bowl or an advanced franchise season, not necessarily a complete dataset. Calendar years assume 2026 + seasonIndex; resets can break that assumption.
+Cached GET responses are snapshots taken at different times. --refresh refreshes only directory/detail; remove game cache entries to refresh schedules. Existing dataset seasons are skipped for export unless --only is supplied. Export files from earlier runs are retained.
+No historical seeds are inferred from current standings. Bracket exports preserve API order within each week.
