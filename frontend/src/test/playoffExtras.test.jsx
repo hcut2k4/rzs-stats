@@ -136,11 +136,11 @@ it('places history and championship sections below the current odds tables', asy
   expect(screen.getByText('Probability over time')).toBeInTheDocument()
 })
 
-it('adds title odds and a small history SVG to the team outlook', async () => {
+it('adds a title funnel and an area history chart to the team outlook', async () => {
   show(<PlayoffOutlook teamId={teams[0].teamId} season={2} />)
-  expect(await screen.findByText('Title probability 2%')).toBeInTheDocument()
+  await waitFor(() => expect(screen.getByLabelText('Title probability funnel')).toHaveTextContent('Champion2%'))
   const spark = await screen.findByRole('img', { name: /Playoff probability went from/ })
-  expect(spark.querySelector('polyline')).toHaveAttribute('points', '3,15 157,12')
+  expect(spark.querySelector('polyline')).toHaveAttribute('points', '12,61.2 308,53.400000000000006')
 })
 
 it.each(['failed', 'short', 'missing'])('keeps the team outlook while hiding unavailable extras: %s', async mode => {
@@ -196,13 +196,13 @@ it.each([[[null, 0]], [[null]], [[0, 0]]])('renders finite history charts and ex
 it.each([[[null, 0]], [[0, 0]], [[null]]])('keeps the outlook sparkline finite for final or repeated weeks: %j', async weeks => {
   client.getPlayoffOddsHistory.mockResolvedValue({ ...history(), snapshots: weeks.map((week, i) => ({ ...history().snapshots[i % 2], week })) })
   show(<PlayoffOutlook teamId={teams[0].teamId} season={2} />)
-  await screen.findByText('Title probability 2%')
+  await screen.findByLabelText('Title probability funnel')
   await act(async () => {})
   const spark = screen.queryByRole('img', { name: /Playoff probability went from/ })
   if (weeks.length === 1) expect(spark).not.toBeInTheDocument()
   else {
     expect(spark.querySelector('polyline').getAttribute('points')).not.toMatch(/NaN|Infinity/)
-    if (weeks.includes(null)) expect(spark.querySelector('polyline')).toHaveAttribute('points', '3,12 157,15')
+    if (weeks.includes(null)) expect(spark.querySelector('polyline')).toHaveAttribute('points', '12,53.400000000000006 308,61.2')
   }
 })
 
@@ -231,8 +231,8 @@ it('shows selected teams and whole percentages in an expandable history table wi
 
 it('describes the sparkline and exposes its underlying weekly percentages', async () => {
   show(<PlayoffOutlook teamId={teams[0].teamId} season={2} />)
-  expect(await screen.findByRole('img', { name: 'Playoff probability went from 60% to 70% over 2 weeks' })).toBeInTheDocument()
-  await userEvent.click(screen.getByText('Show data table'))
+  expect(await screen.findByRole('img', { name: /Playoff probability went from 60% to 70% over 2 snapshots/ })).toBeInTheDocument()
+  await userEvent.click(screen.getByText('Show data'))
   const table = screen.getByRole('table', { name: 'Playoff outlook history data' })
   expect(table).toHaveTextContent('Week 1760%')
   expect(table).toHaveTextContent('Week 1870%')

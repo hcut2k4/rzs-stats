@@ -119,7 +119,7 @@ it('uses probability language in the Path page and ignores old rules', async () 
 
 it('uses probability language in the team outlook', async () => {
   const { container } = render(<MemoryRouter><PlayoffOutlook teamId={odds.conferences[0].teams[0].team.teamId} season={2} nextWeek={16} /></MemoryRouter>)
-  await screen.findByText(/Title probability/)
+  await screen.findByLabelText('Title probability funnel')
   assertLanguage(container)
 })
 
