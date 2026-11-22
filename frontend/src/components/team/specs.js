@@ -169,7 +169,7 @@ export const headerSpec = (team, season, kpis) => ({
     { label: 'Delta', desc: 'Change from the previous season.', text: r => r.delta ? `${r.delta.minor ? '' : r.delta.up ? '▲ ' : '▼ '}${r.delta.text}` : '' },
   ],
   image: headerImage(team, season, kpis),
-  api: { path: '/standings', params: { season }, note: 'Elo uses /api/elo/history; net points per drive uses /api/efficiency with stage=regular.' },
+  api: { path: '/standings', params: { season }, note: 'Elo uses /api/elo/history; net points per drive uses /api/efficiency with stage=regular. Playoffs uses /api/playoffs/odds, /api/playoffs/picture and /api/playoffs/clinch with rules=madden.' },
 })
 
 export function landscapeSpec(rows, teamId, season, team) {

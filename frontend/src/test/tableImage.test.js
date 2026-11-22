@@ -40,7 +40,7 @@ beforeEach(async () => {
       calls.push({ type: 'fillStyle', value })
     },
     fillRect(...args) { args[0] += offset[0]; args[1] += offset[1]; calls.push({ type: 'fillRect', args, style: this.style }) },
-    fillText(...args) { args[1] += offset[0]; args[2] += offset[1]; calls.push({ type: 'fillText', args, style: this.style, align: this.textAlign }) },
+    fillText(...args) { args[1] += offset[0]; args[2] += offset[1]; calls.push({ type: 'fillText', args, style: this.style, align: this.textAlign, font: this.font }) },
   }
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(function () {
     canvases.push(this)
@@ -507,4 +507,81 @@ it('draws each row accent after the cell backgrounds', async () => {
   await copyImage(table)
   const accents = calls.filter(c => c.type === 'fillRect' && ['#123456', '#000000'].includes(c.style))
   expect(accents.map(c => [c.style, c.args])).toEqual([['#123456', [0, 80, 4, 23]], ['#000000', [0, 104, 4, 23]]])
+})
+
+it.each([6, 7, 8])('fills the last header row with %i values and wraps playoff context inside the frame', async count => {
+  vi.stubGlobal('Image', class { set src(value) { queueMicrotask(() => this.onerror()) } })
+  const { headerSpec } = await import('../components/team/specs')
+  const kpis = [...Array.from({ length: count - 1 }, (_, i) => ({ label: `Metric ${i}`, value: '10' })), { label: 'Playoffs', value: '100%', rank: { rank: 1, of: 32 }, note: '6th seed · Wild card · Clinched playoffs · Eliminated from the division' }]
+  const spec = headerSpec({ displayName: 'Bears', abbrName: 'CHI' }, 1, kpis)
+  const panel = await spec.image.draw(ctx, 390)
+  expect(panel.height).toBeGreaterThan(164 + 3 * 126)
+  expect((await spec.image.draw(ctx, 390)).height).toBe(panel.height)
+  panel.draw(ctx)
+  const texts = calls.filter(c => c.type === 'fillText')
+  expect(texts.map(c => c.args[0]).join(' ')).toContain(kpis.at(-1).note)
+  expect(texts.map(c => c.args[0])).toEqual(expect.arrayContaining(['Playoffs', '100%', '1st of 32']))
+  expect(texts.every(c => c.args[2] < panel.height)).toBe(true)
+  const cells = calls.filter(c => c.type === 'fillRect' && c.args[1] >= 164)
+  expect(cells.at(-1).args[2]).toBe((count % 2 ? 390 : 195) - 2)
+  const noteRows = texts.filter(c => c.args[2] >= 164 + Math.floor((count - 1) / 2) * 126 + 89)
+  expect(noteRows.length).toBeGreaterThan(1)
+  expect(noteRows.every(c => c.args[1] + ctx.measureText(c.args[0]).width <= 390 - 12)).toBe(true)
+  const { toRows, aiText } = await import('../utils/exportTable')
+  expect(toRows(spec).at(-1)).toEqual(['Playoffs', '100%', '1st of 32', kpis.at(-1).note, ''])
+  expect(aiText(spec)).toContain('Clinched playoffs')
+})
+
+it.each(['live', 'finished', 'no history', 'one snapshot', 'no next game', 'no title data', 'clinched', 'eliminated'])('draws the playoff outlook card for %s', async state => {
+  vi.stubGlobal('Image', class { set src(value) { queueMicrotask(() => this.onerror()) } })
+  const { playoffOutlookImage } = await import('../components/team/images')
+  const { probShade, chanceShade, SEED_COLORS } = await import('../utils/playoffOdds')
+  ctx.measureText.mockImplementation(value => ({ width: value.length * parseFloat(ctx.font.match(/([\d.]+)px/)[1]) / 14 * (ctx.font.startsWith('bold') ? 8 : 7) }))
+  const finished = state === 'finished'
+  const p = state === 'clinched' ? 1 : state === 'eliminated' ? 0 : 0.65
+  const badges = state === 'clinched' ? ['Clinched playoffs'] : state === 'eliminated' ? ['Eliminated from the playoffs'] : []
+  const image = playoffOutlookImage({
+    team: { primaryColor: '16727040' }, probability: p, probabilityText: `${p * 100}%`, badges,
+    status: '6th seed (wild card)', finished, story: '8-6 and currently a wild card; a win over Bears gives them a 75% playoff probability, while a loss leaves 40%.',
+    stages: ['Make playoffs', 'Reach round 2', 'Conference final', 'Super Bowl', 'Champion'].map((label, i) => ({ label, p: i ? state === 'no title data' ? undefined : 0.2 : p, text: i ? state === 'no title data' ? '—' : '20%' : `${p * 100}%` })),
+    preplayoff: finished, seedOdds: [0.01, 0.02, 0.03, 0.04, 0.1, 0.3, 0.15],
+    points: state === 'no history' ? [] : state === 'one snapshot' ? [{ week: 0, p: 0.4 }] : [{ week: 0, p: 0.4 }, { week: 1, p: 0.65 }, { week: null, p: 0.7 }],
+    next: finished || state === 'no next game' ? null : { side: 'away', ifWin: { playoffs: 0.75 }, ifLoss: { playoffs: 0.4 } },
+    opp: { abbrName: 'CHI', displayName: 'Bears' }, week: 15, rank: 3,
+  })
+  const panel = await image.draw(ctx, 900)
+  expect(panel.height).toBeGreaterThan(0)
+  expect((await image.draw(ctx, 900)).height).toBe(panel.height)
+  panel.draw(ctx)
+  const texts = calls.filter(c => c.type === 'fillText')
+  const panelWidth = (900 - 40 - 48) / 3
+  const headline = texts.filter(c => c.args[1] === 20 && c.font === 'bold 14px sans-serif')
+  expect(headline.length).toBeGreaterThan(finished ? 0 : 1)
+  expect(headline.map(c => c.args[0]).join(' ')).toBe(`${finished ? 'Final seed: ' : 'If the season ended today: '}6th seed (wild card)`)
+  for (const row of headline) {
+    ctx.font = row.font
+    expect(ctx.measureText(row.args[0]).width).toBeLessThanOrEqual(panelWidth)
+  }
+  const caption = texts.find(c => c.args[0] === 'Playoff probability')
+  expect(caption.font).toBe('10px sans-serif')
+  ctx.font = caption.font
+  const captionWidth = ctx.measureText(caption.args[0]).width
+  const cx = 20 + panelWidth / 2
+  expect(caption.args[1] + captionWidth / 2).toBeCloseTo(cx)
+  expect(Math.hypot(captionWidth / 2, caption.args[2] - 108)).toBeLessThan(68 - 6 - 8)
+  const output = texts.map(c => c.args[0]).join(' ')
+  for (const value of ['Playoff probability', `${p * 100}%`, 'ROAD TO THE TITLE', 'Reach round 2', state === 'no title data' ? '—' : '20%', 'Division winners', 'Wild cards', 'Out:', '6th seed (wild card)', ...badges]) expect(output).toContain(value)
+  expect(output).toContain(finished ? 'Final seed:' : 'If the season ended today:')
+  expect(output.includes('MOMENTUM')).toBe(!['no history', 'one snapshot'].includes(state))
+  if (!['no history', 'one snapshot'].includes(state)) {
+    expect(output).toContain('Biggest weekly jump: +25 pp')
+    expect(output).toContain('Final')
+  }
+  if (finished) expect(output).toContain('Pre-playoff projection')
+  if (!finished && state !== 'no next game') {
+    for (const value of ['@ Bears', 'Win → 75% ▲', 'Lose → 40% ▼', '3rd biggest game this week']) expect(output).toContain(value)
+  } else expect(output).not.toContain('NEXT GAME')
+  expect(texts.every(c => c.args[2] < panel.height)).toBe(true)
+  const colors = calls.filter(c => c.type === 'fillStyle').map(c => c.value)
+  expect(colors).toEqual(expect.arrayContaining([...SEED_COLORS, '#ff3c00', probShade(p), ...(state === 'no title data' ? [] : [chanceShade(0.2)])]))
 })

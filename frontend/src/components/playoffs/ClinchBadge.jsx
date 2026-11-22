@@ -12,10 +12,14 @@ export const markerValue = (p, marker) => marker === 'clinched' ? 1 : marker ===
 export function markerOdds(p, marker) {
   return formatOdds(markerValue(p, marker), marker === 'clinched' || marker === 'eliminated')
 }
-export default function ClinchBadge({ markers, compact = false }) {
-  if (!markers) return null
+export function clinchTexts(markers) {
+  if (!markers) return []
   const clinched = [['oneSeed', 'No. 1 seed'], ['division', 'division'], ['playoffs', 'playoffs']].find(([key]) => markers[key] === 'clinched')
   const eliminated = [['playoffs', 'playoffs'], ['division', 'division'], ['oneSeed', 'No. 1 seed']].find(([key]) => markers[key] === 'eliminated')
-  const badges = [clinched && `Clinched ${clinched[1]}`, eliminated && !(eliminated[0] === 'oneSeed' && clinched) && `Eliminated from the ${eliminated[1]}`].filter(Boolean)
-  return <span className={`inline-flex gap-1 ${compact ? 'whitespace-nowrap' : 'flex-wrap'}`}>{badges.map(text => <InfoTip key={text} text={compact ? `${text}. ${CLINCH_TIP}` : CLINCH_TIP}><span tabIndex={0} className={`text-xs rounded border border-line ${compact ? 'px-1' : 'px-1.5 py-0.5'}`}>{compact ? <><span className="sr-only">{text}</span><span aria-hidden="true">{text.startsWith('Eliminated') ? 'Out' : clinched[0] === 'oneSeed' ? '#1' : clinched[0] === 'division' ? 'Div' : 'In'}</span></> : text}</span></InfoTip>)}</span>
+  return [clinched && `Clinched ${clinched[1]}`, eliminated && !(eliminated[0] === 'oneSeed' && clinched) && `Eliminated from the ${eliminated[1]}`].filter(Boolean)
+}
+export default function ClinchBadge({ markers, compact = false }) {
+  const badges = clinchTexts(markers)
+  if (!markers) return null
+  return <span className={`inline-flex gap-1 ${compact ? 'whitespace-nowrap' : 'flex-wrap'}`}>{badges.map(text => <InfoTip key={text} text={compact ? `${text}. ${CLINCH_TIP}` : CLINCH_TIP}><span tabIndex={0} className={`text-xs rounded border border-line ${compact ? 'px-1' : 'px-1.5 py-0.5'}`}>{compact ? <><span className="sr-only">{text}</span><span aria-hidden="true">{text.startsWith('Eliminated') ? 'Out' : markers.oneSeed === 'clinched' ? '#1' : markers.division === 'clinched' ? 'Div' : 'In'}</span></> : text}</span></InfoTip>)}</span>
 }

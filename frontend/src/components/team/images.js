@@ -1,3 +1,5 @@
+import { probShade, chanceShade, formatOdds, SEED_COLORS } from '../../utils/playoffOdds'
+import { snapshotLabel } from './PlayoffMomentum'
 import { FINGERPRINT_FOOTER, LANDSCAPE_FOOTER, TRUTH_EXPLANATION, FRANCHISE_NOTE, trajectoryCopy } from '../../utils/teamProfileCopy'
 import { IMAGE, drawCellVisual, layoutTable, wrapText } from '../../utils/tableImage'
 import { loadLogo } from '../../utils/teamLogo'
@@ -56,7 +58,9 @@ const logo = (ctx, img, abbr, x, y, size) => {
 
 export const headerImage = (team, season, kpis) => ({ width: 390, async draw(ctx, width) {
   const img = await loadLogo(team.abbrName)
-  const height = 164 + Math.ceil(kpis.length / 2) * 126
+  ctx.font = '11px sans-serif'
+  const rowHeights = Array.from({ length: Math.ceil(kpis.length / 2) }, (_, i) => Math.max(126, ...kpis.slice(i * 2, i * 2 + 2).map(k => 98 + (k.note ? wrapText(ctx, k.note, (i * 2 === kpis.length - 1 ? width : width / 2) - 24).length * 14 : 0) + (k.delta ? 20 : 0))))
+  const height = 164 + rowHeights.reduce((sum, h) => sum + h, 0)
   return { height, draw(ctx) {
     const wash = ctx.createLinearGradient(0, 0, width, 0)
     wash.addColorStop(0, `${color(team)}42`)
@@ -71,15 +75,19 @@ export const headerImage = (team, season, kpis) => ({ width: 390, async draw(ctx
     text(ctx, team.cityName, 20, 117, 20, IMAGE.muted, true)
     text(ctx, team.displayName, 20, 145, 32, IMAGE.ink, true)
     kpis.forEach((k, i) => {
-      const x = (i % 2) * width / 2, y = 164 + Math.floor(i / 2) * 126
+      const x = (i % 2) * width / 2, y = 164 + rowHeights.slice(0, Math.floor(i / 2)).reduce((sum, h) => sum + h, 0)
       ctx.fillStyle = IMAGE.surface
-      ctx.fillRect(x + 1, y, width / 2 - 2, 124)
+      const cellWidth = i === kpis.length - 1 && kpis.length % 2 ? width : width / 2
+      ctx.fillRect(x + 1, y, cellWidth - 2, rowHeights[Math.floor(i / 2)] - 2)
       text(ctx, k.label, x + 12, y + 17, 11, IMAGE.muted, true)
       text(ctx, k.value, x + 12, y + 46, 28, IMAGE.ink, true)
       const rankColor = k.neutral ? IMAGE.ink : IMAGE[rankTone(k.rank?.rank, k.rank?.of)]
       if (k.rank) text(ctx, `${ordinal(k.rank.rank)}${k.rankWord ?? ''} of ${k.rank.of}`, x + 12, y + 72, 11, rankColor, true)
-      if (k.note) text(ctx, k.note, x + 12, y + 91, 11, IMAGE.muted)
-      if (k.delta) text(ctx, `${k.delta.minor ? '' : k.delta.up ? '▲ ' : '▼ '}${k.delta.text}`, x + 12, y + 109, 11, k.delta.minor ? IMAGE.muted : k.delta.up ? IMAGE.good : IMAGE.bad)
+      if (k.note) {
+        ctx.font = '11px sans-serif'
+        wrapText(ctx, k.note, cellWidth - 24).forEach((row, j) => text(ctx, row, x + 12, y + 89 + j * 14, 11, IMAGE.muted))
+      }
+      if (k.delta) text(ctx, `${k.delta.minor ? '' : k.delta.up ? '▲ ' : '▼ '}${k.delta.text}`, x + 12, y + rowHeights[Math.floor(i / 2)] - 16, 11, k.delta.minor ? IMAGE.muted : k.delta.up ? IMAGE.good : IMAGE.bad)
     })
   } }
 } })
@@ -247,5 +255,139 @@ export const franchiseImage = (team, points, spec) => ({ async draw(ctx, width) 
       table.draw(ctx, 0, 295)
       ctx.restore()
     } else table.draw(ctx, 0, 295)
+  } }
+} })
+
+export const playoffOutlookImage = ({ team, probability, probabilityText, badges, status, finished, story, stages, preplayoff, seedOdds, points, next, opp, week, rank }) => ({ async draw(ctx, width) {
+  const img = next ? await loadLogo(opp.abbrName) : null
+  const gap = 24, padding = 20, w = (width - padding * 2 - gap * 2) / 3
+  const xs = [padding, padding + w + gap, padding + (w + gap) * 2]
+  const wrapped = (value, size = 14, maxWidth = w, bold = false) => {
+    ctx.font = `${bold ? 'bold ' : ''}${size}px sans-serif`
+    return wrapText(ctx, value, maxWidth)
+  }
+  const badgeRows = badges.map(b => wrapped(b, 12))
+  const statusRows = status ? wrapped(`${finished ? 'Final seed: ' : 'If the season ended today: '}${status}`, 14, w, true) : []
+  const storyRows = wrapped(story)
+  const headlineHeight = 207 + badgeRows.reduce((n, rows) => n + rows.length * 16 + 10, 0) + statusRows.length * 20 + storyRows.length * 22
+  const jump = points.length < 2 ? null : points.slice(1).reduce((best, p, i) => {
+    const change = p.p - points[i].p
+    return Math.abs(change) > Math.abs(best.change) ? { index: i + 1, change } : best
+  }, { index: 1, change: points[1].p - points[0].p })
+  const jumpText = jump ? `Biggest weekly jump: ${jump.change >= 0 ? '+' : ''}${Math.round(jump.change * 100)} pp · ${snapshotLabel(points[jump.index].week)}` : ''
+  const jumpRows = jump ? wrapped(jumpText, 12) : []
+  const momentumHeight = jump ? 35 + w * 138 / 320 + jumpRows.length * 16 + 16 : 0
+  const opponentRows = next ? wrapped(`${next.side === 'home' ? 'vs' : '@'} ${opp.displayName}`, 14, w - 54) : []
+  const gameHeight = next ? 106 + opponentRows.length * 20 : 0
+  const height = Math.max(headlineHeight, 400 + (preplayoff ? 32 : 0), momentumHeight + gameHeight + 75) + 20
+  return { height, draw(ctx) {
+    const block = (rows, x, y, size, tone = IMAGE.muted, bold = false, leading = 20) => {
+      rows.forEach((row, i) => text(ctx, row, x, y + i * leading, size, tone, bold))
+      return y + rows.length * leading
+    }
+    const box = (x, y, bw, bh, fill, stroke = false) => {
+      ctx.beginPath()
+      ctx.roundRect(x, y, bw, bh, 4)
+      ctx.fillStyle = fill
+      ctx.fill()
+      if (stroke) { ctx.strokeStyle = IMAGE.line; ctx.lineWidth = 1; ctx.stroke() }
+    }
+    box(padding, 0, width - padding * 2, 4, color(team))
+    line(ctx, xs[1] - 12, 28, xs[1] - 12, height - 20)
+    line(ctx, xs[2] - 12, 28, xs[2] - 12, height - 20)
+    const cx = xs[0] + w / 2, cy = 108
+    ctx.lineWidth = 12
+    ctx.strokeStyle = IMAGE.line
+    ctx.beginPath(); ctx.arc(cx, cy, 68, 0, Math.PI * 2); ctx.stroke()
+    if (probability > 0) {
+      ctx.strokeStyle = probShade(probability) ?? IMAGE.muted
+      ctx.lineCap = 'round'
+      ctx.beginPath(); ctx.arc(cx, cy, 68, -Math.PI / 2, -Math.PI / 2 + probability * Math.PI * 2); ctx.stroke()
+      ctx.lineCap = 'butt'
+    }
+    ctx.font = 'bold 36px sans-serif'
+    text(ctx, probabilityText, cx - ctx.measureText(probabilityText).width / 2, cy - 3, 36, probShade(probability), true)
+    ctx.font = '10px sans-serif'
+    const captionWidth = ctx.measureText('Playoff probability').width
+    text(ctx, 'Playoff probability', cx - captionWidth / 2, cy + 23, 10, IMAGE.muted)
+    let y = 207
+    badgeRows.forEach(rows => {
+      box(xs[0], y - 10, w, rows.length * 16 + 6, IMAGE.bg, true)
+      y = block(rows, xs[0] + 6, y, 12, IMAGE.ink, false, 16) + 10
+    })
+    y = block(statusRows, xs[0], y, 14, IMAGE.ink, true) + 12
+    block(storyRows, xs[0], y, 14, IMAGE.muted, false, 22)
+    y = 33
+    text(ctx, 'ROAD TO THE TITLE', xs[1], y, 12, IMAGE.muted, true)
+    y += 28
+    if (preplayoff) y = block(wrapped('Pre-playoff projection (end of regular season)', 12), xs[1], y, 12, IMAGE.muted, false, 16) + 8
+    stages.forEach((stage, i) => {
+      text(ctx, stage.label, xs[1], y, 12)
+      ctx.font = 'bold 12px sans-serif'
+      text(ctx, stage.text, xs[1] + w - ctx.measureText(stage.text).width, y, 12, IMAGE.ink, true)
+      box(xs[1], y + 12, w, 16, IMAGE.surface, true)
+      if (stage.p > 0) box(xs[1], y + 12, w * stage.p, 16, (i === 0 ? probShade : chanceShade)(stage.p))
+      y += 44
+    })
+    y += 4
+    text(ctx, 'Division winners', xs[1], y, 12, IMAGE.muted)
+    text(ctx, 'Wild cards', xs[1], y + 22, 12, IMAGE.muted)
+    SEED_COLORS.forEach((tone, i) => {
+      const x = xs[1] + 105 + (i < 4 ? i : i - 4) * 32, sy = y + (i < 4 ? 0 : 22)
+      box(x, sy - 6, 12, 12, tone)
+      text(ctx, String(i + 1), x + 16, sy, 12, IMAGE.muted)
+    })
+    y += 42
+    box(xs[1], y, w, 12, IMAGE.line)
+    let seedX = xs[1]
+    seedOdds.forEach((p, i) => {
+      ctx.fillStyle = SEED_COLORS[i]
+      ctx.fillRect(seedX, y, p * w, 12)
+      if (i === 4 && p > 0) { ctx.fillStyle = IMAGE.bg; ctx.fillRect(seedX, y, 2, 12) }
+      seedX += p * w
+    })
+    ctx.fillStyle = IMAGE.muted
+    ctx.globalAlpha = 0.3
+    ctx.fillRect(xs[1] + w * probability, y, w * (1 - probability), 12)
+    ctx.globalAlpha = 1
+    text(ctx, `Out: ${formatOdds(1 - probability, finished)}`, xs[1], y + 27, 12, IMAGE.muted)
+    y = 33
+    if (jump) {
+      text(ctx, 'MOMENTUM', xs[2], y, 12, IMAGE.muted, true)
+      const scale = w / 320, top = y + 12
+      const coords = points.map((p, i) => [xs[2] + (12 + i / (points.length - 1) * 296) * scale, top + (108 - p.p * 78) * scale])
+      ctx.beginPath()
+      coords.forEach(([x, py], i) => i ? ctx.lineTo(x, py) : ctx.moveTo(x, py))
+      ctx.lineTo(xs[2] + 308 * scale, top + 112 * scale)
+      ctx.lineTo(xs[2] + 12 * scale, top + 112 * scale)
+      ctx.closePath(); ctx.fillStyle = color(team); ctx.globalAlpha = 0.14; ctx.fill(); ctx.globalAlpha = 1
+      ctx.beginPath()
+      coords.forEach(([x, py], i) => i ? ctx.lineTo(x, py) : ctx.moveTo(x, py))
+      ctx.strokeStyle = color(team); ctx.lineWidth = 2.5; ctx.stroke()
+      const [jx, jy] = coords[jump.index]
+      dot(ctx, jx, jy, color(team))
+      text(ctx, `${jump.change >= 0 ? '+' : ''}${Math.round(jump.change * 100)} pp`, Math.min(xs[2] + w - 54, Math.max(xs[2], jx - 22)), Math.max(top + 12, jy - 12), 12)
+      text(ctx, snapshotLabel(points[0].week), xs[2] + 12 * scale, top + 132 * scale, 11, IMAGE.muted)
+      const last = snapshotLabel(points.at(-1).week)
+      ctx.font = '11px sans-serif'
+      text(ctx, last, xs[2] + 308 * scale - ctx.measureText(last).width, top + 132 * scale, 11, IMAGE.muted)
+      y = block(jumpRows, xs[2], top + 138 * scale + 14, 12, IMAGE.muted, false, 16) + 20
+    }
+    if (next) {
+      box(xs[2], y - 12, w, gameHeight, IMAGE.bg, true)
+      text(ctx, `NEXT GAME · ${weekName(week)}`, xs[2] + 12, y + 6, 12, IMAGE.muted, true)
+      logo(ctx, img, opp.abbrName, xs[2] + 12, y + 22, 20)
+      const bottom = block(opponentRows, xs[2] + 40, y + 32, 14, IMAGE.ink, true)
+      const chipWidth = (w - 32) / 2
+      ;[[next.ifWin.playoffs, 'Win →', '▲'], [next.ifLoss.playoffs, 'Lose →', '▼']].forEach(([p, label, arrow], i) => {
+        const x = xs[2] + 12 + i * (chipWidth + 8)
+        box(x, bottom + 2, chipWidth, 28, probShade(p) ?? IMAGE.surface)
+        text(ctx, `${label} ${formatOdds(p)} ${arrow}`, x + 6, bottom + 16, 12)
+      })
+      text(ctx, `${ordinal(rank)} biggest game this week`, xs[2] + 12, bottom + 48, 12, IMAGE.muted)
+      y += gameHeight + 8
+    }
+    text(ctx, 'Path to the playoffs →', xs[2], y + 8, 14, IMAGE.accent)
+    text(ctx, 'All playoff probabilities →', xs[2], y + 36, 14, IMAGE.accent)
   } }
 } })
