@@ -44,6 +44,19 @@ public class EloQueryService {
                 }).toList();
     }
 
+    public Map<Integer, Double> homeWinProbabilities(int season) {
+        var timeline = history.getTimeline();
+        var current = new HashMap<Integer, Double>();
+        selected(timeline, season, null).forEach(s -> current.put(s.team().teamId(), s.endElo()));
+        var probabilities = new HashMap<Integer, Double>();
+        for (var game : games.findFutureRegularSeasonGames(season)) {
+            double home = current.getOrDefault(game.getHomeTeam().getTeamId(), timeline.config().initialRating());
+            double away = current.getOrDefault(game.getAwayTeam().getTeamId(), timeline.config().initialRating());
+            probabilities.put(game.getGameId(), engine.probability(home + timeline.config().homeFieldAdvantage(), away, timeline.config()));
+        }
+        return Map.copyOf(probabilities);
+    }
+
     public List<EloDtos.Rating> ratings(Integer season, Integer week) {
         return selected(history.getTimeline(), season, week).stream()
                 .sorted(Comparator.comparingInt(EloService.Snapshot::rank))

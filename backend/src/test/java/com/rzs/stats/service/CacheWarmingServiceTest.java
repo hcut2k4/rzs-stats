@@ -1,5 +1,7 @@
 package com.rzs.stats.service;
 
+import com.rzs.stats.playoffs.OddsService;
+import com.rzs.stats.playoffs.OddsSnapshotService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,16 +21,20 @@ class CacheWarmingServiceTest {
     @Mock StatsService stats;
     @Mock EloHistoryService elo;
     @Mock QbStatsService qb;
+    @Mock OddsService odds;
+    @Mock OddsSnapshotService snapshots;
     CacheWarmingService warming;
 
     @BeforeEach
     void setUp() {
-        warming = new CacheWarmingService(stats, elo, qb);
+        warming = new CacheWarmingService(stats, elo, qb, odds, snapshots);
     }
 
     @Test
     void warmsSeasonAndAlltimeQbBoardsAndMovementForTheLatestSeason() {
         when(stats.getAvailableSeasons()).thenReturn(List.of(2, 0, 1));
+        var baseline = new OddsService.Response(2, "madden", 10, 11, 20000, java.time.Instant.now(), List.of());
+        when(odds.odds(null, "madden")).thenReturn(baseline);
         warming.warmCaches();
         for (int season : List.of(0, 1, 2)) {
             verify(qb).leaderboard(SEASON, season, null, REGULAR, null, false);
@@ -36,6 +42,8 @@ class CacheWarmingServiceTest {
         verify(qb).leaderboard(ALLTIME, null, null, REGULAR, null, false);
         verify(qb).leaderboard(ALLTIME, null, null, PLAYOFFS, null, false);
         verify(qb).movement(2, REGULAR, 1, QbStatsService.Basis.SEASON);
+        verify(odds).odds(null, "madden");
+        verify(snapshots).save(baseline);
         assertThat(warming.getStatus().message()).contains("QB stats");
         assertThat(warming.getStatus().success()).isTrue();
     }
@@ -51,6 +59,16 @@ class CacheWarmingServiceTest {
         verify(qb).leaderboard(SEASON, 1, null, REGULAR, null, false);
         verify(qb).leaderboard(ALLTIME, null, null, PLAYOFFS, null, false);
         verify(elo).getTimeline();
+        assertThat(warming.getStatus().success()).isTrue();
+    }
+
+    @Test
+    void missingPlayoffDataDoesNotFailOtherCacheWarming() {
+        when(stats.getAvailableSeasons()).thenReturn(List.of(0));
+        when(odds.odds(null, "madden")).thenThrow(new IllegalStateException("missing playoff data"));
+        warming.warmCaches();
+        verify(elo).getTimeline();
+        verifyNoInteractions(snapshots);
         assertThat(warming.getStatus().success()).isTrue();
     }
 

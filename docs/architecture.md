@@ -6,7 +6,7 @@
 backend/src/main/java/com/rzs/stats/
 ├── controller/
 │   ├── StatsController.java       # public API: /api/* (standings, games, trends, elo)
-│   ├── PlayoffsController.java    # public API: /api/playoffs/picture
+│   ├── PlayoffsController.java    # public API: /api/playoffs/picture, /odds
 │   ├── QbController.java          # public API: /api/qb/*
 │   ├── AdminController.java       # admin tools: /api/admin/*
 │   └── AdminAuthController.java   # GET /api/admin/auth — token probe for the UI
@@ -28,6 +28,9 @@ backend/src/main/java/com/rzs/stats/
 ├── playoffs/
 │   ├── SeasonStateLoader.java     # reusable season schedule, identities, records input and week bounds
 │   ├── PlayoffPictureService.java # Madden/NFL picture and alternate seeds
+│   ├── SimulationService.java    # parallel Monte Carlo with paired, counter-based random draws
+│   ├── OddsService.java          # cached Elo playoff odds
+│   ├── OddsSnapshotService.java  # first Madden baseline per season/week/team
 │   ├── TiebreakExplainer.java     # plain-English explanations from engine traces
 │   ├── MaddenSeeding.java         # Madden 27 seeding engine
 │   ├── PlayoffSeeding.java        # NFL seeding engine
@@ -113,6 +116,10 @@ One row per team per game, table `team_game_stats`. Unique constraint: `(seasonI
 ### EloConfigEntity
 Single persisted row holding the tunable `EloConfig`. `EloConfigService.seed()` writes defaults when absent.
 
+### OddsSnapshotEntity
+
+Table `playoff_odds_snapshots`, created through Hibernate `ddl-auto=update` like the other entities (no migration framework). Unique `(season, next_week, team_id)` stores the first Madden baseline for a week: playoff, division and one-seed fractions, seven comma-separated seed fractions, simulation count, rules and UTC computed timestamp. `next_week=-1` represents a completed regular season. Warming inserts missing team rows and preserves existing snapshots, including across repeated syncs during the same week; NFL requests never write snapshots. A transaction inside the writer's lock serializes concurrent warmers in this application; the database constraint prevents duplicates across instances.
+
 ### StandingDto (key fields)
 Record stats: `wins`, `losses`, `ties`, `gamesPlayed`, `winPct`, `pointsFor`, `pointsAgainst`
 Advanced: `pythagoreanPat`, `winDiff` (Luck)
@@ -140,6 +147,7 @@ SoS: `oppPyPatCurr/Prev`, `oppPyPatRemainingCurr/Prev`, `oppPyPatTotalCurr/Prev`
 
 | Method | Path | Params | Returns |
 |--------|------|--------|---------|
+| GET | `/odds` | `season` (optional), `rules` (`madden` default or `nfl`) | Elo Monte Carlo fractions, seven seed odds per team, simulation count and UTC computation timestamp |
 | GET | `/picture` | `season` (optional, latest season with a completed regular-season game), `rules` (`madden` default or `nfl`) | Season index, week bounds, completed/remaining game counts, conference seeds and hunt, alternate seeds and tiebreak reasons |
 
 Uses completed stage 1 games in weeks 0–17. Invalid rules return 400; missing regular-season data or incomplete team conference/division metadata return 404. Shapes follow [the playoff API contract](playoffs-api.md). The loader includes teams from the selected regular-season schedule, including unplayed games.
@@ -179,15 +187,23 @@ The game-only NFL engine can leave ties unresolved when net touchdown totals or 
 - `OPTIONS` is exempt so CORS preflight still works.
 - The frontend keeps the token in `localStorage` under `rzs-admin-token` and attaches it to `/admin` calls only ([api/client.js](../frontend/src/api/client.js)). AdminPage calls `/api/admin/auth` to decide whether to show the passcode gate.
 
+### Playoff simulation
+
+`SimulationService.simulate(state, probabilities, forced, simulations, seed, rules)` seeds the full league independently for each parallel simulation and reduces integer counts. `Outcome` supports HOME, AWAY and forced TIE. Its `games` primitive exposes each simulated schedule for paired leverage; `outcomeGame` shares outcome-to-score conversion with future clinch integration. SplitMix64 counters depend only on base seed, simulation index and game ID, so forcing a game leaves every other game's outcome and margin unchanged. Unforced draws never tie. Losers score 20; margins 1, 3, 7, 10, 14 and 21 are equally likely; forced ties score 20-20. Forced margins depend on seed and game ID alone, so fully forced schedules give exact 0/1 odds.
+
+`OddsService` uses the selected season's latest Elo timeline ratings and the same `EloService.probability` plus home field as upcoming games. Teams without a timeline rating start at the configured initial rating. `playoffs.simulations` defaults to 20,000; the baseline seed is stable for season, next week and rules. Completed seasons use exact seeding with zero simulations. Unresolved NFL orders return 404, including when encountered in Monte Carlo; no arbitrary seeds are assigned. This is documented in the API contract.
+
 ## Caching
 
 **Caffeine** — max 500 entries, 24h write-through TTL.
 
-Cache names: `standings`, `games`, `weeks`, `seasons`, `seasonTrends`, `weeklyTrends`, `seasonGames`, `eloHistory`, `qbStats`, `teamEfficiency`, `playoffPicture`
+Cache names: `standings`, `games`, `weeks`, `seasons`, `seasonTrends`, `weeklyTrends`, `seasonGames`, `eloHistory`, `qbStats`, `teamEfficiency`, `playoffPicture`, `playoffOdds`
 
-The list lives in one place — [config/CacheNames.java](../backend/src/main/java/com/rzs/stats/config/CacheNames.java), as the `allStatsCaches` resolver. **A new cache must be added there**, or it silently survives eviction and serves stale data after a sync. All eleven are evicted together on sync, force-sync, or cache warm. `seasonGames` is cached directly on `GameRepository.findRegularSeasonGames()` (Spring Data JPA repos support `@Cacheable`) so all callers share the same cache regardless of call site.
+The list lives in one place — [config/CacheNames.java](../backend/src/main/java/com/rzs/stats/config/CacheNames.java), as the `allStatsCaches` resolver. **A new cache must be added there**, or it silently survives eviction and serves stale data after a sync. All registered caches are evicted together on sync, force-sync, or cache warm. `seasonGames` is cached directly on `GameRepository.findRegularSeasonGames()` (Spring Data JPA repos support `@Cacheable`) so all callers share the same cache regardless of call site.
 
 `playoffPicture` caches the complete response by season parameter and rules, including the default-season request. It participates in the same sync, force-sync, and cache-warm eviction resolver.
+
+`playoffOdds` caches the full response by requested season and rules; Elo configuration updates evict it with the Elo timeline. Cache warming computes the current default season's Madden baseline after Elo, then saves its snapshot. Successful manual, force, verbose and nightly syncs trigger warming on their background execution path; startup does not run simulations. Snapshot persistence is separate from cached reads, so a warmed cached response is still saved once. An odds or snapshot failure is logged without failing the other warmed caches, following the QB warming pattern.
 
 ## Data Sync
 
