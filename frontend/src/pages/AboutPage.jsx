@@ -155,6 +155,30 @@ const PAGES = [
     ],
   },
   {
+    name: 'Playoff Odds',
+    bullets: [
+      'Simulate the remaining regular-season games thousands of times, then apply the selected tiebreak rules to count playoff appearances, division wins and No. 1 seeds.',
+      'Each game uses win probabilities from Elo ratings and home field. Ratings stay fixed within a simulated season, and simulated games have no ties.',
+      'Odds round to whole percents. “>99%” replaces 100% (99.5% or higher), and “<1%” replaces 0% (under 0.5%). These are estimates, not clinch or elimination markers.',
+      'The seed distribution shows the chance of each seed, 1–7. The unfilled part is the chance of missing the playoffs.',
+    ],
+  },
+  {
+    name: 'Leverage',
+    bullets: [
+      'Compare a team’s odds if it wins its next game with its odds if it loses. Swing is the difference in percentage points; 70% minus 45% is a 25-point swing.',
+      'Orange marks a loss and blue a win; the logo marks current odds. Small swings under 10 points can be shown with the toggle.',
+      'Biggest games are ranked by importance: add up how much probability moves across all teams between the two outcomes, then divide by two. Other affected teams show who benefits or loses probability with a home win.',
+    ],
+  },
+  {
+    name: 'Playoff accuracy check',
+    bullets: [
+      'Do teams given a 70% win probability win about 70% of the time? The bucket table compares predicted home win probabilities with actual home win rates in completed regular-season games; ties count as half a win.',
+      'The Brier score is the average squared error of those game predictions. Lower is better, zero is perfect, and always predicting a coin flip provides a comparison. This checks Elo game predictions, not playoff outcome calibration.',
+    ],
+  },
+  {
     name: 'Standings',
     bullets: [
       'Standings — every team ranked by PyPAT by default, with three SoS columns: Played (opponents so far), Left (remaining schedule), Total (full season)',

@@ -1,3 +1,4 @@
+import PlayoffOutlook from '../components/team/PlayoffOutlook'
 import { useEffect, useMemo } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { getSeasons, getStandings, getEfficiency, getQbLeaderboard, getAvailableWeeks, getEloUpcoming, getEloGames, getSeasonTrends, getEloHistory } from '../api/client'
@@ -194,6 +195,7 @@ export default function TeamPage() {
                 sosLeft={{ text: sosText(leftField), source: sosSource, tip: `${SOS_TIP} Remaining games only. Uses ${sosSource}.`, rank: leftRank ? `${ordinal(leftRank.rank)} hardest of ${leftRank.of}` : null }} />
             : qbRoom}
         </div>
+        <PlayoffOutlook teamId={teamId} season={season} nextWeek={road.filter(r => r.week < 18).sort((a, b) => a.week - b.week)[0]?.week} />
         <SeasonArc games={seasonGames} spec={arcSpec(team, season, seasonGames, inProgress)} teamHref={teamHref} loading={eloGames.loading} />
         {showRoad && qbRoom}
         <FranchiseHistory points={points} seasons={franchise} allTime={allTimeText} spec={franchiseSpec(team, franchise, points, allTimeText)} loading={trends.loading || history.loading || eloGames.loading} />

@@ -33,6 +33,7 @@ export default function ChangelogPage() {
         <div className="flex flex-wrap items-baseline justify-between gap-3"><h2 className="font-display font-extrabold uppercase text-3xl">Playoffs</h2><span className="rounded border border-accent px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-accent">Beta · Nov 22, 2026</span></div>
         <p className="text-base">See the seven playoff seeds in each conference and every team in the hunt, using only completed regular-season games.</p>
         <ul className="space-y-2 [&>li]:border-l-2 [&>li]:border-line [&>li]:pl-3">
+          <li><b>Odds and Leverage · Nov 22.</b> Simulated playoff, division and No. 1 seed chances, seed distributions, and an Elo accuracy check. Compare win and loss scenarios by week, find the biggest games, and see your team’s playoff outlook on its profile. Every view exports.</li>
           <li>Switch between Madden 27 and real NFL tiebreakers. Markers show when a team would have a different seed or miss the field under the other rules.</li>
           <li>Open Tiebreak details for a plain-English explanation, or export either conference to Excel, CSV, an image or an AI-ready text block.</li>
         </ul>
