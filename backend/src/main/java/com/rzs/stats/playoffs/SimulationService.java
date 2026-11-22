@@ -77,12 +77,7 @@ public class SimulationService {
     }
 
     static PlayoffSeeding.Result seed(List<PlayoffSeeding.Team> teams, List<PlayoffSeeding.Game> games, Rules rules) {
-        var result = rules == Rules.MADDEN ? MaddenSeeding.madden27().seed(teams, games) : PlayoffSeeding.seed(teams, games);
-        if (!result.unresolvedConferences().isEmpty() || result.conferences().values().stream()
-                .flatMap(Collection::stream).anyMatch(r -> r.teams().size() != 1)) {
-            throw new IllegalStateException("Available game data cannot resolve the requested playoff order");
-        }
-        return result;
+        return rules == Rules.MADDEN ? MaddenSeeding.madden27().seed(teams, games) : PlayoffSeeding.seedForPicture(teams, games);
     }
 
     static long mix(long z) {
