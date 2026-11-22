@@ -21,3 +21,10 @@ export const GOALS = [
 export const LOSS = '234 88 12'
 export const WIN = '37 99 235'
 export const swingPoints = (row, goal) => (row.ifWin[goal] - row.ifLoss[goal]) * 100
+
+export function formatComputed(iso) {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ''
+  const text = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }).format(date)
+  return `${text} ET`
+}

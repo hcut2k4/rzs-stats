@@ -47,7 +47,7 @@ it('sorts odds by playoff probability, bounds rounded estimates and exports each
   expect(rows.at(-1)).toHaveTextContent('HOU6-9<1%')
   expect(within(table).getByRole('link', { name: 'BUF' })).toHaveAttribute('href', '/teams/BUF?season=104')
   expect(within(table).getAllByRole('img').some(i => i.getAttribute('aria-label')?.includes('Seed 1: 20%'))).toBe(true)
-  expect(screen.getByText(/100 simulations.*2026-01-01/)).toBeInTheDocument()
+  expect(screen.getByText(/100 simulations.*computed Dec 31, 7:00 PM ET/)).toBeInTheDocument()
   for (const name of ['AFC probability', 'NFC probability']) formats(screen.getByRole('region', { name }))
   await userEvent.click(within(screen.getByRole('region', { name: 'AFC probability' })).getByRole('button', { name: 'CSV' }))
   expect(csv.mock.lastCall[0].rows[0].team).toEqual(A)
