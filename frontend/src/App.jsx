@@ -19,7 +19,7 @@ import ThemeToggle from './components/ThemeToggle'
 const LINKS = [
   { to: '/teams', label: 'Teams' },
   { to: '/standings', label: 'Standings' },
-  { to: '/playoffs', label: 'Playoffs', beta: true },
+  { to: '/playoffs', label: 'Playoffs' },
   { to: '/efficiency', label: 'Efficiency' },
   { to: '/games', label: 'Games' },
   { to: '/elo', label: 'Elo' },
@@ -54,7 +54,7 @@ export default function App() {
             <span>RZS<span className="text-accent"> Stats</span></span>
           </Link>
           <nav className="hidden sm:flex items-center gap-1" aria-label="Main">
-            {LINKS.map(l => <NavLink key={l.to} to={l.to} end={l.end} className={navClass}>{l.label}{l.beta && <span className="ml-1 rounded border border-line px-1 text-[9px] uppercase text-muted">Beta</span>}</NavLink>)}
+            {LINKS.map(l => <NavLink key={l.to} to={l.to} end={l.end} className={navClass}>{l.label}</NavLink>)}
           </nav>
           <div className="ml-auto flex items-center gap-1">
             <ThemeToggle />
@@ -73,7 +73,7 @@ export default function App() {
         {open && (
           <nav className="sm:hidden border-t border-line" aria-label="Mobile">
             {LINKS.map(l => (
-              <NavLink key={l.to} to={l.to} end={l.end} className={mobileNavClass} onClick={() => setOpen(false)}>{l.label}{l.beta && <span className="ml-1 rounded border border-line px-1 text-[9px] uppercase text-muted">Beta</span>}</NavLink>
+              <NavLink key={l.to} to={l.to} end={l.end} className={mobileNavClass} onClick={() => setOpen(false)}>{l.label}</NavLink>
             ))}
           </nav>
         )}

@@ -32,7 +32,7 @@ export default function ChangelogPage() {
       </nav>
 
       <section id="playoffs" className="space-y-3 border-t-2 border-rule pt-3 scroll-mt-20">
-        <div className="flex flex-wrap items-baseline justify-between gap-3"><h2 className="font-display font-extrabold uppercase text-3xl">Playoffs</h2><span className="rounded border border-accent px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-accent">Beta · Nov 22, 2026</span></div>
+        <div className="flex flex-wrap items-baseline justify-between gap-3"><h2 className="font-display font-extrabold uppercase text-3xl">Playoffs</h2><span className="rounded border border-accent px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-accent">Nov 22, 2026</span></div>
         <p className="text-base">See the seven playoff seeds in each conference and every team in the hunt, using only completed regular-season games.</p>
         <ul className="space-y-2 [&>li]:border-l-2 [&>li]:border-line [&>li]:pl-3">
           <li><b>Probability history and Title probability · Nov 22.</b> Compare weekly probabilities for selected teams and goals, and follow each team’s chances through the bracket to a title. Both views export; team outlook cards now include title probability and a playoff probability sparkline. History starts accumulating after launch, with admin backfill available for earlier weeks.</li>
