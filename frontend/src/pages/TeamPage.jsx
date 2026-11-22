@@ -173,7 +173,7 @@ export default function TeamPage() {
 
   const qbRoom = <QbRoom rows={myQbs} league={qbs.data ?? []} spec={qbSpec(team, season, myQbs, qbParams, qbs.data ?? [])} loading={qbs.loading} />
   const nav = [
-    ['playoff-outlook', 'Playoff outlook'], ['fingerprint', 'Fingerprint'], ['landscape', 'Landscape'], ['truth', 'Wins vs expectation'],
+    ['fingerprint', 'Fingerprint'], ['landscape', 'Landscape'], ['playoff-outlook', 'Playoff outlook'], ['truth', 'Wins vs expectation'],
     ...(showRoad ? [['road', 'Road ahead']] : []), ['arc', 'Season arc'], ['qbs', 'QBs'], ['franchise', 'History'], ['rivalries', 'Rivalries'],
   ]
 
@@ -183,11 +183,11 @@ export default function TeamPage() {
       <SectionNav links={nav} />
       {failed.length > 0 && <p className="text-sm text-bad mb-6">Some sections could not load: {failed.join(', ')}.</p>}
       <div className="space-y-12">
-        <PlayoffOutlook teamId={teamId} season={season} nextWeek={road.filter(r => r.week < 18).sort((a, b) => a.week - b.week)[0]?.week} />
         <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-10 items-start">
           <Fingerprint groups={groups} spec={fingerprintSpec(team, season, groups)} loading={efficiency.loading} />
           <LeagueLandscape rows={effRows} teamId={teamId} season={season} team={team} loading={efficiency.loading} />
         </div>
+        <PlayoffOutlook teamId={teamId} team={team} season={season} nextWeek={road.filter(r => r.week < 18).sort((a, b) => a.week - b.week)[0]?.week} />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
           <ScoreboardTruth lanes={lanes} games={team.gamesPlayed} arc={regularArc} spec={truthSpec(team, season, lanes, regularArc)} />
           {showRoad

@@ -1,3 +1,7 @@
+import { getPlayoffOdds, getPlayoffPicture, getPlayoffClinch } from '../../api/client'
+import { usePlayoffLoad } from '../../utils/usePlayoffLoad'
+import { teamMarker, markerOdds, markerValue, clinchTexts } from '../playoffs/ClinchBadge'
+import { rankIn } from '../../utils/teamProfile'
 import ExportMenu from '../ExportMenu'
 import { headerSpec } from './specs'
 import { Link } from 'react-router-dom'
@@ -7,9 +11,9 @@ import { teamLogoUrl } from '../../utils/teamLogo'
 import { ordinal, rankTone } from '../../utils/teamProfile'
 import { seasonNumber } from '../../utils/seasons'
 
-function Kpi({ label, value, tip, rank, rankWord = '', neutral, note, delta }) {
+function Kpi({ label, value, tip, rank, rankWord = '', neutral, note, delta, className = '' }) {
   return (
-    <div className="bg-bg px-4 py-3 min-w-0">
+    <div className={`bg-bg px-4 py-3 min-w-0 ${className}`}>
       <dt className="text-xs font-semibold uppercase tracking-wide text-muted truncate">
         {tip ? <InfoTip text={tip}>{label}</InfoTip> : label}
       </dt>
@@ -26,6 +30,22 @@ function Kpi({ label, value, tip, rank, rankWord = '', neutral, note, delta }) {
 }
 
 export default function Masthead({ team, season, seasons, onSeason, kpis }) {
+  const odds = usePlayoffLoad(season == null ? null : `playoffs-odds-${season}-madden`, () => getPlayoffOdds(season, 'madden'))
+  const rows = odds.data?.conferences?.flatMap(c => c.teams) ?? []
+  const row = rows.find(r => r.team.teamId === team.teamId)
+  const picture = usePlayoffLoad(row ? `playoffs-picture-${season}-madden` : null, () => getPlayoffPicture(season, 'madden'))
+  const clinch = usePlayoffLoad(row ? `playoffs-clinch-${season}-madden` : null, () => getPlayoffClinch(season, 'madden'))
+  const markers = teamMarker(clinch.data, team.teamId)
+  const probability = row?.odds?.playoffs
+  const available = Number.isFinite(probability)
+  const standing = picture.data?.conferences?.flatMap(c => [...c.seeds, ...c.hunt]).find(r => r.team.teamId === team.teamId)
+  const seed = standing ? standing.seed ? `${ordinal(standing.seed)} seed · ${standing.divisionWinner ? 'Division winner' : 'Wild card'}` : 'Outside the field' : null
+  const values = [...kpis, {
+    label: 'Playoffs', value: available ? markerOdds(probability, markers?.playoffs) : '—',
+    note: available ? [seed, ...clinchTexts(markers)].filter(Boolean).join(' · ') : null,
+    tip: 'Probability of making the playoffs from simulations of the remaining season. Clinched and eliminated values are proven under Madden tiebreak rules. Rank compares all teams; the note shows the current playoff seed.',
+    rank: available ? rankIn(markerValue(probability, markers?.playoffs), rows.map(r => markerValue(r.odds?.playoffs, teamMarker(clinch.data, r.team.teamId)?.playoffs))) : null,
+  }]
   const wash = 'linear-gradient(100deg, color-mix(in srgb, var(--team-c) 26%, transparent) 0%, color-mix(in srgb, var(--team-c) 10%, transparent) 40%, transparent 78%)'
   return (
     <>
@@ -53,9 +73,13 @@ export default function Masthead({ team, season, seasons, onSeason, kpis }) {
           {[...seasons].reverse().map(s => <option key={s} value={s}>Season {seasonNumber(s)}</option>)}
         </select>
       </div>
-      <div className="relative flex justify-end px-4"><ExportMenu spec={headerSpec(team, season, kpis)} /></div>
-      <dl className="relative grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-px bg-line border-t border-line">
-        {kpis.map(k => <Kpi key={k.label} {...k} />)}
+      <div className="relative flex justify-end px-4"><ExportMenu spec={headerSpec(team, season, values)} /></div>
+      <dl className="relative grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-px bg-line border-t border-line">
+        {values.map((k, i) => <Kpi key={k.label} {...k} className={i === values.length - 1 ? [
+          values.length % 2 ? 'col-span-2' : 'col-span-1',
+          ({ 0: 'sm:col-span-1', 1: 'sm:col-span-3', 2: 'sm:col-span-2' })[values.length % 3],
+          ({ 0: 'lg:col-span-1', 1: 'lg:col-span-4', 2: 'lg:col-span-3', 3: 'lg:col-span-2' })[values.length % 4],
+        ].join(' ') : ''} />)}
       </dl>
     </header>
     </>

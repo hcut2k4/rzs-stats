@@ -7,6 +7,7 @@ import * as client from '../api/client'
 import App from '../App'
 import { TeamCell } from '../components/TeamLogo'
 import TeamPage from '../pages/TeamPage'
+import Masthead from '../components/team/Masthead'
 import { clearLoadCache } from '../utils/useLoad'
 import oddsFixture from './fixtures/playoffs/odds.json'
 import pictureFixture from './fixtures/playoffs/picture.json'
@@ -91,7 +92,7 @@ describe('Team profile', () => {
     expect(await within(rivals).findByText('3-0')).toBeInTheDocument()
   })
 
-  it('places the full-width playoff hero before Fingerprint and keeps its navigation anchor', async () => {
+  it('places the full-width playoff outlook after Landscape and before Wins vs expectation and keeps its navigation anchor', async () => {
     const odds = structuredClone(oddsFixture)
     odds.season = 1
     odds.conferences[0].teams.find(r => r.team.teamId === 1).team = A
@@ -100,9 +101,54 @@ describe('Team profile', () => {
     renderAt('/teams/aaa')
     const hero = await screen.findByRole('region', { name: 'Playoff outlook' })
     const fingerprint = screen.getByRole('region', { name: 'Team Fingerprint' })
-    expect(hero.compareDocumentPosition(fingerprint) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(fingerprint.compareDocumentPosition(hero) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(hero.parentElement).toBe(fingerprint.parentElement.parentElement)
+    expect(screen.getByRole('region', { name: 'League Landscape' }).compareDocumentPosition(hero) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(hero.compareDocumentPosition(screen.getByRole('region', { name: 'Truth Behind the Scoreboard' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    const links = within(screen.getByRole('navigation', { name: 'Profile sections' })).getAllByRole('link').map(a => a.textContent)
+    expect(links.slice(0, 4)).toEqual(['Fingerprint', 'Landscape', 'Playoff outlook', 'Wins vs expectation'])
     expect(within(screen.getByRole('navigation', { name: 'Profile sections' })).getByRole('link', { name: 'Playoff outlook' })).toHaveAttribute('href', '#playoff-outlook')
+  })
+
+  it.each([
+    [6, 'col-span-1 sm:col-span-1 lg:col-span-3'],
+    [7, 'col-span-2 sm:col-span-3 lg:col-span-2'],
+    [8, 'col-span-1 sm:col-span-2 lg:col-span-1'],
+    [12, 'col-span-1 sm:col-span-1 lg:col-span-1'],
+  ])('fills the last header row at each breakpoint with %i values', (count, classes) => {
+    render(<MemoryRouter><Masthead team={A} seasons={[1]} season={1} kpis={Array.from({ length: count - 1 }, (_, i) => ({ label: `Metric ${i}`, value: '10' }))} /></MemoryRouter>)
+    expect(kpi('Playoffs')).toHaveClass(classes)
+    const grid = kpi('Playoffs').parentElement
+    expect(grid).toHaveClass('grid-cols-2 sm:grid-cols-3 lg:grid-cols-4')
+    expect([...grid.children].slice(0, -1).every(cell => !cell.className.includes('col-span-'))).toBe(true)
+  })
+
+  it.each([['clinched', '100%'], ['eliminated', '0%'], [null, '65%']])('shows the playoff KPI and shares outlook requests for %s', async (marker, value) => {
+    const odds = { season: 1, rules: 'madden', nextWeek: null, conferences: [{ teams: [{ team: A, wins: 8, losses: 6, ties: 0, odds: { playoffs: 0.65 }, seedOdds: [0, 0, 0, 0, 0, 0.65, 0] }, { team: B, odds: { playoffs: 0.4 } }] }] }
+    client.getPlayoffOdds.mockResolvedValue(odds)
+    client.getPlayoffPicture.mockResolvedValue({ conferences: [{ seeds: [{ team: A, seed: 6, divisionWinner: false }], hunt: [] }] })
+    client.getPlayoffClinch.mockResolvedValue({ teams: [{ team: A, playoffs: marker }] })
+    renderAt('/teams/AAA')
+    await waitFor(() => expect(within(kpi('Playoffs')).getByText(value)).toBeInTheDocument())
+    await waitFor(() => expect(within(kpi('Playoffs')).getByText(/6th seed · Wild card/)).toBeInTheDocument())
+    if (marker) expect(within(kpi('Playoffs')).getByText(marker === 'clinched' ? /Clinched playoffs/ : /Eliminated from the playoffs/)).toBeInTheDocument()
+    expect(within(kpi('Playoffs')).getByText(marker === 'eliminated' ? '2nd of 2' : '1st of 2')).toBeInTheDocument()
+    expect(client.getPlayoffOdds).toHaveBeenCalledTimes(1)
+    expect(client.getPlayoffPicture).toHaveBeenCalledTimes(1)
+    expect(client.getPlayoffClinch).toHaveBeenCalledTimes(1)
+    const copy = vi.spyOn(tableImage, 'copyImage').mockResolvedValue('copied')
+    await userEvent.click(within(screen.getByRole('heading', { level: 1, name: 'Aces' }).closest('header')).getByRole('button', { name: 'PNG' }))
+    const spec = copy.mock.calls[0][0]
+    expect(spec.rows).toHaveLength(7)
+    expect(spec.rows.at(-1)).toMatchObject({ label: 'Playoffs', value })
+    copy.mockRestore()
+  })
+
+  it.each(['empty', '404', 'error'])('leaves the playoff KPI empty for %s data', async state => {
+    if (state !== 'empty') client.getPlayoffOdds.mockRejectedValue({ response: { status: state === '404' ? 404 : 500 } })
+    renderAt('/teams/AAA')
+    await waitFor(() => expect(within(kpi('Playoffs')).getByText('—')).toBeInTheDocument())
+    expect(kpi('Playoffs').querySelectorAll('dd')[1]).toBeEmptyDOMElement()
   })
 
   it.each([[7, 'previous-season', '50.0%'], [9, 'current-season', '48.0%'], [17, 'current-season', '48.0%']])(

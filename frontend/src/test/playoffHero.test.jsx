@@ -8,6 +8,7 @@ import { clearLoadCache } from '../utils/useLoad'
 import { formatOdds, probShade, chanceShade } from '../utils/playoffOdds'
 import * as client from '../api/client'
 import * as exports from '../utils/exportTable'
+import * as tableImage from '../utils/tableImage'
 import oddsFixture from './fixtures/playoffs/odds.json'
 import pictureFixture from './fixtures/playoffs/picture.json'
 import leverageFixture from './fixtures/playoffs/leverage.json'
@@ -112,6 +113,11 @@ it('sorts the disclosed data and exports the visible order with probability shad
   const block = table.parentElement.parentElement
   await userEvent.click(within(block).getByRole('button', { name: 'CSV' }))
   expect(csv.mock.lastCall[0].rows.map(r => r.label)).toEqual(body.map(r => r.children[0].textContent))
+  const png = vi.spyOn(tableImage, 'copyImage').mockResolvedValue('copied')
+  await userEvent.click(within(block).getByRole('button', { name: 'PNG' }))
+  expect(png.mock.lastCall[0].image.draw).toBeTypeOf('function')
+  expect(png.mock.lastCall[0].rows).toEqual(csv.mock.lastCall[0].rows)
+  png.mockRestore()
 })
 
 it('sorts every Path table column and exports the displayed order', async () => {
