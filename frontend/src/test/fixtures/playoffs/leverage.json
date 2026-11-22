@@ -1,0 +1,1672 @@
+{
+  "season" : 2,
+  "week" : 16,
+  "rules" : "madden",
+  "simulations" : 100,
+  "computedAt" : "2026-01-01T00:00:00Z",
+  "games" : [ {
+    "gameId" : 241,
+    "home" : {
+      "teamId" : 9,
+      "abbrName" : "HOU",
+      "displayName" : "HOU"
+    },
+    "away" : {
+      "teamId" : 2,
+      "abbrName" : "MIA",
+      "displayName" : "MIA"
+    },
+    "homeWinProb" : 0.718120691709231,
+    "teams" : [ {
+      "team" : {
+        "teamId" : 9,
+        "abbrName" : "HOU",
+        "displayName" : "HOU"
+      },
+      "side" : "home",
+      "current" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "ifWin" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "ifLoss" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      }
+    }, {
+      "team" : {
+        "teamId" : 2,
+        "abbrName" : "MIA",
+        "displayName" : "MIA"
+      },
+      "side" : "away",
+      "current" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "ifWin" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "ifLoss" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      }
+    } ],
+    "importance" : {
+      "playoffs" : 0.0,
+      "division" : 0.0,
+      "oneSeed" : 0.009999999999999988
+    },
+    "others" : [ {
+      "team" : {
+        "teamId" : 15,
+        "abbrName" : "LV",
+        "displayName" : "LV"
+      },
+      "goal" : "oneSeed",
+      "swing" : 0.009999999999999995
+    }, {
+      "team" : {
+        "teamId" : 1,
+        "abbrName" : "BUF",
+        "displayName" : "BUF"
+      },
+      "goal" : "oneSeed",
+      "swing" : -0.009999999999999981
+    }, {
+      "team" : {
+        "teamId" : 25,
+        "abbrName" : "ATL",
+        "displayName" : "ATL"
+      },
+      "goal" : "playoffs",
+      "swing" : 0.0
+    }, {
+      "team" : {
+        "teamId" : 29,
+        "abbrName" : "AZ",
+        "displayName" : "AZ"
+      },
+      "goal" : "playoffs",
+      "swing" : 0.0
+    }, {
+      "team" : {
+        "teamId" : 5,
+        "abbrName" : "BAL",
+        "displayName" : "BAL"
+      },
+      "goal" : "playoffs",
+      "swing" : 0.0
+    } ]
+  }, {
+    "gameId" : 242,
+    "home" : {
+      "teamId" : 27,
+      "abbrName" : "NO",
+      "displayName" : "NO"
+    },
+    "away" : {
+      "teamId" : 12,
+      "abbrName" : "TEN",
+      "displayName" : "TEN"
+    },
+    "homeWinProb" : 0.4011744736057505,
+    "teams" : [ {
+      "team" : {
+        "teamId" : 27,
+        "abbrName" : "NO",
+        "displayName" : "NO"
+      },
+      "side" : "home",
+      "current" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "ifWin" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "ifLoss" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      }
+    }, {
+      "team" : {
+        "teamId" : 12,
+        "abbrName" : "TEN",
+        "displayName" : "TEN"
+      },
+      "side" : "away",
+      "current" : {
+        "playoffs" : 0.017964765791827483,
+        "division" : 0.017964765791827483,
+        "oneSeed" : 0.0
+      },
+      "ifWin" : {
+        "playoffs" : 0.03,
+        "division" : 0.03,
+        "oneSeed" : 0.0
+      },
+      "ifLoss" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      }
+    } ],
+    "importance" : {
+      "playoffs" : 0.07000000000000003,
+      "division" : 0.030000000000000013,
+      "oneSeed" : 0.0
+    },
+    "others" : [ {
+      "team" : {
+        "teamId" : 10,
+        "abbrName" : "IND",
+        "displayName" : "IND"
+      },
+      "goal" : "playoffs",
+      "swing" : 0.030000000000000027
+    }, {
+      "team" : {
+        "teamId" : 15,
+        "abbrName" : "LV",
+        "displayName" : "LV"
+      },
+      "goal" : "playoffs",
+      "swing" : 0.020000000000000018
+    }, {
+      "team" : {
+        "teamId" : 5,
+        "abbrName" : "BAL",
+        "displayName" : "BAL"
+      },
+      "goal" : "playoffs",
+      "swing" : 0.010000000000000009
+    }, {
+      "team" : {
+        "teamId" : 13,
+        "abbrName" : "DEN",
+        "displayName" : "DEN"
+      },
+      "goal" : "playoffs",
+      "swing" : -0.010000000000000009
+    }, {
+      "team" : {
+        "teamId" : 11,
+        "abbrName" : "JAX",
+        "displayName" : "JAX"
+      },
+      "goal" : "playoffs",
+      "swing" : -0.010000000000000009
+    } ]
+  }, {
+    "gameId" : 243,
+    "home" : {
+      "teamId" : 24,
+      "abbrName" : "MIN",
+      "displayName" : "MIN"
+    },
+    "away" : {
+      "teamId" : 21,
+      "abbrName" : "CHI",
+      "displayName" : "CHI"
+    },
+    "homeWinProb" : 0.41419532289871913,
+    "teams" : [ {
+      "team" : {
+        "teamId" : 24,
+        "abbrName" : "MIN",
+        "displayName" : "MIN"
+      },
+      "side" : "home",
+      "current" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "ifWin" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "ifLoss" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      }
+    }, {
+      "team" : {
+        "teamId" : 21,
+        "abbrName" : "CHI",
+        "displayName" : "CHI"
+      },
+      "side" : "away",
+      "current" : {
+        "playoffs" : 0.11716093542025617,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "ifWin" : {
+        "playoffs" : 0.2,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "ifLoss" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      }
+    } ],
+    "importance" : {
+      "playoffs" : 0.2,
+      "division" : 0.0,
+      "oneSeed" : 0.0
+    },
+    "others" : [ {
+      "team" : {
+        "teamId" : 23,
+        "abbrName" : "GB",
+        "displayName" : "GB"
+      },
+      "goal" : "playoffs",
+      "swing" : 0.08999999999999997
+    }, {
+      "team" : {
+        "teamId" : 18,
+        "abbrName" : "NYG",
+        "displayName" : "NYG"
+      },
+      "goal" : "playoffs",
+      "swing" : 0.07
+    }, {
+      "team" : {
+        "teamId" : 20,
+        "abbrName" : "WAS",
+        "displayName" : "WAS"
+      },
+      "goal" : "playoffs",
+      "swing" : 0.030000000000000027
+    }, {
+      "team" : {
+        "teamId" : 31,
+        "abbrName" : "SF",
+        "displayName" : "SF"
+      },
+      "goal" : "playoffs",
+      "swing" : 0.010000000000000009
+    }, {
+      "team" : {
+        "teamId" : 25,
+        "abbrName" : "ATL",
+        "displayName" : "ATL"
+      },
+      "goal" : "playoffs",
+      "swing" : 0.0
+    } ]
+  }, {
+    "gameId" : 244,
+    "home" : {
+      "teamId" : 14,
+      "abbrName" : "KC",
+      "displayName" : "KC"
+    },
+    "away" : {
+      "teamId" : 13,
+      "abbrName" : "DEN",
+      "displayName" : "DEN"
+    },
+    "homeWinProb" : 0.4149591498284333,
+    "teams" : [ {
+      "team" : {
+        "teamId" : 14,
+        "abbrName" : "KC",
+        "displayName" : "KC"
+      },
+      "side" : "home",
+      "current" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "ifWin" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "ifLoss" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      }
+    }, {
+      "team" : {
+        "teamId" : 13,
+        "abbrName" : "DEN",
+        "displayName" : "DEN"
+      },
+      "side" : "away",
+      "current" : {
+        "playoffs" : 0.638370833587499,
+        "division" : 0.25986674857034237,
+        "oneSeed" : 0.09945694452916634
+      },
+      "ifWin" : {
+        "playoffs" : 0.85,
+        "division" : 0.43,
+        "oneSeed" : 0.17
+      },
+      "ifLoss" : {
+        "playoffs" : 0.34,
+        "division" : 0.02,
+        "oneSeed" : 0.0
+      }
+    } ],
+    "importance" : {
+      "playoffs" : 0.5100000000000001,
+      "division" : 0.41,
+      "oneSeed" : 0.17000000000000004
+    },
+    "others" : [ {
+      "team" : {
+        "teamId" : 16,
+        "abbrName" : "LAC",
+        "displayName" : "LAC"
+      },
+      "goal" : "division",
+      "swing" : 0.28
+    }, {
+      "team" : {
+        "teamId" : 15,
+        "abbrName" : "LV",
+        "displayName" : "LV"
+      },
+      "goal" : "division",
+      "swing" : 0.13
+    }, {
+      "team" : {
+        "teamId" : 8,
+        "abbrName" : "PIT",
+        "displayName" : "PIT"
+      },
+      "goal" : "playoffs",
+      "swing" : 0.10999999999999999
+    }, {
+      "team" : {
+        "teamId" : 5,
+        "abbrName" : "BAL",
+        "displayName" : "BAL"
+      },
+      "goal" : "playoffs",
+      "swing" : 0.09000000000000002
+    }, {
+      "team" : {
+        "teamId" : 11,
+        "abbrName" : "JAX",
+        "displayName" : "JAX"
+      },
+      "goal" : "playoffs",
+      "swing" : 0.07
+    } ]
+  }, {
+    "gameId" : 245,
+    "home" : {
+      "teamId" : 7,
+      "abbrName" : "CLE",
+      "displayName" : "CLE"
+    },
+    "away" : {
+      "teamId" : 16,
+      "abbrName" : "LAC",
+      "displayName" : "LAC"
+    },
+    "homeWinProb" : 0.3957902128732643,
+    "teams" : [ {
+      "team" : {
+        "teamId" : 7,
+        "abbrName" : "CLE",
+        "displayName" : "CLE"
+      },
+      "side" : "home",
+      "current" : {
+        "playoffs" : 0.5239372043078995,
+        "division" : 0.08541062980225701,
+        "oneSeed" : 0.003957902128732644
+      },
+      "ifWin" : {
+        "playoffs" : 0.82,
+        "division" : 0.17,
+        "oneSeed" : 0.01
+      },
+      "ifLoss" : {
+        "playoffs" : 0.33,
+        "division" : 0.03,
+        "oneSeed" : 0.0
+      }
+    }, {
+      "team" : {
+        "teamId" : 16,
+        "abbrName" : "LAC",
+        "displayName" : "LAC"
+      },
+      "side" : "away",
+      "current" : {
+        "playoffs" : 0.8016839148506942,
+        "division" : 0.3177260127219616,
+        "oneSeed" : 0.03625258722760414
+      },
+      "ifWin" : {
+        "playoffs" : 0.96,
+        "division" : 0.48,
+        "oneSeed" : 0.06
+      },
+      "ifLoss" : {
+        "playoffs" : 0.56,
+        "division" : 0.07,
+        "oneSeed" : 0.0
+      }
+    } ],
+    "importance" : {
+      "playoffs" : 0.66,
+      "division" : 0.65,
+      "oneSeed" : 0.19
+    },
+    "others" : [ {
+      "team" : {
+        "teamId" : 15,
+        "abbrName" : "LV",
+        "displayName" : "LV"
+      },
+      "goal" : "division",
+      "swing" : 0.2899999999999999
+    }, {
+      "team" : {
+        "teamId" : 8,
+        "abbrName" : "PIT",
+        "displayName" : "PIT"
+      },
+      "goal" : "division",
+      "swing" : -0.22
+    }, {
+      "team" : {
+        "teamId" : 1,
+        "abbrName" : "BUF",
+        "displayName" : "BUF"
+      },
+      "goal" : "oneSeed",
+      "swing" : 0.13999999999999999
+    }, {
+      "team" : {
+        "teamId" : 13,
+        "abbrName" : "DEN",
+        "displayName" : "DEN"
+      },
+      "goal" : "division",
+      "swing" : 0.12
+    }, {
+      "team" : {
+        "teamId" : 6,
+        "abbrName" : "CIN",
+        "displayName" : "CIN"
+      },
+      "goal" : "division",
+      "swing" : 0.09999999999999998
+    } ]
+  }, {
+    "gameId" : 246,
+    "home" : {
+      "teamId" : 11,
+      "abbrName" : "JAX",
+      "displayName" : "JAX"
+    },
+    "away" : {
+      "teamId" : 28,
+      "abbrName" : "TB",
+      "displayName" : "TB"
+    },
+    "homeWinProb" : 0.7104632936359333,
+    "teams" : [ {
+      "team" : {
+        "teamId" : 11,
+        "abbrName" : "JAX",
+        "displayName" : "JAX"
+      },
+      "side" : "home",
+      "current" : {
+        "playoffs" : 0.18051119047262398,
+        "division" : 0.028418531745437334,
+        "oneSeed" : 0.0
+      },
+      "ifWin" : {
+        "playoffs" : 0.25,
+        "division" : 0.04,
+        "oneSeed" : 0.0
+      },
+      "ifLoss" : {
+        "playoffs" : 0.01,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      }
+    }, {
+      "team" : {
+        "teamId" : 28,
+        "abbrName" : "TB",
+        "displayName" : "TB"
+      },
+      "side" : "away",
+      "current" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "ifWin" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "ifLoss" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      }
+    } ],
+    "importance" : {
+      "playoffs" : 0.25,
+      "division" : 0.04000000000000001,
+      "oneSeed" : 0.0
+    },
+    "others" : [ {
+      "team" : {
+        "teamId" : 3,
+        "abbrName" : "NE",
+        "displayName" : "NE"
+      },
+      "goal" : "playoffs",
+      "swing" : -0.07999999999999996
+    }, {
+      "team" : {
+        "teamId" : 7,
+        "abbrName" : "CLE",
+        "displayName" : "CLE"
+      },
+      "goal" : "playoffs",
+      "swing" : -0.030000000000000027
+    }, {
+      "team" : {
+        "teamId" : 13,
+        "abbrName" : "DEN",
+        "displayName" : "DEN"
+      },
+      "goal" : "playoffs",
+      "swing" : -0.030000000000000027
+    }, {
+      "team" : {
+        "teamId" : 5,
+        "abbrName" : "BAL",
+        "displayName" : "BAL"
+      },
+      "goal" : "playoffs",
+      "swing" : -0.02999999999999997
+    }, {
+      "team" : {
+        "teamId" : 1,
+        "abbrName" : "BUF",
+        "displayName" : "BUF"
+      },
+      "goal" : "playoffs",
+      "swing" : -0.020000000000000018
+    } ]
+  }, {
+    "gameId" : 247,
+    "home" : {
+      "teamId" : 8,
+      "abbrName" : "PIT",
+      "displayName" : "PIT"
+    },
+    "away" : {
+      "teamId" : 4,
+      "abbrName" : "NYJ",
+      "displayName" : "NYJ"
+    },
+    "homeWinProb" : 0.511675864386376,
+    "teams" : [ {
+      "team" : {
+        "teamId" : 8,
+        "abbrName" : "PIT",
+        "displayName" : "PIT"
+      },
+      "side" : "home",
+      "current" : {
+        "playoffs" : 0.6009546908370518,
+        "division" : 0.32583793219318796,
+        "oneSeed" : 0.1788530352475041
+      },
+      "ifWin" : {
+        "playoffs" : 0.85,
+        "division" : 0.57,
+        "oneSeed" : 0.34
+      },
+      "ifLoss" : {
+        "playoffs" : 0.34,
+        "division" : 0.07,
+        "oneSeed" : 0.01
+      }
+    }, {
+      "team" : {
+        "teamId" : 4,
+        "abbrName" : "NYJ",
+        "displayName" : "NYJ"
+      },
+      "side" : "away",
+      "current" : {
+        "playoffs" : 0.00488324135613624,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "ifWin" : {
+        "playoffs" : 0.01,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "ifLoss" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      }
+    } ],
+    "importance" : {
+      "playoffs" : 0.51,
+      "division" : 0.5,
+      "oneSeed" : 0.33000000000000007
+    },
+    "others" : [ {
+      "team" : {
+        "teamId" : 6,
+        "abbrName" : "CIN",
+        "displayName" : "CIN"
+      },
+      "goal" : "division",
+      "swing" : -0.39000000000000007
+    }, {
+      "team" : {
+        "teamId" : 7,
+        "abbrName" : "CLE",
+        "displayName" : "CLE"
+      },
+      "goal" : "playoffs",
+      "swing" : -0.14999999999999997
+    }, {
+      "team" : {
+        "teamId" : 1,
+        "abbrName" : "BUF",
+        "displayName" : "BUF"
+      },
+      "goal" : "oneSeed",
+      "swing" : -0.12000000000000002
+    }, {
+      "team" : {
+        "teamId" : 16,
+        "abbrName" : "LAC",
+        "displayName" : "LAC"
+      },
+      "goal" : "playoffs",
+      "swing" : -0.07999999999999996
+    }, {
+      "team" : {
+        "teamId" : 5,
+        "abbrName" : "BAL",
+        "displayName" : "BAL"
+      },
+      "goal" : "playoffs",
+      "swing" : -0.07
+    } ]
+  }, {
+    "gameId" : 248,
+    "home" : {
+      "teamId" : 10,
+      "abbrName" : "IND",
+      "displayName" : "IND"
+    },
+    "away" : {
+      "teamId" : 26,
+      "abbrName" : "CAR",
+      "displayName" : "CAR"
+    },
+    "homeWinProb" : 0.7396908512688755,
+    "teams" : [ {
+      "team" : {
+        "teamId" : 10,
+        "abbrName" : "IND",
+        "displayName" : "IND"
+      },
+      "side" : "home",
+      "current" : {
+        "playoffs" : 0.968762902152265,
+        "division" : 0.968762902152265,
+        "oneSeed" : 0.15533507876646385
+      },
+      "ifWin" : {
+        "playoffs" : 1.0,
+        "division" : 1.0,
+        "oneSeed" : 0.21
+      },
+      "ifLoss" : {
+        "playoffs" : 0.88,
+        "division" : 0.88,
+        "oneSeed" : 0.0
+      }
+    }, {
+      "team" : {
+        "teamId" : 26,
+        "abbrName" : "CAR",
+        "displayName" : "CAR"
+      },
+      "side" : "away",
+      "current" : {
+        "playoffs" : 0.5745360254416948,
+        "division" : 0.5745360254416948,
+        "oneSeed" : 0.0
+      },
+      "ifWin" : {
+        "playoffs" : 0.9,
+        "division" : 0.9,
+        "oneSeed" : 0.0
+      },
+      "ifLoss" : {
+        "playoffs" : 0.46,
+        "division" : 0.46,
+        "oneSeed" : 0.0
+      }
+    } ],
+    "importance" : {
+      "playoffs" : 0.5700000000000001,
+      "division" : 0.56,
+      "oneSeed" : 0.30000000000000004
+    },
+    "others" : [ {
+      "team" : {
+        "teamId" : 25,
+        "abbrName" : "ATL",
+        "displayName" : "ATL"
+      },
+      "goal" : "playoffs",
+      "swing" : 0.44000000000000006
+    }, {
+      "team" : {
+        "teamId" : 6,
+        "abbrName" : "CIN",
+        "displayName" : "CIN"
+      },
+      "goal" : "oneSeed",
+      "swing" : -0.12
+    }, {
+      "team" : {
+        "teamId" : 1,
+        "abbrName" : "BUF",
+        "displayName" : "BUF"
+      },
+      "goal" : "oneSeed",
+      "swing" : -0.09999999999999998
+    }, {
+      "team" : {
+        "teamId" : 11,
+        "abbrName" : "JAX",
+        "displayName" : "JAX"
+      },
+      "goal" : "division",
+      "swing" : -0.09
+    }, {
+      "team" : {
+        "teamId" : 15,
+        "abbrName" : "LV",
+        "displayName" : "LV"
+      },
+      "goal" : "oneSeed",
+      "swing" : 0.06
+    } ]
+  }, {
+    "gameId" : 249,
+    "home" : {
+      "teamId" : 5,
+      "abbrName" : "BAL",
+      "displayName" : "BAL"
+    },
+    "away" : {
+      "teamId" : 15,
+      "abbrName" : "LV",
+      "displayName" : "LV"
+    },
+    "homeWinProb" : 0.5796798780344549,
+    "teams" : [ {
+      "team" : {
+        "teamId" : 5,
+        "abbrName" : "BAL",
+        "displayName" : "BAL"
+      },
+      "side" : "home",
+      "current" : {
+        "playoffs" : 0.295636737797572,
+        "division" : 0.023187195121378196,
+        "oneSeed" : 0.0
+      },
+      "ifWin" : {
+        "playoffs" : 0.51,
+        "division" : 0.04,
+        "oneSeed" : 0.0
+      },
+      "ifLoss" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      }
+    }, {
+      "team" : {
+        "teamId" : 15,
+        "abbrName" : "LV",
+        "displayName" : "LV"
+      },
+      "side" : "away",
+      "current" : {
+        "playoffs" : 0.6469728658613944,
+        "division" : 0.40595685976311713,
+        "oneSeed" : 0.1134864329306972
+      },
+      "ifWin" : {
+        "playoffs" : 0.96,
+        "division" : 0.69,
+        "oneSeed" : 0.27
+      },
+      "ifLoss" : {
+        "playoffs" : 0.42,
+        "division" : 0.2,
+        "oneSeed" : 0.0
+      }
+    } ],
+    "importance" : {
+      "playoffs" : 0.7100000000000001,
+      "division" : 0.53,
+      "oneSeed" : 0.30000000000000004
+    },
+    "others" : [ {
+      "team" : {
+        "teamId" : 13,
+        "abbrName" : "DEN",
+        "displayName" : "DEN"
+      },
+      "goal" : "division",
+      "swing" : 0.26
+    }, {
+      "team" : {
+        "teamId" : 16,
+        "abbrName" : "LAC",
+        "displayName" : "LAC"
+      },
+      "goal" : "division",
+      "swing" : 0.22999999999999998
+    }, {
+      "team" : {
+        "teamId" : 7,
+        "abbrName" : "CLE",
+        "displayName" : "CLE"
+      },
+      "goal" : "playoffs",
+      "swing" : 0.08000000000000002
+    }, {
+      "team" : {
+        "teamId" : 6,
+        "abbrName" : "CIN",
+        "displayName" : "CIN"
+      },
+      "goal" : "oneSeed",
+      "swing" : 0.08
+    }, {
+      "team" : {
+        "teamId" : 10,
+        "abbrName" : "IND",
+        "displayName" : "IND"
+      },
+      "goal" : "oneSeed",
+      "swing" : 0.06000000000000001
+    } ]
+  }, {
+    "gameId" : 250,
+    "home" : {
+      "teamId" : 19,
+      "abbrName" : "PHI",
+      "displayName" : "PHI"
+    },
+    "away" : {
+      "teamId" : 25,
+      "abbrName" : "ATL",
+      "displayName" : "ATL"
+    },
+    "homeWinProb" : 0.752212429738677,
+    "teams" : [ {
+      "team" : {
+        "teamId" : 19,
+        "abbrName" : "PHI",
+        "displayName" : "PHI"
+      },
+      "side" : "home",
+      "current" : {
+        "playoffs" : 0.9230973560294428,
+        "division" : 0.7830973560294427,
+        "oneSeed" : 0.0
+      },
+      "ifWin" : {
+        "playoffs" : 0.99,
+        "division" : 0.85,
+        "oneSeed" : 0.0
+      },
+      "ifLoss" : {
+        "playoffs" : 0.72,
+        "division" : 0.58,
+        "oneSeed" : 0.0
+      }
+    }, {
+      "team" : {
+        "teamId" : 25,
+        "abbrName" : "ATL",
+        "displayName" : "ATL"
+      },
+      "side" : "away",
+      "current" : {
+        "playoffs" : 0.442212384133972,
+        "division" : 0.442212384133972,
+        "oneSeed" : 0.0
+      },
+      "ifWin" : {
+        "playoffs" : 0.54,
+        "division" : 0.54,
+        "oneSeed" : 0.0
+      },
+      "ifLoss" : {
+        "playoffs" : 0.41,
+        "division" : 0.41,
+        "oneSeed" : 0.0
+      }
+    } ],
+    "importance" : {
+      "playoffs" : 0.41000000000000003,
+      "division" : 0.39999999999999997,
+      "oneSeed" : 0.1
+    },
+    "others" : [ {
+      "team" : {
+        "teamId" : 18,
+        "abbrName" : "NYG",
+        "displayName" : "NYG"
+      },
+      "goal" : "division",
+      "swing" : -0.19
+    }, {
+      "team" : {
+        "teamId" : 26,
+        "abbrName" : "CAR",
+        "displayName" : "CAR"
+      },
+      "goal" : "playoffs",
+      "swing" : 0.12999999999999995
+    }, {
+      "team" : {
+        "teamId" : 22,
+        "abbrName" : "DET",
+        "displayName" : "DET"
+      },
+      "goal" : "oneSeed",
+      "swing" : 0.10000000000000003
+    }, {
+      "team" : {
+        "teamId" : 30,
+        "abbrName" : "LAR",
+        "displayName" : "LAR"
+      },
+      "goal" : "oneSeed",
+      "swing" : -0.08000000000000002
+    }, {
+      "team" : {
+        "teamId" : 20,
+        "abbrName" : "WAS",
+        "displayName" : "WAS"
+      },
+      "goal" : "division",
+      "swing" : -0.08
+    } ]
+  }, {
+    "gameId" : 251,
+    "home" : {
+      "teamId" : 32,
+      "abbrName" : "SEA",
+      "displayName" : "SEA"
+    },
+    "away" : {
+      "teamId" : 29,
+      "abbrName" : "AZ",
+      "displayName" : "AZ"
+    },
+    "homeWinProb" : 0.6924175135444317,
+    "teams" : [ {
+      "team" : {
+        "teamId" : 32,
+        "abbrName" : "SEA",
+        "displayName" : "SEA"
+      },
+      "side" : "home",
+      "current" : {
+        "playoffs" : 1.0,
+        "division" : 0.4677538075848818,
+        "oneSeed" : 0.4416021578557704
+      },
+      "ifWin" : {
+        "playoffs" : 1.0,
+        "division" : 0.64,
+        "oneSeed" : 0.62
+      },
+      "ifLoss" : {
+        "playoffs" : 1.0,
+        "division" : 0.08,
+        "oneSeed" : 0.04
+      }
+    }, {
+      "team" : {
+        "teamId" : 29,
+        "abbrName" : "AZ",
+        "displayName" : "AZ"
+      },
+      "side" : "away",
+      "current" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "ifWin" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "ifLoss" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      }
+    } ],
+    "importance" : {
+      "playoffs" : 0.0,
+      "division" : 0.56,
+      "oneSeed" : 0.5800000000000001
+    },
+    "others" : [ {
+      "team" : {
+        "teamId" : 22,
+        "abbrName" : "DET",
+        "displayName" : "DET"
+      },
+      "goal" : "oneSeed",
+      "swing" : -0.45
+    }, {
+      "team" : {
+        "teamId" : 30,
+        "abbrName" : "LAR",
+        "displayName" : "LAR"
+      },
+      "goal" : "division",
+      "swing" : -0.33
+    }, {
+      "team" : {
+        "teamId" : 31,
+        "abbrName" : "SF",
+        "displayName" : "SF"
+      },
+      "goal" : "division",
+      "swing" : -0.23
+    }, {
+      "team" : {
+        "teamId" : 25,
+        "abbrName" : "ATL",
+        "displayName" : "ATL"
+      },
+      "goal" : "playoffs",
+      "swing" : 0.0
+    }, {
+      "team" : {
+        "teamId" : 5,
+        "abbrName" : "BAL",
+        "displayName" : "BAL"
+      },
+      "goal" : "playoffs",
+      "swing" : 0.0
+    } ]
+  }, {
+    "gameId" : 252,
+    "home" : {
+      "teamId" : 1,
+      "abbrName" : "BUF",
+      "displayName" : "BUF"
+    },
+    "away" : {
+      "teamId" : 17,
+      "abbrName" : "DAL",
+      "displayName" : "DAL"
+    },
+    "homeWinProb" : 0.7278383794191922,
+    "teams" : [ {
+      "team" : {
+        "teamId" : 1,
+        "abbrName" : "BUF",
+        "displayName" : "BUF"
+      },
+      "side" : "home",
+      "current" : {
+        "playoffs" : 0.796578584179293,
+        "division" : 0.6702488869444445,
+        "oneSeed" : 0.19195959485479805
+      },
+      "ifWin" : {
+        "playoffs" : 0.9,
+        "division" : 0.79,
+        "oneSeed" : 0.26
+      },
+      "ifLoss" : {
+        "playoffs" : 0.52,
+        "division" : 0.35,
+        "oneSeed" : 0.01
+      }
+    }, {
+      "team" : {
+        "teamId" : 17,
+        "abbrName" : "DAL",
+        "displayName" : "DAL"
+      },
+      "side" : "away",
+      "current" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "ifWin" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "ifLoss" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      }
+    } ],
+    "importance" : {
+      "playoffs" : 0.38000000000000006,
+      "division" : 0.44000000000000006,
+      "oneSeed" : 0.33000000000000007
+    },
+    "others" : [ {
+      "team" : {
+        "teamId" : 3,
+        "abbrName" : "NE",
+        "displayName" : "NE"
+      },
+      "goal" : "division",
+      "swing" : -0.44000000000000006
+    }, {
+      "team" : {
+        "teamId" : 10,
+        "abbrName" : "IND",
+        "displayName" : "IND"
+      },
+      "goal" : "oneSeed",
+      "swing" : -0.15
+    }, {
+      "team" : {
+        "teamId" : 7,
+        "abbrName" : "CLE",
+        "displayName" : "CLE"
+      },
+      "goal" : "playoffs",
+      "swing" : -0.10000000000000003
+    }, {
+      "team" : {
+        "teamId" : 11,
+        "abbrName" : "JAX",
+        "displayName" : "JAX"
+      },
+      "goal" : "playoffs",
+      "swing" : -0.06
+    }, {
+      "team" : {
+        "teamId" : 8,
+        "abbrName" : "PIT",
+        "displayName" : "PIT"
+      },
+      "goal" : "oneSeed",
+      "swing" : 0.06
+    } ]
+  }, {
+    "gameId" : 253,
+    "home" : {
+      "teamId" : 30,
+      "abbrName" : "LAR",
+      "displayName" : "LAR"
+    },
+    "away" : {
+      "teamId" : 31,
+      "abbrName" : "SF",
+      "displayName" : "SF"
+    },
+    "homeWinProb" : 0.5039797215987395,
+    "teams" : [ {
+      "team" : {
+        "teamId" : 30,
+        "abbrName" : "LAR",
+        "displayName" : "LAR"
+      },
+      "side" : "home",
+      "current" : {
+        "playoffs" : 1.0,
+        "division" : 0.44246742739121847,
+        "oneSeed" : 0.34710925244733193
+      },
+      "ifWin" : {
+        "playoffs" : 1.0,
+        "division" : 0.75,
+        "oneSeed" : 0.61
+      },
+      "ifLoss" : {
+        "playoffs" : 1.0,
+        "division" : 0.13,
+        "oneSeed" : 0.08
+      }
+    }, {
+      "team" : {
+        "teamId" : 31,
+        "abbrName" : "SF",
+        "displayName" : "SF"
+      },
+      "side" : "away",
+      "current" : {
+        "playoffs" : 0.8539254751683403,
+        "division" : 0.14384588073636553,
+        "oneSeed" : 0.014880608352037814
+      },
+      "ifWin" : {
+        "playoffs" : 0.99,
+        "division" : 0.29,
+        "oneSeed" : 0.03
+      },
+      "ifLoss" : {
+        "playoffs" : 0.72,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      }
+    } ],
+    "importance" : {
+      "playoffs" : 0.27,
+      "division" : 0.62,
+      "oneSeed" : 0.53
+    },
+    "others" : [ {
+      "team" : {
+        "teamId" : 32,
+        "abbrName" : "SEA",
+        "displayName" : "SEA"
+      },
+      "goal" : "division",
+      "swing" : -0.32999999999999996
+    }, {
+      "team" : {
+        "teamId" : 22,
+        "abbrName" : "DET",
+        "displayName" : "DET"
+      },
+      "goal" : "oneSeed",
+      "swing" : -0.19
+    }, {
+      "team" : {
+        "teamId" : 20,
+        "abbrName" : "WAS",
+        "displayName" : "WAS"
+      },
+      "goal" : "playoffs",
+      "swing" : 0.14
+    }, {
+      "team" : {
+        "teamId" : 23,
+        "abbrName" : "GB",
+        "displayName" : "GB"
+      },
+      "goal" : "playoffs",
+      "swing" : 0.050000000000000044
+    }, {
+      "team" : {
+        "teamId" : 21,
+        "abbrName" : "CHI",
+        "displayName" : "CHI"
+      },
+      "goal" : "playoffs",
+      "swing" : 0.03
+    } ]
+  }, {
+    "gameId" : 254,
+    "home" : {
+      "teamId" : 22,
+      "abbrName" : "DET",
+      "displayName" : "DET"
+    },
+    "away" : {
+      "teamId" : 6,
+      "abbrName" : "CIN",
+      "displayName" : "CIN"
+    },
+    "homeWinProb" : 0.3565723306630675,
+    "teams" : [ {
+      "team" : {
+        "teamId" : 22,
+        "abbrName" : "DET",
+        "displayName" : "DET"
+      },
+      "side" : "home",
+      "current" : {
+        "playoffs" : 1.0,
+        "division" : 1.0,
+        "oneSeed" : 0.25348584959946013
+      },
+      "ifWin" : {
+        "playoffs" : 1.0,
+        "division" : 1.0,
+        "oneSeed" : 0.35
+      },
+      "ifLoss" : {
+        "playoffs" : 1.0,
+        "division" : 1.0,
+        "oneSeed" : 0.2
+      }
+    }, {
+      "team" : {
+        "teamId" : 6,
+        "abbrName" : "CIN",
+        "displayName" : "CIN"
+      },
+      "side" : "away",
+      "current" : {
+        "playoffs" : 0.8038053444281423,
+        "division" : 0.566673897814881,
+        "oneSeed" : 0.12868553386738651
+      },
+      "ifWin" : {
+        "playoffs" : 0.95,
+        "division" : 0.72,
+        "oneSeed" : 0.2
+      },
+      "ifLoss" : {
+        "playoffs" : 0.54,
+        "division" : 0.29,
+        "oneSeed" : 0.0
+      }
+    } ],
+    "importance" : {
+      "playoffs" : 0.41,
+      "division" : 0.43,
+      "oneSeed" : 0.3999999999999999
+    },
+    "others" : [ {
+      "team" : {
+        "teamId" : 8,
+        "abbrName" : "PIT",
+        "displayName" : "PIT"
+      },
+      "goal" : "division",
+      "swing" : 0.26
+    }, {
+      "team" : {
+        "teamId" : 7,
+        "abbrName" : "CLE",
+        "displayName" : "CLE"
+      },
+      "goal" : "division",
+      "swing" : 0.13999999999999999
+    }, {
+      "team" : {
+        "teamId" : 30,
+        "abbrName" : "LAR",
+        "displayName" : "LAR"
+      },
+      "goal" : "oneSeed",
+      "swing" : -0.12
+    }, {
+      "team" : {
+        "teamId" : 16,
+        "abbrName" : "LAC",
+        "displayName" : "LAC"
+      },
+      "goal" : "oneSeed",
+      "swing" : 0.09
+    }, {
+      "team" : {
+        "teamId" : 3,
+        "abbrName" : "NE",
+        "displayName" : "NE"
+      },
+      "goal" : "oneSeed",
+      "swing" : 0.09
+    } ]
+  }, {
+    "gameId" : 255,
+    "home" : {
+      "teamId" : 23,
+      "abbrName" : "GB",
+      "displayName" : "GB"
+    },
+    "away" : {
+      "teamId" : 18,
+      "abbrName" : "NYG",
+      "displayName" : "NYG"
+    },
+    "homeWinProb" : 0.6400367367467527,
+    "teams" : [ {
+      "team" : {
+        "teamId" : 23,
+        "abbrName" : "GB",
+        "displayName" : "GB"
+      },
+      "side" : "home",
+      "current" : {
+        "playoffs" : 0.4616253483552593,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "ifWin" : {
+        "playoffs" : 0.71,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "ifLoss" : {
+        "playoffs" : 0.02,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      }
+    }, {
+      "team" : {
+        "teamId" : 18,
+        "abbrName" : "NYG",
+        "displayName" : "NYG"
+      },
+      "side" : "away",
+      "current" : {
+        "playoffs" : 0.34797979478928603,
+        "division" : 0.15639118318077938,
+        "oneSeed" : 0.0
+      },
+      "ifWin" : {
+        "playoffs" : 0.7,
+        "division" : 0.31,
+        "oneSeed" : 0.0
+      },
+      "ifLoss" : {
+        "playoffs" : 0.15,
+        "division" : 0.07,
+        "oneSeed" : 0.0
+      }
+    } ],
+    "importance" : {
+      "playoffs" : 0.69,
+      "division" : 0.24,
+      "oneSeed" : 0.0
+    },
+    "others" : [ {
+      "team" : {
+        "teamId" : 19,
+        "abbrName" : "PHI",
+        "displayName" : "PHI"
+      },
+      "goal" : "division",
+      "swing" : 0.24
+    }, {
+      "team" : {
+        "teamId" : 31,
+        "abbrName" : "SF",
+        "displayName" : "SF"
+      },
+      "goal" : "playoffs",
+      "swing" : -0.050000000000000044
+    }, {
+      "team" : {
+        "teamId" : 20,
+        "abbrName" : "WAS",
+        "displayName" : "WAS"
+      },
+      "goal" : "playoffs",
+      "swing" : -0.040000000000000036
+    }, {
+      "team" : {
+        "teamId" : 21,
+        "abbrName" : "CHI",
+        "displayName" : "CHI"
+      },
+      "goal" : "playoffs",
+      "swing" : -0.04000000000000001
+    }, {
+      "team" : {
+        "teamId" : 25,
+        "abbrName" : "ATL",
+        "displayName" : "ATL"
+      },
+      "goal" : "playoffs",
+      "swing" : 0.0
+    } ]
+  }, {
+    "gameId" : 256,
+    "home" : {
+      "teamId" : 20,
+      "abbrName" : "WAS",
+      "displayName" : "WAS"
+    },
+    "away" : {
+      "teamId" : 3,
+      "abbrName" : "NE",
+      "displayName" : "NE"
+    },
+    "homeWinProb" : 0.3560950631949882,
+    "teams" : [ {
+      "team" : {
+        "teamId" : 20,
+        "abbrName" : "WAS",
+        "displayName" : "WAS"
+      },
+      "side" : "home",
+      "current" : {
+        "playoffs" : 0.3280475315974941,
+        "division" : 0.07121901263899764,
+        "oneSeed" : 0.0
+      },
+      "ifWin" : {
+        "playoffs" : 0.65,
+        "division" : 0.2,
+        "oneSeed" : 0.0
+      },
+      "ifLoss" : {
+        "playoffs" : 0.15,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      }
+    }, {
+      "team" : {
+        "teamId" : 3,
+        "abbrName" : "NE",
+        "displayName" : "NE"
+      },
+      "side" : "away",
+      "current" : {
+        "playoffs" : 0.7718057772498043,
+        "division" : 0.288927678513704,
+        "oneSeed" : 0.05151239494440095
+      },
+      "ifWin" : {
+        "playoffs" : 0.9,
+        "division" : 0.41,
+        "oneSeed" : 0.08
+      },
+      "ifLoss" : {
+        "playoffs" : 0.54,
+        "division" : 0.07,
+        "oneSeed" : 0.0
+      }
+    } ],
+    "importance" : {
+      "playoffs" : 0.8900000000000001,
+      "division" : 0.54,
+      "oneSeed" : 0.09999999999999998
+    },
+    "others" : [ {
+      "team" : {
+        "teamId" : 1,
+        "abbrName" : "BUF",
+        "displayName" : "BUF"
+      },
+      "goal" : "division",
+      "swing" : 0.3400000000000001
+    }, {
+      "team" : {
+        "teamId" : 23,
+        "abbrName" : "GB",
+        "displayName" : "GB"
+      },
+      "goal" : "playoffs",
+      "swing" : -0.14
+    }, {
+      "team" : {
+        "teamId" : 31,
+        "abbrName" : "SF",
+        "displayName" : "SF"
+      },
+      "goal" : "playoffs",
+      "swing" : -0.14
+    }, {
+      "team" : {
+        "teamId" : 19,
+        "abbrName" : "PHI",
+        "displayName" : "PHI"
+      },
+      "goal" : "division",
+      "swing" : -0.1100000000000001
+    }, {
+      "team" : {
+        "teamId" : 21,
+        "abbrName" : "CHI",
+        "displayName" : "CHI"
+      },
+      "goal" : "playoffs",
+      "swing" : -0.11
+    } ]
+  } ]
+}

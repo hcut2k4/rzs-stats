@@ -31,7 +31,7 @@ class EloControllerTest {
 
     @BeforeEach
     void setUp() {
-        var configService = new EloConfigService(configs);
+        var configService = new EloConfigService(configs, new com.rzs.stats.config.PlayoffCacheInvalidation(new org.springframework.cache.concurrent.ConcurrentMapCacheManager()));
         var engine = new EloService();
         var queries = new EloQueryService(new EloHistoryService(games, configService, engine, new OwnerChangeService()), engine, games);
         mvc = MockMvcBuilders.standaloneSetup(new StatsController(null, queries, null, configService),

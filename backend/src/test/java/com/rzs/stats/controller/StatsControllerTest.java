@@ -24,6 +24,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         com.rzs.stats.service.EloHistoryService.class, com.rzs.stats.service.EloConfigService.class,
         com.rzs.stats.service.OwnerChangeService.class})
 class StatsControllerTest {
+    @org.springframework.boot.test.mock.mockito.MockBean
+    com.rzs.stats.config.PlayoffCacheInvalidation playoffInvalidation;
 
     @MockBean com.rzs.stats.repository.GameRepository eloGames;
     @MockBean com.rzs.stats.repository.EloConfigRepository eloConfigs;

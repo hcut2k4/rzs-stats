@@ -2,7 +2,6 @@ package com.rzs.stats.playoffs;
 
 import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.*;
 import java.util.function.Function;
 
 import static com.rzs.stats.playoffs.PlayoffSeeding.*;
@@ -53,51 +52,15 @@ public final class ClinchAnalyzer {
             if (marker == Marker.NONE) open.add(new Pair(team, goal));
         }));
         long deadline = System.nanoTime() + budget.toNanos();
-        var executor = Executors.newFixedThreadPool(Math.min(9, Runtime.getRuntime().availableProcessors()));
-        var futures = new ArrayList<Future<Search>>();
-        int prefix = forced.isEmpty() ? Math.min(2, season.remaining().size()) : 0;
-        int branches = (int) Math.pow(3, prefix);
-        try {
-            for (int branch = 0; branch < branches; branch++) {
-                int choice = branch;
-                var games = new ArrayList<>(season.completed());
-                for (int i = 0; i < prefix; i++) {
-                    games.add(outcome(season.remaining().get(i), choice % 3)); choice /= 3;
-                }
-                futures.add(executor.submit(() -> {
-                    var search = new Search(season, seeder, open, deadline, forced);
-                    search.visit(games, prefix);
-                    return search;
-                }));
-            }
-            var seenTrue = new boolean[open.size()];
-            var seenFalse = new boolean[open.size()];
-            long seeded = 0;
-            for (var future : futures) {
-                var search = future.get(Math.max(1, deadline - System.nanoTime()), TimeUnit.NANOSECONDS);
-                if (search.expired) return finish(base, false, 0);
-                seeded += search.seeded;
-                for (int i = 0; i < open.size(); i++) {
-                    seenTrue[i] |= search.yes[i]; seenFalse[i] |= search.no[i];
-                }
-            }
-            if (System.nanoTime() >= deadline) return finish(base, false, 0);
-            for (int i = 0; i < open.size(); i++) {
-                var pair = open.get(i);
-                base.get(pair.team()).put(pair.goal(), !seenFalse[i] ? Marker.CLINCHED : !seenTrue[i] ? Marker.ELIMINATED : Marker.NONE);
-            }
-            return finish(base, true, seeded);
-        } catch (TimeoutException e) {
-            return finish(base, false, 0);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return finish(base, false, 0);
-        } catch (ExecutionException e) {
-            throw new IllegalStateException("Clinch search failed", e.getCause());
-        } finally {
-            futures.forEach(f -> f.cancel(true));
-            executor.shutdownNow();
+        var search = new Search(season, seeder, open, deadline, forced);
+        search.visit(new ArrayList<>(season.completed()), 0);
+        ComputeGate.checkpoint();
+        if (search.expired) return finish(base, false, 0);
+        for (int i = 0; i < open.size(); i++) {
+            var pair = open.get(i);
+            base.get(pair.team()).put(pair.goal(), !search.no[i] ? Marker.CLINCHED : !search.yes[i] ? Marker.ELIMINATED : Marker.NONE);
         }
+        return finish(base, true, search.seeded);
     }
 
     public static Game outcome(Matchup game, int outcome) {

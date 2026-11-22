@@ -57,22 +57,48 @@ public class OddsService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rules must be madden or nfl");
         }
         var state = loader.load(season);
-        return gate.compute(() -> compute(state, rules, state.remainingGames().isEmpty() ? Map.of() : elo.homeWinProbabilities(state.season())));
+        return compute(state, rules, state.remainingGames().isEmpty() ? Map.of() : elo.homeWinProbabilities(state.season()));
     }
 
     int simulationCount() { return simulations; }
 
     Response compute(SeasonStateLoader.State state, String rules, Map<Integer, Double> probabilities) {
-        var selected = rules.equals("madden") ? SimulationService.Rules.MADDEN : SimulationService.Rules.NFL;
-        long seed = seed(state, rules);
-        SimulationService.Simulation result;
-        try {
-            result = simulator.simulate(state, probabilities,
-                    Map.of(), simulations, seed, selected);
-        } catch (IllegalStateException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Available game data cannot resolve the requested playoff order", e);
+        var result = baseline(state, rules, probabilities).baseline();
+        if (state.remainingGames().isEmpty() && result.simulations() > 0) {
+            int n = result.simulations();
+            var counts = new TreeMap<String, SimulationService.Counts>();
+            result.teams().forEach((team, c) -> counts.put(team, new SimulationService.Counts(c.playoffs() / n,
+                    c.division() / n, c.oneSeed() / n, c.seedCounts().stream().map(v -> v / n).toList())));
+            result = new SimulationService.Simulation(0, counts, Map.of(), result.allWins());
         }
         return response(state, rules, result);
+    }
+
+    public SimulationService.Championship baseline(SeasonStateLoader.State state, String rules, Map<Integer, Double> probabilities) {
+        var key = new SimpleKey(state.season(), rules);
+        var cache = caches.getCache("playoffBaseline");
+        try {
+            return cache.get(key, () -> {
+                boolean bracket = state.teams().stream().map(PlayoffSeeding.Team::conference).distinct().count() == 2
+                        && state.teams().stream().collect(java.util.stream.Collectors.groupingBy(PlayoffSeeding.Team::conference,
+                        java.util.stream.Collectors.counting())).values().stream().allMatch(n -> n >= 7);
+                var selected = rules.equals("madden") ? SimulationService.Rules.MADDEN : SimulationService.Rules.NFL;
+                if (!bracket) return gate.execute(() -> new SimulationService.Championship(
+                        simulator.simulate(state, probabilities, Map.of(), simulations, seed(state, rules), selected), Map.of()));
+                var ratings = state.remainingGames().isEmpty() ? elo.ratingsAtStart(state.season(), 18) : elo.currentRatings(state.season());
+                var hosted = new HashMap<String, Double>();
+                var neutral = new HashMap<String, Double>();
+                state.identities().forEach((home, h) -> state.identities().forEach((away, a) -> {
+                    hosted.put(home + ":" + away, elo.winProbability(ratings, h.teamId(), a.teamId(), false));
+                    neutral.put(home + ":" + away, elo.winProbability(ratings, h.teamId(), a.teamId(), true));
+                }));
+                return gate.execute(() -> simulator.championship(state, probabilities, simulations, seed(state, rules), selected,
+                        (home, away, finalGame) -> (finalGame ? neutral : hosted).get(home + ":" + away)));
+            });
+        } catch (org.springframework.cache.Cache.ValueRetrievalException e) {
+            if (e.getCause() instanceof RuntimeException cause) throw cause;
+            throw e;
+        }
     }
 
     static long seed(SeasonStateLoader.State state, String rules) {
@@ -80,12 +106,16 @@ public class OddsService {
     }
 
     public Response historical(SeasonStateLoader.State state) {
+        return gate.compute(() -> historicalComputed(state));
+    }
+
+    private Response historicalComputed(SeasonStateLoader.State state) {
         var ratings = elo.ratingsAtStart(state.season(), state.nextWeek());
         var probabilities = new HashMap<Integer, Double>();
         state.remainingGames().forEach(g -> probabilities.put(g.gameId(),
                 elo.winProbability(ratings, g.homeTeamId(), g.awayTeamId(), false)));
-        return response(state, "madden", simulator.simulate(state, probabilities, Map.of(), simulations,
-                seed(state, "madden"), SimulationService.Rules.MADDEN));
+        return gate.execute(() -> response(state, "madden", simulator.simulate(state, probabilities, Map.of(), simulations,
+                seed(state, "madden"), SimulationService.Rules.MADDEN)));
     }
 
     private Response response(SeasonStateLoader.State state, String rules, SimulationService.Simulation result) {
@@ -100,7 +130,7 @@ public class OddsService {
                     count.seedCounts().stream().map(n -> n / denominator).toList());
             conferences.computeIfAbsent(team.conference(), key -> new ArrayList<>()).add(row);
         }
-        return new Response(state.season(), rules, state.throughWeek(), state.nextWeek(), result.simulations(), Instant.now(),
+        return new Response(state.season(), rules, state.throughWeek(), state.nextWeek(), state.remainingGames().isEmpty() ? 0 : result.simulations(), Instant.now(),
                 conferences.entrySet().stream().map(e -> new Conference(e.getKey(), e.getValue().stream()
                         .sorted(Comparator.comparingDouble((Row r) -> r.odds().playoffs()).reversed()
                                 .thenComparing(r -> r.team().abbrName())).toList())).toList());

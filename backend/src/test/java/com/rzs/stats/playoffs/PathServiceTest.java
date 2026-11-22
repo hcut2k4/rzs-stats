@@ -28,11 +28,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @DataJpaTest(showSql = false, properties = {"playoffs.simulations=200", "playoffs.path-simulations=200",
-        "playoffs.path-risk-simulations=40", "playoffs.leverage-simulations=100",
+        "playoffs.leverage-simulations=100",
         "playoffs.max-concurrent-computations=1", "playoffs.compute-timeout-ms=20"})
 @AutoConfigureCache(cacheProvider = CacheType.CAFFEINE)
 @EnableCaching
-@Import({com.rzs.stats.playoffs.ComputeGate.class, SeasonStateLoader.class, PathService.class, PlayoffsPathController.class, OddsService.class,
+@Import({com.rzs.stats.config.CacheNames.class, com.rzs.stats.playoffs.ScenarioService.class, com.rzs.stats.playoffs.ComputeGate.class, SeasonStateLoader.class, PathService.class, PlayoffsPathController.class, OddsService.class,
         ClinchService.class, LeverageService.class, SimulationService.class, CacheNames.class, EloQueryService.class,
         EloHistoryService.class, EloService.class, EloConfigService.class, OwnerChangeService.class})
 class PathServiceTest {
@@ -78,6 +78,16 @@ class PathServiceTest {
         var schedule = new ArrayList<PlayoffSeeding.Game>();
         for (int w = 0; w < 17; w++) schedule.add(new PlayoffSeeding.Game(w, w == 16 ? "B" : "A", w == 16 ? "A" : "B", w < 8 ? 7 : 0, w < 8 ? 0 : 7));
         populate(List.of(new PlayoffSeeding.Team("A", "AFC", "East"), new PlayoffSeeding.Team("B", "AFC", "East")), schedule, Set.of(15, 16));
+    }
+
+    @Test
+    void defaultAndExplicitSeasonSharePathAndClinchResults() {
+        race();
+        var response = paths.path(null, "A", "madden");
+        long seeded = SimulationService.seedings();
+        assertThat(paths.path(1, "A", "madden")).isSameAs(response);
+        assertThat(clinch.clinch(null, "madden")).isSameAs(clinch.clinch(1, "madden"));
+        assertThat(SimulationService.seedings()).isEqualTo(seeded);
     }
 
     @Test
@@ -207,38 +217,24 @@ class PathServiceTest {
     }
 
     @Test
-    void riskAnalysisExaminesOnlyTheFirstFortyEligibleGamesInScheduleOrder() throws Exception {
+    void riskAnalysisUsesOneWinOutPassAndReusesTheBaseline() throws Exception {
         var f = historical();
         var remaining = new HashSet<Integer>();
         for (int i = 0; i < f.games().size(); i++) if (f.games().get(i).week() >= 10) remaining.add(i);
         populate(f.teams(), f.games(), remaining);
-        var state = loader.load(1);
-        var conference = state.teams().stream().filter(t -> t.conference().equals("NFC"))
-                .map(PlayoffSeeding.Team::abbr).collect(java.util.stream.Collectors.toSet());
-        var eligible = state.remainingGames().stream().filter(g -> !g.home().equals("WAS") && !g.away().equals("WAS")
-                        && (conference.contains(g.home()) || conference.contains(g.away())))
-                .sorted(Comparator.comparingInt(SeasonStateLoader.RemainingGame::week)
-                        .thenComparingInt(SeasonStateLoader.RemainingGame::gameId)).toList();
-        assertThat(eligible.size()).isGreaterThan(40);
-        var examined = new ArrayList<Integer>();
-        var recorder = new SimulationService() {
-            @Override public Simulation simulate(SeasonStateLoader.State input, Map<Integer, Double> probabilities,
-                                                 Map<Integer, Outcome> forced, int count, long seed, Rules rules, boolean margins) {
-                if (count == 1) forced.keySet().stream()
-                        .filter(id -> eligible.stream().anyMatch(g -> g.gameId() == id)).forEach(examined::add);
-                return super.simulate(input, probabilities, forced, count, seed, rules, margins);
-            }
-        };
-        var service = new PathService(loader, odds, clinch, leverage, recorder, elo, 2, 1, gate);
-        service.path(1, "WAS", "madden");
-        var expected = eligible.stream().limit(40).flatMap(g -> java.util.stream.Stream.of(g.gameId(), g.gameId())).toList();
-        assertThat(examined).containsExactlyElementsOf(expected);
+        odds.odds(1, "madden");
+        leverage.matrix(1, 10, "madden");
+        SimulationService.resetSeedings();
+        paths.path(1, "WAS", "madden");
+        assertThat(SimulationService.seedings()).isEqualTo(200);
     }
 
     @Test
     void cachedPathRemainsAvailableWhileTheSharedAdmissionCapRejectsColdPaths() throws Exception {
         race();
         var cached = paths.path(1, "A", "madden");
+        assertThat(paths.path(null, "A", "madden")).isSameAs(cached);
+        assertThat(clinch.clinch(null, "madden")).isSameAs(clinch.clinch(1, "madden"));
         var started = new java.util.concurrent.CountDownLatch(1);
         var finish = new java.util.concurrent.CountDownLatch(1);
         try (var executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
@@ -275,10 +271,10 @@ class PathServiceTest {
         for (int i = 0; i < f.games().size() && remaining.size() < 3; i++) if (f.games().get(i).week() == 17) remaining.add(i);
         populate(f.teams(), f.games(), remaining);
         var baseline = new OddsService(loader, elo, simulator, 20000, caches, new com.rzs.stats.playoffs.ComputeGate(2, 100));
-        var service = new PathService(loader, baseline, clinch, leverage, simulator, elo, 5000, 2000, new com.rzs.stats.playoffs.ComputeGate(2, 100));
+        var service = new PathService(loader, baseline, clinch, leverage, simulator, elo, 5000, new com.rzs.stats.playoffs.ComputeGate(2, 100), new ScenarioService());
         long start = System.nanoTime();
         var response = service.path(1, "WAS", "madden");
         assertThat(response.simulations()).isEqualTo(20000);
-        System.out.printf("Path benchmark: 32 teams, 20,000 baseline + 20,000 tracked + 5,000 win-out + paired risks, %.3f seconds%n", (System.nanoTime() - start) / 1e9);
+        System.out.printf("Path benchmark: 32 teams, 20,000 shared baseline + 5,000 conditioned win-out, %.3f seconds%n", (System.nanoTime() - start) / 1e9);
     }
 }

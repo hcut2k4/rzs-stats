@@ -67,13 +67,14 @@ class StatsCacheTest {
     }
 
     @Test
-    void syncAndForceSyncEvictEloWithEveryOtherCache() {
+    void syncAndForceSyncEvictEloAndEverySiteCache() {
         for (boolean force : List.of(false, true)) {
             cacheManager.getCacheNames().forEach(name -> cacheManager.getCache(name).put("sentinel", "old"));
             eloHistoryService.getTimeline();
             if (force) syncService.syncForce(); else syncService.sync();
             for (String name : cacheManager.getCacheNames()) {
-                org.assertj.core.api.Assertions.assertThat(cacheManager.getCache(name).get("sentinel")).isNull();
+                if (!com.rzs.stats.config.CacheNames.PLAYOFF.contains(name))
+                    org.assertj.core.api.Assertions.assertThat(cacheManager.getCache(name).get("sentinel")).isNull();
             }
             eloHistoryService.getTimeline();
         }
@@ -81,12 +82,14 @@ class StatsCacheTest {
     }
 
     @Test
-    void warmingEvictsAllCachesAndRecomputesEloEvenWithoutSeasons() {
+    void warmingEvictsSiteCachesAndRecomputesEloEvenWithoutSeasons() {
         eloHistoryService.getTimeline();
         cacheManager.getCacheNames().forEach(name -> cacheManager.getCache(name).put("sentinel", "old"));
         warming.warmCaches();
         for (String name : cacheManager.getCacheNames()) {
-            org.assertj.core.api.Assertions.assertThat(cacheManager.getCache(name).get("sentinel")).isNull();
+            if (com.rzs.stats.config.CacheNames.PLAYOFF.contains(name))
+                org.assertj.core.api.Assertions.assertThat(cacheManager.getCache(name).get("sentinel", String.class)).isEqualTo("old");
+            else org.assertj.core.api.Assertions.assertThat(cacheManager.getCache(name).get("sentinel")).isNull();
         }
         org.assertj.core.api.Assertions.assertThat(warming.getStatus().success()).isTrue();
         eloHistoryService.getTimeline();

@@ -330,7 +330,7 @@ class ClinchAdversarialTest {
             var loader = new SeasonStateLoader(games);
             for (var rules : List.of("madden", "nfl")) {
                 for (var budget : List.of(Duration.ZERO, Duration.ofSeconds(20))) {
-                    var response = new ClinchService(loader, 12, budget).clinch(104, rules);
+                    var response = new ClinchService(loader, 12, budget, new ComputeGate(2, 100)).clinch(104, rules);
                     assertEquals(32, response.teams().size());
                     assertEquals(rules.equals("madden") && !budget.isZero(), response.exhaustive());
                     for (var row : response.teams()) {

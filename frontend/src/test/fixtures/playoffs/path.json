@@ -1,0 +1,59 @@
+{
+  "season" : 2,
+  "rules" : "madden",
+  "team" : {
+    "teamId" : 9,
+    "abbrName" : "HOU",
+    "displayName" : "HOU"
+  },
+  "wins" : 6,
+  "losses" : 9,
+  "ties" : 0,
+  "remainingGames" : 2,
+  "simulations" : 100,
+  "current" : {
+    "playoffs" : 0.0,
+    "division" : 0.0,
+    "oneSeed" : 0.0
+  },
+  "markers" : {
+    "playoffs" : "eliminated",
+    "division" : "eliminated",
+    "oneSeed" : "eliminated"
+  },
+  "winOut" : {
+    "playoffs" : 0.0,
+    "division" : 0.0,
+    "oneSeed" : 0.0,
+    "controlsDestiny" : false
+  },
+  "ceiling" : {
+    "bestSeed" : null,
+    "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ]
+  },
+  "winsNeeded" : [ {
+    "finalWins" : 6,
+    "record" : "6-11",
+    "chance" : 0.2,
+    "playoffs" : 0.0,
+    "division" : 0.0,
+    "oneSeed" : 0.0
+  }, {
+    "finalWins" : 7,
+    "record" : "7-10",
+    "chance" : 0.52,
+    "playoffs" : 0.0,
+    "division" : 0.0,
+    "oneSeed" : 0.0
+  }, {
+    "finalWins" : 8,
+    "record" : "8-9",
+    "chance" : 0.28,
+    "playoffs" : 0.0,
+    "division" : 0.0,
+    "oneSeed" : 0.0
+  } ],
+  "winOutRisks" : [ ],
+  "rootThisWeek" : [ ],
+  "scenarios" : null
+}

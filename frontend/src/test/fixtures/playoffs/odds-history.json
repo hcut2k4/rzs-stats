@@ -1,0 +1,297 @@
+{
+  "season" : 2,
+  "snapshots" : [ {
+    "week" : 16,
+    "computedAt" : "2026-01-01T00:00:00Z",
+    "simulations" : 100,
+    "teams" : [ {
+      "team" : {
+        "teamId" : 25,
+        "abbrName" : "ATL",
+        "displayName" : "ATL"
+      },
+      "playoffs" : 0.44,
+      "division" : 0.44,
+      "oneSeed" : 0.0
+    }, {
+      "team" : {
+        "teamId" : 29,
+        "abbrName" : "AZ",
+        "displayName" : "AZ"
+      },
+      "playoffs" : 0.0,
+      "division" : 0.0,
+      "oneSeed" : 0.0
+    }, {
+      "team" : {
+        "teamId" : 5,
+        "abbrName" : "BAL",
+        "displayName" : "BAL"
+      },
+      "playoffs" : 0.3,
+      "division" : 0.03,
+      "oneSeed" : 0.0
+    }, {
+      "team" : {
+        "teamId" : 1,
+        "abbrName" : "BUF",
+        "displayName" : "BUF"
+      },
+      "playoffs" : 0.8,
+      "division" : 0.69,
+      "oneSeed" : 0.2
+    }, {
+      "team" : {
+        "teamId" : 26,
+        "abbrName" : "CAR",
+        "displayName" : "CAR"
+      },
+      "playoffs" : 0.56,
+      "division" : 0.56,
+      "oneSeed" : 0.0
+    }, {
+      "team" : {
+        "teamId" : 21,
+        "abbrName" : "CHI",
+        "displayName" : "CHI"
+      },
+      "playoffs" : 0.09,
+      "division" : 0.0,
+      "oneSeed" : 0.0
+    }, {
+      "team" : {
+        "teamId" : 6,
+        "abbrName" : "CIN",
+        "displayName" : "CIN"
+      },
+      "playoffs" : 0.81,
+      "division" : 0.58,
+      "oneSeed" : 0.15
+    }, {
+      "team" : {
+        "teamId" : 7,
+        "abbrName" : "CLE",
+        "displayName" : "CLE"
+      },
+      "playoffs" : 0.5,
+      "division" : 0.05,
+      "oneSeed" : 0.0
+    }, {
+      "team" : {
+        "teamId" : 17,
+        "abbrName" : "DAL",
+        "displayName" : "DAL"
+      },
+      "playoffs" : 0.0,
+      "division" : 0.0,
+      "oneSeed" : 0.0
+    }, {
+      "team" : {
+        "teamId" : 13,
+        "abbrName" : "DEN",
+        "displayName" : "DEN"
+      },
+      "playoffs" : 0.65,
+      "division" : 0.29,
+      "oneSeed" : 0.11
+    }, {
+      "team" : {
+        "teamId" : 22,
+        "abbrName" : "DET",
+        "displayName" : "DET"
+      },
+      "playoffs" : 1.0,
+      "division" : 1.0,
+      "oneSeed" : 0.24
+    }, {
+      "team" : {
+        "teamId" : 23,
+        "abbrName" : "GB",
+        "displayName" : "GB"
+      },
+      "playoffs" : 0.45,
+      "division" : 0.0,
+      "oneSeed" : 0.0
+    }, {
+      "team" : {
+        "teamId" : 9,
+        "abbrName" : "HOU",
+        "displayName" : "HOU"
+      },
+      "playoffs" : 0.0,
+      "division" : 0.0,
+      "oneSeed" : 0.0
+    }, {
+      "team" : {
+        "teamId" : 10,
+        "abbrName" : "IND",
+        "displayName" : "IND"
+      },
+      "playoffs" : 0.96,
+      "division" : 0.96,
+      "oneSeed" : 0.14
+    }, {
+      "team" : {
+        "teamId" : 11,
+        "abbrName" : "JAX",
+        "displayName" : "JAX"
+      },
+      "playoffs" : 0.17,
+      "division" : 0.03,
+      "oneSeed" : 0.0
+    }, {
+      "team" : {
+        "teamId" : 14,
+        "abbrName" : "KC",
+        "displayName" : "KC"
+      },
+      "playoffs" : 0.0,
+      "division" : 0.0,
+      "oneSeed" : 0.0
+    }, {
+      "team" : {
+        "teamId" : 16,
+        "abbrName" : "LAC",
+        "displayName" : "LAC"
+      },
+      "playoffs" : 0.8,
+      "division" : 0.3,
+      "oneSeed" : 0.02
+    }, {
+      "team" : {
+        "teamId" : 30,
+        "abbrName" : "LAR",
+        "displayName" : "LAR"
+      },
+      "playoffs" : 1.0,
+      "division" : 0.47,
+      "oneSeed" : 0.35
+    }, {
+      "team" : {
+        "teamId" : 15,
+        "abbrName" : "LV",
+        "displayName" : "LV"
+      },
+      "playoffs" : 0.63,
+      "division" : 0.41,
+      "oneSeed" : 0.11
+    }, {
+      "team" : {
+        "teamId" : 2,
+        "abbrName" : "MIA",
+        "displayName" : "MIA"
+      },
+      "playoffs" : 0.0,
+      "division" : 0.0,
+      "oneSeed" : 0.0
+    }, {
+      "team" : {
+        "teamId" : 24,
+        "abbrName" : "MIN",
+        "displayName" : "MIN"
+      },
+      "playoffs" : 0.0,
+      "division" : 0.0,
+      "oneSeed" : 0.0
+    }, {
+      "team" : {
+        "teamId" : 3,
+        "abbrName" : "NE",
+        "displayName" : "NE"
+      },
+      "playoffs" : 0.77,
+      "division" : 0.31,
+      "oneSeed" : 0.07
+    }, {
+      "team" : {
+        "teamId" : 27,
+        "abbrName" : "NO",
+        "displayName" : "NO"
+      },
+      "playoffs" : 0.0,
+      "division" : 0.0,
+      "oneSeed" : 0.0
+    }, {
+      "team" : {
+        "teamId" : 18,
+        "abbrName" : "NYG",
+        "displayName" : "NYG"
+      },
+      "playoffs" : 0.37,
+      "division" : 0.17,
+      "oneSeed" : 0.0
+    }, {
+      "team" : {
+        "teamId" : 4,
+        "abbrName" : "NYJ",
+        "displayName" : "NYJ"
+      },
+      "playoffs" : 0.0,
+      "division" : 0.0,
+      "oneSeed" : 0.0
+    }, {
+      "team" : {
+        "teamId" : 19,
+        "abbrName" : "PHI",
+        "displayName" : "PHI"
+      },
+      "playoffs" : 0.92,
+      "division" : 0.78,
+      "oneSeed" : 0.0
+    }, {
+      "team" : {
+        "teamId" : 8,
+        "abbrName" : "PIT",
+        "displayName" : "PIT"
+      },
+      "playoffs" : 0.6,
+      "division" : 0.34,
+      "oneSeed" : 0.2
+    }, {
+      "team" : {
+        "teamId" : 32,
+        "abbrName" : "SEA",
+        "displayName" : "SEA"
+      },
+      "playoffs" : 1.0,
+      "division" : 0.42,
+      "oneSeed" : 0.4
+    }, {
+      "team" : {
+        "teamId" : 31,
+        "abbrName" : "SF",
+        "displayName" : "SF"
+      },
+      "playoffs" : 0.86,
+      "division" : 0.11,
+      "oneSeed" : 0.01
+    }, {
+      "team" : {
+        "teamId" : 28,
+        "abbrName" : "TB",
+        "displayName" : "TB"
+      },
+      "playoffs" : 0.0,
+      "division" : 0.0,
+      "oneSeed" : 0.0
+    }, {
+      "team" : {
+        "teamId" : 12,
+        "abbrName" : "TEN",
+        "displayName" : "TEN"
+      },
+      "playoffs" : 0.01,
+      "division" : 0.01,
+      "oneSeed" : 0.0
+    }, {
+      "team" : {
+        "teamId" : 20,
+        "abbrName" : "WAS",
+        "displayName" : "WAS"
+      },
+      "playoffs" : 0.31,
+      "division" : 0.05,
+      "oneSeed" : 0.0
+    } ]
+  } ]
+}
