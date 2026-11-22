@@ -10,7 +10,7 @@ it('renders the dated changelog with every feature and the shared Elo scale', ()
 
   expect(screen.getByRole('heading', { level: 1, name: "What's new in the Red Zone" })).toBeInTheDocument()
   expect(screen.getByText('Red Zone Stats · Nov 11 – 18, 2026')).toBeInTheDocument()
-  for (const name of ['Elo Ratings', 'QB Rankings', 'Team Efficiency', 'Home Page', 'Standings', 'Export Anything', 'Also new']) {
+  for (const name of ['Playoffs', 'Elo Ratings', 'QB Rankings', 'Team Efficiency', 'Home Page', 'Standings', 'Export Anything', 'Also new']) {
     expect(screen.getByRole('heading', { level: 2, name })).toBeInTheDocument()
   }
   const tiers = within(screen.getByRole('list', { name: "Matchup tiers by favorite's win chance" })).getAllByRole('listitem')
@@ -20,7 +20,7 @@ it('renders the dated changelog with every feature and the shared Elo scale', ()
     expect(within(tiers[index]).getByText(range)).toBeInTheDocument()
   })
   for (const level of UPSET_LEVELS) expect(screen.getByText(level.label)).toBeInTheDocument()
-  expect(screen.getAllByText('Try this')).toHaveLength(6)
+  expect(screen.getAllByText('Try this')).toHaveLength(7)
   expect(within(screen.getByRole('navigation', { name: 'Main' })).queryByRole('link', { name: 'Changelog' })).not.toBeInTheDocument()
 })
 
@@ -32,6 +32,7 @@ it('links the feature index, app pages, and full screenshots', () => {
     expect(document.getElementById(link.hash.slice(1))).toBeInTheDocument()
   }
   for (const [name, path] of [
+    ['Playoffs → Picture', '/playoffs?tab=picture&rules=madden'],
     ['Elo → Games', '/elo?tab=games'], ['QB leaderboard', '/qb'],
     ['Efficiency overview', '/efficiency'], ['Best Games Ahead', '/'],
     ['Season History', '/standings?tab=history'], ['About page', '/about'],

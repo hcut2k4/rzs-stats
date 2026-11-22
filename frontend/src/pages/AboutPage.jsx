@@ -144,6 +144,17 @@ const PAGES = [
     ],
   },
   {
+    name: 'Playoffs',
+    bullets: [
+      'Picture — “If the season ended today” applies end-of-season tiebreakers to completed regular-season games only. Unplayed games do not count; this is the current field, not a forecast.',
+      'The top four seeds in each conference are division leaders; seeds five through seven are wild cards. Every remaining team is shown in the hunt.',
+      'Madden 27 breaks ties differently from the real NFL. Switch rules to compare the field, and open Tiebreak details to see why a team is placed there.',
+      'Season 104 NFC: Washington swept Philadelphia, but Washington still missed the playoffs when both finished 10–7.',
+      'In that same tie, Detroit had played neither team. Madden put Detroit and Philadelphia ahead of Washington, so both got in.',
+      'Each conference exports to Excel, CSV, an image or an AI-ready text block.',
+    ],
+  },
+  {
     name: 'Standings',
     bullets: [
       'Standings — every team ranked by PyPAT by default, with three SoS columns: Played (opponents so far), Left (remaining schedule), Total (full season)',

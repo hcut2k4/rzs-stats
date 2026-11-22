@@ -47,3 +47,14 @@ it('keeps the About explanation when config cannot load', async () => {
   render(<MemoryRouter><AboutPage /></MemoryRouter>)
   expect(await screen.findByText(/the configured margin cap/)).toBeInTheDocument()
 })
+
+
+it('explains the playoff picture and the season 104 tiebreak examples', async () => {
+  render(<MemoryRouter><AboutPage /></MemoryRouter>)
+  expect(screen.getByRole('heading', { name: 'Playoffs' })).toBeInTheDocument()
+  expect(screen.getByText(/completed regular-season games only/)).toBeInTheDocument()
+  expect(screen.getByText(/Madden 27 breaks ties differently from the real NFL/)).toBeInTheDocument()
+  expect(screen.getByText(/Washington swept Philadelphia, but Washington still missed/)).toBeInTheDocument()
+  expect(screen.getByText(/Detroit and Philadelphia ahead of Washington/)).toBeInTheDocument()
+  await screen.findByText(/the configured margin cap/)
+})

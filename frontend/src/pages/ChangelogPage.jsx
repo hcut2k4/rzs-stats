@@ -20,6 +20,7 @@ export default function ChangelogPage() {
         takeaway="A big week for the stats site. There's a new home page, Elo power ratings with game predictions, a QB leaderboard, a team efficiency page, and every table can now be exported. This takes about three minutes to read, and each section ends with something to try."
       />
       <nav className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-3 gap-px border border-line bg-line" aria-label="Jump to a feature">
+        <a href="#playoffs" className="flex flex-col bg-bg p-3 hover:bg-surface"><b className="font-display text-xl uppercase">Playoffs</b><small className="text-sm text-muted">The field if the season ended today</small></a>
         <a href="#elo" className="flex flex-col bg-bg p-3 hover:bg-surface"><b className="font-display text-xl uppercase">Elo Ratings</b><small className="text-sm text-muted">Power ratings, predictions, upsets</small></a>
         <a href="#qbs" className="flex flex-col bg-bg p-3 hover:bg-surface"><b className="font-display text-xl uppercase">QB Rankings</b><small className="text-sm text-muted">Who's really the best passer</small></a>
         <a href="#efficiency" className="flex flex-col bg-bg p-3 hover:bg-surface"><b className="font-display text-xl uppercase">Efficiency</b><small className="text-sm text-muted">Points per drive, O vs D</small></a>
@@ -27,6 +28,16 @@ export default function ChangelogPage() {
         <a href="#standings" className="flex flex-col bg-bg p-3 hover:bg-surface"><b className="font-display text-xl uppercase">Standings</b><small className="text-sm text-muted">History and week-by-week tabs</small></a>
         <a href="#exports" className="flex flex-col bg-bg p-3 hover:bg-surface"><b className="font-display text-xl uppercase">Exports</b><small className="text-sm text-muted">Excel, images, and AI</small></a>
       </nav>
+
+      <section id="playoffs" className="space-y-3 border-t-2 border-rule pt-3 scroll-mt-20">
+        <div className="flex flex-wrap items-baseline justify-between gap-3"><h2 className="font-display font-extrabold uppercase text-3xl">Playoffs</h2><span className="rounded border border-accent px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-accent">Beta · Nov 22, 2026</span></div>
+        <p className="text-base">See the seven playoff seeds in each conference and every team in the hunt, using only completed regular-season games.</p>
+        <ul className="space-y-2 [&>li]:border-l-2 [&>li]:border-line [&>li]:pl-3">
+          <li>Switch between Madden 27 and real NFL tiebreakers. Markers show when a team would have a different seed or miss the field under the other rules.</li>
+          <li>Open Tiebreak details for a plain-English explanation, or export either conference to Excel, CSV, an image or an AI-ready text block.</li>
+        </ul>
+        <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-3 rounded bg-surface p-3"><span className="shrink-0 text-xs font-semibold uppercase tracking-wide text-accent">Try this</span><p>Open <Link to="/playoffs?tab=picture&rules=madden" className="text-accent hover:underline">Playoffs → Picture</Link> and switch rules to see how the field changes.</p></div>
+      </section>
 
       <section id="elo" className="space-y-3 border-t-2 border-rule pt-3 scroll-mt-20">
         <div className="flex flex-wrap items-baseline justify-between gap-3"><h2 className="font-display font-extrabold uppercase text-3xl">Elo Ratings</h2><span className="rounded border border-accent px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-accent">New page</span></div>
