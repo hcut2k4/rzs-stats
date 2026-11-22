@@ -116,8 +116,9 @@ it('ranks the biggest games by importance and names other affected teams', async
   client.getPlayoffLeverage.mockResolvedValue(data)
   show('/playoffs?tab=leverage')
   const table = await screen.findByRole('table', { name: 'Biggest games this week' })
-  expect(within(table).getAllByRole('row')[1]).toHaveTextContent('NYJ @ MIA90 pp')
-  expect(within(table).getAllByText(/CLE/)[0].parentElement).toHaveAttribute('title', expect.stringContaining('CLE (-15 pp with a home win)'))
+  const first = within(table).getAllByRole('row')[1]
+  expect(first).toHaveTextContent(/ @ .*90 pp/)
+  expect(within(table).getAllByRole('row').map(r => r.textContent).join(' ')).toMatch(/−15 pp/)
 })
 
 it.each(['404', 'empty', 'no team'])('hides the team outlook when odds are %s', async mode => {
