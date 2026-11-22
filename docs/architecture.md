@@ -6,6 +6,7 @@
 backend/src/main/java/com/rzs/stats/
 ├── controller/
 │   ├── StatsController.java       # public API: /api/* (standings, games, trends, elo)
+│   ├── PlayoffsController.java    # public API: /api/playoffs/picture
 │   ├── QbController.java          # public API: /api/qb/*
 │   ├── AdminController.java       # admin tools: /api/admin/*
 │   └── AdminAuthController.java   # GET /api/admin/auth — token probe for the UI
@@ -24,6 +25,13 @@ backend/src/main/java/com/rzs/stats/
 │   ├── TeamEfficiencyCalculator.java # drives, plays and offensive-points formulas
 │   ├── SyncService.java           # NeonSportz game/team sync
 │   └── CacheWarmingService.java   # background cache population
+├── playoffs/
+│   ├── SeasonStateLoader.java     # reusable season schedule, identities, records input and week bounds
+│   ├── PlayoffPictureService.java # Madden/NFL picture and alternate seeds
+│   ├── TiebreakExplainer.java     # plain-English explanations from engine traces
+│   ├── MaddenSeeding.java         # Madden 27 seeding engine
+│   ├── PlayoffSeeding.java        # NFL seeding engine
+│   └── TiebreakerRules.java       # NFL tiebreak steps
 ├── repository/
 │   ├── GameRepository.java        # game queries (always JOIN FETCH teams)
 │   ├── TeamRepository.java        # team lookups by teamId or nsId
@@ -128,6 +136,16 @@ SoS: `oppPyPatCurr/Prev`, `oppPyPatRemainingCurr/Prev`, `oppPyPatTotalCurr/Prev`
 | GET | `/elo/upcoming` | `season`, `week` | Unplayed games with projected win probability |
 | GET | `/elo/matchup` | `teamA`, `teamB`, `homeTeam` | Head-to-head win probability |
 
+### Public — `PlayoffsController (/api/playoffs)`
+
+| Method | Path | Params | Returns |
+|--------|------|--------|---------|
+| GET | `/picture` | `season` (optional, latest season with a completed regular-season game), `rules` (`madden` default or `nfl`) | Season index, week bounds, completed/remaining game counts, conference seeds and hunt, alternate seeds and tiebreak reasons |
+
+Uses completed stage 1 games in weeks 0–17. Invalid rules return 400; missing regular-season data or incomplete team conference/division metadata return 404. Shapes follow [the playoff API contract](playoffs-api.md). The loader includes teams from the selected regular-season schedule, including unplayed games.
+
+The game-only NFL engine can leave ties unresolved when net touchdown totals or a coin toss are needed. The picture returns 404 if the requested order is unresolved; unresolved alternate seeds are null. This is a contract limitation: the response has no representation for an unknown seed.
+
 ### Public — `QbController (/api/qb)`
 | Method | Path | Params | Returns |
 |--------|------|--------|---------|
@@ -165,9 +183,11 @@ SoS: `oppPyPatCurr/Prev`, `oppPyPatRemainingCurr/Prev`, `oppPyPatTotalCurr/Prev`
 
 **Caffeine** — max 500 entries, 24h write-through TTL.
 
-Cache names: `standings`, `games`, `weeks`, `seasons`, `seasonTrends`, `weeklyTrends`, `seasonGames`, `eloHistory`, `qbStats`, `teamEfficiency`
+Cache names: `standings`, `games`, `weeks`, `seasons`, `seasonTrends`, `weeklyTrends`, `seasonGames`, `eloHistory`, `qbStats`, `teamEfficiency`, `playoffPicture`
 
-The list lives in one place — [config/CacheNames.java](../backend/src/main/java/com/rzs/stats/config/CacheNames.java), as the `allStatsCaches` resolver. **A new cache must be added there**, or it silently survives eviction and serves stale data after a sync. All ten are evicted together on sync, force-sync, or cache warm. `seasonGames` is cached directly on `GameRepository.findRegularSeasonGames()` (Spring Data JPA repos support `@Cacheable`) so all callers share the same cache regardless of call site.
+The list lives in one place — [config/CacheNames.java](../backend/src/main/java/com/rzs/stats/config/CacheNames.java), as the `allStatsCaches` resolver. **A new cache must be added there**, or it silently survives eviction and serves stale data after a sync. All eleven are evicted together on sync, force-sync, or cache warm. `seasonGames` is cached directly on `GameRepository.findRegularSeasonGames()` (Spring Data JPA repos support `@Cacheable`) so all callers share the same cache regardless of call site.
+
+`playoffPicture` caches the complete response by season parameter and rules, including the default-season request. It participates in the same sync, force-sync, and cache-warm eviction resolver.
 
 ## Data Sync
 

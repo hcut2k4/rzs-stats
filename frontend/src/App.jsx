@@ -11,12 +11,14 @@ import QbPage from './pages/QbPage'
 import EfficiencyPage from './pages/EfficiencyPage'
 import TeamsPage from './pages/TeamsPage'
 import TeamPage from './pages/TeamPage'
+import PlayoffsPage from './pages/PlayoffsPage'
 import { SYNC_LINE } from './utils/siteCopy'
 import ThemeToggle from './components/ThemeToggle'
 
 const LINKS = [
   { to: '/teams', label: 'Teams' },
   { to: '/standings', label: 'Standings' },
+  { to: '/playoffs', label: 'Playoffs', beta: true },
   { to: '/efficiency', label: 'Efficiency' },
   { to: '/games', label: 'Games' },
   { to: '/elo', label: 'Elo' },
@@ -50,7 +52,7 @@ export default function App() {
             <span>RZS<span className="text-accent"> Stats</span></span>
           </Link>
           <nav className="hidden sm:flex items-center gap-1" aria-label="Main">
-            {LINKS.map(l => <NavLink key={l.to} to={l.to} end={l.end} className={navClass}>{l.label}</NavLink>)}
+            {LINKS.map(l => <NavLink key={l.to} to={l.to} end={l.end} className={navClass}>{l.label}{l.beta && <span className="ml-1 rounded border border-line px-1 text-[9px] uppercase text-muted">Beta</span>}</NavLink>)}
           </nav>
           <div className="ml-auto flex items-center gap-1">
             <ThemeToggle />
@@ -69,7 +71,7 @@ export default function App() {
         {open && (
           <nav className="sm:hidden border-t border-line" aria-label="Mobile">
             {LINKS.map(l => (
-              <NavLink key={l.to} to={l.to} end={l.end} className={mobileNavClass} onClick={() => setOpen(false)}>{l.label}</NavLink>
+              <NavLink key={l.to} to={l.to} end={l.end} className={mobileNavClass} onClick={() => setOpen(false)}>{l.label}{l.beta && <span className="ml-1 rounded border border-line px-1 text-[9px] uppercase text-muted">Beta</span>}</NavLink>
             ))}
           </nav>
         )}
@@ -78,6 +80,7 @@ export default function App() {
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-6">
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/playoffs" element={<PlayoffsPage />} />
           <Route path="/standings" element={<StandingsPage />} />
           <Route path="/efficiency" element={<EfficiencyPage />} />
           <Route path="/games" element={<GamesPage />} />

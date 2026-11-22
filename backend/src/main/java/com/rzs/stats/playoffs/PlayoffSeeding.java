@@ -18,8 +18,14 @@ public final class PlayoffSeeding {
     public record Rank(int position, Set<String> teams, Status status, Step unresolvedAt) {
         public Rank { teams = Collections.unmodifiableSet(new TreeSet<>(teams)); }
     }
-    public record Trace(String context, Set<String> tied, Step step, Set<String> remaining, Status status) {
+    public record Trace(String context, Set<String> tied, Step step, Set<String> remaining, Status status,
+                        Map<String, Double> groupWins, Map<String, Double> values, boolean biggestSetFirst) {
+        public Trace(String context, Set<String> tied, Step step, Set<String> remaining, Status status) {
+            this(context, tied, step, remaining, status, Map.of(), Map.of(), false);
+        }
         public Trace {
+            groupWins = Collections.unmodifiableMap(new TreeMap<>(groupWins));
+            values = Collections.unmodifiableMap(new TreeMap<>(values));
             tied = Collections.unmodifiableSet(new TreeSet<>(tied));
             remaining = Collections.unmodifiableSet(new TreeSet<>(remaining));
         }
@@ -43,18 +49,15 @@ public final class PlayoffSeeding {
     private record Selection(Set<String> teams, Step unresolvedAt) {}
 
     private final TiebreakerRules rules;
-    private final boolean madden;
-    private final Set<String> divisionsWithWildCard = new HashSet<>();
-    private enum MaddenContext { STANDARD, WILD_CARD, AFTER_REDUCTION }
+    private final boolean alphabeticalFallback;
     private final Map<String, Team> teams = new TreeMap<>();
     private final Map<String, List<Game>> games = new HashMap<>();
     private final Map<String, Rank> divisionRanks = new TreeMap<>();
     private final List<Trace> trace = new ArrayList<>();
 
-    private PlayoffSeeding(List<Team> teams, List<Game> schedule, TiebreakerRules rules,
-                          boolean madden) {
+    private PlayoffSeeding(List<Team> teams, List<Game> schedule, TiebreakerRules rules, boolean alphabeticalFallback) {
+        this.alphabeticalFallback = alphabeticalFallback;
         this.rules = Objects.requireNonNull(rules);
-        this.madden = madden;
         for (var team : teams) {
             if (this.teams.putIfAbsent(team.abbr(), team) != null) throw new IllegalArgumentException("Duplicate team " + team.abbr());
             games.put(team.abbr(), new ArrayList<>());
@@ -76,27 +79,8 @@ public final class PlayoffSeeding {
         return new PlayoffSeeding(teams, games, rules, false).seed();
     }
 
-    static Result seedMadden(List<Team> teams, List<Game> games) {
+    static Result seedForPicture(List<Team> teams, List<Game> games) {
         return new PlayoffSeeding(teams, games, TiebreakerRules.nfl(), true).seed();
-    }
-
-    static List<Rank> rankMaddenTie(List<Team> teams, List<Game> games, Set<String> tied,
-                                    boolean wildCard, int spots) {
-        if (tied.isEmpty() || !teams.stream().map(Team::abbr).toList().containsAll(tied)
-                || spots < 1 || spots > tied.size()) throw new IllegalArgumentException("Invalid tie group");
-        var engine = new PlayoffSeeding(teams, games, TiebreakerRules.nfl(), true);
-        var context = wildCard ? MaddenContext.WILD_CARD : MaddenContext.STANDARD;
-        var selections = wildCard && spots < tied.size()
-                ? engine.maddenCutoff(tied, spots, "tie group") : engine.maddenOrder(tied, context, "tie group");
-        var result = new ArrayList<Rank>();
-        int position = 1;
-        for (var selection : selections) {
-            if (position > spots) break;
-            result.add(new Rank(position, selection.teams(), selection.teams().size() == 1 ? Status.RESOLVED : Status.UNRESOLVED,
-                    selection.unresolvedAt()));
-            position += selection.teams().size();
-        }
-        return List.copyOf(result);
     }
 
     private Result seed() {
@@ -125,7 +109,7 @@ public final class PlayoffSeeding {
                 }
             });
             var ranks = new ArrayList<>(order(winners, false, conference + " division winners", 1));
-            ranks.addAll(order(others, false, conference + " wild cards", winners.size() + 1, winners.size() + 3));
+            ranks.addAll(order(others, false, conference + " wild cards", winners.size() + 1));
             conferences.put(conference, List.copyOf(ranks));
         }
         var records = new TreeMap<String, Record>();
@@ -144,127 +128,25 @@ public final class PlayoffSeeding {
     }
 
     private List<Rank> order(Set<String> clubs, boolean division, String context, int start) {
-        return order(clubs, division, context, start, 0);
-    }
-
-    private List<Rank> order(Set<String> clubs, boolean division, String context, int start, int wildCardEnd) {
-        if (madden && wildCardEnd > 0) divisionsWithWildCard.clear();
         var pending = new TreeSet<>(clubs);
         var result = new ArrayList<Rank>();
         while (!pending.isEmpty()) {
             var tied = best(pending, team -> percentage(team, game -> true));
-            List<Selection> selections;
-            if (madden) {
-                int open = Math.max(0, wildCardEnd - start + 1);
-                selections = open > 0 && tied.size() > open
-                        ? maddenCutoff(tied, open, context) : maddenOrder(tied,
-                        wildCardEnd > 0 ? MaddenContext.WILD_CARD : MaddenContext.STANDARD, context);
-            } else {
-                selections = rules.rankingMode() == TiebreakerRules.RankingMode.TIERED
-                        ? tiered(tied, division, context, 0) : List.of(select(tied, division, context));
-            }
+            var selections = rules.rankingMode() == TiebreakerRules.RankingMode.TIERED
+                    ? tiered(tied, division, context, 0) : List.of(select(tied, division, context));
             for (var selected : selections) {
-                result.add(new Rank(start, selected.teams(), selected.teams().size() == 1 ? Status.RESOLVED : Status.UNRESOLVED,
-                        selected.unresolvedAt()));
+                if (alphabeticalFallback && selected.teams().size() > 1) {
+                    int position = start;
+                    for (var team : new TreeSet<>(selected.teams())) {
+                        result.add(new Rank(position++, Set.of(team), Status.RESOLVED, selected.unresolvedAt()));
+                    }
+                } else {
+                    result.add(new Rank(start, selected.teams(), selected.teams().size() == 1 ? Status.RESOLVED : Status.UNRESOLVED,
+                            selected.unresolvedAt()));
+                }
                 start += selected.teams().size();
                 pending.removeAll(selected.teams());
             }
-            if (madden && wildCardEnd > 0) {
-                result.stream().filter(r -> r.position() + r.teams().size() - 1 <= wildCardEnd)
-                        .flatMap(r -> r.teams().stream()).forEach(t -> divisionsWithWildCard.add(teams.get(t).division()));
-            }
-        }
-        return result;
-    }
-
-    private List<Selection> maddenCutoff(Set<String> tied, int open, String context) {
-        var ranked = maddenOrder(tied, MaddenContext.WILD_CARD, context + " SELECT");
-        var qualifiers = new TreeSet<String>();
-        int groups = 0;
-        for (var selection : ranked) {
-            if (qualifiers.size() + selection.teams().size() > open) return ranked;
-            qualifiers.addAll(selection.teams());
-            groups++;
-            if (qualifiers.size() == open) break;
-        }
-        trace.add(new Trace(context + " SELECT " + open, tied, null, qualifiers, Status.RESOLVED));
-        var result = new ArrayList<>(maddenOrder(qualifiers, MaddenContext.WILD_CARD, context + " ORDER selected"));
-        result.addAll(ranked.subList(groups, ranked.size()));
-        return result;
-    }
-
-    private List<Selection> maddenOrder(Set<String> tied, MaddenContext mode, String context) {
-        if (tied.isEmpty()) return List.of();
-        if (tied.size() == 1) return List.of(new Selection(tied, null));
-        if (tied.size() == 2) {
-            var steps = mode == MaddenContext.AFTER_REDUCTION
-                    ? List.of(Step.HEAD_TO_HEAD, Step.CONFERENCE_RECORD, Step.COMMON_GAMES,
-                    Step.STRENGTH_OF_VICTORY, Step.STRENGTH_OF_SCHEDULE, Step.NET_POINTS_ALL)
-                    : List.of(Step.HEAD_TO_HEAD, Step.DIVISION_RECORD, Step.COMMON_GAMES,
-                    Step.CONFERENCE_RECORD, Step.STRENGTH_OF_VICTORY, Step.STRENGTH_OF_SCHEDULE, Step.NET_POINTS_ALL);
-            return maddenSteps(tied, mode, context, steps);
-        }
-        var losers = new TreeSet<String>();
-        for (var team : tied) {
-            if (tied.stream().filter(t -> !t.equals(team)).allMatch(other -> games.get(team).stream()
-                    .anyMatch(g -> opponent(team, g).equals(other) && net(team, g) < 0))) losers.add(team);
-        }
-        if (losers.size() == 1) {
-            var rest = new TreeSet<>(tied);
-            rest.removeAll(losers);
-            return maddenTiers(tied, List.of(rest, losers), Step.HEAD_TO_HEAD_SWEEP, mode, context);
-        }
-        if (mode == MaddenContext.WILD_CARD) {
-            var divisions = new LinkedHashMap<String, Set<String>>();
-            tied.forEach(t -> divisions.computeIfAbsent(teams.get(t).division(), k -> new TreeSet<>()).add(t));
-            var kept = new TreeSet<String>();
-            for (var entry : divisions.entrySet()) {
-                var peers = entry.getValue();
-                var ranking = peers.size() == 2 ? maddenSteps(peers, MaddenContext.STANDARD, context + " division reduction",
-                        List.of(divisionsWithWildCard.contains(entry.getKey()) ? Step.HEAD_TO_HEAD : Step.INVERTED_HEAD_TO_HEAD,
-                                Step.DIVISION_RECORD, Step.CONFERENCE_RECORD, Step.COMMON_GAMES,
-                                Step.STRENGTH_OF_VICTORY, Step.STRENGTH_OF_SCHEDULE, Step.NET_POINTS_ALL))
-                        : maddenOrder(peers, MaddenContext.STANDARD, context + " division reduction");
-                var representative = ranking.getFirst();
-                if (representative.teams().size() > 1) {
-                    trace.add(new Trace(context, tied, Step.DIVISION_REDUCTION, tied, Status.UNRESOLVED));
-                    return List.of(new Selection(tied, representative.unresolvedAt()));
-                }
-                kept.addAll(representative.teams());
-            }
-            if (kept.size() < tied.size()) {
-                trace.add(new Trace(context, tied, Step.DIVISION_REDUCTION, kept, Status.RESOLVED));
-                var rest = new TreeSet<>(tied);
-                rest.removeAll(kept);
-                var result = new ArrayList<>(maddenOrder(kept, MaddenContext.AFTER_REDUCTION, context));
-                result.addAll(maddenOrder(rest, mode, context));
-                return result;
-            }
-        }
-        return maddenSteps(tied, mode, context, List.of(Step.INVERTED_HEAD_TO_HEAD, Step.COMMON_GAMES,
-                Step.CONFERENCE_RECORD, Step.DIVISION_RECORD, Step.STRENGTH_OF_VICTORY,
-                Step.STRENGTH_OF_SCHEDULE, Step.NET_POINTS_ALL));
-    }
-
-    private List<Selection> maddenSteps(Set<String> tied, MaddenContext mode, String context, List<Step> steps) {
-        for (var step : steps) {
-            var tiers = step == Step.INVERTED_HEAD_TO_HEAD ? partition(tied, team -> {
-                var record = percentage(team, g -> tied.contains(opponent(team, g)));
-                if (games.get(team).stream().noneMatch(g -> tied.contains(opponent(team, g)))) record = new Ratio(1, 2);
-                return new Ratio(-record.numerator(), record.denominator());
-            }) : evaluate(tied, step, mode != MaddenContext.AFTER_REDUCTION || tied.size() != 2);
-            if (tiers.size() > 1) return maddenTiers(tied, tiers, step, mode, context);
-        }
-        trace.add(new Trace(context, tied, Step.NET_POINTS_ALL, tied, Status.UNRESOLVED));
-        return List.of(new Selection(tied, Step.NET_POINTS_ALL));
-    }
-
-    private List<Selection> maddenTiers(Set<String> tied, List<Set<String>> tiers, Step step,
-                                       MaddenContext mode, String context) {
-        var result = new ArrayList<Selection>();
-        for (var tier : tiers) {
-            trace.add(new Trace(context, tied, step, tier, Status.RESOLVED));
-            result.addAll(maddenOrder(tier, mode, context));
         }
         return result;
     }

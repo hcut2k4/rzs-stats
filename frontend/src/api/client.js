@@ -20,6 +20,7 @@ api.interceptors.request.use(config => {
 export const checkAdminAuth = () => api.get('/admin/auth').then(r => r.data)
 
 export const getSeasons = () => api.get('/seasons').then(r => r.data)
+export const getPlayoffPicture = (season, rules = 'madden') => api.get('/playoffs/picture', { params: { season, rules } }).then(r => r.data)
 export const getStandings = (season) => api.get('/standings', { params: { season } }).then(r => r.data)
 export const getGames = (season, stage, week) => api.get('/games', { params: { season, stage, week } }).then(r => r.data)
 export const getAvailableWeeks = (season, stage = 1) => api.get('/games/weeks', { params: { season, stage } }).then(r => r.data)

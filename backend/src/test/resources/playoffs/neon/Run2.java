@@ -13,7 +13,7 @@ public class Run2 {
           case "S"->snap.computeIfAbsent(p[1],k->new TreeMap<>()).put(Integer.parseInt(p[2]),p[3]); } }
       var name=Path.of(f).getFileName().toString().replace(".txt","");
       var models=new LinkedHashMap<String,PlayoffSeeding.Result>();
-      models.put("NFL",PlayoffSeeding.seed(teams,games)); models.put("M3",MaddenSeeding.m3().seed(teams,games));
+      models.put("NFL",PlayoffSeeding.seed(teams,games)); models.put("Madden27",MaddenSeeding.madden27().seed(teams,games));
       for (var c: List.of("AFC","NFC")) {
         var sb=new StringBuilder(name+" "+c);
         String actualStr;

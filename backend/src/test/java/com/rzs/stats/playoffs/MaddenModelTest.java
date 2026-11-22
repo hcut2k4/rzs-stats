@@ -13,8 +13,6 @@ import static com.rzs.stats.playoffs.TiebreakerRules.Step.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class MaddenModelTest {
-    private final List<PlayoffSeeding.Team> teams = new ArrayList<>();
-    private final List<PlayoffSeeding.Game> games = new ArrayList<>();
 
     @Test
     void reproducesEveryObservedConferenceWhilePreservingTheNflBaseline() throws IOException {
@@ -27,7 +25,7 @@ class MaddenModelTest {
                 games.add(new PlayoffSeeding.Game(row.get(0).asInt(), row.get(1).asText(), row.get(2).asText(),
                         row.get(3).asInt(), row.get(4).asInt()));
             }
-            var madden = MaddenSeeding.m3().seed(teams, games);
+            var madden = MaddenSeeding.madden27().seed(teams, games);
             var nfl = PlayoffSeeding.seed(teams, games);
             for (var conference : List.of("AFC", "NFC")) {
                 var actual = seeds(madden, conference);
@@ -35,7 +33,7 @@ class MaddenModelTest {
                 var candidates = season.get("seeds").get(conference);
                 boolean maddenMatch = matches(candidates, actual), nflMatch = matches(candidates, official);
                 var label = season.get("id").asText() + " " + conference;
-                System.out.println(label + " M3 " + actual + " " + (maddenMatch ? "MATCH" : "FAIL")
+                System.out.println(label + " Madden27 " + actual + " " + (maddenMatch ? "MATCH" : "FAIL")
                         + " | NFL " + official + " " + (nflMatch ? "MATCH" : "DIFF"));
                 if (maddenMatch) maddenMatches++;
                 else failures.add(label + " expected " + candidates + ", got " + actual);
@@ -43,127 +41,209 @@ class MaddenModelTest {
                 conferences++;
             }
         }
-        System.out.println("M3 " + maddenMatches + "/" + conferences + "; NFL " + nflMatches + "/" + conferences);
+        System.out.println("Madden27 " + maddenMatches + "/" + conferences + "; NFL " + nflMatches + "/" + conferences);
         assertEquals(34, conferences);
         assertEquals(34, maddenMatches, failures.toString());
         assertEquals(19, nflMatches);
     }
 
+    private final List<PlayoffSeeding.Team> clubs = new ArrayList<>();
+    private final List<PlayoffSeeding.Game> schedule = new ArrayList<>();
+
     @Test
-    void reproducesTheThreeHeldOutTiesUsingOnlyTheEightCompleteSchedules() throws IOException {
-        var partial = new ObjectMapper().readTree(Path.of("src/test/resources/playoffs/sim2026-partial.json").toFile());
-        teams.addAll(teams(dataset().get(0).get("teams")));
-        var unique = new HashSet<PlayoffSeeding.Game>();
-        var schedules = partial.get("schedules");
-        assertEquals(8, schedules.size());
-        schedules.fields().forEachRemaining(entry -> {
-            for (var row : entry.getValue()) {
-                boolean home = row.get(1).asText().equals("H");
-                unique.add(new PlayoffSeeding.Game(row.get(0).asInt(), home ? entry.getKey() : row.get(2).asText(),
-                        home ? row.get(2).asText() : entry.getKey(), row.get(home ? 3 : 4).asInt(), row.get(home ? 4 : 3).asInt()));
-            }
-        });
-        games.addAll(unique);
-        schedules.fields().forEachRemaining(entry -> assertEquals(17, games.stream()
-                .filter(g -> g.home().equals(entry.getKey()) || g.away().equals(entry.getKey())).count()));
-        assertAll(
-                () -> assertEquals(List.of("GB"), rank(Set.of("GB", "DET", "CHI"), false, 1)),
-                () -> assertEquals(List.of("ATL", "LAR", "GB"), rank(Set.of("ATL", "LAR", "GB"), false, 3)),
-                () -> assertEquals(List.of("DET", "PHI"), rank(Set.of("DET", "PHI", "CHI"), true, 2)));
-        System.out.println("Held-out M3 3/3: North GB; division winners ATL LAR GB; wild cards DET PHI");
+    void theLargestEqualWinSetAdvancesEvenWhenItsTeamsHaveNoWins() {
+        clubs("A", "B", "C");
+        win("A", "B"); win("A", "B");
+        var result = balancedSeason();
+        assertEquals(List.of("B", "C", "A"), order(result));
+        var decision = result.trace().stream().filter(PlayoffSeeding.Trace::biggestSetFirst).findFirst().orElseThrow();
+        assertEquals(HEAD_TO_HEAD, decision.step());
+        assertEquals(Set.of("B", "C"), decision.remaining());
+        assertEquals(Map.of("A", 2.0, "B", 0.0, "C", 0.0), decision.groupWins());
+        assertEquals(decision.groupWins(), decision.values());
+        assertTrue(decision.context().contains("seeding"));
     }
 
     @Test
-    void twoClubTiesUseDivisionRecordBeforeConferenceRecordInEveryContext() {
-        team("A", "AFC", "East"); team("B", "AFC", "West");
-        team("D", "AFC", "East"); team("E", "AFC", "West");
-        team("C", "AFC", "North"); team("X", "NFC", "North");
-        win("A", "D"); win("E", "B"); win("C", "A"); win("C", "A");
-        win("B", "C"); win("B", "C"); win("A", "X"); win("X", "B");
-        assertEquals(List.of("A", "B"), rank(Set.of("A", "B"), false, 2));
-        assertEquals(List.of("A", "B"), rank(Set.of("A", "B"), true, 2));
+    void differentWinCountsRankFromMostToFewest() {
+        clubs("A", "B", "C");
+        win("A", "B"); win("A", "C"); win("B", "C");
+        var result = balancedSeason();
+        assertEquals(List.of("A", "B", "C"), order(result));
+        assertTrue(result.trace().stream().anyMatch(t -> t.step() == HEAD_TO_HEAD
+                && t.tied().equals(Set.of("A", "B", "C")) && !t.biggestSetFirst()));
     }
 
     @Test
-    void invertedMultiClubHeadToHeadPlacesTheNoGamesClubBetweenLoserAndWinner() {
-        team("A", "AFC", "East"); team("B", "AFC", "West");
-        team("C", "AFC", "North"); team("X", "NFC", "West");
-        win("A", "B"); win("X", "A"); win("B", "X"); win("C", "X"); win("X", "C");
-        assertEquals(List.of("B", "C", "A"), rank(Set.of("A", "B", "C"), false, 3));
-        assertEquals(List.of("B", "C", "A"), rank(Set.of("A", "B", "C"), true, 3));
+    void equallyLargeSetsRestartTogetherAfterTheOutsiderDropsBehindThem() {
+        clubs("A", "B", "C", "D", "E");
+        win("A", "B"); win("A", "C"); win("A", "D");
+        win("B", "D"); win("B", "E"); win("C", "D"); win("C", "E");
+        var result = balancedSeason();
+        assertEquals("A", order(result).getLast());
+        var decision = result.trace().stream().filter(t -> t.tied().equals(Set.of("A", "B", "C", "D", "E")))
+                .findFirst().orElseThrow();
+        assertEquals(Set.of("B", "C", "D", "E"), decision.remaining());
+        assertEquals(Map.of("A", 3.0, "B", 2.0, "C", 2.0, "D", 0.0, "E", 0.0), decision.groupWins());
+        assertTrue(result.trace().stream().anyMatch(t -> t.tied().equals(Set.of("B", "C", "D", "E"))
+                && t.step() == COMMON_GAMES));
     }
 
     @Test
-    void divisionTitleTiesInvertMultiClubHeadToHeadAndRestartEachTier() {
-        for (var club : List.of("A", "B", "C")) team(club, "AFC", "East");
-        win("A", "B"); win("A", "B"); win("B", "C"); win("C", "A");
-        assertEquals(List.of("B", "C", "A"), rank(Set.of("A", "B", "C"), false, 3));
+    void equallyLargeSetsRecountTheirWinsBeforeTryingTheNextCriterion() {
+        clubs("A", "B", "C", "D", "E");
+        win("A", "B"); win("A", "B"); win("A", "C");
+        win("B", "A"); win("B", "D"); win("C", "D"); win("C", "E");
+        var result = balancedSeason();
+        assertEquals(List.of("D", "E", "C", "B", "A"), order(result));
+        var decision = result.trace().stream().filter(t -> t.tied().equals(Set.of("B", "C", "D", "E")))
+                .findFirst().orElseThrow();
+        assertEquals(HEAD_TO_HEAD, decision.step());
+        assertEquals(Set.of("D", "E"), decision.remaining());
+        assertEquals(Map.of("B", 1.0, "C", 2.0, "D", 0.0, "E", 0.0), decision.groupWins());
     }
 
     @Test
-    void aClubWithALossToEveryPeerRanksLastEvenIfItAlsoBeatOneOfThem() {
-        team("A", "AFC", "East"); team("B", "AFC", "West"); team("C", "AFC", "North");
-        win("B", "A"); win("A", "C"); win("B", "C"); win("C", "B");
-        win("B", "A");
-        assertEquals(List.of("B", "A", "C"), rank(Set.of("A", "B", "C"), false, 3));
+    void tiedGamesCountAsHalfAWinWhenBuildingTheBiggestSet() {
+        clubs("A", "B", "C");
+        clubs.add(new PlayoffSeeding.Team("X", "NFC", "West"));
+        win("A", "B"); win("X", "A"); win("B", "X");
+        schedule.add(new PlayoffSeeding.Game(0, "B", "C", 10, 10));
+        schedule.add(new PlayoffSeeding.Game(0, "B", "X", 10, 10));
+        schedule.add(new PlayoffSeeding.Game(0, "C", "X", 10, 10));
+        var result = MaddenSeeding.madden27().seed(clubs, schedule);
+        assertEquals(List.of("B", "C", "A"), order(result));
+        assertEquals(.5, result.records().get("B").winPercentage());
+        var decision = result.trace().stream().filter(PlayoffSeeding.Trace::biggestSetFirst).findFirst().orElseThrow();
+        assertEquals(Map.of("A", 1.0, "B", .5, "C", .5), decision.groupWins());
     }
 
     @Test
-    void aSweepWinnerDoesNotAdvanceBeforeInvertedMultiClubHeadToHead() {
-        team("A", "AFC", "East"); team("B", "AFC", "West"); team("C", "AFC", "North");
-        win("A", "B"); win("A", "C"); win("B", "C"); win("C", "B");
-        var ranks = PlayoffSeeding.rankMaddenTie(teams, games, Set.of("A", "B", "C"), false, 3);
-        assertEquals(Set.of("B", "C"), ranks.getFirst().teams());
-        assertEquals(PlayoffSeeding.Status.UNRESOLVED, ranks.getFirst().status());
-        assertEquals(Set.of("A"), ranks.getLast().teams());
+    void theDivisionWinnerUsesTheSameBiggestSetRule() {
+        clubs("A", "B", "C");
+        clubs.replaceAll(t -> new PlayoffSeeding.Team(t.abbr(), t.conference(), "East"));
+        win("A", "B"); win("A", "B");
+        var result = balancedSeason();
+        assertEquals(1, result.divisionRanks().get("B").position());
+        assertEquals(3, result.divisionRanks().get("A").position());
+        assertTrue(result.trace().stream().anyMatch(t -> t.context().contains("division East") && t.biggestSetFirst()));
     }
 
     @Test
-    void wildCardReductionKeepsTheWorseHeadToHeadClub() {
-        team("A", "AFC", "East"); team("B", "AFC", "East"); team("C", "AFC", "West");
-        win("A", "B"); win("B", "C");
-        assertEquals(List.of("B", "C", "A"), rank(Set.of("A", "B", "C"), true, 3));
+    void wildCardSeedsKeepTheGroupOrderAcrossThePlayoffCutoff() {
+        for (var name : List.of("W", "A", "B", "C", "D", "H")) clubs.add(new PlayoffSeeding.Team(name, "AFC", "East"));
+        for (var name : List.of("V", "U", "Z")) {
+            clubs.add(new PlayoffSeeding.Team(name, "AFC", name));
+            win(name, "X");
+        }
+        for (var name : List.of("A", "B", "C", "D", "H")) win("W", name);
+        for (int i = 0; i < 5; i++) win("H", "X");
+        win("A", "C"); win("A", "C"); win("A", "D");
+        win("B", "A"); win("B", "D"); win("C", "D");
+        for (var name : List.of("A", "B", "C", "D")) {
+            long wins = schedule.stream().filter(g -> g.home().equals(name)).count();
+            long losses = schedule.stream().filter(g -> g.away().equals(name)).count();
+            for (long i = wins; i < 4; i++) win(name, "X");
+            for (long i = losses; i < 4; i++) win("X", name);
+        }
+        clubs.add(new PlayoffSeeding.Team("X", "NFC", "West"));
+        var result = MaddenSeeding.madden27().seed(clubs, schedule);
+        assertEquals(List.of("H", "A", "B", "C", "D"), order(result).subList(4, 9));
+        assertEquals(Set.of("A"), result.conferences().get("AFC").get(5).teams());
+        assertEquals(Set.of("B"), result.conferences().get("AFC").get(6).teams());
     }
 
     @Test
-    void anEarlierWildCardFromTheDivisionRestoresNormalReductionHeadToHeadOnlyAtBetterRecords() {
-        team("W", "AFC", "East"); team("H", "AFC", "East");
-        team("A", "AFC", "East"); team("B", "AFC", "East");
-        team("V", "AFC", "West"); team("C", "AFC", "West"); team("X", "NFC", "North");
-        for (int i = 0; i < 4; i++) win("W", "X");
-        for (int i = 0; i < 3; i++) win("V", "X");
-        win("H", "X"); win("H", "X"); win("W", "H");
-        win("A", "B"); win("X", "A"); win("B", "X"); win("C", "X"); win("V", "C");
-        win("B", "C"); win("X", "B"); win("C", "X");
-        var result = MaddenSeeding.m3().seed(teams, games);
-        var wildCards = result.conferences().get("AFC").stream().filter(r -> r.position() >= 3 && r.position() <= 5)
-                .map(r -> r.teams().iterator().next()).toList();
-        assertEquals(List.of("H", "A", "C"), wildCards);
-        assertTrue(result.trace().stream().anyMatch(t -> t.context().contains("division reduction")
-                && t.tied().equals(Set.of("A", "B")) && t.step() == HEAD_TO_HEAD && t.remaining().equals(Set.of("A"))));
-        assertEquals(List.of("B", "C", "A"), rank(Set.of("A", "B", "C"), true, 3));
+    void exactTiesUseTheSameAlphabeticalFallbackAsPython() {
+        clubs("B", "A", "C");
+        schedule.add(new PlayoffSeeding.Game(0, "A", "B", 10, 10));
+        schedule.add(new PlayoffSeeding.Game(0, "B", "C", 10, 10));
+        schedule.add(new PlayoffSeeding.Game(0, "C", "A", 10, 10));
+        var result = MaddenSeeding.madden27().seed(clubs, schedule);
+        assertEquals(List.of("A", "B", "C"), order(result));
+        assertTrue(result.trace().stream().anyMatch(t -> t.step() == ALPHABETICAL));
+        assertTrue(result.unresolvedConferences().isEmpty());
     }
 
     @Test
-    void cutoffQualifiersAreOrderedAgainAsAFreshTwoClubTie() {
-        team("A", "AFC", "East"); team("B", "AFC", "West");
-        team("C", "AFC", "North"); team("D", "AFC", "North"); team("X", "NFC", "West");
-        win("A", "B"); win("X", "A"); win("B", "X"); win("C", "D"); win("X", "C");
-        assertEquals(List.of("B", "C", "A"), rank(Set.of("A", "B", "C"), true, 3));
-        assertEquals(List.of("C", "B"), rank(Set.of("A", "B", "C"), true, 2));
+    void conferencePointDifferentialDecisionsAreVisibleInTheTrace() {
+        clubs("A", "B", "X");
+        schedule.add(new PlayoffSeeding.Game(0, "A", "X", 30, 0));
+        schedule.add(new PlayoffSeeding.Game(0, "X", "A", 10, 0));
+        schedule.add(new PlayoffSeeding.Game(0, "B", "X", 20, 0));
+        schedule.add(new PlayoffSeeding.Game(0, "X", "B", 10, 0));
+        var result = MaddenSeeding.madden27().seed(clubs, schedule);
+        assertTrue(order(result).indexOf("A") < order(result).indexOf("B"));
+        var decision = result.trace().stream().filter(t -> t.tied().equals(Set.of("A", "B"))).findFirst().orElseThrow();
+        assertEquals(NET_POINTS_CONFERENCE, decision.step());
+        assertEquals(Map.of("A", 20.0, "B", 10.0), decision.values());
     }
 
     @Test
-    void identicalRecordsRemainUnresolvedAtTheCutoffInsteadOfUsingAlphabeticalOrder() {
-        team("A", "AFC", "East"); team("B", "AFC", "West"); team("C", "AFC", "North");
-        games.add(new PlayoffSeeding.Game(0, "A", "B", 10, 10));
-        games.add(new PlayoffSeeding.Game(1, "B", "C", 10, 10));
-        games.add(new PlayoffSeeding.Game(2, "C", "A", 10, 10));
-        var ranks = PlayoffSeeding.rankMaddenTie(teams, games, Set.of("A", "B", "C"), true, 2);
-        assertEquals(1, ranks.size());
-        assertEquals(Set.of("A", "B", "C"), ranks.getFirst().teams());
-        assertEquals(PlayoffSeeding.Status.UNRESOLVED, ranks.getFirst().status());
-        assertEquals(NET_POINTS_ALL, ranks.getFirst().unresolvedAt());
+    void overallPointDifferentialDecisionsAreVisibleInTheTrace() {
+        clubs("A", "B");
+        clubs.add(new PlayoffSeeding.Team("X", "NFC", "West"));
+        schedule.add(new PlayoffSeeding.Game(0, "A", "X", 30, 0));
+        schedule.add(new PlayoffSeeding.Game(0, "X", "A", 10, 0));
+        schedule.add(new PlayoffSeeding.Game(0, "B", "X", 20, 0));
+        schedule.add(new PlayoffSeeding.Game(0, "X", "B", 10, 0));
+        var result = MaddenSeeding.madden27().seed(clubs, schedule);
+        assertEquals(List.of("A", "B"), order(result));
+        assertTrue(result.trace().stream().anyMatch(t -> t.step() == NET_POINTS_ALL && t.remaining().equals(Set.of("A"))));
+    }
+
+    @Test
+    void strengthAveragesOpponentPercentagesAndCountsRepeatMeetings() {
+        clubs("A", "B", "C");
+        win("A", "B"); win("A", "B"); win("A", "C"); win("B", "C");
+        var record = MaddenSeeding.madden27().seed(clubs, schedule).records().get("A");
+        assertEquals(2.0 / 9, record.strengthOfVictory(), 1e-12);
+        assertEquals(2.0 / 9, record.strengthOfSchedule(), 1e-12);
+    }
+
+    @Test
+    void postseasonGamesDoNotChangeTheRegularSeasonSeedsOrRecords() {
+        clubs("A", "B");
+        win("A", "B");
+        var expected = MaddenSeeding.madden27().seed(clubs, schedule);
+        schedule.add(new PlayoffSeeding.Game(18, "B", "A", 100, 0));
+        assertEquals(expected, MaddenSeeding.madden27().seed(clubs, schedule));
+    }
+
+    @Test
+    void invalidSchedulesAndDuplicateTeamsAreRejected() {
+        clubs("A", "B");
+        assertThrows(IllegalArgumentException.class, () -> MaddenSeeding.madden27().seed(clubs,
+                List.of(new PlayoffSeeding.Game(0, "A", "X", 10, 0))));
+        assertThrows(IllegalArgumentException.class, () -> MaddenSeeding.madden27().seed(clubs,
+                List.of(new PlayoffSeeding.Game(0, "A", "A", 10, 0))));
+        assertThrows(IllegalArgumentException.class, () -> MaddenSeeding.madden27().seed(clubs,
+                List.of(new PlayoffSeeding.Game(0, "A", "B", -1, 0))));
+        clubs.add(clubs.getFirst());
+        assertThrows(IllegalArgumentException.class, () -> MaddenSeeding.madden27().seed(clubs, List.of()));
+    }
+
+    private void clubs(String... names) {
+        for (var name : names) clubs.add(new PlayoffSeeding.Team(name, "AFC", name));
+    }
+
+    private void win(String winner, String loser) {
+        schedule.add(new PlayoffSeeding.Game(0, winner, loser, 20, 10));
+    }
+
+    private PlayoffSeeding.Result balancedSeason() {
+        for (var club : List.copyOf(clubs)) {
+            long wins = schedule.stream().filter(g -> g.home().equals(club.abbr())).count();
+            long losses = schedule.stream().filter(g -> g.away().equals(club.abbr())).count();
+            for (long i = wins; i < 4; i++) win(club.abbr(), "X");
+            for (long i = losses; i < 4; i++) win("X", club.abbr());
+        }
+        clubs.add(new PlayoffSeeding.Team("X", "NFC", "West"));
+        return MaddenSeeding.madden27().seed(clubs, schedule);
+    }
+
+    private List<String> order(PlayoffSeeding.Result result) {
+        return result.conferences().get("AFC").stream().map(r -> r.teams().iterator().next()).toList();
     }
 
     private JsonNode dataset() throws IOException {
@@ -192,18 +272,4 @@ class MaddenModelTest {
                 .map(r -> r.teams().iterator().next()).findFirst().orElse("UNRESOLVED")).toList();
     }
 
-    private void team(String abbr, String conference, String division) {
-        teams.add(new PlayoffSeeding.Team(abbr, conference, division));
-    }
-
-    private void win(String winner, String loser) {
-        games.add(new PlayoffSeeding.Game(games.size(), winner, loser, 20, 10));
-    }
-
-    private List<String> rank(Set<String> tied, boolean wildCard, int spots) {
-        return PlayoffSeeding.rankMaddenTie(teams, games, tied, wildCard, spots).stream().map(r -> {
-            assertEquals(PlayoffSeeding.Status.RESOLVED, r.status(), r.toString());
-            return r.teams().iterator().next();
-        }).toList();
-    }
 }

@@ -14,6 +14,20 @@ class RzsMaddenSeedingTest {
                   Map<String, List<String>> maddenSeeds) {}
 
     @Test
+    void maddenRulesMatchBothScreenshotConferencesInSeasons103And104() throws IOException {
+        var seasons = new ObjectMapper().readValue(Path.of("src/test/resources/playoffs/rzs-seasons.json").toFile(),
+                new com.fasterxml.jackson.core.type.TypeReference<Map<String, Season>>() {});
+        for (var entry : seasons.entrySet()) {
+            var season = entry.getValue();
+            var result = MaddenSeeding.madden27().seed(season.teams(), season.games());
+            for (var conference : season.maddenSeeds().entrySet()) {
+                assertEquals(conference.getValue(), result.conferences().get(conference.getKey()).stream()
+                        .limit(7).map(r -> r.teams().iterator().next()).toList(), entry.getKey() + " " + conference.getKey());
+            }
+        }
+    }
+
+    @Test
     void nflRulesMatchBothAfcFieldsAndExposeNfcSeedingDifferences() throws IOException {
         var seasons = new ObjectMapper().readValue(Path.of("src/test/resources/playoffs/rzs-seasons.json").toFile(),
                 new com.fasterxml.jackson.core.type.TypeReference<Map<String, Season>>() {});
