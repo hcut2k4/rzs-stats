@@ -7,6 +7,8 @@ backend/src/main/java/com/rzs/stats/
 ├── controller/
 │   ├── StatsController.java       # public API: /api/* (standings, games, trends, elo)
 │   ├── PlayoffsController.java    # public API: /api/playoffs/picture, /odds, /clinch
+│   ├── PlayoffsChampionshipController.java # public API: /api/playoffs/championship
+│   ├── PlayoffsOddsHistoryController.java # public history and admin odds backfill
 │   ├── PlayoffsLeverageController.java # public API: /api/playoffs/leverage
 │   ├── PlayoffsWhatIfController.java # public API: /api/playoffs/remaining, /simulate
 │   ├── EloCalibrationController.java # public API: /api/playoffs/calibration
@@ -155,6 +157,8 @@ SoS: `oppPyPatCurr/Prev`, `oppPyPatRemainingCurr/Prev`, `oppPyPatTotalCurr/Prev`
 
 | Method | Path | Params | Returns |
 |--------|------|--------|---------|
+| GET | `/championship` | `season` (optional), `rules` | Baseline simulations extended through the seven-seed bracket; advancement and title fractions |
+| GET | `/odds/history` | `season` (optional), `team` (optional abbreviation) | Saved Madden weekly snapshots, oldest first; empty snapshots return 200 |
 | GET | `/odds` | `season` (optional), `rules` (`madden` default or `nfl`) | Elo Monte Carlo fractions, seven seed odds per team, simulation count and UTC computation timestamp |
 | GET | `/picture` | `season` (optional, latest season with a completed regular-season game), `rules` (`madden` default or `nfl`) | Season index, week bounds, completed/remaining game counts, conference seeds and hunt, alternate seeds and tiebreak reasons |
 | GET | `/clinch` | `season` (optional, current), `rules` (`madden` default or `nfl`) | Proven clinched/eliminated/null markers for playoffs, division and first seed; `exhaustive` indicates a completed search |
@@ -196,6 +200,7 @@ Forced runs use `SimulationService` with the baseline's season/week/rules seed, 
 ### Admin — `AdminController (/api/admin)`
 | Method | Path | Notes |
 |--------|------|-------|
+| POST | `/playoffs/odds/backfill` | Required `season`; creates missing weekly Madden snapshots and returns `{season, created, skipped}` |
 | POST | `/sync` | Incremental sync — skips historical seasons |
 | POST | `/sync/force` | Re-syncs all seasons (~30 min, heavy API load) |
 | POST | `/sync/verbose` | Sync with detailed per-game log (synchronous) |
@@ -229,11 +234,15 @@ Forced runs use `SimulationService` with the baseline's season/week/rules seed, 
 Picture rows join the available cached season/rules baseline from `OddsService` without starting simulations; missing or failed odds are omitted without failing the Picture response. Elo configuration updates evict Picture and leverage alongside odds.
 `OddsService` uses the selected season's latest Elo timeline ratings and the same `EloService.probability` plus home field as upcoming games. Teams without a timeline rating start at the configured initial rating. `playoffs.simulations` defaults to 20,000; the baseline seed is stable for season, next week and rules. Completed seasons use exact seeding with zero simulations. NFL ties requiring unavailable data use the same alphabetical display fallback as Picture.
 
+`ChampionshipService` uses the same `SimulationService` regular-season draws and season/week/rules seed as odds, then adds independent counter-based bracket draws. Seven teams qualify per conference: seed 1 receives a bye; 2 hosts 7, 3 hosts 6 and 4 hosts 5; the divisional round reseeds best against worst; the better seed hosts the conference final. The final is neutral. Matchup probabilities use unrounded current Elo ratings with the configured home-field advantage, fixed throughout each simulated season. Regular-season probabilities retain the existing selected-season baseline behavior. Counts cover playoffs, round 2, conference final, final and champion. Completed seasons seed once from real scores and still simulate the bracket `playoffs.simulations` times. Both conferences must have seven seeds; incomplete bracket data returns 404.
+
+`OddsHistoryService` reads `OddsSnapshotRepository` in week order and joins identities from the selected season schedule. Optional abbreviation filtering is case-insensitive. Completed-season rows stored as `next_week=-1` appear last with API `week: null`. Missing seasons return 404; seasons without saved rows return an empty list. The token-gated backfill visits weeks 1 through `throughWeek`, inclusive. `SeasonStateLoader.loadAtStart` keeps real results only before that week and treats all later scheduled games as remaining, preserving stored game IDs and home/away sides. Elo probabilities use timeline `startElo` for that week, or the last earlier snapshot's `endElo` across gaps (season-start ratings before the first snapshot). Each run uses the baseline count and seed scheme with `nextWeek` set to the target week. The snapshot writer checks and inserts inside its synchronized transaction; any existing row skips the entire week and is never overwritten. Counts in the response count weeks, not team rows.
+
 ## Caching
 
 **Caffeine** — max 500 entries, 24h write-through TTL.
 
-Cache names: `standings`, `games`, `weeks`, `seasons`, `seasonTrends`, `weeklyTrends`, `seasonGames`, `eloHistory`, `qbStats`, `teamEfficiency`, `playoffPicture`, `playoffOdds`, `leverage`, `eloCalibration`, `playoffClinch`, `playoffPath`
+Cache names: `standings`, `games`, `weeks`, `seasons`, `seasonTrends`, `weeklyTrends`, `seasonGames`, `eloHistory`, `qbStats`, `teamEfficiency`, `playoffPicture`, `playoffOdds`, `leverage`, `eloCalibration`, `playoffClinch`, `playoffWhatIf`, `playoffPath`, `playoffChampionship`
 
 The list lives in one place — [config/CacheNames.java](../backend/src/main/java/com/rzs/stats/config/CacheNames.java), as the `allStatsCaches` resolver. **A new cache must be added there**, or it silently survives eviction and serves stale data after a sync. All registered caches are evicted together on sync, force-sync, or cache warm. `seasonGames` is cached directly on `GameRepository.findRegularSeasonGames()` (Spring Data JPA repos support `@Cacheable`) so all callers share the same cache regardless of call site.
 
@@ -244,6 +253,8 @@ The list lives in one place — [config/CacheNames.java](../backend/src/main/jav
 `playoffPicture` caches the complete response by season parameter and rules, including the default-season request, once odds are present. Responses without a baseline are not cached so a later warmed baseline appears immediately. It participates in the same sync, force-sync, and cache-warm eviction resolver.
 
 `playoffOdds` caches the full response by requested season and rules; Elo configuration updates evict it with the Elo timeline. Cache warming computes the current default season's Madden baseline after Elo, then saves its snapshot. Successful manual, force, verbose and nightly syncs trigger warming on their background execution path; startup does not run simulations. Snapshot persistence is separate from cached reads, so a warmed cached response is still saved once. An odds or snapshot failure is logged without failing the other warmed caches, following the QB warming pattern.
+
+`playoffChampionship` caches by requested season and rules, participates in shared eviction and Elo configuration eviction, and warms after odds/snapshot persistence. Its failure is isolated from odds and leverage warming. Startup does not warm simulations.
 
 `leverage` caches the full matrix by requested season, week and rules and participates in shared eviction. After sync, warming requests the current season and next week through the default parameters, independently of odds/snapshot failures. Startup does not warm simulations.
 

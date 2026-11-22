@@ -205,7 +205,7 @@ Query: `season` (optional, default current), `team` (optional abbreviation; defa
                    "teams": [ { "team": { "teamId": 1, "abbrName": "NYG", "displayName": "Giants" },
                                 "playoffs": 0.64, "division": 0.31, "oneSeed": 0.03 } ] } ] }
 ```
-`week` is the `nextWeek` the snapshot was taken for. Weeks without a snapshot are absent (no interpolation). `POST /api/admin/playoffs/odds/backfill?season=` (admin token) re-simulates every earlier week of the season using the Elo ratings as of that week and stores any missing snapshot rows (never overwrites an existing snapshot); returns `{ "season": 2, "created": 9, "skipped": 2 }`.
+`week` is the `nextWeek` the snapshot was taken for; a completed-season snapshot has `week: null` and follows the numbered weeks. Weeks without a snapshot are absent (no interpolation). `POST /api/admin/playoffs/odds/backfill?season=` (admin token) re-simulates every earlier week of the season using the Elo ratings as of that week and stores any missing snapshot rows (never overwrites an existing snapshot); returns `{ "season": 2, "created": 9, "skipped": 2 }`.
 
 ## GET /api/playoffs/championship
 

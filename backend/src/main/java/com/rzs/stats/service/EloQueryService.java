@@ -1,6 +1,7 @@
 package com.rzs.stats.service;
 
 import com.rzs.stats.model.dto.EloDtos;
+import com.rzs.stats.model.dto.EloConfig;
 import com.rzs.stats.model.entity.GameEntity;
 import com.rzs.stats.repository.GameRepository;
 import org.springframework.http.HttpStatus;
@@ -55,6 +56,40 @@ public class EloQueryService {
             probabilities.put(game.getGameId(), engine.probability(home + timeline.config().homeFieldAdvantage(), away, timeline.config()));
         }
         return Map.copyOf(probabilities);
+    }
+
+    public record Ratings(Map<Integer, Double> teams, EloConfig config) {}
+
+    public Ratings currentRatings() {
+        var timeline = history.getTimeline();
+        var ratings = new HashMap<Integer, Double>();
+        selected(timeline, null, null).forEach(s -> ratings.put(s.team().teamId(), s.endElo()));
+        return new Ratings(Map.copyOf(ratings), timeline.config());
+    }
+
+    public Ratings ratingsAtStart(int season, int week) {
+        var timeline = history.getTimeline();
+        var seasonRows = timeline.history().stream().filter(s -> s.season() == season).toList();
+        var ratings = new HashMap<Integer, Double>();
+        var exact = seasonRows.stream().filter(s -> s.week() == week).toList();
+        if (!exact.isEmpty()) {
+            exact.forEach(s -> ratings.put(s.team().teamId(), s.startElo()));
+        } else {
+            int previous = seasonRows.stream().filter(s -> s.week() < week).mapToInt(EloService.Snapshot::week).max().orElse(-1);
+            if (previous >= 0) {
+                seasonRows.stream().filter(s -> s.week() == previous).forEach(s -> ratings.put(s.team().teamId(), s.endElo()));
+            } else if (!seasonRows.isEmpty()) {
+                int first = seasonRows.stream().mapToInt(EloService.Snapshot::week).min().orElseThrow();
+                seasonRows.stream().filter(s -> s.week() == first).forEach(s -> ratings.put(s.team().teamId(), s.startElo()));
+            }
+        }
+        return new Ratings(Map.copyOf(ratings), timeline.config());
+    }
+
+    public double winProbability(Ratings ratings, int home, int away, boolean neutral) {
+        return engine.probability(ratings.teams().getOrDefault(home, ratings.config().initialRating())
+                        + (neutral ? 0 : ratings.config().homeFieldAdvantage()),
+                ratings.teams().getOrDefault(away, ratings.config().initialRating()), ratings.config());
     }
 
     public List<EloDtos.Rating> ratings(Integer season, Integer week) {

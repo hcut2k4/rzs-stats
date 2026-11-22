@@ -12,6 +12,17 @@ public class SimulationService {
     public record Counts(long playoffs, long division, long oneSeed, List<Long> seedCounts) {}
     public record WinBucket(long simulations, long playoffs, long division, long oneSeed) {}
     public record Simulation(int simulations, Map<String, Counts> teams, Map<Integer, WinBucket> wins) {}
+    public record ChampionshipCounts(long round2, long conferenceFinal, long finalCount, long champion) {}
+    public record Championship(Simulation baseline, Map<String, ChampionshipCounts> teams) {}
+    @FunctionalInterface
+    public interface PlayoffProbability {
+        double probability(String home, String away, boolean neutral);
+    }
+
+    public Championship championship(SeasonStateLoader.State state, Map<Integer, Double> probs,
+                                     int sims, long seed, Rules rules, PlayoffProbability playoffProbability) {
+        return run(state, probs, Map.of(), sims, seed, rules, false, null, Objects.requireNonNull(playoffProbability));
+    }
 
     public Simulation simulate(SeasonStateLoader.State state, Map<Integer, Double> probs,
                                Map<Integer, Outcome> forced, int sims, long seed, Rules rules) {
@@ -27,6 +38,12 @@ public class SimulationService {
     public Simulation simulate(SeasonStateLoader.State state, Map<Integer, Double> probs,
                                Map<Integer, Outcome> forced, int sims, long seed, Rules rules,
                                boolean varyForcedMargins, String trackTeam) {
+        return run(state, probs, forced, sims, seed, rules, varyForcedMargins, trackTeam, null).baseline();
+    }
+
+    private Championship run(SeasonStateLoader.State state, Map<Integer, Double> probs,
+                             Map<Integer, Outcome> forced, int sims, long seed, Rules rules,
+                             boolean varyForcedMargins, String trackTeam, PlayoffProbability playoffProbability) {
         if (sims <= 0) throw new IllegalArgumentException("Simulations must be positive");
         var ids = new HashSet<Integer>();
         for (var game : state.remainingGames()) {
@@ -43,11 +60,13 @@ public class SimulationService {
         int buckets = trackTeam == null ? 0 : 1 + (int) (state.completedGames().stream()
                 .filter(g -> g.home().equals(trackTeam) || g.away().equals(trackTeam)).count()
                 + state.remainingGames().stream().filter(g -> g.home().equals(trackTeam) || g.away().equals(trackTeam)).count());
-        int runs = state.remainingGames().isEmpty() ? 1 : sims;
+        boolean bracket = playoffProbability != null;
+        int runs = state.remainingGames().isEmpty() && !bracket ? 1 : sims;
+        var exact = state.remainingGames().isEmpty() ? seed(state.teams(), state.completedGames(), rules) : null;
         long[][] totals = IntStream.range(0, runs).parallel().collect(
-                () -> new long[state.teams().size() + (trackTeam == null ? 0 : buckets)][10],
+                () -> new long[state.teams().size() + (trackTeam == null ? 0 : buckets)][bracket ? 14 : 10],
                 (counts, simulation) -> {
-                    var result = seed(state.teams(), games(state, probs, forced, simulation, seed, varyForcedMargins), rules);
+                    var result = exact != null ? exact : seed(state.teams(), games(state, probs, forced, simulation, seed, varyForcedMargins), rules);
                     if (trackTeam != null) {
                         int wins = result.records().get(trackTeam).wins();
                         var bucket = counts[state.teams().size() + wins];
@@ -66,8 +85,9 @@ public class SimulationService {
                             row[rank.position() + 2]++;
                         }
                     }));
+                    if (bracket) bracket(result, index, counts, simulation, seed, playoffProbability);
                 }, (a, b) -> {
-                    for (int t = 0; t < a.length; t++) for (int c = 0; c < 10; c++) a[t][c] += b[t][c];
+                    for (int t = 0; t < a.length; t++) for (int c = 0; c < a[t].length; c++) a[t][c] += b[t][c];
                 });
         var counts = new TreeMap<String, Counts>();
         index.forEach((team, i) -> {
@@ -79,7 +99,53 @@ public class SimulationService {
             var row = totals[state.teams().size() + w];
             if (row[0] > 0) wins.put(w, new WinBucket(row[0], row[1], row[2], row[3]));
         }
-        return new Simulation(state.remainingGames().isEmpty() ? 0 : sims, Collections.unmodifiableMap(counts), Collections.unmodifiableMap(wins));
+        var stages = new TreeMap<String, ChampionshipCounts>();
+        if (bracket) index.forEach((team, i) -> stages.put(team,
+                new ChampionshipCounts(totals[i][10], totals[i][11], totals[i][12], totals[i][13])));
+        return new Championship(new Simulation(!bracket && state.remainingGames().isEmpty() ? 0 : sims,
+                Collections.unmodifiableMap(counts), Collections.unmodifiableMap(wins)), Collections.unmodifiableMap(stages));
+    }
+
+    private void bracket(PlayoffSeeding.Result result, Map<String, Integer> index, long[][] counts,
+                         int simulation, long seed, PlayoffProbability probability) {
+        var finalists = new ArrayList<String>();
+        int conference = 0;
+        for (var entry : new TreeMap<>(result.conferences()).entrySet()) {
+            var seeds = entry.getValue().stream().filter(r -> r.position() <= 7)
+                    .sorted(Comparator.comparingInt(PlayoffSeeding.Rank::position))
+                    .map(r -> r.teams().iterator().next()).toList();
+            if (seeds.size() != 7) throw new IllegalStateException("Championship requires seven seeds per conference");
+            var alive = new ArrayList<Integer>();
+            alive.add(0);
+            int slot = conference++ * 8;
+            for (int i = 1; i <= 3; i++) {
+                alive.add(winner(seeds, i, 7 - i, simulation, seed, slot++, probability));
+            }
+            alive.sort(Integer::compare);
+            alive.forEach(i -> counts[index.get(seeds.get(i))][10]++);
+            var conferenceFinal = new ArrayList<Integer>();
+            conferenceFinal.add(winner(seeds, alive.get(0), alive.get(3), simulation, seed, slot++, probability));
+            conferenceFinal.add(winner(seeds, alive.get(1), alive.get(2), simulation, seed, slot++, probability));
+            conferenceFinal.sort(Integer::compare);
+            conferenceFinal.forEach(i -> counts[index.get(seeds.get(i))][11]++);
+            String finalist = seeds.get(winner(seeds, conferenceFinal.get(0), conferenceFinal.get(1), simulation, seed, slot, probability));
+            counts[index.get(finalist)][12]++;
+            finalists.add(finalist);
+        }
+        if (finalists.size() != 2) throw new IllegalStateException("Championship requires two conferences");
+        String champion = draw(simulation, seed, 16) < probability.probability(finalists.get(0), finalists.get(1), true)
+                ? finalists.get(0) : finalists.get(1);
+        counts[index.get(champion)][13]++;
+    }
+
+    private int winner(List<String> seeds, int home, int away, int simulation, long seed, int slot,
+                       PlayoffProbability probability) {
+        return draw(simulation, seed, slot) < probability.probability(seeds.get(home), seeds.get(away), false) ? home : away;
+    }
+
+    private double draw(int simulation, long seed, int slot) {
+        // A separate counter domain keeps playoff draws independent of regular-season game IDs.
+        return (mix(seed ^ mix(simulation) ^ mix(slot + 0x9e3779b97f4a7c15L)) >>> 11) * 0x1.0p-53;
     }
 
     public List<PlayoffSeeding.Game> games(SeasonStateLoader.State state, Map<Integer, Double> probs,

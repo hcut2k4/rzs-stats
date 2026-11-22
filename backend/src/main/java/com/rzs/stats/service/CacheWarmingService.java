@@ -2,6 +2,7 @@ package com.rzs.stats.service;
 
 import com.rzs.stats.config.CacheNames;
 import com.rzs.stats.playoffs.OddsService;
+import com.rzs.stats.playoffs.ChampionshipService;
 import com.rzs.stats.playoffs.LeverageService;
 import com.rzs.stats.playoffs.OddsSnapshotService;
 import com.rzs.stats.service.QbStatsService.Basis;
@@ -24,6 +25,7 @@ public class CacheWarmingService {
     private final StatsService statsService;
     private final EloHistoryService eloHistoryService;
     private final QbStatsService qbStatsService;
+    private final ChampionshipService championship;
     private final OddsService odds;
     private final LeverageService leverage;
     private final OddsSnapshotService snapshots;
@@ -40,13 +42,14 @@ public class CacheWarmingService {
         return new WarmStatus(inProgress, startedAt, completedAt, message, success);
     }
 
-    public CacheWarmingService(StatsService statsService, EloHistoryService eloHistoryService, QbStatsService qbStatsService, OddsService odds, OddsSnapshotService snapshots, LeverageService leverage) {
+    public CacheWarmingService(StatsService statsService, EloHistoryService eloHistoryService, QbStatsService qbStatsService, OddsService odds, OddsSnapshotService snapshots, LeverageService leverage, ChampionshipService championship) {
         this.statsService = statsService;
         this.eloHistoryService = eloHistoryService;
         this.qbStatsService = qbStatsService;
         this.odds = odds;
         this.snapshots = snapshots;
         this.leverage = leverage;
+        this.championship = championship;
     }
 
     @CacheEvict(cacheResolver = CacheNames.ALL, allEntries = true, beforeInvocation = true)
@@ -99,6 +102,11 @@ public class CacheWarmingService {
                     snapshots.save(odds.odds(null, "madden"));
                 } catch (Exception e) {
                     log.warn("Cache warming: playoff odds failed", e);
+                }
+                try {
+                    championship.championship(null, "madden");
+                } catch (Exception e) {
+                    log.warn("Cache warming: playoff championship failed", e);
                 }
                 try {
                     var key = leverage.canonicalKey(null, null);

@@ -28,6 +28,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureCache(cacheProvider = CacheType.CAFFEINE)
 @EnableCaching
 @Import({SeasonStateLoader.class, OddsService.class, SimulationService.class, OddsSnapshotService.class,
+        ChampionshipService.class, OddsHistoryService.class,
+        com.rzs.stats.controller.PlayoffsChampionshipController.class, com.rzs.stats.controller.PlayoffsOddsHistoryController.class,
         PlayoffsController.class, ClinchService.class, PlayoffPictureService.class, CacheNames.class, EloQueryService.class,
         EloHistoryService.class, EloService.class, EloConfigService.class, OwnerChangeService.class})
 class OddsServiceTest {
@@ -36,6 +38,12 @@ class OddsServiceTest {
     @Autowired OddsSnapshotRepository snapshots;
     @Autowired OddsSnapshotService writer;
     @Autowired OddsService odds;
+    @Autowired ChampionshipService championship;
+    @Autowired OddsHistoryService history;
+    @Autowired SeasonStateLoader loader;
+    @Autowired SimulationService simulator;
+    @Autowired com.rzs.stats.controller.PlayoffsChampionshipController championshipController;
+    @Autowired com.rzs.stats.controller.PlayoffsOddsHistoryController historyController;
     @Autowired EloQueryService elo;
     @Autowired EloConfigService configs;
     @Autowired PlayoffsController controller;
@@ -46,7 +54,7 @@ class OddsServiceTest {
     @BeforeEach
     void setup() {
         caches.getCacheNames().forEach(n -> caches.getCache(n).clear());
-        http = MockMvcBuilders.standaloneSetup(controller).build();
+        http = MockMvcBuilders.standaloneSetup(controller, championshipController, historyController).build();
     }
 
     void populate(boolean completed) throws Exception {
@@ -165,6 +173,158 @@ class OddsServiceTest {
         games.saveAndFlush(tie);
         http.perform(get("/api/playoffs/odds?season=3&rules=nfl")).andExpect(status().isOk());
         http.perform(get("/api/playoffs/odds?season=3&rules=madden")).andExpect(status().isOk());
+    }
+
+    @Test
+    void championshipEndpointUsesSameBaselineFractionsAndConservesTitles() throws Exception {
+        populate(false);
+        var before = http.perform(get("/api/playoffs/odds?season=2")).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        var response = http.perform(get("/api/playoffs/championship?season=2")).andExpect(status().isOk()).andReturn();
+        var body = json.readTree(response.getResponse().getContentAsString());
+        assertThat(body.get("simulations").asInt()).isEqualTo(100);
+        double champions = 0, finalists = 0, conferenceFinals = 0, previous = 1;
+        var baseline = new HashMap<String, Double>();
+        odds.odds(2, "madden").conferences().forEach(c -> c.teams().forEach(t -> baseline.put(t.team().abbrName(), t.odds().playoffs())));
+        for (var row : body.get("teams")) {
+            assertThat(row.get("playoffs").asDouble()).isEqualTo(baseline.get(row.get("team").get("abbrName").asText()));
+            assertThat(row.get("champion").asDouble()).isLessThanOrEqualTo(previous);
+            previous = row.get("champion").asDouble();
+            champions += previous;
+            finalists += row.get("final").asDouble();
+            conferenceFinals += row.get("conferenceFinal").asDouble();
+        }
+        assertThat(champions).isCloseTo(1, within(1e-10));
+        assertThat(finalists).isCloseTo(2, within(1e-10));
+        assertThat(conferenceFinals).isCloseTo(4, within(1e-10));
+        caches.getCache("playoffOdds").clear();
+        var after = json.readTree(http.perform(get("/api/playoffs/odds?season=2")).andReturn().getResponse().getContentAsString());
+        var original = json.readTree(before);
+        ((com.fasterxml.jackson.databind.node.ObjectNode) after).remove("computedAt");
+        ((com.fasterxml.jackson.databind.node.ObjectNode) original).remove("computedAt");
+        assertThat(after).isEqualTo(original);
+    }
+
+    @Test
+    void completedChampionshipUsesConfiguredCountAndCacheEvictsWithEloAndSharedResolver() throws Exception {
+        populate(true);
+        var first = championship.championship(2, "madden");
+        assertThat(first.simulations()).isEqualTo(100);
+        assertThat(championship.championship(2, "madden")).isSameAs(first);
+        configs.update(new com.rzs.stats.model.dto.EloConfig(1500, 25, 400, true, 28, 250, 0.78));
+        var updated = championship.championship(2, "madden");
+        assertThat(updated).isNotSameAs(first);
+        assertThat(updated.teams()).isNotEqualTo(first.teams());
+        new CacheNames().allStatsCaches(caches).resolveCaches(null).forEach(org.springframework.cache.Cache::clear);
+        assertThat(championship.championship(2, "madden")).isNotSameAs(updated);
+        http.perform(get("/api/playoffs/championship?season=2&rules=nfl")).andExpect(status().isOk());
+        http.perform(get("/api/playoffs/championship?rules=bad")).andExpect(status().isBadRequest());
+        http.perform(get("/api/playoffs/championship?season=99")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void historyReturnsEmptyOrOrderedSnapshotsAndFiltersTeam() throws Exception {
+        populate(false);
+        http.perform(get("/api/playoffs/odds/history?season=2")).andExpect(status().isOk()).andExpect(jsonPath("$.snapshots").isEmpty());
+        var baseline = odds.odds(2, "madden");
+        writer.save(baseline);
+        writer.save(new OddsService.Response(2, "madden", 2, 3, 100, baseline.computedAt().minusSeconds(60), baseline.conferences()));
+        writer.save(new OddsService.Response(2, "madden", 17, null, 0, baseline.computedAt().plusSeconds(60), baseline.conferences()));
+        http.perform(get("/api/playoffs/odds/history?team=buf"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.season").value(2))
+                .andExpect(jsonPath("$.snapshots[0].week").value(3))
+                .andExpect(jsonPath("$.snapshots[1].week").value(16))
+                .andExpect(jsonPath("$.snapshots[2].week").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.snapshots[0].teams.length()").value(1))
+                .andExpect(jsonPath("$.snapshots[0].teams[0].team.abbrName").value("BUF"));
+        http.perform(get("/api/playoffs/odds/history?season=99")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void backfillCreatesEveryEarlierWeekAndNeverOverwritesExistingSnapshot() throws Exception {
+        populate(false);
+        for (var game : games.findBySeasonIndex(2)) {
+            if (game.getWeekIndex() > 3) game.setStatus(0);
+        }
+        games.flush();
+        var existing = odds.historical(loader.loadAtStart(2, 2));
+        writer.save(existing);
+        http.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/admin/playoffs/odds/backfill?season=2"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.season").value(2))
+                .andExpect(jsonPath("$.created").value(2)).andExpect(jsonPath("$.skipped").value(1));
+        assertThat(snapshots.count()).isEqualTo(3 * 32);
+        assertThat(history.backfill(2)).isEqualTo(new OddsHistoryService.Backfill(2, 0, 3));
+        snapshots.findBySeasonAndNextWeek(2, 2).forEach(row -> {
+            assertThat(row.getComputedAt()).isEqualTo(existing.computedAt());
+            assertThat(row.getSimulations()).isEqualTo(existing.simulations());
+            var original = existing.conferences().stream().flatMap(c -> c.teams().stream()).filter(t -> t.team().teamId() == row.getTeamId()).findFirst().orElseThrow();
+            assertThat(row.getPlayoffs()).isEqualTo(original.odds().playoffs());
+            assertThat(row.getSeedOdds()).isEqualTo(original.seedOdds());
+        });
+        http.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/admin/playoffs/odds/backfill?season=99"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void backfillUsesExistingAdminTokenGateAndAllowsUnsetToken() throws Exception {
+        populate(false);
+        for (var game : games.findBySeasonIndex(2)) if (game.getWeekIndex() > 0) game.setStatus(0);
+        games.flush();
+        var gated = MockMvcBuilders.standaloneSetup(historyController)
+                .addFilters(new com.rzs.stats.config.AdminTokenFilter("secret")).build();
+        var request = org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/admin/playoffs/odds/backfill?season=2");
+        gated.perform(request).andExpect(status().isUnauthorized());
+        gated.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/admin/playoffs/odds/backfill?season=2")
+                .header("X-Admin-Token", "wrong")).andExpect(status().isUnauthorized());
+        gated.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/admin/playoffs/odds/backfill?season=2")
+                .header("X-Admin-Token", "secret")).andExpect(status().isOk()).andExpect(jsonPath("$.created").value(0));
+        var open = MockMvcBuilders.standaloneSetup(historyController)
+                .addFilters(new com.rzs.stats.config.AdminTokenFilter("")).build();
+        open.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/admin/playoffs/odds/backfill?season=2"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void firstWeekBackfillWorksWithoutAnyCompletedGamesAndKeepsStoredGameIdentity() throws Exception {
+        populate(true);
+        for (var game : games.findBySeasonIndex(2)) {
+            if (game.getWeekIndex() == 0) game.setWeekIndex(1);
+            if (game.getWeekIndex() > 1) game.setStatus(0);
+        }
+        games.flush();
+        var state = loader.loadAtStart(2, 1);
+        assertThat(state.completedGames()).isEmpty();
+        assertThat(state.nextWeek()).isEqualTo(1);
+        assertThat(state.remainingGames()).hasSize(272);
+        var stored = games.findBySeasonIndex(2);
+        for (var remaining : state.remainingGames()) {
+            var game = stored.stream().filter(g -> g.getGameId() == remaining.gameId()).findFirst().orElseThrow();
+            assertThat(remaining.homeTeamId()).isEqualTo(game.getHomeTeam().getTeamId());
+            assertThat(remaining.awayTeamId()).isEqualTo(game.getAwayTeam().getTeamId());
+        }
+        assertThat(elo.ratingsAtStart(2, 1).teams().values()).allMatch(r -> r == 1500);
+        assertThat(history.backfill(2)).isEqualTo(new OddsHistoryService.Backfill(2, 1, 0));
+        assertThat(snapshots.findBySeasonAndNextWeek(2, 1)).hasSize(32);
+    }
+
+    @Test
+    void historicalOddsUseEarlierEloInsteadOfLaterRatings() throws Exception {
+        populate(true);
+        var state = loader.loadAtStart(2, 1);
+        var early = elo.ratingsAtStart(2, 1);
+        var latest = elo.currentRatings();
+        assertThat(early.teams()).isNotEqualTo(latest.teams());
+        var currentProbabilities = new HashMap<Integer, Double>();
+        state.remainingGames().forEach(g -> currentProbabilities.put(g.gameId(), elo.winProbability(latest, g.homeTeamId(), g.awayTeamId(), false)));
+        var wrong = simulator.simulate(state, currentProbabilities, Map.of(), 100, OddsService.seed(state, "madden"), SimulationService.Rules.MADDEN);
+        var historical = odds.historical(state);
+        assertThat(historical.conferences().stream().flatMap(c -> c.teams().stream())
+                .anyMatch(t -> t.odds().playoffs() != wrong.teams().get(t.team().abbrName()).playoffs() / 100.0)).isTrue();
+        var expectedProbabilities = new HashMap<Integer, Double>();
+        state.remainingGames().forEach(g -> expectedProbabilities.put(g.gameId(), elo.winProbability(early, g.homeTeamId(), g.awayTeamId(), false)));
+        var expected = simulator.simulate(state, expectedProbabilities, Map.of(), 100, OddsService.seed(state, "madden"), SimulationService.Rules.MADDEN);
+        historical.conferences().forEach(c -> c.teams().forEach(t ->
+                assertThat(t.odds().playoffs()).isEqualTo(expected.teams().get(t.team().abbrName()).playoffs() / 100.0)));
     }
 
     @Test
