@@ -24,7 +24,7 @@ public class CacheNames {
     @Bean(ALL)
     public CacheResolver allStatsCaches(CacheManager manager) {
         List<String> names = List.of("standings", "games", "weeks", "seasons", "seasonTrends",
-                "weeklyTrends", "seasonGames", "eloHistory", "qbStats", "teamEfficiency", "playoffPicture", "playoffOdds", "leverage", "eloCalibration", "playoffClinch", "playoffWhatIf");
+                "weeklyTrends", "seasonGames", "eloHistory", "qbStats", "teamEfficiency", "playoffPicture", "playoffOdds", "leverage", "eloCalibration", "playoffClinch", "playoffWhatIf", "playoffPath");
         return context -> names.stream().map(manager::getCache).toList();
     }
 }

@@ -41,6 +41,14 @@ public class ClinchService {
         }).toList());
     }
 
+    public ClinchAnalyzer.Analysis constrained(SeasonStateLoader.State state, String rules,
+                                               java.util.Map<ClinchAnalyzer.Matchup, SimulationService.Outcome> forced) {
+        var schedule = new ClinchAnalyzer.Season(state.teams(), state.completedGames(), state.remainingGames().stream()
+                .map(g -> new ClinchAnalyzer.Matchup(g.week(), g.home(), g.away())).toList());
+        return ClinchAnalyzer.analyze(schedule, games -> MaddenSeeding.madden27().seed(state.teams(), games),
+                rules.equals("nfl") ? Duration.ZERO : budget, cap, forced);
+    }
+
     private static String value(ClinchAnalyzer.Marker marker) {
         return marker == ClinchAnalyzer.Marker.NONE ? null : marker.name().toLowerCase(Locale.ROOT);
     }

@@ -233,7 +233,7 @@ Picture rows join the available cached season/rules baseline from `OddsService` 
 
 **Caffeine** — max 500 entries, 24h write-through TTL.
 
-Cache names: `standings`, `games`, `weeks`, `seasons`, `seasonTrends`, `weeklyTrends`, `seasonGames`, `eloHistory`, `qbStats`, `teamEfficiency`, `playoffPicture`, `playoffOdds`, `leverage`, `eloCalibration`, `playoffClinch`
+Cache names: `standings`, `games`, `weeks`, `seasons`, `seasonTrends`, `weeklyTrends`, `seasonGames`, `eloHistory`, `qbStats`, `teamEfficiency`, `playoffPicture`, `playoffOdds`, `leverage`, `eloCalibration`, `playoffClinch`, `playoffPath`
 
 The list lives in one place — [config/CacheNames.java](../backend/src/main/java/com/rzs/stats/config/CacheNames.java), as the `allStatsCaches` resolver. **A new cache must be added there**, or it silently survives eviction and serves stale data after a sync. All registered caches are evicted together on sync, force-sync, or cache warm. `seasonGames` is cached directly on `GameRepository.findRegularSeasonGames()` (Spring Data JPA repos support `@Cacheable`) so all callers share the same cache regardless of call site.
 
@@ -274,3 +274,15 @@ LEFT JOIN FETCH g.homeTeam LEFT JOIN FETCH g.awayTeam
 ```
 
 Omitting this causes 1 + 2N queries per load (289 queries for 144-game season → ~30s on Railway).
+
+### Path to the Playoffs
+
+`GET /api/playoffs/path/{abbr}` accepts optional `season` and `rules` (Madden by default). `PathService` combines cached baseline odds and proven clinch markers with fresh win-out simulations. Unknown teams or seasons return 404; invalid rules return 400. `simulations` is the baseline sample count. `playoffs.path-simulations` defaults to 5,000 for win-out runs; all draws use the baseline season/week/rules seed, with varying forced margins.
+
+`SimulationService` optionally tracks one team's final win totals and goal counts in the same simulation pass; ordinary runs allocate no win buckets. Path repeats the baseline's sample count and seed with this tracking enabled. Final-record rows below 0.5% probability are omitted. The ceiling takes the best nonzero seed across baseline and win-out distributions, subject to proven markers, and retains the baseline seed distribution.
+
+Constrained `ClinchAnalyzer` accepts a matchup-to-outcome map. Fixed results contribute to both record bounds and restrict search branches, while their unknown margins remain part of the conservative ambiguity analysis. `controlsDestiny` requires a proven playoff clinch under win-out constraints; search caps, incomplete schedules, timeouts and NFL rules retain the constrained record-math fallback.
+
+Weekly rooting uses the cached full `LeverageMatrix`. Win-out risks pair home/away runs with identical draws under all team-win constraints (`playoffs.path-risk-simulations`, default 2,000 per side). Candidates include games with at least one other team in the selected team's conference, including cross-conference games, and exclude the selected team's games. Only the nearest 40 candidates by week then game ID are evaluated. Both lists keep the five largest absolute playoff swings of at least 0.02; swing is home-win minus away-win odds.
+
+`playoffPath` caches lazily by `(season parameter, abbreviation, rules)`, participates in `allStatsCaches` eviction and Elo configuration eviction, and is never warmed. One Path computation at a time is admitted per application instance; excess uncached team requests receive 503. Cached responses remain available while another analysis runs.

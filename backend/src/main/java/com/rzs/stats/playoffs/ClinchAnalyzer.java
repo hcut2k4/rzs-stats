@@ -38,7 +38,14 @@ public final class ClinchAnalyzer {
     }
 
     public static Analysis analyze(Season season, Function<List<Game>, Result> seeder, Duration budget, int cap) {
-        var base = records(season);
+        return analyze(season, seeder, budget, cap, Map.of());
+    }
+
+    public static Analysis analyze(Season season, Function<List<Game>, Result> seeder, Duration budget, int cap,
+                                   Map<Matchup, SimulationService.Outcome> forced) {
+        if (!season.remaining().containsAll(forced.keySet()) || forced.values().stream().anyMatch(Objects::isNull))
+            throw new IllegalArgumentException("Invalid forced matchup");
+        var base = records(season, forced);
         var totals = counts(season);
         if (season.remaining().size() > cap || budget.isZero() || budget.isNegative()
                 || totals.values().stream().anyMatch(n -> n != 17)) return finish(base, false, 0);
@@ -49,7 +56,7 @@ public final class ClinchAnalyzer {
         long deadline = System.nanoTime() + budget.toNanos();
         var executor = Executors.newFixedThreadPool(Math.min(9, Runtime.getRuntime().availableProcessors()));
         var futures = new ArrayList<Future<Search>>();
-        int prefix = Math.min(2, season.remaining().size());
+        int prefix = forced.isEmpty() ? Math.min(2, season.remaining().size()) : 0;
         int branches = (int) Math.pow(3, prefix);
         try {
             for (int branch = 0; branch < branches; branch++) {
@@ -59,7 +66,7 @@ public final class ClinchAnalyzer {
                     games.add(outcome(season.remaining().get(i), choice % 3)); choice /= 3;
                 }
                 futures.add(executor.submit(() -> {
-                    var search = new Search(season, seeder, open, deadline);
+                    var search = new Search(season, seeder, open, deadline, forced);
                     search.visit(games, prefix);
                     return search;
                 }));
@@ -103,11 +110,13 @@ public final class ClinchAnalyzer {
         final Function<List<Game>, Result> seeder;
         final List<Pair> pairs;
         final long deadline;
+        final Map<Matchup, SimulationService.Outcome> forced;
         final boolean[] yes, no;
         boolean expired;
         long seeded;
 
-        Search(Season season, Function<List<Game>, Result> seeder, List<Pair> pairs, long deadline) {
+        Search(Season season, Function<List<Game>, Result> seeder, List<Pair> pairs, long deadline, Map<Matchup, SimulationService.Outcome> forced) {
+            this.forced = forced;
             this.season = season; this.seeder = seeder; this.pairs = pairs; this.deadline = deadline;
             yes = new boolean[pairs.size()]; no = new boolean[pairs.size()];
         }
@@ -118,7 +127,7 @@ public final class ClinchAnalyzer {
             for (int i = 0; i < pairs.size(); i++) settled &= yes[i] && no[i];
             if (settled) return;
             if (depth < season.remaining().size()) {
-                var bounds = records(new Season(season.teams(), games, season.remaining().subList(depth, season.remaining().size())));
+                var bounds = records(new Season(season.teams(), games, season.remaining().subList(depth, season.remaining().size())), forced);
                 boolean proven = true;
                 for (int i = 0; i < pairs.size(); i++) {
                     if (yes[i] && no[i]) continue;
@@ -130,6 +139,8 @@ public final class ClinchAnalyzer {
                 }
                 if (proven) return;
                 for (int outcome = 0; outcome < 3 && !expired; outcome++) {
+                    var fixed = forced.get(season.remaining().get(depth));
+                    if (fixed != null && fixed.ordinal() != outcome) continue;
                     games.add(outcome(season.remaining().get(depth), outcome));
                     visit(games, depth + 1);
                     games.removeLast();
@@ -173,7 +184,7 @@ public final class ClinchAnalyzer {
         return totals;
     }
 
-    private static Map<String, Map<Goal, Marker>> records(Season season) {
+    private static Map<String, Map<Goal, Marker>> records(Season season, Map<Matchup, SimulationService.Outcome> forced) {
         var totals = counts(season);
         var points = new HashMap<String, Integer>();
         var played = new HashMap<String, Integer>();
@@ -183,6 +194,13 @@ public final class ClinchAnalyzer {
             points.merge(g.away(), g.awayScore() > g.homeScore() ? 2 : g.homeScore() == g.awayScore() ? 1 : 0, Integer::sum);
             played.merge(g.home(), 1, Integer::sum); played.merge(g.away(), 1, Integer::sum);
         });
+        for (var g : season.remaining()) {
+            var fixed = forced.get(g);
+            if (fixed == null) continue;
+            points.merge(g.home(), fixed == SimulationService.Outcome.HOME ? 2 : fixed == SimulationService.Outcome.TIE ? 1 : 0, Integer::sum);
+            points.merge(g.away(), fixed == SimulationService.Outcome.AWAY ? 2 : fixed == SimulationService.Outcome.TIE ? 1 : 0, Integer::sum);
+            played.merge(g.home(), 1, Integer::sum); played.merge(g.away(), 1, Integer::sum);
+        }
         var min = new HashMap<String, Integer>();
         var max = new HashMap<String, Integer>();
         totals.replaceAll((t, n) -> Math.max(17, n));

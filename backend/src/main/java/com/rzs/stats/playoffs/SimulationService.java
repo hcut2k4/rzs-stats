@@ -10,7 +10,8 @@ public class SimulationService {
     public enum Outcome { HOME, AWAY, TIE }
     public enum Rules { MADDEN, NFL }
     public record Counts(long playoffs, long division, long oneSeed, List<Long> seedCounts) {}
-    public record Simulation(int simulations, Map<String, Counts> teams) {}
+    public record WinBucket(long simulations, long playoffs, long division, long oneSeed) {}
+    public record Simulation(int simulations, Map<String, Counts> teams, Map<Integer, WinBucket> wins) {}
 
     public Simulation simulate(SeasonStateLoader.State state, Map<Integer, Double> probs,
                                Map<Integer, Outcome> forced, int sims, long seed, Rules rules) {
@@ -20,6 +21,12 @@ public class SimulationService {
     public Simulation simulate(SeasonStateLoader.State state, Map<Integer, Double> probs,
                                Map<Integer, Outcome> forced, int sims, long seed, Rules rules,
                                boolean varyForcedMargins) {
+        return simulate(state, probs, forced, sims, seed, rules, varyForcedMargins, null);
+    }
+
+    public Simulation simulate(SeasonStateLoader.State state, Map<Integer, Double> probs,
+                               Map<Integer, Outcome> forced, int sims, long seed, Rules rules,
+                               boolean varyForcedMargins, String trackTeam) {
         if (sims <= 0) throw new IllegalArgumentException("Simulations must be positive");
         var ids = new HashSet<Integer>();
         for (var game : state.remainingGames()) {
@@ -32,11 +39,22 @@ public class SimulationService {
         if (!ids.containsAll(forced.keySet()) || forced.values().stream().anyMatch(Objects::isNull)) throw new IllegalArgumentException("Invalid forced game");
         var index = new HashMap<String, Integer>();
         for (int i = 0; i < state.teams().size(); i++) index.put(state.teams().get(i).abbr(), i);
+        if (trackTeam != null && !index.containsKey(trackTeam)) throw new IllegalArgumentException("Unknown tracked team");
+        int buckets = trackTeam == null ? 0 : 1 + (int) (state.completedGames().stream()
+                .filter(g -> g.home().equals(trackTeam) || g.away().equals(trackTeam)).count()
+                + state.remainingGames().stream().filter(g -> g.home().equals(trackTeam) || g.away().equals(trackTeam)).count());
         int runs = state.remainingGames().isEmpty() ? 1 : sims;
         long[][] totals = IntStream.range(0, runs).parallel().collect(
-                () -> new long[state.teams().size()][10],
+                () -> new long[state.teams().size() + (trackTeam == null ? 0 : buckets)][10],
                 (counts, simulation) -> {
                     var result = seed(state.teams(), games(state, probs, forced, simulation, seed, varyForcedMargins), rules);
+                    if (trackTeam != null) {
+                        int wins = result.records().get(trackTeam).wins();
+                        var bucket = counts[state.teams().size() + wins];
+                        bucket[0]++;
+                        for (var goal : ClinchAnalyzer.Goal.values())
+                            if (ClinchAnalyzer.achieved(result, trackTeam, goal)) bucket[goal.ordinal() + 1]++;
+                    }
                     result.divisionRanks().forEach((team, rank) -> {
                         if (rank.position() == 1) counts[index.get(team)][1]++;
                     });
@@ -56,7 +74,12 @@ public class SimulationService {
             var row = totals[i];
             counts.put(team, new Counts(row[0], row[1], row[2], Arrays.stream(row, 3, 10).boxed().toList()));
         });
-        return new Simulation(state.remainingGames().isEmpty() ? 0 : sims, Collections.unmodifiableMap(counts));
+        var wins = new TreeMap<Integer, WinBucket>();
+        if (trackTeam != null) for (int w = 0; w < buckets; w++) {
+            var row = totals[state.teams().size() + w];
+            if (row[0] > 0) wins.put(w, new WinBucket(row[0], row[1], row[2], row[3]));
+        }
+        return new Simulation(state.remainingGames().isEmpty() ? 0 : sims, Collections.unmodifiableMap(counts), Collections.unmodifiableMap(wins));
     }
 
     public List<PlayoffSeeding.Game> games(SeasonStateLoader.State state, Map<Integer, Double> probs,
