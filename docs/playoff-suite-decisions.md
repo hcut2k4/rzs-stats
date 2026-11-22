@@ -27,3 +27,18 @@ Everything below is on LOCAL master and NOT pushed (Railway auto-deploys master 
 - New knobs (application.properties): `playoffs.simulations` (20000), `playoffs.leverage-simulations` (10000), `playoffs.path-simulations`, `playoffs.path-risk-simulations`, `playoffs.max-concurrent-computations` (2), clinch `rzs.playoffs.clinch.max-remaining-games` (12) and `.budget` (20 s).
 - Known limits worth a look: cold leverage for a 16-game week takes about 7 s and a cold Path page about 6 s (cached afterwards; leverage and odds are warmed after sync); simulated scores use a fixed margin model (documented on About); clinch markers are proven-only so some real clinches appear a week late; "final-week scenarios" assume no tie games and cap at 12 relevant games.
 - Leftover merged branches (safe to delete): feature/playoffs-phase1, -calibration, -phase2, -phase2-ui, -phase3-ui, -extras-ui, -leverage, -whatif, -clinch, -path, -championship, -scenarios, fix/playoffs-*, docs/playoffs-*.
+
+## Compute diet (2026-11-22, after the architecture review)
+
+Merged to local master (still unpushed). Backend 489 tests, frontend 468 tests, build OK; app boot checked with real data.
+- Playoff caches only recompute when a data fingerprint changes (all seasons' games, team names/divisions, Elo config). A no-change sync does no playoff eviction or simulation; a failed sync evicts playoff caches and leaves the stored fingerprint alone. Playoff caches no longer expire after 24 h.
+- One 20k baseline pass now feeds odds, championship counts and wins-needed. Path uses one 10k win-out run (paired risk runs only as a small fallback for undersampled games). Scenarios are enumerated once per fingerprint for all teams. Leverage is 5,000 paired simulations.
+- One bounded executor (2 threads, `playoffs.max-concurrent-computations`) with a 30 s deadline then 503 + Retry-After; clinch, scenarios, backfill and historical odds now go through it. Trade-off: cold leverage can take longer than before (about 12 s locally), but total CPU is capped.
+- Benchmark (seedings for a simulated day: unchanged sync, changed sync, 32 Path pages, 20 What-If requests): about 7.04M before, 0.89M after (unchanged sync is 0).
+- Odds snapshots now record model version, Elo config hash, input fingerprint and origin (backend only, not shown on the site).
+- Footer shows "Last synced ..." from the new persisted `GET /api/sync/status` (falls back to the schedule line when unknown, which is the case until the first sync after deploy).
+- Championship odds are labelled "Pre-playoff projection (end of regular season)" once no regular-season games remain, and use ratings frozen at that point; the table stays visible.
+- Clinch badge tooltip now says "Guaranteed under Madden 27's tiebreak rules ...".
+- Frontend playoff tests are driven by real-backend JSON fixtures in `frontend/src/test/fixtures/playoffs/` (backend test fails on drift; regenerate with `-Dfixtures.update=true`).
+- Not done on purpose: a no-change sync still re-warms the cheap non-playoff site caches (standings, trends, QB aggregates) because QB data changes independently of game results.
+- Process note: two Codex runs once edited one worktree at once and left it half-finished; a single reconciling run fixed it. Do not relaunch a Codex job in a worktree while its predecessor may still be running.
