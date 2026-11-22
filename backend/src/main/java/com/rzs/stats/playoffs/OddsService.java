@@ -51,7 +51,7 @@ public class OddsService {
         }
         var state = loader.load(season);
         var selected = rules.equals("madden") ? SimulationService.Rules.MADDEN : SimulationService.Rules.NFL;
-        long seed = SimulationService.mix(((long) state.season() << 32) ^ Objects.hashCode(state.nextWeek()) ^ rules.hashCode());
+        long seed = seed(state, rules);
         SimulationService.Simulation result;
         try {
             result = simulator.simulate(state, state.remainingGames().isEmpty() ? Map.of() : elo.homeWinProbabilities(state.season()),
@@ -59,6 +59,23 @@ public class OddsService {
         } catch (IllegalStateException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Available game data cannot resolve the requested playoff order", e);
         }
+        return response(state, rules, result);
+    }
+
+    static long seed(SeasonStateLoader.State state, String rules) {
+        return SimulationService.mix(((long) state.season() << 32) ^ Objects.hashCode(state.nextWeek()) ^ rules.hashCode());
+    }
+
+    public Response historical(SeasonStateLoader.State state) {
+        var ratings = elo.ratingsAtStart(state.season(), state.nextWeek());
+        var probabilities = new HashMap<Integer, Double>();
+        state.remainingGames().forEach(g -> probabilities.put(g.gameId(),
+                elo.winProbability(ratings, g.homeTeamId(), g.awayTeamId(), false)));
+        return response(state, "madden", simulator.simulate(state, probabilities, Map.of(), simulations,
+                seed(state, "madden"), SimulationService.Rules.MADDEN));
+    }
+
+    private Response response(SeasonStateLoader.State state, String rules, SimulationService.Simulation result) {
         double denominator = Math.max(1, result.simulations());
         var records = MaddenSeeding.madden27().seed(state.teams(), state.completedGames()).records();
         var conferences = new TreeMap<String, List<Row>>();

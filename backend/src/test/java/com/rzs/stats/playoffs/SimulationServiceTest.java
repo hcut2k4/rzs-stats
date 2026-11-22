@@ -145,6 +145,108 @@ class SimulationServiceTest {
     }
 
     @Test
+    void fixedSeedMatchesEveryBaselineCountBeforeChampionshipWasAdded() throws Exception {
+        var state = season(false);
+        var expected = Map.of(Rules.MADDEN, "bdb17f86b9403d08bb65c5b1a09036c374c19df443602a41bbc36ef2de9c5a26",
+                Rules.NFL, "3878510dda34e7336dec2138dab6510d9067ea19fbcdb4f352ef5ab2fc627608");
+        for (var rules : Rules.values()) {
+            var result = simulator.simulate(state, probabilities(state), Map.of(), 300, 42, rules);
+            var digest = java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(result.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            assertThat(HexFormat.of().formatHex(digest)).isEqualTo(expected.get(rules));
+        }
+    }
+
+    @Test
+    void bracketPreservesBaselineCountsAndEveryAdvancementInvariant() throws Exception {
+        var state = season(false);
+        for (var rules : Rules.values()) {
+            var result = simulator.championship(state, probabilities(state), 300, 42, rules, (h, a, n) -> 0.5);
+            assertThat(result.baseline()).isEqualTo(simulator.simulate(state, probabilities(state), Map.of(), 300, 42, rules));
+            assertThat(simulator.championship(state, probabilities(state), 300, 42, rules, (h, a, n) -> 0.5)).isEqualTo(result);
+            assertThat(result.teams().values().stream().mapToLong(ChampionshipCounts::champion).sum()).isEqualTo(300);
+            assertThat(result.teams().values().stream().mapToLong(ChampionshipCounts::finalCount).sum()).isEqualTo(600);
+            for (var conference : List.of("AFC", "NFC")) {
+                var members = state.teams().stream().filter(t -> t.conference().equals(conference)).toList();
+                assertThat(members.stream().mapToLong(t -> result.teams().get(t.abbr()).round2()).sum()).isEqualTo(1200);
+                assertThat(members.stream().mapToLong(t -> result.teams().get(t.abbr()).conferenceFinal()).sum()).isEqualTo(600);
+                assertThat(members.stream().mapToLong(t -> result.teams().get(t.abbr()).finalCount()).sum()).isEqualTo(300);
+            }
+            result.teams().forEach((team, count) -> {
+                var baseline = result.baseline().teams().get(team);
+                assertThat(count.round2()).isBetween(baseline.oneSeed(), baseline.playoffs());
+                assertThat(count.conferenceFinal()).isBetween(count.finalCount(), count.round2());
+                assertThat(count.champion()).isBetween(0L, count.finalCount());
+            });
+        }
+    }
+
+    @Test
+    void completedSeasonKeepsSimulatingBracketAndFirstSeedAlwaysGetsBye() throws Exception {
+        var state = season(true);
+        var result = simulator.championship(state, Map.of(), 1000, 42, Rules.MADDEN, (h, a, n) -> 0.5);
+        assertThat(result.baseline().simulations()).isEqualTo(1000);
+        var exact = seed(state.teams(), state.completedGames(), Rules.MADDEN);
+        exact.conferences().values().forEach(ranks -> ranks.stream().filter(r -> r.position() == 1).forEach(rank -> {
+            var team = rank.teams().iterator().next();
+            assertThat(result.teams().get(team).round2()).isEqualTo(1000);
+            assertThat(result.baseline().teams().get(team).playoffs()).isEqualTo(1000);
+        }));
+    }
+
+    @Test
+    void bracketReseedsAfterWildCardsAndOnlyTheFinalIsNeutral() throws Exception {
+        var state = season(true);
+        var exact = seed(state.teams(), state.completedGames(), Rules.MADDEN);
+        var expected = new ArrayList<String>();
+        var finalists = new ArrayList<String>();
+        for (var ranks : new TreeMap<>(exact.conferences()).values()) {
+            var seeds = ranks.stream().sorted(Comparator.comparingInt(PlayoffSeeding.Rank::position))
+                    .map(r -> r.teams().iterator().next()).toList();
+            for (int i = 1; i <= 3; i++) expected.add(seeds.get(i) + ":" + seeds.get(7 - i) + ":false");
+            expected.add(seeds.get(0) + ":" + seeds.get(6) + ":false");
+            expected.add(seeds.get(4) + ":" + seeds.get(5) + ":false");
+            expected.add(seeds.get(5) + ":" + seeds.get(6) + ":false");
+            finalists.add(seeds.get(6));
+        }
+        expected.add(finalists.get(0) + ":" + finalists.get(1) + ":true");
+        var actual = new ArrayList<String>();
+        simulator.championship(state, Map.of(), 1, 42, Rules.MADDEN, (home, away, neutral) -> {
+            actual.add(home + ":" + away + ":" + neutral);
+            return 0;
+        });
+        assertThat(actual).containsExactlyElementsOf(expected);
+    }
+
+    @Test
+    void strongerEloMakesSameSeedWinMoreTitles() throws Exception {
+        var state = season(true);
+        String strong = seed(state.teams(), state.completedGames(), Rules.MADDEN).conferences().get("AFC")
+                .stream().filter(r -> r.position() == 7).findFirst().orElseThrow().teams().iterator().next();
+        var engine = new com.rzs.stats.service.EloService();
+        var config = com.rzs.stats.model.dto.EloConfig.defaults();
+        var equal = simulator.championship(state, Map.of(), 2000, 42, Rules.MADDEN,
+                (h, a, n) -> engine.probability(1500 + (n ? 0 : config.homeFieldAdvantage()), 1500, config));
+        var stronger = simulator.championship(state, Map.of(), 2000, 42, Rules.MADDEN,
+                (h, a, n) -> engine.probability((h.equals(strong) ? 2500 : 1500) + (n ? 0 : config.homeFieldAdvantage()),
+                        a.equals(strong) ? 2500 : 1500, config));
+        assertThat(stronger.teams().get(strong).champion()).isGreaterThan(equal.teams().get(strong).champion());
+        assertThat(stronger.teams().get(strong).champion()).isGreaterThan(1800);
+    }
+
+    @Test
+    @Tag("benchmark")
+    void reportTwentyThousandChampionshipSimulations() throws Exception {
+        var state = season(false);
+        var probs = probabilities(state);
+        simulator.championship(state, probs, 1000, 42, Rules.MADDEN, (h, a, n) -> 0.5);
+        long start = System.nanoTime();
+        var result = simulator.championship(state, probs, 20000, 42, Rules.MADDEN, (h, a, n) -> 0.5);
+        System.out.printf("BENCHMARK championship 20,000 simulations, %d games: %.3f seconds%n", state.remainingGames().size(), (System.nanoTime() - start) / 1e9);
+        assertThat(result.baseline().simulations()).isEqualTo(20000);
+    }
+
+    @Test
     @Tag("benchmark")
     void reportTwentyThousandFullSeasonSimulations() throws Exception {
         var state = season(false);

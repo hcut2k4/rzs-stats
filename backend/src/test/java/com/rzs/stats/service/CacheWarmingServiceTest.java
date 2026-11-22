@@ -21,6 +21,7 @@ class CacheWarmingServiceTest {
     @Mock StatsService stats;
     @Mock EloHistoryService elo;
     @Mock QbStatsService qb;
+    @Mock com.rzs.stats.playoffs.ChampionshipService championship;
     @Mock OddsService odds;
     @Mock com.rzs.stats.playoffs.LeverageService leverage;
     @Mock OddsSnapshotService snapshots;
@@ -28,7 +29,7 @@ class CacheWarmingServiceTest {
 
     @BeforeEach
     void setUp() {
-        warming = new CacheWarmingService(stats, elo, qb, odds, snapshots, leverage);
+        warming = new CacheWarmingService(stats, elo, qb, odds, snapshots, leverage, championship);
         lenient().when(leverage.canonicalKey(null, null)).thenReturn(new com.rzs.stats.playoffs.LeverageService.Key(2, 11));
     }
 
@@ -46,6 +47,7 @@ class CacheWarmingServiceTest {
         verify(qb).movement(2, REGULAR, 1, QbStatsService.Basis.SEASON);
         verify(odds).odds(null, "madden");
         verify(snapshots).save(baseline);
+        verify(championship).championship(null, "madden");
         verify(leverage).matrix(2, 11, "madden");
         assertThat(warming.getStatus().message()).contains("QB stats");
         assertThat(warming.getStatus().success()).isTrue();
@@ -72,6 +74,16 @@ class CacheWarmingServiceTest {
         warming.warmCaches();
         verify(elo).getTimeline();
         verifyNoInteractions(snapshots);
+        verify(championship).championship(null, "madden");
+        verify(leverage).matrix(2, 11, "madden");
+        assertThat(warming.getStatus().success()).isTrue();
+    }
+
+    @Test
+    void championshipFailureDoesNotPreventLeverageWarming() {
+        when(stats.getAvailableSeasons()).thenReturn(List.of(2));
+        when(championship.championship(null, "madden")).thenThrow(new IllegalStateException("failed"));
+        warming.warmCaches();
         verify(leverage).matrix(2, 11, "madden");
         assertThat(warming.getStatus().success()).isTrue();
     }

@@ -31,4 +31,16 @@ public class OddsSnapshotService {
             snapshots.flush();
         });
     }
+    public synchronized boolean saveIfAbsent(int season, int week, java.util.function.Supplier<OddsService.Response> compute) {
+        return Boolean.TRUE.equals(transactions.execute(transaction -> {
+            if (snapshots.existsBySeasonAndNextWeek(season, week)) return false;
+            var response = compute.get();
+            for (var conference : response.conferences()) for (var row : conference.teams()) {
+                snapshots.save(new OddsSnapshotEntity(response, row));
+            }
+            snapshots.flush();
+            return true;
+        }));
+    }
+
 }

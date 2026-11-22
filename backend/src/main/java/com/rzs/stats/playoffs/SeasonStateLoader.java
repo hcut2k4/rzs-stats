@@ -25,6 +25,15 @@ public class SeasonStateLoader {
 
     @Transactional(readOnly = true)
     public State load(Integer season) {
+        return load(season, null);
+    }
+
+    @Transactional(readOnly = true)
+    public State loadAtStart(int season, int week) {
+        return load(season, week);
+    }
+
+    private State load(Integer season, Integer startWeek) {
         int selected = season == null ? games.findDistinctSeasonIndicesWithMinGames(1).stream()
                 .mapToInt(Integer::intValue).max().orElseThrow(() -> missing("No season data")) : season;
         var schedule = games.findBySeasonIndex(selected).stream()
@@ -47,7 +56,7 @@ public class SeasonStateLoader {
                 identities.put(team.getAbbrName(), new EloService.Team(team.getTeamId(), team.getAbbrName(), team.getDisplayName()));
             }
             String home = game.getHomeTeam().getAbbrName(), away = game.getAwayTeam().getAbbrName();
-            if (game.getStatus() != null && game.getStatus() >= 2) {
+            if (game.getStatus() != null && game.getStatus() >= 2 && (startWeek == null || game.getWeekIndex() < startWeek)) {
                 if (game.getHomeScore() == null || game.getAwayScore() == null
                         || game.getHomeScore() < 0 || game.getAwayScore() < 0) throw missing("Missing or invalid completed game scores");
                 completed.add(new PlayoffSeeding.Game(game.getWeekIndex(), home, away, game.getHomeScore(), game.getAwayScore()));
@@ -58,7 +67,7 @@ public class SeasonStateLoader {
         }
         return new State(selected, List.copyOf(teams.values()), Map.copyOf(identities), List.copyOf(completed),
                 List.copyOf(remaining), completed.stream().map(PlayoffSeeding.Game::week).max(Integer::compare).orElse(null),
-                remaining.stream().map(RemainingGame::week).min(Integer::compare).orElse(null));
+                startWeek != null ? startWeek : remaining.stream().map(RemainingGame::week).min(Integer::compare).orElse(null));
     }
 
     private static boolean blank(String value) { return value == null || value.isBlank(); }
