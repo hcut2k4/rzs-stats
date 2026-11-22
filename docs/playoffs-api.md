@@ -240,3 +240,15 @@ Query: `season`, `rules`. Extends each baseline simulation through the bracket (
 - `status`: `in` (in every outcome), `out` (out in every outcome), `open` otherwise.
 - `clinchedBy` = minimal sufficient sets of game results (prime implicants of the "definitely achieved" outcomes), `eliminatedBy` = minimal sets that make the goal impossible. Each has `text` (team display names, "beat" / "lose to" wording, game results joined with "and") and `conditions` (`winner` = team abbreviation). At most 6 entries each, shortest first, then alphabetical; empty list when none exist. `status: "in"` has `clinchedBy: []` (no condition needed) and `status: "out"` has `eliminatedBy: []`.
 - Only games that can change the answer appear in conditions.
+
+## GET /api/sync/status
+
+Public. Last successful data sync (persisted, survives restarts).
+```json
+{ "lastSyncAt": "2026-11-22T09:02:11Z" }
+```
+`lastSyncAt` is null when no successful sync has been recorded. The site footer shows it ("Last synced Nov 22, 4:02 AM ET") and falls back to the static schedule line when null.
+
+## Championship: pre-playoff label
+
+`GET /api/playoffs/championship` gains `"preplayoff": true|false`: true when no regular-season games remain (the field is then a frozen pre-playoff projection, not live odds). In that state the bracket uses Elo ratings as of the end of the regular season (not ratings updated by playoff games) so the favourite does not drift during the postseason. The UI keeps showing the table and labels it "Pre-playoff projection (end of regular season)".
