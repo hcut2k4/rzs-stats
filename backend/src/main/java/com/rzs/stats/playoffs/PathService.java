@@ -43,7 +43,12 @@ public class PathService {
 
     public int canonicalSeason(Integer season, String rules) { return odds.canonicalSeason(season, rules); }
 
-    @Cacheable(value = "playoffPath", key = "new org.springframework.cache.interceptor.SimpleKey(#root.target.canonicalSeason(#season, #rules), #abbr, #rules)", sync = true)
+    public Object cacheKey(Integer season, String abbr, String rules) {
+        return new org.springframework.cache.interceptor.SimpleKey(canonicalSeason(season, rules), abbr, rules);
+    }
+
+
+    @Cacheable(value = "playoffPath", key = "#root.target.cacheKey(#season, #abbr, #rules)", sync = true)
     public Response path(Integer season, String abbr, String rules) {
         if (!"madden".equals(rules) && !"nfl".equals(rules))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rules must be madden or nfl");

@@ -33,7 +33,12 @@ public class ClinchService {
         return season == null ? loader.load(null).season() : season;
     }
 
-    @Cacheable(value = "playoffClinch", key = "new org.springframework.cache.interceptor.SimpleKey(#root.target.canonicalSeason(#season, #rules), #rules)", sync = true)
+    public Object cacheKey(Integer season, String rules) {
+        return new org.springframework.cache.interceptor.SimpleKey(canonicalSeason(season, rules), rules);
+    }
+
+
+    @Cacheable(value = "playoffClinch", key = "#root.target.cacheKey(#season, #rules)", sync = true)
     public Response clinch(Integer season, String rules) {
         if (!"madden".equals(rules) && !"nfl".equals(rules))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rules must be madden or nfl");
