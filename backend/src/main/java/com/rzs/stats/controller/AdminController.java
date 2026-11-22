@@ -66,7 +66,10 @@ public class AdminController {
     public Map<String, Object> triggerSync() {
         log.info("Manual sync triggered");
         CompletableFuture.runAsync(() -> {
-                    if (syncService.sync().success()) qbSync.syncIncremental();
+                    if (syncService.sync().success()) {
+                        cacheWarmingService.warmCaches();
+                        qbSync.syncIncremental();
+                    }
                 })
                 .exceptionally(ex -> {
                     log.error("Unexpected error during async sync", ex);
@@ -78,7 +81,9 @@ public class AdminController {
     @PostMapping("/sync/force")
     public Map<String, Object> triggerForceSync() {
         log.info("Force sync triggered");
-        CompletableFuture.runAsync(() -> syncService.syncForce())
+        CompletableFuture.runAsync(() -> {
+                    if (syncService.syncForce().success()) cacheWarmingService.warmCaches();
+                })
                 .exceptionally(ex -> {
                     log.error("Unexpected error during async force sync", ex);
                     return null;
@@ -110,6 +115,7 @@ public class AdminController {
     @PostMapping("/sync/verbose")
     public Map<String, Object> triggerVerboseSync() {
         SyncService.VerboseSyncResult result = syncService.syncVerbose();
+        if (result.success()) CompletableFuture.runAsync(() -> cacheWarmingService.warmCaches());
         return Map.of("success", result.success(), "message", result.message(), "log", result.log());
     }
 

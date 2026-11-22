@@ -70,6 +70,8 @@ Baseline Monte Carlo over remaining regular-season games (Elo + home field win p
 }
 ```
 Odds are fractions (UI rounds to whole percents and shows ">99%" / "<1%" instead of 100% / 0%). Teams sorted by playoffs odds descending. Within a conference playoffs odds sum to 7 and oneSeed odds to 1 (up to rounding).
+Under `rules=nfl`, orders the real NFL would settle by coin toss are resolved alphabetically (same as Picture).
+
 The Picture endpoint rows gain the same `odds` object (added after Phase 2's first merge; until then Picture rows have no `odds`).
 
 ## GET /api/playoffs/leverage

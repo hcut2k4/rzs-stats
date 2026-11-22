@@ -30,7 +30,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DataJpaTest(showSql = false)
 @AutoConfigureCache(cacheProvider = CacheType.CAFFEINE)
 @EnableCaching
-@Import({SeasonStateLoader.class, PlayoffPictureService.class, PlayoffsController.class, CacheNames.class})
+@Import({SeasonStateLoader.class, PlayoffPictureService.class, PlayoffsController.class, CacheNames.class, OddsService.class, SimulationService.class,
+        com.rzs.stats.service.EloQueryService.class, com.rzs.stats.service.EloHistoryService.class,
+        com.rzs.stats.service.EloService.class, com.rzs.stats.service.EloConfigService.class,
+        com.rzs.stats.service.OwnerChangeService.class})
 class PlayoffPictureTest {
     record Fixture(List<PlayoffSeeding.Team> teams, List<PlayoffSeeding.Game> games,
                    Map<String, List<String>> maddenSeeds) {}

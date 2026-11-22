@@ -17,6 +17,8 @@ class SyncSchedulerTest {
     @Mock SyncService syncService;
     @Mock com.rzs.stats.service.QbStatsSyncService qbSync;
 
+    @Mock com.rzs.stats.service.CacheWarmingService warming;
+
     @InjectMocks SyncScheduler syncScheduler;
 
     @BeforeEach
@@ -29,13 +31,14 @@ class SyncSchedulerTest {
         syncScheduler.scheduledSync();
         verify(syncService, times(1)).sync();
         verify(qbSync).syncIncremental();
+        verify(warming).warmCaches();
     }
 
     @Test
     void scheduledSync_completesEvenIfSyncFails() {
         when(syncService.sync()).thenReturn(new SyncService.SyncResult(false, "failed"));
         assertDoesNotThrow(() -> syncScheduler.scheduledSync());
-        verifyNoInteractions(qbSync);
+        verifyNoInteractions(qbSync, warming);
         verify(syncService, times(1)).sync();
     }
 }

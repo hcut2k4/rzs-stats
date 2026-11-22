@@ -1,6 +1,8 @@
 package com.rzs.stats.service;
 
 import com.rzs.stats.config.CacheNames;
+import com.rzs.stats.playoffs.OddsService;
+import com.rzs.stats.playoffs.OddsSnapshotService;
 import com.rzs.stats.service.QbStatsService.Basis;
 import com.rzs.stats.service.QbStatsService.Scope;
 import com.rzs.stats.service.QbStatsService.Stage;
@@ -21,6 +23,8 @@ public class CacheWarmingService {
     private final StatsService statsService;
     private final EloHistoryService eloHistoryService;
     private final QbStatsService qbStatsService;
+    private final OddsService odds;
+    private final OddsSnapshotService snapshots;
 
     private volatile boolean inProgress = false;
     private volatile Instant startedAt;
@@ -34,10 +38,12 @@ public class CacheWarmingService {
         return new WarmStatus(inProgress, startedAt, completedAt, message, success);
     }
 
-    public CacheWarmingService(StatsService statsService, EloHistoryService eloHistoryService, QbStatsService qbStatsService) {
+    public CacheWarmingService(StatsService statsService, EloHistoryService eloHistoryService, QbStatsService qbStatsService, OddsService odds, OddsSnapshotService snapshots) {
         this.statsService = statsService;
         this.eloHistoryService = eloHistoryService;
         this.qbStatsService = qbStatsService;
+        this.odds = odds;
+        this.snapshots = snapshots;
     }
 
     @CacheEvict(cacheResolver = CacheNames.ALL, allEntries = true, beforeInvocation = true)
@@ -85,6 +91,13 @@ public class CacheWarmingService {
                 }
             }
             eloHistoryService.getTimeline();
+            if (!seasons.isEmpty()) {
+                try {
+                    snapshots.save(odds.odds(null, "madden"));
+                } catch (Exception e) {
+                    log.warn("Cache warming: playoff odds failed", e);
+                }
+            }
             long elapsed = Duration.between(startedAt, Instant.now()).getSeconds();
             message = total + " seasons and QB stats cached in " + elapsed + "s";
             success = true;
