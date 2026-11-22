@@ -87,3 +87,4 @@ Read only the docs relevant to the current task.
 - Writing or running tests → [Testing](docs/testing.md).
 - Original Elo specification → [Elo ratings implementation](docs/elo-ratings-implementation.md).
 - Playoff seeding / Madden tiebreaker research → start with [handoff](docs/madden-playoff-handoff.md), full history in [Madden playoff tiebreakers](docs/madden-playoff-tiebreakers.md).
+- Playoffs page endpoints and response shapes → [Playoffs API](docs/playoffs-api.md); clinch/eliminated algorithm → [Clinch design](docs/playoffs-clinch-design.md); overnight build decisions → [Playoff suite decisions](docs/playoff-suite-decisions.md).
