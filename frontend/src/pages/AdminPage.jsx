@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import PageHeader from '../components/PageHeader'
-import { triggerSync, triggerForceSync, getSyncStatus, triggerCacheWarm, getCacheWarmStatus, checkAdminAuth, setAdminToken, getEloConfig, putEloConfig, triggerQbSync, getQbSyncStatus } from '../api/client'
+import { triggerSync, triggerForceSync, getSyncStatus, triggerCacheWarm, getCacheWarmStatus, checkAdminAuth, setAdminToken, getEloConfig, putEloConfig, triggerQbSync, getQbSyncStatus, getSeasons, triggerProbabilityBackfill } from '../api/client'
 
 const ELO_DEFAULTS = { initialRating: 1500, k: 25, divisor: 400, movEnabled: true, marginCap: 28, homeFieldAdvantage: 0, offseasonRetention: 0.78 }
 
@@ -12,6 +12,51 @@ const ELO_FIELDS = [
   ['homeFieldAdvantage', 'Home-field advantage (Elo points)'],
   ['offseasonRetention', 'Retention (offseason and mid-season owner changes, 0–1)'],
 ]
+
+function ProbabilityHistoryPanel() {
+  const [seasons, setSeasons] = useState([])
+  const [season, setSeason] = useState('')
+  const [running, setRunning] = useState(false)
+  const [message, setMessage] = useState(null)
+
+  useEffect(() => {
+    getSeasons().then(list => { setSeasons(list); setSeason(String(list.at(-1) ?? '')) }).catch(() => {})
+  }, [])
+
+  const run = async () => {
+    setRunning(true)
+    setMessage(null)
+    try {
+      const r = await triggerProbabilityBackfill(Number(season))
+      setMessage({ ok: true, text: `Saved ${r.created} week${r.created === 1 ? '' : 's'}; ${r.skipped} already saved.` })
+    } catch {
+      setMessage({ ok: false, text: 'Request failed' })
+    } finally {
+      setRunning(false)
+    }
+  }
+
+  return (
+    <div className="mt-6 border border-line rounded p-5 space-y-3">
+      <div>
+        <p className="text-sm font-medium text-ink">Backfill playoff probability history</p>
+        <p className="text-xs text-muted mt-1">
+          Recreates the weekly playoff probability snapshots for earlier weeks of a season, using the Elo ratings as of each week.
+          Never overwrites a saved week, so it is safe to run again. New weeks are saved automatically after each sync.
+        </p>
+      </div>
+      <label className="text-sm block">Season
+        <select className="field ml-2" aria-label="Season" value={season} onChange={e => setSeason(e.target.value)} disabled={running}>
+          {seasons.map(s => <option key={s} value={s}>{s + 103} (index {s})</option>)}
+        </select>
+      </label>
+      {message && <p className={`text-xs ${message.ok ? 'text-good' : 'text-bad'}`}>{message.text}</p>}
+      <button onClick={run} disabled={running || season === ''} className="btn w-full justify-center py-2">
+        {running ? 'Backfilling...' : 'Backfill probability history'}
+      </button>
+    </div>
+  )
+}
 
 function EloConfigPanel() {
   const [config, setConfig] = useState(null)
@@ -267,6 +312,8 @@ function AdminTools() {
           {qbSyncing ? 'Syncing player & team stats...' : 'Re-sync Player & Team Stats'}
         </button>
       </div>
+
+      <ProbabilityHistoryPanel />
 
       <EloConfigPanel />
 

@@ -42,3 +42,5 @@ Merged to local master (still unpushed). Backend 489 tests, frontend 468 tests, 
 - Frontend playoff tests are driven by real-backend JSON fixtures in `frontend/src/test/fixtures/playoffs/` (backend test fails on drift; regenerate with `-Dfixtures.update=true`).
 - Not done on purpose: a no-change sync still re-warms the cheap non-playoff site caches (standings, trends, QB aggregates) because QB data changes independently of game results.
 - Process note: two Codex runs once edited one worktree at once and left it half-finished; a single reconciling run fixed it. Do not relaunch a Codex job in a worktree while its predecessor may still be running.
+
+- Admin page now has a "Backfill playoff probability history" section (season picker + button) that calls POST /api/admin/playoffs/odds/backfill. New weeks are saved automatically after each sync whose data changed (one snapshot per season and upcoming week; the first one is kept).

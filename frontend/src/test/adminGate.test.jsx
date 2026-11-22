@@ -14,6 +14,7 @@ describe('AdminPage passcode gate', () => {
     client.getCacheWarmStatus.mockResolvedValue({})
     client.getQbSyncStatus.mockResolvedValue({})
     client.getEloConfig.mockResolvedValue(ELO_CONFIG)
+    client.getSeasons.mockResolvedValue([0, 1, 2])
   })
   afterEach(() => vi.clearAllMocks())
 
@@ -66,5 +67,24 @@ describe('AdminPage passcode gate', () => {
     render(<AdminPage />)
     await userEvent.click(await screen.findByRole('button', { name: 'Save' }))
     expect(await screen.findByText(/Rejected/)).toBeInTheDocument()
+  })
+
+  it('backfills the playoff probability history for the chosen season and shows the result', async () => {
+    client.checkAdminAuth.mockResolvedValue({ ok: true })
+    client.triggerProbabilityBackfill.mockResolvedValue({ season: 1, created: 5, skipped: 1 })
+    render(<AdminPage />)
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'Season' }), '1')
+    await userEvent.click(screen.getByRole('button', { name: 'Backfill probability history' }))
+    expect(client.triggerProbabilityBackfill).toHaveBeenCalledWith(1)
+    expect(await screen.findByText('Saved 5 weeks; 1 already saved.')).toBeInTheDocument()
+  })
+
+  it('shows a failure message when the backfill request fails', async () => {
+    client.checkAdminAuth.mockResolvedValue({ ok: true })
+    client.triggerProbabilityBackfill.mockRejectedValue(new Error('boom'))
+    render(<AdminPage />)
+    await userEvent.click(await screen.findByRole('button', { name: 'Backfill probability history' }))
+    expect(await screen.findByText('Request failed')).toBeInTheDocument()
+    expect(client.triggerProbabilityBackfill).toHaveBeenCalledWith(2)
   })
 })

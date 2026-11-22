@@ -48,6 +48,7 @@ export const getEloUpcoming = (season) => api.get('/elo/upcoming', { params: { s
 
 export const getQbLeaderboard = (params) => api.get('/qb/leaderboard', { params }).then(r => r.data)
 export const getQbMovement = (params) => api.get('/qb/movement', { params }).then(r => r.data)
+export const triggerProbabilityBackfill = season => api.post('/admin/playoffs/odds/backfill', null, { params: { season } }).then(r => r.data)
 export const triggerQbSync = () => api.post('/admin/sync/qb').then(r => r.data)
 export const getQbSyncStatus = () => api.get('/admin/sync/qb/status').then(r => r.data)
 
