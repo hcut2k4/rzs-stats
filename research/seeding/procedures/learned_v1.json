@@ -1,0 +1,76 @@
+{
+  "wc_qualify": {
+    "diff_div": [
+      {
+        "feature": "beat_none",
+        "action": "DROP_WORST_ONE"
+      },
+      {
+        "feature": "group_h2h_pct",
+        "action": "DROP_WORST_ONE"
+      },
+      {
+        "feature": "division_pct",
+        "action": "DROP_WORST_ONE"
+      },
+      {
+        "feature": "inverted_conference_net_points",
+        "action": "DROP_WORST"
+      }
+    ],
+    "same_div": [
+      {
+        "feature": "group_h2h_wins",
+        "action": "DROP_WORST_ONE"
+      },
+      {
+        "feature": "beat_none",
+        "action": "DROP_WORST_ONE"
+      },
+      {
+        "feature": "division_pct",
+        "action": "DROP_WORST_ONE"
+      },
+      {
+        "feature": "inverted_group_members_beaten",
+        "action": "DROP_WORST_ONE"
+      },
+      {
+        "feature": "common_min4_pct",
+        "action": "DROP_WORST_ONE"
+      },
+      {
+        "feature": "inverted_division_pct",
+        "action": "DROP_WORST_ONE"
+      }
+    ]
+  },
+  "metadata": {
+    "split": "train",
+    "cutoff": "thru_cal_wk18",
+    "provenance": "Only seasons in the named split; existing group-list bracket/fallback labels; no other split used for fitting.",
+    "miner_semantics": "Features recomputed after each learned stage; stages applied once; overshoots scored as failures.",
+    "engine_semantics": "Restart list after each change; skip overshoots; normal engine fallback.",
+    "commands": [
+      "python3 -m research.seeding.mine export-procedure --category WC3P --split train --cutoff thru_cal_wk18 --max-steps 6 --min-support 8 --name wc3p_train",
+      "python3 -m research.seeding.mine export-procedure --category DIV3P --split train --cutoff thru_cal_wk18 --max-steps 6 --min-support 8 --name div3p_train"
+    ],
+    "assembly": "Merge wc_qualify and nonempty division_title shapes from the two exports without modifying stages."
+  },
+  "division_title": {
+    "same_div": [
+      {
+        "feature": "division_pct",
+        "action": "DROP_WORST_ONE"
+      },
+      {
+        "feature": "group_h2h_pct",
+        "action": "DROP_WORST_ONE"
+      },
+      {
+        "feature": "inverted_points_for",
+        "action": "DROP_WORST"
+      }
+    ]
+  }
+}

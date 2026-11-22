@@ -1,0 +1,12 @@
+Frozen before the one-time holdout run
+config: chain_seed_pair4
+engine.py sha256: fcd7100546f5ce3b5a834399aa33b52c26685562ee7c957b0408a16be14d6730
+config sha256: fae29952fbfaf9bd3414a24dd008b200045580023eb212f6abae4922ffd8b6d1
+config json: {"beat_none_last": true, "beat_none_last_contexts": ["dw_seed", "wc_seed"], "chain_keep_pair_h2h": false, "chain_mean": "current", "chain_restart": "same", "common_min_games": {"division_title": 0, "dw_seed": 0, "wc_qualify": 0, "wc_seed": 0}, "criteria": {"division_title": ["H2H", "DIV", "COM", "CONF", "SOV", "SOS", "NET_ALL", "FALLBACK"], "dw_seed": ["H2H", "DIV", "COM", "CONF", "SOV", "SOS", "NET_ALL", "FALLBACK"], "wc_qualify": ["H2H", "DIV", "COM", "CONF", "SOV", "SOS", "NET_ALL", "FALLBACK"], "wc_seed": ["H2H", "DIV", "COM", "CONF", "SOV", "SOS", "NET_ALL", "FALLBACK"]}, "directions": {}, "fallback": "alpha", "group_method": "outlier_chain", "group_procedure_mode": "sequential", "group_procedures": {}, "h2h_cluster_contexts": ["wc_qualify", "division_title"], "h2h_cluster_fallback": "worst_first", "h2h_exhausted_after_group": true, "h2h_group_rank": "group_pct", "h2h_measure": "nfl", "h2h_no_games": "half", "h2h_outlier_contexts": ["wc_qualify", "division_title"], "h2h_outlier_fallback": "worst_first", "h2h_outlier_recompute": false, "invert_h2h": true, "invert_h2h_contexts": ["dw_seed", "wc_seed"], "invert_h2h_scope": "groups_3plus", "iteration_order": "alpha", "method": "nfl_best_first", "one_team_per_division": true, "outlier_chain_contexts": ["wc_qualify", "division_title"], "outlier_chain_criteria": ["H2H", "DIV", "COM", "CONF", "SOV", "SOS", "NET_CONF", "NET_ALL"], "playoff_field_size": 7, "processing_order": "division_first", "representative_context": "division_title", "restart_after_elimination": true, "seed_final_pair": "checklist", "seed_rank_beat_none": false, "seed_rank_contexts": ["dw_seed", "wc_seed"], "seed_rank_method": "outlier_chain", "seed_rank_three_only": false, "tie_weight": 0.5, "tiebreak_stats_cutoff": "thru_cal_wk18", "wc_representative_selection": "h2h_loser", "worst_first_contexts": ["division_title"]}
+
+Frozen before the one-time FRESH test (round 3, 2026-11-21)
+config: madden27
+engine.py sha256: 1fed6e45ba99b5e40971b74c830a0449ec8ec846a8034c12cb791b5e71a3b6c1
+explore/ctop2.py sha256: 8cd3d953e160944ee60ef3e94a1f26bf77e4db062910d215b2bd39bd22a13be8
+explore/procs.py sha256: 5d0c360ce9e2c29d0a85785b11aaedb2ea514a6f1fe1bd312d63ae3349c520f9
+config sha256: eefb788f7ed21628dc20ab6034a300657f970f88b5ea3dddb9927f755ab3e690

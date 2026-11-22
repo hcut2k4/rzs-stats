@@ -45,3 +45,5 @@ backend/.localdb/
 
 # ── Local scratch ─────────────────────────────────────────────────────────────
 output.json
+research/seeding/data/
+__pycache__/

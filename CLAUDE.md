@@ -86,3 +86,4 @@ Read only the docs relevant to the current task.
 - Deployment/env/local setup issues → [Operations](docs/operations.md).
 - Writing or running tests → [Testing](docs/testing.md).
 - Original Elo specification → [Elo ratings implementation](docs/elo-ratings-implementation.md).
+- Playoff seeding / Madden tiebreaker research → start with [handoff](docs/madden-playoff-handoff.md), full history in [Madden playoff tiebreakers](docs/madden-playoff-tiebreakers.md).
