@@ -50,3 +50,8 @@ export const triggerQbSync = () => api.post('/admin/sync/qb').then(r => r.data)
 export const getQbSyncStatus = () => api.get('/admin/sync/qb/status').then(r => r.data)
 
 export const getEfficiency = (season, stage) => api.get('/efficiency', { params: { season, stage } }).then(r => r.data)
+
+export const getPlayoffClinch = (season, rules = 'madden') => api.get('/playoffs/clinch', { params: { season, rules } }).then(r => r.data)
+export const getPlayoffRemaining = season => api.get('/playoffs/remaining', { params: { season } }).then(r => r.data)
+export const simulatePlayoffs = (body, signal) => api.post('/playoffs/simulate', body, { signal }).then(r => r.data)
+export const getPlayoffPath = (abbr, season, rules = 'madden') => api.get(`/playoffs/path/${encodeURIComponent(abbr)}`, { params: { season, rules } }).then(r => r.data)
