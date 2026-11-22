@@ -64,11 +64,11 @@ function Conference({ conference, data, clinch }) {
     ['reasons', 'Tiebreak', 'Why a tiebreak determined this position.'],
   ]
   return <section aria-label={conference.name} className="min-w-0">
-    <div className="flex items-center justify-between flex-wrap gap-2 border-b-2 border-rule pb-2">
-      <h2 className="font-display font-bold text-2xl">{conference.name}</h2><ExportMenu spec={spec} />
+    <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+      <h2 className="font-display font-bold uppercase text-xl leading-none">{conference.name}</h2><ExportMenu spec={spec} />
     </div>
-    <div className="overflow-x-auto"><table className="w-full text-sm whitespace-nowrap" aria-label={`${conference.name} playoff picture`}>
-      <thead><tr>{headers.map(([key, label, tip]) => <SortTh key={key} sortKey={key} tip={tip} state={sorter.sort} onSort={sorter.click} className={['seed', 'record', 'playoffs'].includes(key) ? 'text-right' : ''}>{label}</SortTh>)}</tr></thead>
+    <div className="overflow-x-auto border-y border-rule whitespace-nowrap"><table className="w-full text-sm num" aria-label={`${conference.name} playoff picture`}>
+      <thead><tr className="border-b border-rule">{headers.map(([key, label, tip]) => <SortTh key={key} sortKey={key} tip={tip} state={sorter.sort} onSort={sorter.click} className={['seed', 'record', 'playoffs'].includes(key) ? 'text-right' : ''}>{label}</SortTh>)}</tr></thead>
       <tbody>{rows.map((row, i) => <Fragment key={row.team.teamId}>
         {showHunt && row.seed == null && (i === 0 || rows[i - 1].seed != null) && <tr><th colSpan={headers.length} className="text-left px-2 py-1 border-y border-rule bg-surface text-xs uppercase tracking-wide">In the hunt</th></tr>}
         <tr className={`border-t border-line ${i % 2 ? 'bg-surface' : 'bg-bg'}`}>

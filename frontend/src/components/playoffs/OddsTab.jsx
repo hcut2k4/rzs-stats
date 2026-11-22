@@ -6,7 +6,7 @@ import InfoTip from '../InfoTip'
 import { SortTh, useSorter } from '../SortTh'
 import ClinchBadge, { useClinch, teamMarker, markerOdds, markerValue } from './ClinchBadge'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { getPlayoffOdds, getPlayoffCalibration, getPlayoffChampionship } from '../../api/client'
 import ExportMenu from '../ExportMenu'
 import { TeamLogo } from '../TeamLogo'
@@ -37,7 +37,7 @@ export function Calibration({ season }) {
     <summary className="cursor-pointer font-semibold">How accurate are these probabilities?</summary>
     <p className="text-sm text-muted my-3">Do teams given a 70% chance to win actually win about 70% of the time? This checks Elo game predictions against completed regular-season results, rather than testing simulated playoff outcomes.</p>
     {loading && <p>Loading…</p>}{error && <p className="text-muted">Accuracy check unavailable.</p>}
-    {data && <><p className="text-sm mb-3">{data.games.toLocaleString()} games · Brier score: {data.brier?.toFixed(3) ?? '—'} vs a coin flip: {data.coinFlipBrier?.toFixed(3) ?? '—'}. Lower is better; zero is perfect.</p><ExportMenu spec={spec} /><table aria-label="Calibration buckets" className="w-full text-sm"><thead><tr>{spec.cols.map(c => <SortTh key={c.label} tip={c.desc} sortKey={c.label} state={sorter.sort} onSort={sorter.click}>{c.label}</SortTh>)}</tr></thead><tbody>{spec.rows.map((r, i) => <tr key={r.low} className={`border-t border-line ${i % 2 ? 'bg-surface' : 'bg-bg'}`}>{spec.cols.map(c => <td className="px-2 py-1.5 num" key={c.label}>{c.text(r)}</td>)}</tr>)}</tbody></table></>}
+    {data && <><p className="text-sm mb-3">{data.games.toLocaleString()} games · Brier score: {data.brier?.toFixed(3) ?? '—'} vs a coin flip: {data.coinFlipBrier?.toFixed(3) ?? '—'}. Lower is better; zero is perfect.</p><div className="flex justify-end mb-2"><ExportMenu spec={spec} /></div><div className="overflow-x-auto border-y border-rule whitespace-nowrap"><table aria-label="Calibration buckets" className="w-full text-sm num"><thead><tr className="border-b border-rule">{spec.cols.map(c => <SortTh key={c.label} tip={c.desc} sortKey={c.label} state={sorter.sort} onSort={sorter.click}>{c.label}</SortTh>)}</tr></thead><tbody>{spec.rows.map((r, i) => <tr key={r.low} className={`border-t border-line ${i % 2 ? 'bg-surface' : 'bg-bg'}`}>{spec.cols.map(c => <td className="px-2 py-1.5 num" key={c.label}>{c.text(r)}</td>)}</tr>)}</tbody></table></div></>}
   </details>
 }
 
@@ -47,7 +47,7 @@ const TITLE_COLS = [
 ]
 const PREPLAYOFF = 'Ratings are frozen at the end of the regular season. This is the pre-playoff projection, rather than a forecast updated during the postseason.'
 
-function ConferenceProbability({ conference, data, clinch, championship }) {
+function ConferenceProbability({ conference, data, clinch, championship, focused }) {
   const sorter = useSorter({ key: 'playoffs', asc: false })
   const getters = {
     team: r => r.team.displayName,
@@ -73,9 +73,9 @@ function ConferenceProbability({ conference, data, clinch, championship }) {
   }
   const header = (key, label, tip) => <SortTh key={key} sortKey={key} tip={tip} state={sorter.sort} onSort={sorter.click} className={key === 'team' ? '!px-1' : 'text-right !px-1'}>{label}</SortTh>
   return <section aria-label={`${conference.name} probability`} className="min-w-0">
-    <div className="flex justify-between flex-wrap gap-2 border-b-2 border-rule pb-2"><h2 className="font-display text-2xl font-bold">{conference.name}</h2><ExportMenu spec={spec} /></div>
-    <div className="overflow-x-auto"><table className="w-full text-sm whitespace-nowrap" aria-label={`${conference.name} playoff probability`}>
-      <thead><tr>
+    <div className="flex justify-between flex-wrap gap-2 mb-2"><h2 className="font-display font-bold uppercase text-xl leading-none">{conference.name}</h2><ExportMenu spec={spec} /></div>
+    <div className="overflow-x-auto border-y border-rule whitespace-nowrap"><table className="w-full text-sm num" aria-label={`${conference.name} playoff probability`}>
+      <thead><tr className="border-b border-rule">
         {header('team', 'Team', 'Team and proven clinch or elimination status.')}
         {header('record', 'Record', 'Regular-season record; sorts by winning percentage.')}
         {goalCols.map(c => header(c.key, c.label, c.desc))}
@@ -87,7 +87,7 @@ function ConferenceProbability({ conference, data, clinch, championship }) {
         <td className="px-1 num text-right">{recordText(r)}</td>
         {goalCols.map(c => <td key={c.key} className="px-1 num text-right" style={{ background: c.color(r) }}>{c.text(r)}</td>)}
         {titleCols.slice(0, 2).map(c => <td key={c.key} className="px-1 num text-right" style={{ background: c.color(r) }}><InfoTip text={`Reach round 2: ${formatOdds(r.title?.round2)}; conference final: ${formatOdds(r.title?.conferenceFinal)}.`}><span tabIndex={0}>{c.text(r)}</span></InfoTip></td>)}
-        <td className="px-1"><SeedBar seedOdds={r.seedOdds} size={52} /></td>
+        <td className="px-1"><SeedBar seedOdds={r.seedOdds} size={focused ? 112 : 52} /></td>
       </tr>)}</tbody>
     </table></div>
   </section>
@@ -95,6 +95,13 @@ function ConferenceProbability({ conference, data, clinch, championship }) {
 
 export default function OddsTab({ season, rules }) {
   const [view, setView] = useState('table')
+  const [params, setParams] = useSearchParams()
+  const conf = ['AFC', 'NFC'].includes(params.get('conf')) ? params.get('conf') : null
+  const setConference = value => setParams(prev => {
+    const next = new URLSearchParams(prev)
+    value ? next.set('conf', value) : next.delete('conf')
+    return next
+  }, { replace: true })
   const clinch = useClinch(season, rules)
   const { data, loading, error, retry } = usePlayoffLoad(season == null ? null : `playoffs-odds-${season}-${rules}`, () => getPlayoffOdds(season, 'madden'))
   const championship = usePlayoffLoad(season == null ? null : `playoffs-championship-${season}-${rules}`, () => getPlayoffChampionship(season, 'madden'))
@@ -102,14 +109,19 @@ export default function OddsTab({ season, rules }) {
   if (error) return <PlayoffError error={error} retry={retry}>Could not load playoff probability.</PlayoffError>
   if (!data?.conferences?.some(c => c.teams.length)) return <p className="text-muted">No playoff probability available.</p>
   return <>
-    <div className="flex border border-line rounded overflow-hidden w-fit mb-2" role="group" aria-label="Probability view">
+    <div className="flex flex-wrap gap-2 mb-2">
+    <div className="flex border border-line rounded overflow-hidden w-fit" role="group" aria-label="Probability view">
       {[['table', 'Table'], ['history', 'Over time']].map(([key, label]) => <button type="button" key={key} aria-pressed={view === key} onClick={() => setView(key)} className={`px-2 py-1 text-xs font-medium ${view === key ? 'bg-ink text-bg' : 'text-muted hover:text-ink'}`}>{label}</button>)}
+    </div>
+    {view === 'table' && data.conferences.length > 1 && <div className="flex border border-line rounded overflow-hidden w-fit" role="group" aria-label="Conference focus">
+      {[[null, 'Both'], ['AFC', 'AFC'], ['NFC', 'NFC']].map(([key, label]) => <button type="button" key={label} aria-pressed={conf === key} onClick={() => setConference(key)} className={`px-2 py-1 text-xs font-medium ${conf === key ? 'bg-ink text-bg' : 'text-muted hover:text-ink'}`}>{label}</button>)}
+    </div>}
     </div>
     <p className="text-xs text-muted mb-2">{data.simulations.toLocaleString()} simulations · computed {formatComputed(data.computedAt)}</p>
     {view === 'history' ? <OddsHistory key={data.season} season={data.season} currentTeams={data.conferences.flatMap(c => c.teams)} /> : <>
       {championship.error && <p className="text-xs text-muted mb-2">Title probabilities unavailable. Playoff probabilities are shown below.</p>}
       <SeedLegend />
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">{data.conferences.map(conference => <ConferenceProbability key={conference.name} conference={conference} data={data} clinch={clinch} championship={championship.data} />)}</div>
+      <div className={`grid grid-cols-1 ${conf || data.conferences.length === 1 ? '' : 'xl:grid-cols-2'} gap-4`}>{data.conferences.filter(c => !conf || data.conferences.length === 1 || c.name === conf).map(conference => <ConferenceProbability key={conference.name} conference={conference} data={data} clinch={clinch} championship={championship.data} focused={!!conf} />)}</div>
     </>}
     <Calibration season={data.season} />
   </>

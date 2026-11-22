@@ -39,7 +39,7 @@ export default function OddsHistory({ season, currentTeams }) {
     api: { path: '/playoffs/odds/history', params: { season: data.season }, fields: { Week: 'snapshots[].week', Teams: `snapshots[].teams[].${goal}` }, note: `${goalLabel}; selected teams: ${lines.map(t => t.abbrName).join(', ')}. Data table sorted by ${sorter.sort.key} ${sorter.sort.asc ? 'ascending' : 'descending'}; chart remains chronological.` },
   }
   return <section aria-label="Probability over time" className="mt-3">
-      <h2 className="font-semibold">Probability over time</h2>
+      <h2 className="font-display font-bold uppercase text-xl leading-none">Probability over time</h2>
       <p className="text-sm text-muted">{NOTE}</p>
       {loading && <p className="text-muted">Loading…</p>}
       {error && <PlayoffError error={error} retry={retry}>Probability history unavailable.</PlayoffError>}
@@ -64,7 +64,7 @@ export default function OddsHistory({ season, currentTeams }) {
               {lines.map(t => <Line key={t.teamId} name={t.displayName} dataKey={String(t.teamId)} type="linear" stroke={t.color} strokeDasharray={t.dash} strokeWidth={2} dot={{ r: 3 }} isAnimationActive={false} />)}
             </LineChart></ResponsiveContainer>
           </div>
-          <div className="mt-3 overflow-x-auto"><table className="w-full text-sm" aria-label="Probability history data"><thead><tr>{spec.cols.map(c => <SortTh key={c.label} tip={c.desc} sortKey={c.label} state={sorter.sort} onSort={sorter.click}>{c.label}</SortTh>)}</tr></thead><tbody>{sortedRows.map((r, i) => <tr className={`border-t border-line ${i % 2 ? 'bg-surface' : 'bg-bg'}`} key={i}>{spec.cols.map(c => <td className="px-2 py-1.5 num" key={c.label} style={{ background: c.color?.(r) }}>{c.text(r) || '—'}</td>)}</tr>)}</tbody></table></div>
+          <div className="mt-3 overflow-x-auto border-y border-rule whitespace-nowrap"><table className="w-full text-sm num" aria-label="Probability history data"><thead><tr className="border-b border-rule">{spec.cols.map(c => <SortTh key={c.label} tip={c.desc} sortKey={c.label} state={sorter.sort} onSort={sorter.click}>{c.label}</SortTh>)}</tr></thead><tbody>{sortedRows.map((r, i) => <tr className={`border-t border-line ${i % 2 ? 'bg-surface' : 'bg-bg'}`} key={i}>{spec.cols.map(c => <td className="px-2 py-1.5 num" key={c.label} style={{ background: c.color?.(r) }}>{c.text(r) || '—'}</td>)}</tr>)}</tbody></table></div>
         </>}
       </>}
   </section>
