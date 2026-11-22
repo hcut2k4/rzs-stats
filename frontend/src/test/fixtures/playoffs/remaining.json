@@ -1,0 +1,453 @@
+{
+  "season" : 2,
+  "nextWeek" : 16,
+  "games" : [ {
+    "gameId" : 241,
+    "week" : 16,
+    "home" : {
+      "teamId" : 9,
+      "abbrName" : "HOU",
+      "displayName" : "HOU"
+    },
+    "away" : {
+      "teamId" : 2,
+      "abbrName" : "MIA",
+      "displayName" : "MIA"
+    },
+    "homeWinProb" : 0.718120691709231
+  }, {
+    "gameId" : 242,
+    "week" : 16,
+    "home" : {
+      "teamId" : 27,
+      "abbrName" : "NO",
+      "displayName" : "NO"
+    },
+    "away" : {
+      "teamId" : 12,
+      "abbrName" : "TEN",
+      "displayName" : "TEN"
+    },
+    "homeWinProb" : 0.4011744736057505
+  }, {
+    "gameId" : 243,
+    "week" : 16,
+    "home" : {
+      "teamId" : 24,
+      "abbrName" : "MIN",
+      "displayName" : "MIN"
+    },
+    "away" : {
+      "teamId" : 21,
+      "abbrName" : "CHI",
+      "displayName" : "CHI"
+    },
+    "homeWinProb" : 0.41419532289871913
+  }, {
+    "gameId" : 244,
+    "week" : 16,
+    "home" : {
+      "teamId" : 14,
+      "abbrName" : "KC",
+      "displayName" : "KC"
+    },
+    "away" : {
+      "teamId" : 13,
+      "abbrName" : "DEN",
+      "displayName" : "DEN"
+    },
+    "homeWinProb" : 0.4149591498284333
+  }, {
+    "gameId" : 245,
+    "week" : 16,
+    "home" : {
+      "teamId" : 7,
+      "abbrName" : "CLE",
+      "displayName" : "CLE"
+    },
+    "away" : {
+      "teamId" : 16,
+      "abbrName" : "LAC",
+      "displayName" : "LAC"
+    },
+    "homeWinProb" : 0.3957902128732643
+  }, {
+    "gameId" : 246,
+    "week" : 16,
+    "home" : {
+      "teamId" : 11,
+      "abbrName" : "JAX",
+      "displayName" : "JAX"
+    },
+    "away" : {
+      "teamId" : 28,
+      "abbrName" : "TB",
+      "displayName" : "TB"
+    },
+    "homeWinProb" : 0.7104632936359333
+  }, {
+    "gameId" : 247,
+    "week" : 16,
+    "home" : {
+      "teamId" : 8,
+      "abbrName" : "PIT",
+      "displayName" : "PIT"
+    },
+    "away" : {
+      "teamId" : 4,
+      "abbrName" : "NYJ",
+      "displayName" : "NYJ"
+    },
+    "homeWinProb" : 0.511675864386376
+  }, {
+    "gameId" : 248,
+    "week" : 16,
+    "home" : {
+      "teamId" : 10,
+      "abbrName" : "IND",
+      "displayName" : "IND"
+    },
+    "away" : {
+      "teamId" : 26,
+      "abbrName" : "CAR",
+      "displayName" : "CAR"
+    },
+    "homeWinProb" : 0.7396908512688755
+  }, {
+    "gameId" : 249,
+    "week" : 16,
+    "home" : {
+      "teamId" : 5,
+      "abbrName" : "BAL",
+      "displayName" : "BAL"
+    },
+    "away" : {
+      "teamId" : 15,
+      "abbrName" : "LV",
+      "displayName" : "LV"
+    },
+    "homeWinProb" : 0.5796798780344549
+  }, {
+    "gameId" : 250,
+    "week" : 16,
+    "home" : {
+      "teamId" : 19,
+      "abbrName" : "PHI",
+      "displayName" : "PHI"
+    },
+    "away" : {
+      "teamId" : 25,
+      "abbrName" : "ATL",
+      "displayName" : "ATL"
+    },
+    "homeWinProb" : 0.752212429738677
+  }, {
+    "gameId" : 251,
+    "week" : 16,
+    "home" : {
+      "teamId" : 32,
+      "abbrName" : "SEA",
+      "displayName" : "SEA"
+    },
+    "away" : {
+      "teamId" : 29,
+      "abbrName" : "AZ",
+      "displayName" : "AZ"
+    },
+    "homeWinProb" : 0.6924175135444317
+  }, {
+    "gameId" : 252,
+    "week" : 16,
+    "home" : {
+      "teamId" : 1,
+      "abbrName" : "BUF",
+      "displayName" : "BUF"
+    },
+    "away" : {
+      "teamId" : 17,
+      "abbrName" : "DAL",
+      "displayName" : "DAL"
+    },
+    "homeWinProb" : 0.7278383794191922
+  }, {
+    "gameId" : 253,
+    "week" : 16,
+    "home" : {
+      "teamId" : 30,
+      "abbrName" : "LAR",
+      "displayName" : "LAR"
+    },
+    "away" : {
+      "teamId" : 31,
+      "abbrName" : "SF",
+      "displayName" : "SF"
+    },
+    "homeWinProb" : 0.5039797215987395
+  }, {
+    "gameId" : 254,
+    "week" : 16,
+    "home" : {
+      "teamId" : 22,
+      "abbrName" : "DET",
+      "displayName" : "DET"
+    },
+    "away" : {
+      "teamId" : 6,
+      "abbrName" : "CIN",
+      "displayName" : "CIN"
+    },
+    "homeWinProb" : 0.3565723306630675
+  }, {
+    "gameId" : 255,
+    "week" : 16,
+    "home" : {
+      "teamId" : 23,
+      "abbrName" : "GB",
+      "displayName" : "GB"
+    },
+    "away" : {
+      "teamId" : 18,
+      "abbrName" : "NYG",
+      "displayName" : "NYG"
+    },
+    "homeWinProb" : 0.6400367367467527
+  }, {
+    "gameId" : 256,
+    "week" : 16,
+    "home" : {
+      "teamId" : 20,
+      "abbrName" : "WAS",
+      "displayName" : "WAS"
+    },
+    "away" : {
+      "teamId" : 3,
+      "abbrName" : "NE",
+      "displayName" : "NE"
+    },
+    "homeWinProb" : 0.3560950631949882
+  }, {
+    "gameId" : 257,
+    "week" : 17,
+    "home" : {
+      "teamId" : 6,
+      "abbrName" : "CIN",
+      "displayName" : "CIN"
+    },
+    "away" : {
+      "teamId" : 13,
+      "abbrName" : "DEN",
+      "displayName" : "DEN"
+    },
+    "homeWinProb" : 0.685228687235492
+  }, {
+    "gameId" : 258,
+    "week" : 17,
+    "home" : {
+      "teamId" : 1,
+      "abbrName" : "BUF",
+      "displayName" : "BUF"
+    },
+    "away" : {
+      "teamId" : 20,
+      "abbrName" : "WAS",
+      "displayName" : "WAS"
+    },
+    "homeWinProb" : 0.6493753574100974
+  }, {
+    "gameId" : 259,
+    "week" : 17,
+    "home" : {
+      "teamId" : 28,
+      "abbrName" : "TB",
+      "displayName" : "TB"
+    },
+    "away" : {
+      "teamId" : 22,
+      "abbrName" : "DET",
+      "displayName" : "DET"
+    },
+    "homeWinProb" : 0.207411432584919
+  }, {
+    "gameId" : 260,
+    "week" : 17,
+    "home" : {
+      "teamId" : 27,
+      "abbrName" : "NO",
+      "displayName" : "NO"
+    },
+    "away" : {
+      "teamId" : 10,
+      "abbrName" : "IND",
+      "displayName" : "IND"
+    },
+    "homeWinProb" : 0.3056294437428065
+  }, {
+    "gameId" : 261,
+    "week" : 17,
+    "home" : {
+      "teamId" : 7,
+      "abbrName" : "CLE",
+      "displayName" : "CLE"
+    },
+    "away" : {
+      "teamId" : 30,
+      "abbrName" : "LAR",
+      "displayName" : "LAR"
+    },
+    "homeWinProb" : 0.457479532172959
+  }, {
+    "gameId" : 262,
+    "week" : 17,
+    "home" : {
+      "teamId" : 3,
+      "abbrName" : "NE",
+      "displayName" : "NE"
+    },
+    "away" : {
+      "teamId" : 2,
+      "abbrName" : "MIA",
+      "displayName" : "MIA"
+    },
+    "homeWinProb" : 0.7981737938707146
+  }, {
+    "gameId" : 263,
+    "week" : 17,
+    "home" : {
+      "teamId" : 21,
+      "abbrName" : "CHI",
+      "displayName" : "CHI"
+    },
+    "away" : {
+      "teamId" : 8,
+      "abbrName" : "PIT",
+      "displayName" : "PIT"
+    },
+    "homeWinProb" : 0.501713880467006
+  }, {
+    "gameId" : 264,
+    "week" : 17,
+    "home" : {
+      "teamId" : 17,
+      "abbrName" : "DAL",
+      "displayName" : "DAL"
+    },
+    "away" : {
+      "teamId" : 32,
+      "abbrName" : "SEA",
+      "displayName" : "SEA"
+    },
+    "homeWinProb" : 0.19997893196932784
+  }, {
+    "gameId" : 265,
+    "week" : 17,
+    "home" : {
+      "teamId" : 16,
+      "abbrName" : "LAC",
+      "displayName" : "LAC"
+    },
+    "away" : {
+      "teamId" : 24,
+      "abbrName" : "MIN",
+      "displayName" : "MIN"
+    },
+    "homeWinProb" : 0.7423601530301258
+  }, {
+    "gameId" : 266,
+    "week" : 17,
+    "home" : {
+      "teamId" : 15,
+      "abbrName" : "LV",
+      "displayName" : "LV"
+    },
+    "away" : {
+      "teamId" : 23,
+      "abbrName" : "GB",
+      "displayName" : "GB"
+    },
+    "homeWinProb" : 0.4077752922447043
+  }, {
+    "gameId" : 267,
+    "week" : 17,
+    "home" : {
+      "teamId" : 5,
+      "abbrName" : "BAL",
+      "displayName" : "BAL"
+    },
+    "away" : {
+      "teamId" : 14,
+      "abbrName" : "KC",
+      "displayName" : "KC"
+    },
+    "homeWinProb" : 0.6559616748387336
+  }, {
+    "gameId" : 268,
+    "week" : 17,
+    "home" : {
+      "teamId" : 29,
+      "abbrName" : "AZ",
+      "displayName" : "AZ"
+    },
+    "away" : {
+      "teamId" : 12,
+      "abbrName" : "TEN",
+      "displayName" : "TEN"
+    },
+    "homeWinProb" : 0.48928617226033416
+  }, {
+    "gameId" : 269,
+    "week" : 17,
+    "home" : {
+      "teamId" : 31,
+      "abbrName" : "SF",
+      "displayName" : "SF"
+    },
+    "away" : {
+      "teamId" : 11,
+      "abbrName" : "JAX",
+      "displayName" : "JAX"
+    },
+    "homeWinProb" : 0.5923560616897522
+  }, {
+    "gameId" : 270,
+    "week" : 17,
+    "home" : {
+      "teamId" : 26,
+      "abbrName" : "CAR",
+      "displayName" : "CAR"
+    },
+    "away" : {
+      "teamId" : 25,
+      "abbrName" : "ATL",
+      "displayName" : "ATL"
+    },
+    "homeWinProb" : 0.47332625307348075
+  }, {
+    "gameId" : 271,
+    "week" : 17,
+    "home" : {
+      "teamId" : 4,
+      "abbrName" : "NYJ",
+      "displayName" : "NYJ"
+    },
+    "away" : {
+      "teamId" : 9,
+      "abbrName" : "HOU",
+      "displayName" : "HOU"
+    },
+    "homeWinProb" : 0.494604045764255
+  }, {
+    "gameId" : 272,
+    "week" : 17,
+    "home" : {
+      "teamId" : 19,
+      "abbrName" : "PHI",
+      "displayName" : "PHI"
+    },
+    "away" : {
+      "teamId" : 18,
+      "abbrName" : "NYG",
+      "displayName" : "NYG"
+    },
+    "homeWinProb" : 0.6355278561061761
+  } ]
+}

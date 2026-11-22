@@ -30,11 +30,42 @@ class SyncServiceTest {
     @Mock com.rzs.stats.repository.QbGameStatRepository qbRepository;
     @Mock com.rzs.stats.repository.TeamGameStatRepository teamStatRepository;
 
+    @Mock SyncStatusService persistedStatus;
+
     SyncService service;
 
     @BeforeEach
     void setUp() {
-        service = new SyncService(client, teamRepository, gameRepository, qbRepository, teamStatRepository);
+        service = new SyncService(client, teamRepository, gameRepository, qbRepository, teamStatRepository, persistedStatus);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"sync", "force", "verbose"})
+    void successfulSyncVariantsRecordPersistedStatus(String variant) {
+        when(client.fetchLeagueInfo()).thenReturn(league(0));
+        when(client.fetchAllTeams()).thenReturn(List.of());
+        when(client.fetchAllGamesForSeason(0)).thenReturn(List.of());
+        boolean success = switch (variant) {
+            case "force" -> service.syncForce().success();
+            case "verbose" -> service.syncVerbose().success();
+            default -> service.sync().success();
+        };
+        assertThat(success).isTrue();
+        verify(persistedStatus).successful(0);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"sync", "force", "verbose"})
+    void failedSyncVariantsDoNotRecordSuccessfulStatus(String variant) {
+        when(client.fetchLeagueInfo()).thenThrow(new IllegalStateException("upstream unavailable"));
+        boolean success = switch (variant) {
+            case "force" -> service.syncForce().success();
+            case "verbose" -> service.syncVerbose().success();
+            default -> service.sync().success();
+        };
+        assertThat(success).isFalse();
+        verify(persistedStatus).failed();
+        verify(persistedStatus, never()).successful(anyInt());
     }
 
     // ── sync() ─────────────────────────────────────────────────────────────────

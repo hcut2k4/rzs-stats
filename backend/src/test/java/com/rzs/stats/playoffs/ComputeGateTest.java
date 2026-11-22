@@ -17,9 +17,9 @@ class ComputeGateTest {
     @Test
     void failedComputationReleasesItsPermit() {
         var gate = new ComputeGate(1, 0);
-        assertThatThrownBy(() -> gate.compute(() -> { throw new IllegalArgumentException("failure"); }))
+        assertThatThrownBy(() -> gate.execute(() -> { throw new IllegalArgumentException("failure"); }))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThat(gate.compute(() -> "next computation")).isEqualTo("next computation");
+        assertThat(gate.execute(() -> "next computation")).isEqualTo("next computation");
     }
 
     @RestController
@@ -90,6 +90,54 @@ class ComputeGateTest {
     void nestedComputationReusesTheThreadsPermit() {
         var gate = new ComputeGate(1, 0);
         assertThat(gate.compute(() -> gate.compute(() -> "nested"))).isEqualTo("nested");
+    }
+
+    @RestController
+    static class SlowController {
+        private final ComputeGate gate;
+        SlowController(ComputeGate gate) { this.gate = gate; }
+        @GetMapping("/slow")
+        public String slow() {
+            return gate.execute(() -> {
+                try { Thread.sleep(5000); }
+                catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+                ComputeGate.checkpoint();
+                return "late";
+            });
+        }
+    }
+
+    @Test
+    void deadlineReturns503WithRetryAfterAndReleasesCapacity() throws Exception {
+        try (var gate = new ComputeGate(1, 20, 50)) {
+            var http = MockMvcBuilders.standaloneSetup(new SlowController(gate))
+                    .setControllerAdvice(new WhatIfExceptionHandler()).build();
+            http.perform(get("/slow")).andExpect(status().isServiceUnavailable())
+                    .andExpect(header().string("Retry-After", "5"));
+            assertThat(gate.execute(() -> "next")).isEqualTo("next");
+        }
+    }
+
+    @Test
+    void allHeavyWorkSharesTheSameBoundedWorkers() throws Exception {
+        try (var gate = new ComputeGate(2, 10000, 5000);
+             var callers = Executors.newVirtualThreadPerTaskExecutor()) {
+            var active = new java.util.concurrent.atomic.AtomicInteger();
+            var maximum = new java.util.concurrent.atomic.AtomicInteger();
+            var workers = java.util.concurrent.ConcurrentHashMap.<Long>newKeySet();
+            var futures = new java.util.ArrayList<java.util.concurrent.Future<Integer>>();
+            for (int i = 0; i < 12; i++) futures.add(callers.submit(() -> gate.execute(() -> {
+                workers.add(Thread.currentThread().threadId());
+                maximum.accumulateAndGet(active.incrementAndGet(), Math::max);
+                try {
+                    try { Thread.sleep(10); } catch (InterruptedException e) { throw new AssertionError(e); }
+                    return gate.execute(() -> 1);
+                } finally { active.decrementAndGet(); }
+            })));
+            for (var future : futures) assertThat(future.get()).isEqualTo(1);
+            assertThat(maximum.get()).isEqualTo(2);
+            assertThat(workers).hasSize(2);
+        }
     }
 
     private static void await(CountDownLatch latch) {

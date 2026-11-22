@@ -8,6 +8,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class WhatIfExceptionHandler {
     @ExceptionHandler(ComputeGate.BusyException.class)
     public ResponseEntity<String> busy() {
-        return ResponseEntity.status(503).body("Playoff simulations are busy; try again shortly");
+        return ResponseEntity.status(503).header("Retry-After", "5").body("Playoff simulations are busy; try again shortly");
     }
 }

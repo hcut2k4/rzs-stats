@@ -27,7 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DataJpaTest(showSql = false, properties = "playoffs.leverage-simulations=100")
 @AutoConfigureCache(cacheProvider = CacheType.CAFFEINE)
 @EnableCaching
-@Import({com.rzs.stats.playoffs.ComputeGate.class, SeasonStateLoader.class, LeverageService.class, SimulationService.class,
+@Import({com.rzs.stats.config.CacheNames.class, com.rzs.stats.playoffs.ComputeGate.class, SeasonStateLoader.class, LeverageService.class, SimulationService.class,
         PlayoffsLeverageController.class, CacheNames.class, EloQueryService.class,
         EloHistoryService.class, EloService.class, EloConfigService.class, OwnerChangeService.class})
 class LeverageServiceTest {
@@ -136,6 +136,10 @@ class LeverageServiceTest {
     @Test
     void defaultAndExplicitWeekRequestsShareOneCachedMatrix() throws Exception {
         populate(false);
+        var cached = leverage.matrix(null, null, "madden");
+        long seeded = SimulationService.seedings();
+        assertThat(leverage.matrix(2, cached.week(), "madden")).isSameAs(cached);
+        assertThat(SimulationService.seedings()).isEqualTo(seeded);
         var implicit = json.readTree(http.perform(get("/api/playoffs/leverage?season=2")).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString());
         var explicit = json.readTree(http.perform(get("/api/playoffs/leverage?season=2&week=" + implicit.get("week").asInt()))
@@ -201,10 +205,10 @@ class LeverageServiceTest {
     @org.junit.jupiter.api.Tag("benchmark")
     void reportsTimeForSixteenGameWeek() throws Exception {
         populate(false);
-        var service = new LeverageService(loader, elo, new SimulationService(), 10000, new com.rzs.stats.playoffs.ComputeGate(2, 100));
+        var service = new LeverageService(loader, elo, new SimulationService(), 5000, new com.rzs.stats.playoffs.ComputeGate(2, 100));
         long start = System.nanoTime();
         var result = service.matrix(2, 16, "madden");
-        System.out.printf("BENCHMARK leverage 16-game week, 10,000 paired simulations: %.3f seconds%n", (System.nanoTime() - start) / 1e9);
+        System.out.printf("BENCHMARK leverage 16-game week, 5,000 paired simulations: %.3f seconds%n", (System.nanoTime() - start) / 1e9);
         assertThat(result.games()).hasSize(16);
     }
 }

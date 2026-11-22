@@ -14,8 +14,10 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class EloConfigService {
     private final EloConfigRepository repository;
+    private final com.rzs.stats.config.PlayoffCacheInvalidation invalidation;
 
-    public EloConfigService(EloConfigRepository repository) {
+    public EloConfigService(EloConfigRepository repository, com.rzs.stats.config.PlayoffCacheInvalidation invalidation) {
+        this.invalidation = invalidation;
         this.repository = repository;
     }
 
@@ -30,7 +32,7 @@ public class EloConfigService {
     }
 
     @Transactional
-    @CacheEvict(value = {"eloHistory", "playoffOdds", "leverage", "playoffPicture", "eloCalibration", "playoffPath", "playoffChampionship", "playoffWhatIf"}, allEntries = true)
+    @CacheEvict(value = {"playoffBaseline", "playoffScenarios", "playoffClinch", "eloHistory", "playoffOdds", "leverage", "playoffPicture", "eloCalibration", "playoffPath", "playoffChampionship", "playoffWhatIf"}, allEntries = true)
     public EloConfig update(EloConfig config) {
         if (config == null || !config.valid()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid Elo configuration");
@@ -38,6 +40,7 @@ public class EloConfigService {
         EloConfigEntity entity = repository.findById(1L).orElseGet(EloConfigEntity::new);
         entity.update(config);
         repository.save(entity);
+        invalidation.changed();
         return config;
     }
 }

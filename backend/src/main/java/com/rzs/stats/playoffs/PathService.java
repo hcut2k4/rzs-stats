@@ -29,19 +29,21 @@ public class PathService {
     private final LeverageService leverage;
     private final SimulationService simulator;
     private final EloQueryService elo;
-    private final int simulations, riskSimulations;
+    private final int simulations;
+    private final ScenarioService scenarios;
 
     public PathService(SeasonStateLoader loader, OddsService odds, ClinchService clinch, LeverageService leverage,
                        SimulationService simulator, EloQueryService elo,
-                       @Value("${playoffs.path-simulations:5000}") int simulations,
-                       @Value("${playoffs.path-risk-simulations:2000}") int riskSimulations, ComputeGate gate) {
-        if (simulations <= 0 || riskSimulations <= 0) throw new IllegalArgumentException("Path simulations must be positive");
+                       @Value("${playoffs.path-simulations:10000}") int simulations, ComputeGate gate, ScenarioService scenarios) {
+        if (simulations <= 0) throw new IllegalArgumentException("Path simulations must be positive");
         this.gate = gate;
         this.loader = loader; this.odds = odds; this.clinch = clinch; this.leverage = leverage;
-        this.simulator = simulator; this.elo = elo; this.simulations = simulations; this.riskSimulations = riskSimulations;
+        this.simulator = simulator; this.elo = elo; this.simulations = simulations; this.scenarios = scenarios;
     }
 
-    @Cacheable(value = "playoffPath", sync = true)
+    public int canonicalSeason(Integer season, String rules) { return odds.canonicalSeason(season, rules); }
+
+    @Cacheable(value = "playoffPath", key = "new org.springframework.cache.interceptor.SimpleKey(#root.target.canonicalSeason(#season, #rules), #abbr, #rules)", sync = true)
     public Response path(Integer season, String abbr, String rules) {
         if (!"madden".equals(rules) && !"nfl".equals(rules))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rules must be madden or nfl");
@@ -50,13 +52,15 @@ public class PathService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown team"));
         var baseline = odds.odds(state.season(), rules);
         var matrix = leverage.matrix(state.season(), state.nextWeek(), rules);
-        return gate.compute(() -> {
+        var markerResponse = clinch.clinch(state.season(), rules);
+        var probs = state.remainingGames().isEmpty() ? Map.<Integer, Double>of() : elo.homeWinProbabilities(state.season());
+        var tracked = odds.baseline(state.season(), rules).baseline();
+        return gate.execute(() -> {
             var row = baseline.conferences().stream().flatMap(c -> c.teams().stream())
                     .filter(r -> r.team().abbrName().equals(abbr)).findFirst().orElseThrow();
-            var marker = clinch.clinch(state.season(), rules).teams().stream()
+            var marker = markerResponse.teams().stream()
                     .filter(r -> r.team().abbrName().equals(abbr)).findFirst().orElseThrow();
             var markers = new Markers(marker.playoffs(), marker.division(), marker.oneSeed());
-            var probs = state.remainingGames().isEmpty() ? Map.<Integer, Double>of() : elo.homeWinProbabilities(state.season());
             long seed = SimulationService.mix(((long) state.season() << 32) ^ Objects.hashCode(state.nextWeek()) ^ rules.hashCode());
             var selected = rules.equals("madden") ? SimulationService.Rules.MADDEN : SimulationService.Rules.NFL;
             var forced = new HashMap<Integer, SimulationService.Outcome>();
@@ -66,13 +70,13 @@ public class PathService {
                 forced.put(g.gameId(), outcome);
                 constraints.put(new ClinchAnalyzer.Matchup(g.week(), g.home(), g.away()), outcome);
             }
-            var winning = simulator.simulate(state, probs, forced, simulations, seed, selected, true);
+            var conditioned = simulator.conditioned(state, probs, forced, simulations, seed, selected, abbr);
+            var winning = conditioned.simulation();
             var winOdds = fractions(winning, abbr);
             boolean destiny = clinch.constrained(state, rules, constraints).markers().get(abbr)
                     .get(ClinchAnalyzer.Goal.PLAYOFFS) == ClinchAnalyzer.Marker.CLINCHED;
-            var tracked = simulator.simulate(state, probs, Map.of(), Math.max(1, baseline.simulations()), seed, selected, false, abbr);
             int finalGames = row.wins() + row.losses() + row.ties() + forced.size();
-            var needed = tracked.wins().entrySet().stream().filter(e -> e.getValue().simulations() / (double) Math.max(1, tracked.simulations()) >= .005)
+            var needed = tracked.allWins().get(abbr).entrySet().stream().filter(e -> e.getValue().simulations() / (double) Math.max(1, tracked.simulations()) >= .005)
                     .map(e -> {
                         var b = e.getValue(); double n = b.simulations(); int w = e.getKey();
                         String record = w + "-" + (finalGames - w - row.ties()) + (row.ties() == 0 ? "" : "-" + row.ties());
@@ -102,18 +106,28 @@ public class PathService {
                             && (conference.contains(g.home()) || conference.contains(g.away())))
                     .sorted(Comparator.comparingInt(SeasonStateLoader.RemainingGame::week).thenComparingInt(SeasonStateLoader.RemainingGame::gameId))
                     .limit(40).toList();
+            var fallback = candidates.stream().filter(g -> !conditioned.swings().containsKey(g.gameId()))
+                    .sorted(Comparator.comparingDouble((SeasonStateLoader.RemainingGame g) ->
+                            conditioned.estimates().containsKey(g.gameId()) ? Math.abs(conditioned.estimates().get(g.gameId()))
+                                    : Math.min(probs.get(g.gameId()), 1 - probs.get(g.gameId())))
+                            .reversed().thenComparingInt(SeasonStateLoader.RemainingGame::gameId))
+                    .limit(10).map(SeasonStateLoader.RemainingGame::gameId).collect(java.util.stream.Collectors.toSet());
             for (var g : candidates) {
-                var picks = new HashMap<>(forced);
-                picks.put(g.gameId(), SimulationService.Outcome.HOME);
-                var home = simulator.simulate(state, probs, picks, riskSimulations, seed, selected, true);
-                picks.put(g.gameId(), SimulationService.Outcome.AWAY);
-                var away = simulator.simulate(state, probs, picks, riskSimulations, seed, selected, true);
-                risks.add(root(g.gameId(), g.week(), state.identities().get(g.home()), state.identities().get(g.away()),
-                        fractions(home, abbr).playoffs() - fractions(away, abbr).playoffs()));
+                var swing = conditioned.swings().get(g.gameId());
+                if (swing == null && fallback.contains(g.gameId())) {
+                    var overrides = new HashMap<>(forced);
+                    overrides.put(g.gameId(), SimulationService.Outcome.HOME);
+                    var home = simulator.simulate(state, probs, overrides, 1500, seed, selected, true);
+                    overrides.put(g.gameId(), SimulationService.Outcome.AWAY);
+                    var away = simulator.simulate(state, probs, overrides, 1500, seed, selected, true);
+                    swing = fractions(home, abbr).playoffs() - fractions(away, abbr).playoffs();
+                }
+                if (swing != null) risks.add(root(g.gameId(), g.week(), state.identities().get(g.home()), state.identities().get(g.away()), swing));
             }
+
             return new Response(state.season(), rules, row.team(), row.wins(), row.losses(), row.ties(), forced.size(),
                     baseline.simulations(), row.odds(), markers, new WinOut(winOdds.playoffs(), winOdds.division(), winOdds.oneSeed(), destiny),
-                    new Ceiling(best, row.seedOdds()), needed, top(risks), top(roots), new ScenarioService().scenarios(state, abbr, rules));
+                    new Ceiling(best, row.seedOdds()), needed, top(risks), top(roots), scenarios.scenarios(state, abbr, rules));
         });
     }
 

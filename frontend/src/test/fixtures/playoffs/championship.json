@@ -1,0 +1,392 @@
+{
+  "season" : 2,
+  "rules" : "madden",
+  "simulations" : 100,
+  "computedAt" : "2026-01-01T00:00:00Z",
+  "teams" : [ {
+    "team" : {
+      "teamId" : 32,
+      "abbrName" : "SEA",
+      "displayName" : "SEA"
+    },
+    "conference" : "NFC",
+    "playoffs" : 1.0,
+    "round2" : 0.8,
+    "conferenceFinal" : 0.56,
+    "champion" : 0.19,
+    "final" : 0.39
+  }, {
+    "team" : {
+      "teamId" : 6,
+      "abbrName" : "CIN",
+      "displayName" : "CIN"
+    },
+    "conference" : "AFC",
+    "playoffs" : 0.81,
+    "round2" : 0.61,
+    "conferenceFinal" : 0.38,
+    "champion" : 0.14,
+    "final" : 0.25
+  }, {
+    "team" : {
+      "teamId" : 19,
+      "abbrName" : "PHI",
+      "displayName" : "PHI"
+    },
+    "conference" : "NFC",
+    "playoffs" : 0.92,
+    "round2" : 0.55,
+    "conferenceFinal" : 0.26,
+    "champion" : 0.09,
+    "final" : 0.11
+  }, {
+    "team" : {
+      "teamId" : 22,
+      "abbrName" : "DET",
+      "displayName" : "DET"
+    },
+    "conference" : "NFC",
+    "playoffs" : 1.0,
+    "round2" : 0.68,
+    "conferenceFinal" : 0.37,
+    "champion" : 0.08,
+    "final" : 0.17
+  }, {
+    "team" : {
+      "teamId" : 16,
+      "abbrName" : "LAC",
+      "displayName" : "LAC"
+    },
+    "conference" : "AFC",
+    "playoffs" : 0.8,
+    "round2" : 0.39,
+    "conferenceFinal" : 0.25,
+    "champion" : 0.07,
+    "final" : 0.13
+  }, {
+    "team" : {
+      "teamId" : 3,
+      "abbrName" : "NE",
+      "displayName" : "NE"
+    },
+    "conference" : "AFC",
+    "playoffs" : 0.77,
+    "round2" : 0.45,
+    "conferenceFinal" : 0.23,
+    "champion" : 0.07,
+    "final" : 0.1
+  }, {
+    "team" : {
+      "teamId" : 30,
+      "abbrName" : "LAR",
+      "displayName" : "LAR"
+    },
+    "conference" : "NFC",
+    "playoffs" : 1.0,
+    "round2" : 0.75,
+    "conferenceFinal" : 0.32,
+    "champion" : 0.05,
+    "final" : 0.14
+  }, {
+    "team" : {
+      "teamId" : 5,
+      "abbrName" : "BAL",
+      "displayName" : "BAL"
+    },
+    "conference" : "AFC",
+    "playoffs" : 0.3,
+    "round2" : 0.18,
+    "conferenceFinal" : 0.09,
+    "champion" : 0.04,
+    "final" : 0.05
+  }, {
+    "team" : {
+      "teamId" : 1,
+      "abbrName" : "BUF",
+      "displayName" : "BUF"
+    },
+    "conference" : "AFC",
+    "playoffs" : 0.8,
+    "round2" : 0.57,
+    "conferenceFinal" : 0.26,
+    "champion" : 0.04,
+    "final" : 0.11
+  }, {
+    "team" : {
+      "teamId" : 23,
+      "abbrName" : "GB",
+      "displayName" : "GB"
+    },
+    "conference" : "NFC",
+    "playoffs" : 0.45,
+    "round2" : 0.29,
+    "conferenceFinal" : 0.13,
+    "champion" : 0.04,
+    "final" : 0.06
+  }, {
+    "team" : {
+      "teamId" : 31,
+      "abbrName" : "SF",
+      "displayName" : "SF"
+    },
+    "conference" : "NFC",
+    "playoffs" : 0.86,
+    "round2" : 0.43,
+    "conferenceFinal" : 0.16,
+    "champion" : 0.04,
+    "final" : 0.07
+  }, {
+    "team" : {
+      "teamId" : 7,
+      "abbrName" : "CLE",
+      "displayName" : "CLE"
+    },
+    "conference" : "AFC",
+    "playoffs" : 0.5,
+    "round2" : 0.23,
+    "conferenceFinal" : 0.1,
+    "champion" : 0.03,
+    "final" : 0.04
+  }, {
+    "team" : {
+      "teamId" : 13,
+      "abbrName" : "DEN",
+      "displayName" : "DEN"
+    },
+    "conference" : "AFC",
+    "playoffs" : 0.65,
+    "round2" : 0.31,
+    "conferenceFinal" : 0.15,
+    "champion" : 0.03,
+    "final" : 0.04
+  }, {
+    "team" : {
+      "teamId" : 10,
+      "abbrName" : "IND",
+      "displayName" : "IND"
+    },
+    "conference" : "AFC",
+    "playoffs" : 0.96,
+    "round2" : 0.5,
+    "conferenceFinal" : 0.28,
+    "champion" : 0.03,
+    "final" : 0.13
+  }, {
+    "team" : {
+      "teamId" : 15,
+      "abbrName" : "LV",
+      "displayName" : "LV"
+    },
+    "conference" : "AFC",
+    "playoffs" : 0.63,
+    "round2" : 0.33,
+    "conferenceFinal" : 0.15,
+    "champion" : 0.02,
+    "final" : 0.08
+  }, {
+    "team" : {
+      "teamId" : 8,
+      "abbrName" : "PIT",
+      "displayName" : "PIT"
+    },
+    "conference" : "AFC",
+    "playoffs" : 0.6,
+    "round2" : 0.35,
+    "conferenceFinal" : 0.07,
+    "champion" : 0.02,
+    "final" : 0.04
+  }, {
+    "team" : {
+      "teamId" : 11,
+      "abbrName" : "JAX",
+      "displayName" : "JAX"
+    },
+    "conference" : "AFC",
+    "playoffs" : 0.17,
+    "round2" : 0.07,
+    "conferenceFinal" : 0.03,
+    "champion" : 0.01,
+    "final" : 0.02
+  }, {
+    "team" : {
+      "teamId" : 12,
+      "abbrName" : "TEN",
+      "displayName" : "TEN"
+    },
+    "conference" : "AFC",
+    "playoffs" : 0.01,
+    "round2" : 0.01,
+    "conferenceFinal" : 0.01,
+    "champion" : 0.01,
+    "final" : 0.01
+  }, {
+    "team" : {
+      "teamId" : 25,
+      "abbrName" : "ATL",
+      "displayName" : "ATL"
+    },
+    "conference" : "NFC",
+    "playoffs" : 0.44,
+    "round2" : 0.11,
+    "conferenceFinal" : 0.03,
+    "champion" : 0.0,
+    "final" : 0.01
+  }, {
+    "team" : {
+      "teamId" : 29,
+      "abbrName" : "AZ",
+      "displayName" : "AZ"
+    },
+    "conference" : "NFC",
+    "playoffs" : 0.0,
+    "round2" : 0.0,
+    "conferenceFinal" : 0.0,
+    "champion" : 0.0,
+    "final" : 0.0
+  }, {
+    "team" : {
+      "teamId" : 26,
+      "abbrName" : "CAR",
+      "displayName" : "CAR"
+    },
+    "conference" : "NFC",
+    "playoffs" : 0.56,
+    "round2" : 0.17,
+    "conferenceFinal" : 0.06,
+    "champion" : 0.0,
+    "final" : 0.01
+  }, {
+    "team" : {
+      "teamId" : 21,
+      "abbrName" : "CHI",
+      "displayName" : "CHI"
+    },
+    "conference" : "NFC",
+    "playoffs" : 0.09,
+    "round2" : 0.02,
+    "conferenceFinal" : 0.0,
+    "champion" : 0.0,
+    "final" : 0.0
+  }, {
+    "team" : {
+      "teamId" : 17,
+      "abbrName" : "DAL",
+      "displayName" : "DAL"
+    },
+    "conference" : "NFC",
+    "playoffs" : 0.0,
+    "round2" : 0.0,
+    "conferenceFinal" : 0.0,
+    "champion" : 0.0,
+    "final" : 0.0
+  }, {
+    "team" : {
+      "teamId" : 9,
+      "abbrName" : "HOU",
+      "displayName" : "HOU"
+    },
+    "conference" : "AFC",
+    "playoffs" : 0.0,
+    "round2" : 0.0,
+    "conferenceFinal" : 0.0,
+    "champion" : 0.0,
+    "final" : 0.0
+  }, {
+    "team" : {
+      "teamId" : 14,
+      "abbrName" : "KC",
+      "displayName" : "KC"
+    },
+    "conference" : "AFC",
+    "playoffs" : 0.0,
+    "round2" : 0.0,
+    "conferenceFinal" : 0.0,
+    "champion" : 0.0,
+    "final" : 0.0
+  }, {
+    "team" : {
+      "teamId" : 2,
+      "abbrName" : "MIA",
+      "displayName" : "MIA"
+    },
+    "conference" : "AFC",
+    "playoffs" : 0.0,
+    "round2" : 0.0,
+    "conferenceFinal" : 0.0,
+    "champion" : 0.0,
+    "final" : 0.0
+  }, {
+    "team" : {
+      "teamId" : 24,
+      "abbrName" : "MIN",
+      "displayName" : "MIN"
+    },
+    "conference" : "NFC",
+    "playoffs" : 0.0,
+    "round2" : 0.0,
+    "conferenceFinal" : 0.0,
+    "champion" : 0.0,
+    "final" : 0.0
+  }, {
+    "team" : {
+      "teamId" : 27,
+      "abbrName" : "NO",
+      "displayName" : "NO"
+    },
+    "conference" : "NFC",
+    "playoffs" : 0.0,
+    "round2" : 0.0,
+    "conferenceFinal" : 0.0,
+    "champion" : 0.0,
+    "final" : 0.0
+  }, {
+    "team" : {
+      "teamId" : 18,
+      "abbrName" : "NYG",
+      "displayName" : "NYG"
+    },
+    "conference" : "NFC",
+    "playoffs" : 0.37,
+    "round2" : 0.14,
+    "conferenceFinal" : 0.08,
+    "champion" : 0.0,
+    "final" : 0.04
+  }, {
+    "team" : {
+      "teamId" : 4,
+      "abbrName" : "NYJ",
+      "displayName" : "NYJ"
+    },
+    "conference" : "AFC",
+    "playoffs" : 0.0,
+    "round2" : 0.0,
+    "conferenceFinal" : 0.0,
+    "champion" : 0.0,
+    "final" : 0.0
+  }, {
+    "team" : {
+      "teamId" : 28,
+      "abbrName" : "TB",
+      "displayName" : "TB"
+    },
+    "conference" : "NFC",
+    "playoffs" : 0.0,
+    "round2" : 0.0,
+    "conferenceFinal" : 0.0,
+    "champion" : 0.0,
+    "final" : 0.0
+  }, {
+    "team" : {
+      "teamId" : 20,
+      "abbrName" : "WAS",
+      "displayName" : "WAS"
+    },
+    "conference" : "NFC",
+    "playoffs" : 0.31,
+    "round2" : 0.06,
+    "conferenceFinal" : 0.03,
+    "champion" : 0.0,
+    "final" : 0.0
+  } ],
+  "preplayoff" : false
+}

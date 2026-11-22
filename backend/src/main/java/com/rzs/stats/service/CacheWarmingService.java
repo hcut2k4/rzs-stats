@@ -27,7 +27,8 @@ public class CacheWarmingService {
     private final StatsService statsService;
     private final EloHistoryService eloHistoryService;
     private final QbStatsService qbStatsService;
-    private final ChampionshipService championship;
+    private final com.rzs.stats.playoffs.ClinchService clinch;
+    private final com.rzs.stats.config.PlayoffCacheInvalidation invalidation;
     private final OddsService odds;
     private final LeverageService leverage;
     private final OddsSnapshotService snapshots;
@@ -44,7 +45,7 @@ public class CacheWarmingService {
         return new WarmStatus(inProgress, startedAt, completedAt, message, success);
     }
 
-    public CacheWarmingService(StatsService statsService, EloHistoryService eloHistoryService, QbStatsService qbStatsService, OddsService odds, OddsSnapshotService snapshots, LeverageService leverage, ChampionshipService championship, ComputeGate gate) {
+    public CacheWarmingService(StatsService statsService, EloHistoryService eloHistoryService, QbStatsService qbStatsService, OddsService odds, OddsSnapshotService snapshots, LeverageService leverage, ChampionshipService championship, ComputeGate gate, com.rzs.stats.playoffs.ClinchService clinch, com.rzs.stats.config.PlayoffCacheInvalidation invalidation) {
         this.gate = gate;
         this.statsService = statsService;
         this.eloHistoryService = eloHistoryService;
@@ -52,10 +53,11 @@ public class CacheWarmingService {
         this.odds = odds;
         this.snapshots = snapshots;
         this.leverage = leverage;
-        this.championship = championship;
+        this.clinch = clinch;
+        this.invalidation = invalidation;
     }
 
-    @CacheEvict(cacheResolver = CacheNames.ALL, allEntries = true, beforeInvocation = true)
+    @CacheEvict(cacheResolver = CacheNames.SITE, allEntries = true, beforeInvocation = true)
     public void warmCaches() {
         inProgress = true;
         startedAt = Instant.now();
@@ -100,22 +102,22 @@ public class CacheWarmingService {
                 }
             }
             eloHistoryService.getTimeline();
-            if (!seasons.isEmpty()) {
+            if (!seasons.isEmpty() && invalidation.takeWarm()) {
                 try {
                     gate.warm(() -> snapshots.save(odds.odds(null, "madden")));
                 } catch (Exception e) {
                     log.warn("Cache warming: playoff odds failed", e);
                 }
                 try {
-                    gate.warm(() -> championship.championship(null, "madden"));
-                } catch (Exception e) {
-                    log.warn("Cache warming: playoff championship failed", e);
-                }
-                try {
                     var key = leverage.canonicalKey(null, null);
                     gate.warm(() -> leverage.matrix(key.season(), key.week(), "madden"));
                 } catch (Exception e) {
                     log.warn("Cache warming: playoff leverage failed", e);
+                }
+                try {
+                    gate.warm(() -> clinch.clinch(null, "madden"));
+                } catch (Exception e) {
+                    log.warn("Cache warming: playoff clinch failed", e);
                 }
             }
             long elapsed = Duration.between(startedAt, Instant.now()).getSeconds();

@@ -1,0 +1,905 @@
+{
+  "season" : 2,
+  "rules" : "madden",
+  "picked" : 32,
+  "remaining" : 32,
+  "simulations" : 100,
+  "exact" : true,
+  "conferences" : [ {
+    "name" : "AFC",
+    "teams" : [ {
+      "team" : {
+        "teamId" : 5,
+        "abbrName" : "BAL",
+        "displayName" : "BAL"
+      },
+      "division" : "AFC North",
+      "odds" : {
+        "playoffs" : 1.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.3,
+        "division" : 0.03,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 1,
+        "abbrName" : "BUF",
+        "displayName" : "BUF"
+      },
+      "division" : "AFC East",
+      "odds" : {
+        "playoffs" : 1.0,
+        "division" : 1.0,
+        "oneSeed" : 1.0
+      },
+      "baseline" : {
+        "playoffs" : 0.8,
+        "division" : 0.69,
+        "oneSeed" : 0.2
+      },
+      "seedOdds" : [ 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 7,
+        "abbrName" : "CLE",
+        "displayName" : "CLE"
+      },
+      "division" : "AFC North",
+      "odds" : {
+        "playoffs" : 1.0,
+        "division" : 1.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.5,
+        "division" : 0.05,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 10,
+        "abbrName" : "IND",
+        "displayName" : "IND"
+      },
+      "division" : "AFC South",
+      "odds" : {
+        "playoffs" : 1.0,
+        "division" : 1.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.96,
+        "division" : 0.96,
+        "oneSeed" : 0.14
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 16,
+        "abbrName" : "LAC",
+        "displayName" : "LAC"
+      },
+      "division" : "AFC West",
+      "odds" : {
+        "playoffs" : 1.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.8,
+        "division" : 0.3,
+        "oneSeed" : 0.02
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 15,
+        "abbrName" : "LV",
+        "displayName" : "LV"
+      },
+      "division" : "AFC West",
+      "odds" : {
+        "playoffs" : 1.0,
+        "division" : 1.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.63,
+        "division" : 0.41,
+        "oneSeed" : 0.11
+      },
+      "seedOdds" : [ 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 8,
+        "abbrName" : "PIT",
+        "displayName" : "PIT"
+      },
+      "division" : "AFC North",
+      "odds" : {
+        "playoffs" : 1.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.6,
+        "division" : 0.34,
+        "oneSeed" : 0.2
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 6,
+        "abbrName" : "CIN",
+        "displayName" : "CIN"
+      },
+      "division" : "AFC North",
+      "odds" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.81,
+        "division" : 0.58,
+        "oneSeed" : 0.15
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 13,
+        "abbrName" : "DEN",
+        "displayName" : "DEN"
+      },
+      "division" : "AFC West",
+      "odds" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.65,
+        "division" : 0.29,
+        "oneSeed" : 0.11
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 9,
+        "abbrName" : "HOU",
+        "displayName" : "HOU"
+      },
+      "division" : "AFC South",
+      "odds" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 11,
+        "abbrName" : "JAX",
+        "displayName" : "JAX"
+      },
+      "division" : "AFC South",
+      "odds" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.17,
+        "division" : 0.03,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 14,
+        "abbrName" : "KC",
+        "displayName" : "KC"
+      },
+      "division" : "AFC West",
+      "odds" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 2,
+        "abbrName" : "MIA",
+        "displayName" : "MIA"
+      },
+      "division" : "AFC East",
+      "odds" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 3,
+        "abbrName" : "NE",
+        "displayName" : "NE"
+      },
+      "division" : "AFC East",
+      "odds" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.77,
+        "division" : 0.31,
+        "oneSeed" : 0.07
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 4,
+        "abbrName" : "NYJ",
+        "displayName" : "NYJ"
+      },
+      "division" : "AFC East",
+      "odds" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 12,
+        "abbrName" : "TEN",
+        "displayName" : "TEN"
+      },
+      "division" : "AFC South",
+      "odds" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.01,
+        "division" : 0.01,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    } ],
+    "seeds" : [ {
+      "seed" : 1,
+      "team" : {
+        "teamId" : 1,
+        "abbrName" : "BUF",
+        "displayName" : "BUF"
+      },
+      "division" : "AFC East",
+      "divisionWinner" : true,
+      "wins" : 11,
+      "losses" : 6,
+      "ties" : 0,
+      "otherRulesSeed" : 1,
+      "reasons" : [ "Better division record: BUF ahead of CLE." ],
+      "odds" : {
+        "playoffs" : 1.0,
+        "division" : 1.0,
+        "oneSeed" : 1.0
+      },
+      "dependsOnScores" : false
+    }, {
+      "seed" : 2,
+      "team" : {
+        "teamId" : 7,
+        "abbrName" : "CLE",
+        "displayName" : "CLE"
+      },
+      "division" : "AFC North",
+      "divisionWinner" : true,
+      "wins" : 11,
+      "losses" : 6,
+      "ties" : 0,
+      "otherRulesSeed" : 2,
+      "reasons" : [ "Better division record: BUF ahead of CLE." ],
+      "odds" : {
+        "playoffs" : 1.0,
+        "division" : 1.0,
+        "oneSeed" : 0.0
+      },
+      "dependsOnScores" : false
+    }, {
+      "seed" : 3,
+      "team" : {
+        "teamId" : 15,
+        "abbrName" : "LV",
+        "displayName" : "LV"
+      },
+      "division" : "AFC West",
+      "divisionWinner" : true,
+      "wins" : 10,
+      "losses" : 7,
+      "ties" : 0,
+      "otherRulesSeed" : 3,
+      "reasons" : [ "Better division record: LV ahead of LAC.", "Better record against common opponents: LV ahead of IND." ],
+      "odds" : {
+        "playoffs" : 1.0,
+        "division" : 1.0,
+        "oneSeed" : 0.0
+      },
+      "dependsOnScores" : false
+    }, {
+      "seed" : 4,
+      "team" : {
+        "teamId" : 10,
+        "abbrName" : "IND",
+        "displayName" : "IND"
+      },
+      "division" : "AFC South",
+      "divisionWinner" : true,
+      "wins" : 10,
+      "losses" : 7,
+      "ties" : 0,
+      "otherRulesSeed" : 4,
+      "reasons" : [ "Better record against common opponents: LV ahead of IND." ],
+      "odds" : {
+        "playoffs" : 1.0,
+        "division" : 1.0,
+        "oneSeed" : 0.0
+      },
+      "dependsOnScores" : false
+    }, {
+      "seed" : 5,
+      "team" : {
+        "teamId" : 16,
+        "abbrName" : "LAC",
+        "displayName" : "LAC"
+      },
+      "division" : "AFC West",
+      "divisionWinner" : false,
+      "wins" : 10,
+      "losses" : 7,
+      "ties" : 0,
+      "otherRulesSeed" : null,
+      "reasons" : [ "Better division record: LV ahead of LAC.", "BAL, CIN, LAC and PIT finished ahead of NE: among the 5 teams tied on winning percentage, they belong to the largest groups with the same head-to-head win count, and Madden puts the biggest group of teams with the same count first.", "BAL and LAC finished ahead of CIN and PIT: among the 4 teams tied on winning percentage, they share the same head-to-head win count, and Madden puts the biggest group of teams with the same count first.", "Won the head-to-head: LAC ahead of BAL." ],
+      "odds" : {
+        "playoffs" : 1.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "dependsOnScores" : false
+    }, {
+      "seed" : 6,
+      "team" : {
+        "teamId" : 5,
+        "abbrName" : "BAL",
+        "displayName" : "BAL"
+      },
+      "division" : "AFC North",
+      "divisionWinner" : false,
+      "wins" : 10,
+      "losses" : 7,
+      "ties" : 0,
+      "otherRulesSeed" : 7,
+      "reasons" : [ "PIT had the most wins against the other tied teams (BAL 1, CIN 2, PIT 3), ahead of BAL and CIN.", "BAL, CIN, LAC and PIT finished ahead of NE: among the 5 teams tied on winning percentage, they belong to the largest groups with the same head-to-head win count, and Madden puts the biggest group of teams with the same count first.", "BAL and LAC finished ahead of CIN and PIT: among the 4 teams tied on winning percentage, they share the same head-to-head win count, and Madden puts the biggest group of teams with the same count first.", "Won the head-to-head: LAC ahead of BAL." ],
+      "odds" : {
+        "playoffs" : 1.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "dependsOnScores" : false
+    }, {
+      "seed" : 7,
+      "team" : {
+        "teamId" : 8,
+        "abbrName" : "PIT",
+        "displayName" : "PIT"
+      },
+      "division" : "AFC North",
+      "divisionWinner" : false,
+      "wins" : 10,
+      "losses" : 7,
+      "ties" : 0,
+      "otherRulesSeed" : 5,
+      "reasons" : [ "PIT had the most wins against the other tied teams (BAL 1, CIN 2, PIT 3), ahead of BAL and CIN.", "BAL, CIN, LAC and PIT finished ahead of NE: among the 5 teams tied on winning percentage, they belong to the largest groups with the same head-to-head win count, and Madden puts the biggest group of teams with the same count first.", "BAL and LAC finished ahead of CIN and PIT: among the 4 teams tied on winning percentage, they share the same head-to-head win count, and Madden puts the biggest group of teams with the same count first." ],
+      "odds" : {
+        "playoffs" : 1.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "dependsOnScores" : false
+    } ]
+  }, {
+    "name" : "NFC",
+    "teams" : [ {
+      "team" : {
+        "teamId" : 26,
+        "abbrName" : "CAR",
+        "displayName" : "CAR"
+      },
+      "division" : "NFC South",
+      "odds" : {
+        "playoffs" : 1.0,
+        "division" : 1.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.56,
+        "division" : 0.56,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 22,
+        "abbrName" : "DET",
+        "displayName" : "DET"
+      },
+      "division" : "NFC North",
+      "odds" : {
+        "playoffs" : 1.0,
+        "division" : 1.0,
+        "oneSeed" : 1.0
+      },
+      "baseline" : {
+        "playoffs" : 1.0,
+        "division" : 1.0,
+        "oneSeed" : 0.24
+      },
+      "seedOdds" : [ 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 30,
+        "abbrName" : "LAR",
+        "displayName" : "LAR"
+      },
+      "division" : "NFC West",
+      "odds" : {
+        "playoffs" : 1.0,
+        "division" : 1.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 1.0,
+        "division" : 0.47,
+        "oneSeed" : 0.35
+      },
+      "seedOdds" : [ 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 19,
+        "abbrName" : "PHI",
+        "displayName" : "PHI"
+      },
+      "division" : "NFC East",
+      "odds" : {
+        "playoffs" : 1.0,
+        "division" : 1.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.92,
+        "division" : 0.78,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 32,
+        "abbrName" : "SEA",
+        "displayName" : "SEA"
+      },
+      "division" : "NFC West",
+      "odds" : {
+        "playoffs" : 1.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 1.0,
+        "division" : 0.42,
+        "oneSeed" : 0.4
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 31,
+        "abbrName" : "SF",
+        "displayName" : "SF"
+      },
+      "division" : "NFC West",
+      "odds" : {
+        "playoffs" : 1.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.86,
+        "division" : 0.11,
+        "oneSeed" : 0.01
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 20,
+        "abbrName" : "WAS",
+        "displayName" : "WAS"
+      },
+      "division" : "NFC East",
+      "odds" : {
+        "playoffs" : 1.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.31,
+        "division" : 0.05,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 25,
+        "abbrName" : "ATL",
+        "displayName" : "ATL"
+      },
+      "division" : "NFC South",
+      "odds" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.44,
+        "division" : 0.44,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 29,
+        "abbrName" : "AZ",
+        "displayName" : "AZ"
+      },
+      "division" : "NFC West",
+      "odds" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 21,
+        "abbrName" : "CHI",
+        "displayName" : "CHI"
+      },
+      "division" : "NFC North",
+      "odds" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.09,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 17,
+        "abbrName" : "DAL",
+        "displayName" : "DAL"
+      },
+      "division" : "NFC East",
+      "odds" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 23,
+        "abbrName" : "GB",
+        "displayName" : "GB"
+      },
+      "division" : "NFC North",
+      "odds" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.45,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 24,
+        "abbrName" : "MIN",
+        "displayName" : "MIN"
+      },
+      "division" : "NFC North",
+      "odds" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 27,
+        "abbrName" : "NO",
+        "displayName" : "NO"
+      },
+      "division" : "NFC South",
+      "odds" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 18,
+        "abbrName" : "NYG",
+        "displayName" : "NYG"
+      },
+      "division" : "NFC East",
+      "odds" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.37,
+        "division" : 0.17,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 28,
+        "abbrName" : "TB",
+        "displayName" : "TB"
+      },
+      "division" : "NFC South",
+      "odds" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    } ],
+    "seeds" : [ {
+      "seed" : 1,
+      "team" : {
+        "teamId" : 22,
+        "abbrName" : "DET",
+        "displayName" : "DET"
+      },
+      "division" : "NFC North",
+      "divisionWinner" : true,
+      "wins" : 11,
+      "losses" : 6,
+      "ties" : 0,
+      "otherRulesSeed" : 2,
+      "reasons" : [ "DET and PHI finished ahead of LAR: among the 3 teams tied on winning percentage, they share the same head-to-head win count, and Madden puts the biggest group of teams with the same count first.", "Better division record: DET ahead of PHI." ],
+      "odds" : {
+        "playoffs" : 1.0,
+        "division" : 1.0,
+        "oneSeed" : 1.0
+      },
+      "dependsOnScores" : false
+    }, {
+      "seed" : 2,
+      "team" : {
+        "teamId" : 19,
+        "abbrName" : "PHI",
+        "displayName" : "PHI"
+      },
+      "division" : "NFC East",
+      "divisionWinner" : true,
+      "wins" : 11,
+      "losses" : 6,
+      "ties" : 0,
+      "otherRulesSeed" : 3,
+      "reasons" : [ "DET and PHI finished ahead of LAR: among the 3 teams tied on winning percentage, they share the same head-to-head win count, and Madden puts the biggest group of teams with the same count first.", "Better division record: DET ahead of PHI." ],
+      "odds" : {
+        "playoffs" : 1.0,
+        "division" : 1.0,
+        "oneSeed" : 0.0
+      },
+      "dependsOnScores" : false
+    }, {
+      "seed" : 3,
+      "team" : {
+        "teamId" : 30,
+        "abbrName" : "LAR",
+        "displayName" : "LAR"
+      },
+      "division" : "NFC West",
+      "divisionWinner" : true,
+      "wins" : 11,
+      "losses" : 6,
+      "ties" : 0,
+      "otherRulesSeed" : 1,
+      "reasons" : [ "Won the head-to-head: LAR ahead of SEA.", "DET and PHI finished ahead of LAR: among the 3 teams tied on winning percentage, they share the same head-to-head win count, and Madden puts the biggest group of teams with the same count first." ],
+      "odds" : {
+        "playoffs" : 1.0,
+        "division" : 1.0,
+        "oneSeed" : 0.0
+      },
+      "dependsOnScores" : false
+    }, {
+      "seed" : 4,
+      "team" : {
+        "teamId" : 26,
+        "abbrName" : "CAR",
+        "displayName" : "CAR"
+      },
+      "division" : "NFC South",
+      "divisionWinner" : true,
+      "wins" : 8,
+      "losses" : 9,
+      "ties" : 0,
+      "otherRulesSeed" : 4,
+      "reasons" : [ ],
+      "odds" : {
+        "playoffs" : 1.0,
+        "division" : 1.0,
+        "oneSeed" : 0.0
+      },
+      "dependsOnScores" : false
+    }, {
+      "seed" : 5,
+      "team" : {
+        "teamId" : 32,
+        "abbrName" : "SEA",
+        "displayName" : "SEA"
+      },
+      "division" : "NFC West",
+      "divisionWinner" : false,
+      "wins" : 11,
+      "losses" : 6,
+      "ties" : 0,
+      "otherRulesSeed" : 5,
+      "reasons" : [ "Won the head-to-head: LAR ahead of SEA." ],
+      "odds" : {
+        "playoffs" : 1.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "dependsOnScores" : false
+    }, {
+      "seed" : 6,
+      "team" : {
+        "teamId" : 31,
+        "abbrName" : "SF",
+        "displayName" : "SF"
+      },
+      "division" : "NFC West",
+      "divisionWinner" : false,
+      "wins" : 10,
+      "losses" : 7,
+      "ties" : 0,
+      "otherRulesSeed" : 6,
+      "reasons" : [ ],
+      "odds" : {
+        "playoffs" : 1.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "dependsOnScores" : false
+    }, {
+      "seed" : 7,
+      "team" : {
+        "teamId" : 20,
+        "abbrName" : "WAS",
+        "displayName" : "WAS"
+      },
+      "division" : "NFC East",
+      "divisionWinner" : false,
+      "wins" : 9,
+      "losses" : 8,
+      "ties" : 0,
+      "otherRulesSeed" : 7,
+      "reasons" : [ "Better division record: WAS ahead of GB." ],
+      "odds" : {
+        "playoffs" : 1.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "dependsOnScores" : false
+    } ]
+  } ]
+}

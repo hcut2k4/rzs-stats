@@ -1,0 +1,625 @@
+{
+  "season" : 2,
+  "rules" : "madden",
+  "picked" : 1,
+  "remaining" : 32,
+  "simulations" : 100,
+  "exact" : false,
+  "conferences" : [ {
+    "name" : "AFC",
+    "teams" : [ {
+      "team" : {
+        "teamId" : 10,
+        "abbrName" : "IND",
+        "displayName" : "IND"
+      },
+      "division" : "AFC South",
+      "odds" : {
+        "playoffs" : 0.96,
+        "division" : 0.96,
+        "oneSeed" : 0.14
+      },
+      "baseline" : {
+        "playoffs" : 0.96,
+        "division" : 0.96,
+        "oneSeed" : 0.14
+      },
+      "seedOdds" : [ 0.14, 0.26, 0.22, 0.34, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 6,
+        "abbrName" : "CIN",
+        "displayName" : "CIN"
+      },
+      "division" : "AFC North",
+      "odds" : {
+        "playoffs" : 0.81,
+        "division" : 0.58,
+        "oneSeed" : 0.15
+      },
+      "baseline" : {
+        "playoffs" : 0.81,
+        "division" : 0.58,
+        "oneSeed" : 0.15
+      },
+      "seedOdds" : [ 0.15, 0.18, 0.15, 0.1, 0.15, 0.01, 0.07 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 1,
+        "abbrName" : "BUF",
+        "displayName" : "BUF"
+      },
+      "division" : "AFC East",
+      "odds" : {
+        "playoffs" : 0.8,
+        "division" : 0.69,
+        "oneSeed" : 0.2
+      },
+      "baseline" : {
+        "playoffs" : 0.8,
+        "division" : 0.69,
+        "oneSeed" : 0.2
+      },
+      "seedOdds" : [ 0.2, 0.09, 0.25, 0.15, 0.05, 0.05, 0.01 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 16,
+        "abbrName" : "LAC",
+        "displayName" : "LAC"
+      },
+      "division" : "AFC West",
+      "odds" : {
+        "playoffs" : 0.8,
+        "division" : 0.3,
+        "oneSeed" : 0.02
+      },
+      "baseline" : {
+        "playoffs" : 0.8,
+        "division" : 0.3,
+        "oneSeed" : 0.02
+      },
+      "seedOdds" : [ 0.02, 0.21, 0.04, 0.03, 0.26, 0.17, 0.07 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 3,
+        "abbrName" : "NE",
+        "displayName" : "NE"
+      },
+      "division" : "AFC East",
+      "odds" : {
+        "playoffs" : 0.77,
+        "division" : 0.31,
+        "oneSeed" : 0.07
+      },
+      "baseline" : {
+        "playoffs" : 0.77,
+        "division" : 0.31,
+        "oneSeed" : 0.07
+      },
+      "seedOdds" : [ 0.07, 0.1, 0.07, 0.07, 0.25, 0.08, 0.13 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 13,
+        "abbrName" : "DEN",
+        "displayName" : "DEN"
+      },
+      "division" : "AFC West",
+      "odds" : {
+        "playoffs" : 0.65,
+        "division" : 0.29,
+        "oneSeed" : 0.11
+      },
+      "baseline" : {
+        "playoffs" : 0.65,
+        "division" : 0.29,
+        "oneSeed" : 0.11
+      },
+      "seedOdds" : [ 0.11, 0.05, 0.06, 0.07, 0.04, 0.14, 0.18 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 15,
+        "abbrName" : "LV",
+        "displayName" : "LV"
+      },
+      "division" : "AFC West",
+      "odds" : {
+        "playoffs" : 0.63,
+        "division" : 0.41,
+        "oneSeed" : 0.11
+      },
+      "baseline" : {
+        "playoffs" : 0.63,
+        "division" : 0.41,
+        "oneSeed" : 0.11
+      },
+      "seedOdds" : [ 0.11, 0.05, 0.12, 0.13, 0.03, 0.12, 0.07 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 8,
+        "abbrName" : "PIT",
+        "displayName" : "PIT"
+      },
+      "division" : "AFC North",
+      "odds" : {
+        "playoffs" : 0.6,
+        "division" : 0.34,
+        "oneSeed" : 0.2
+      },
+      "baseline" : {
+        "playoffs" : 0.6,
+        "division" : 0.34,
+        "oneSeed" : 0.2
+      },
+      "seedOdds" : [ 0.2, 0.03, 0.06, 0.05, 0.09, 0.07, 0.1 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 7,
+        "abbrName" : "CLE",
+        "displayName" : "CLE"
+      },
+      "division" : "AFC North",
+      "odds" : {
+        "playoffs" : 0.5,
+        "division" : 0.05,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.5,
+        "division" : 0.05,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.03, 0.01, 0.01, 0.11, 0.21, 0.13 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 5,
+        "abbrName" : "BAL",
+        "displayName" : "BAL"
+      },
+      "division" : "AFC North",
+      "odds" : {
+        "playoffs" : 0.3,
+        "division" : 0.03,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.3,
+        "division" : 0.03,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.01, 0.02, 0.01, 0.07, 0.19 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 11,
+        "abbrName" : "JAX",
+        "displayName" : "JAX"
+      },
+      "division" : "AFC South",
+      "odds" : {
+        "playoffs" : 0.17,
+        "division" : 0.03,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.17,
+        "division" : 0.03,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.01, 0.02, 0.01, 0.08, 0.05 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 12,
+        "abbrName" : "TEN",
+        "displayName" : "TEN"
+      },
+      "division" : "AFC South",
+      "odds" : {
+        "playoffs" : 0.01,
+        "division" : 0.01,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.01,
+        "division" : 0.01,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.01, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 9,
+        "abbrName" : "HOU",
+        "displayName" : "HOU"
+      },
+      "division" : "AFC South",
+      "odds" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 14,
+        "abbrName" : "KC",
+        "displayName" : "KC"
+      },
+      "division" : "AFC West",
+      "odds" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 2,
+        "abbrName" : "MIA",
+        "displayName" : "MIA"
+      },
+      "division" : "AFC East",
+      "odds" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 4,
+        "abbrName" : "NYJ",
+        "displayName" : "NYJ"
+      },
+      "division" : "AFC East",
+      "odds" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    } ],
+    "seeds" : null
+  }, {
+    "name" : "NFC",
+    "teams" : [ {
+      "team" : {
+        "teamId" : 22,
+        "abbrName" : "DET",
+        "displayName" : "DET"
+      },
+      "division" : "NFC North",
+      "odds" : {
+        "playoffs" : 1.0,
+        "division" : 1.0,
+        "oneSeed" : 0.24
+      },
+      "baseline" : {
+        "playoffs" : 1.0,
+        "division" : 1.0,
+        "oneSeed" : 0.24
+      },
+      "seedOdds" : [ 0.24, 0.72, 0.04, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 30,
+        "abbrName" : "LAR",
+        "displayName" : "LAR"
+      },
+      "division" : "NFC West",
+      "odds" : {
+        "playoffs" : 1.0,
+        "division" : 0.47,
+        "oneSeed" : 0.35
+      },
+      "baseline" : {
+        "playoffs" : 1.0,
+        "division" : 0.47,
+        "oneSeed" : 0.35
+      },
+      "seedOdds" : [ 0.35, 0.07, 0.05, 0.0, 0.3, 0.18, 0.05 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 32,
+        "abbrName" : "SEA",
+        "displayName" : "SEA"
+      },
+      "division" : "NFC West",
+      "odds" : {
+        "playoffs" : 1.0,
+        "division" : 0.42,
+        "oneSeed" : 0.4
+      },
+      "baseline" : {
+        "playoffs" : 1.0,
+        "division" : 0.42,
+        "oneSeed" : 0.4
+      },
+      "seedOdds" : [ 0.4, 0.0, 0.02, 0.0, 0.47, 0.11, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 19,
+        "abbrName" : "PHI",
+        "displayName" : "PHI"
+      },
+      "division" : "NFC East",
+      "odds" : {
+        "playoffs" : 0.92,
+        "division" : 0.78,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.92,
+        "division" : 0.78,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.12, 0.66, 0.0, 0.0, 0.04, 0.1 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 31,
+        "abbrName" : "SF",
+        "displayName" : "SF"
+      },
+      "division" : "NFC West",
+      "odds" : {
+        "playoffs" : 0.86,
+        "division" : 0.11,
+        "oneSeed" : 0.01
+      },
+      "baseline" : {
+        "playoffs" : 0.86,
+        "division" : 0.11,
+        "oneSeed" : 0.01
+      },
+      "seedOdds" : [ 0.01, 0.09, 0.01, 0.0, 0.23, 0.46, 0.06 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 26,
+        "abbrName" : "CAR",
+        "displayName" : "CAR"
+      },
+      "division" : "NFC South",
+      "odds" : {
+        "playoffs" : 0.56,
+        "division" : 0.56,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.56,
+        "division" : 0.56,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.56, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 23,
+        "abbrName" : "GB",
+        "displayName" : "GB"
+      },
+      "division" : "NFC North",
+      "odds" : {
+        "playoffs" : 0.45,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.45,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.12, 0.33 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 25,
+        "abbrName" : "ATL",
+        "displayName" : "ATL"
+      },
+      "division" : "NFC South",
+      "odds" : {
+        "playoffs" : 0.44,
+        "division" : 0.44,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.44,
+        "division" : 0.44,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.44, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 18,
+        "abbrName" : "NYG",
+        "displayName" : "NYG"
+      },
+      "division" : "NFC East",
+      "odds" : {
+        "playoffs" : 0.37,
+        "division" : 0.17,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.37,
+        "division" : 0.17,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.17, 0.0, 0.0, 0.01, 0.19 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 20,
+        "abbrName" : "WAS",
+        "displayName" : "WAS"
+      },
+      "division" : "NFC East",
+      "odds" : {
+        "playoffs" : 0.31,
+        "division" : 0.05,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.31,
+        "division" : 0.05,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.05, 0.0, 0.0, 0.07, 0.19 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 21,
+        "abbrName" : "CHI",
+        "displayName" : "CHI"
+      },
+      "division" : "NFC North",
+      "odds" : {
+        "playoffs" : 0.09,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.09,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.01, 0.08 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 29,
+        "abbrName" : "AZ",
+        "displayName" : "AZ"
+      },
+      "division" : "NFC West",
+      "odds" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 17,
+        "abbrName" : "DAL",
+        "displayName" : "DAL"
+      },
+      "division" : "NFC East",
+      "odds" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 24,
+        "abbrName" : "MIN",
+        "displayName" : "MIN"
+      },
+      "division" : "NFC North",
+      "odds" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 27,
+        "abbrName" : "NO",
+        "displayName" : "NO"
+      },
+      "division" : "NFC South",
+      "odds" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    }, {
+      "team" : {
+        "teamId" : 28,
+        "abbrName" : "TB",
+        "displayName" : "TB"
+      },
+      "division" : "NFC South",
+      "odds" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "baseline" : {
+        "playoffs" : 0.0,
+        "division" : 0.0,
+        "oneSeed" : 0.0
+      },
+      "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+      "dependsOnScores" : false
+    } ],
+    "seeds" : null
+  } ]
+}

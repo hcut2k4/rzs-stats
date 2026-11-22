@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 @Entity
 @Table(name = "playoff_odds_snapshots", uniqueConstraints = @UniqueConstraint(columnNames = {"season", "next_week", "team_id"}))
 public class OddsSnapshotEntity {
+    public static final String MODEL_VERSION = "madden27-counter-v1";
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private int season;
@@ -27,6 +28,23 @@ public class OddsSnapshotEntity {
     @Column(nullable = false)
     private String rules = "madden";
     private Instant computedAt;
+    private String modelVersion;
+    private String eloConfigHash;
+    private String inputFingerprint;
+    private String origin;
+
+    public void provenance(String configHash, String fingerprint, String modelVersion, String origin) {
+        this.modelVersion = modelVersion;
+        this.eloConfigHash = configHash;
+        this.inputFingerprint = fingerprint;
+        this.origin = origin;
+    }
+
+    public String getModelVersion() { return modelVersion; }
+    public String getEloConfigHash() { return eloConfigHash; }
+    public String getInputFingerprint() { return inputFingerprint; }
+    public String getOrigin() { return origin; }
+
 
     protected OddsSnapshotEntity() {}
 

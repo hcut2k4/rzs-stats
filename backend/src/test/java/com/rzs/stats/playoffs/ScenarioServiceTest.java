@@ -83,6 +83,36 @@ class ScenarioServiceTest {
     }
 
     @Test
+    void everyTeamSharesOneEnumerationAndMatchesIndependentPerTeamClassification() {
+        var season = ClinchOracleTest.league(294, 4, true);
+        var state = state(season);
+        var caches = new org.springframework.cache.caffeine.CaffeineCacheManager();
+        try (var resource = new ComputeGate(2, 1000, 30000)) {
+            var shared = new ScenarioService(caches, resource);
+            SimulationService.resetSeedings();
+            for (var team : season.teams()) shared.scenarios(state, team.abbr(), "madden");
+            assertEquals(1 << season.remaining().size(), SimulationService.seedings());
+            var all = classifyAll(season, "madden");
+            for (var team : season.teams()) {
+                var values = new Classification[Goal.values().length][1 << season.remaining().size()];
+                var future = new HashSet<String>();
+                season.remaining().forEach(g -> { future.add(g.home()); future.add(g.away()); });
+                for (int a = 0; a < values[0].length; a++) {
+                    var games = new ArrayList<>(season.completed());
+                    for (int j = 0; j < season.remaining().size(); j++) games.add(outcome(season.remaining().get(j), (a & (1 << j)) != 0 ? 0 : 1));
+                    var result = MaddenSeeding.madden27().seed(season.teams(), games);
+                    boolean unknown = ambiguousConferences(result, future).contains(team.conference());
+                    for (var goal : Goal.values()) values[goal.ordinal()][a] = unknown ? Classification.UNKNOWN
+                            : achieved(result, team.abbr(), goal) ? Classification.IN : Classification.OUT;
+                }
+                assertArrayEquals(values, all.get(team.abbr()));
+                var actual = shared.scenarios(state, team.abbr(), "madden");
+                assertEquals(new Goals(describe(state, values[0]), describe(state, values[1]), describe(state, values[2])), actual.goals());
+            }
+        }
+    }
+
+    @Test
     void oneFinalWinClinchesAndUsesWinnerFirstDisplayNames() {
         for (var rules : List.of("madden", "nfl")) {
             var result = service.scenarios(state(race()), "A", rules);
@@ -227,10 +257,13 @@ class ScenarioServiceTest {
         }
         assertEquals(16, remaining.size());
         var state = state(new Season(fixture.teams(), completed, remaining));
-        for (var rules : List.of("madden", "nfl")) {
-            long start = System.nanoTime();
-            assertNotNull(service.scenarios(state, "WAS", rules));
-            System.out.printf("Scenario benchmark %s: 32 teams, 16 games, 65,536 outcomes, %.3f seconds%n", rules, (System.nanoTime() - start) / 1e9);
+        try (var gate = new ComputeGate(2, 10000, 120000)) {
+            var measured = new ScenarioService(new org.springframework.cache.caffeine.CaffeineCacheManager(), gate);
+            for (var rules : List.of("madden", "nfl")) {
+                long start = System.nanoTime();
+                assertNotNull(measured.scenarios(state, "WAS", rules));
+                System.out.printf("Scenario benchmark %s: 32 teams, 16 games, 65,536 outcomes, %.3f seconds%n", rules, (System.nanoTime() - start) / 1e9);
+            }
         }
     }
 }

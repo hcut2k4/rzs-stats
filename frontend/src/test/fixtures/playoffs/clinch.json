@@ -1,0 +1,294 @@
+{
+  "season" : 2,
+  "rules" : "madden",
+  "exhaustive" : false,
+  "teams" : [ {
+    "team" : {
+      "teamId" : 25,
+      "abbrName" : "ATL",
+      "displayName" : "ATL"
+    },
+    "playoffs" : null,
+    "division" : null,
+    "oneSeed" : "eliminated"
+  }, {
+    "team" : {
+      "teamId" : 29,
+      "abbrName" : "AZ",
+      "displayName" : "AZ"
+    },
+    "playoffs" : null,
+    "division" : "eliminated",
+    "oneSeed" : "eliminated"
+  }, {
+    "team" : {
+      "teamId" : 5,
+      "abbrName" : "BAL",
+      "displayName" : "BAL"
+    },
+    "playoffs" : null,
+    "division" : null,
+    "oneSeed" : null
+  }, {
+    "team" : {
+      "teamId" : 1,
+      "abbrName" : "BUF",
+      "displayName" : "BUF"
+    },
+    "playoffs" : null,
+    "division" : null,
+    "oneSeed" : null
+  }, {
+    "team" : {
+      "teamId" : 26,
+      "abbrName" : "CAR",
+      "displayName" : "CAR"
+    },
+    "playoffs" : null,
+    "division" : null,
+    "oneSeed" : "eliminated"
+  }, {
+    "team" : {
+      "teamId" : 21,
+      "abbrName" : "CHI",
+      "displayName" : "CHI"
+    },
+    "playoffs" : null,
+    "division" : "eliminated",
+    "oneSeed" : "eliminated"
+  }, {
+    "team" : {
+      "teamId" : 6,
+      "abbrName" : "CIN",
+      "displayName" : "CIN"
+    },
+    "playoffs" : null,
+    "division" : null,
+    "oneSeed" : null
+  }, {
+    "team" : {
+      "teamId" : 7,
+      "abbrName" : "CLE",
+      "displayName" : "CLE"
+    },
+    "playoffs" : null,
+    "division" : null,
+    "oneSeed" : null
+  }, {
+    "team" : {
+      "teamId" : 17,
+      "abbrName" : "DAL",
+      "displayName" : "DAL"
+    },
+    "playoffs" : null,
+    "division" : "eliminated",
+    "oneSeed" : "eliminated"
+  }, {
+    "team" : {
+      "teamId" : 13,
+      "abbrName" : "DEN",
+      "displayName" : "DEN"
+    },
+    "playoffs" : null,
+    "division" : null,
+    "oneSeed" : null
+  }, {
+    "team" : {
+      "teamId" : 22,
+      "abbrName" : "DET",
+      "displayName" : "DET"
+    },
+    "playoffs" : null,
+    "division" : null,
+    "oneSeed" : null
+  }, {
+    "team" : {
+      "teamId" : 23,
+      "abbrName" : "GB",
+      "displayName" : "GB"
+    },
+    "playoffs" : null,
+    "division" : null,
+    "oneSeed" : null
+  }, {
+    "team" : {
+      "teamId" : 9,
+      "abbrName" : "HOU",
+      "displayName" : "HOU"
+    },
+    "playoffs" : "eliminated",
+    "division" : "eliminated",
+    "oneSeed" : "eliminated"
+  }, {
+    "team" : {
+      "teamId" : 10,
+      "abbrName" : "IND",
+      "displayName" : "IND"
+    },
+    "playoffs" : null,
+    "division" : null,
+    "oneSeed" : null
+  }, {
+    "team" : {
+      "teamId" : 11,
+      "abbrName" : "JAX",
+      "displayName" : "JAX"
+    },
+    "playoffs" : null,
+    "division" : null,
+    "oneSeed" : null
+  }, {
+    "team" : {
+      "teamId" : 14,
+      "abbrName" : "KC",
+      "displayName" : "KC"
+    },
+    "playoffs" : "eliminated",
+    "division" : "eliminated",
+    "oneSeed" : "eliminated"
+  }, {
+    "team" : {
+      "teamId" : 16,
+      "abbrName" : "LAC",
+      "displayName" : "LAC"
+    },
+    "playoffs" : null,
+    "division" : null,
+    "oneSeed" : null
+  }, {
+    "team" : {
+      "teamId" : 30,
+      "abbrName" : "LAR",
+      "displayName" : "LAR"
+    },
+    "playoffs" : null,
+    "division" : null,
+    "oneSeed" : null
+  }, {
+    "team" : {
+      "teamId" : 15,
+      "abbrName" : "LV",
+      "displayName" : "LV"
+    },
+    "playoffs" : null,
+    "division" : null,
+    "oneSeed" : null
+  }, {
+    "team" : {
+      "teamId" : 2,
+      "abbrName" : "MIA",
+      "displayName" : "MIA"
+    },
+    "playoffs" : "eliminated",
+    "division" : "eliminated",
+    "oneSeed" : "eliminated"
+  }, {
+    "team" : {
+      "teamId" : 24,
+      "abbrName" : "MIN",
+      "displayName" : "MIN"
+    },
+    "playoffs" : "eliminated",
+    "division" : "eliminated",
+    "oneSeed" : "eliminated"
+  }, {
+    "team" : {
+      "teamId" : 3,
+      "abbrName" : "NE",
+      "displayName" : "NE"
+    },
+    "playoffs" : null,
+    "division" : null,
+    "oneSeed" : null
+  }, {
+    "team" : {
+      "teamId" : 27,
+      "abbrName" : "NO",
+      "displayName" : "NO"
+    },
+    "playoffs" : null,
+    "division" : null,
+    "oneSeed" : "eliminated"
+  }, {
+    "team" : {
+      "teamId" : 18,
+      "abbrName" : "NYG",
+      "displayName" : "NYG"
+    },
+    "playoffs" : null,
+    "division" : null,
+    "oneSeed" : null
+  }, {
+    "team" : {
+      "teamId" : 4,
+      "abbrName" : "NYJ",
+      "displayName" : "NYJ"
+    },
+    "playoffs" : null,
+    "division" : null,
+    "oneSeed" : null
+  }, {
+    "team" : {
+      "teamId" : 19,
+      "abbrName" : "PHI",
+      "displayName" : "PHI"
+    },
+    "playoffs" : null,
+    "division" : null,
+    "oneSeed" : null
+  }, {
+    "team" : {
+      "teamId" : 8,
+      "abbrName" : "PIT",
+      "displayName" : "PIT"
+    },
+    "playoffs" : null,
+    "division" : null,
+    "oneSeed" : null
+  }, {
+    "team" : {
+      "teamId" : 32,
+      "abbrName" : "SEA",
+      "displayName" : "SEA"
+    },
+    "playoffs" : null,
+    "division" : null,
+    "oneSeed" : null
+  }, {
+    "team" : {
+      "teamId" : 31,
+      "abbrName" : "SF",
+      "displayName" : "SF"
+    },
+    "playoffs" : null,
+    "division" : null,
+    "oneSeed" : null
+  }, {
+    "team" : {
+      "teamId" : 28,
+      "abbrName" : "TB",
+      "displayName" : "TB"
+    },
+    "playoffs" : "eliminated",
+    "division" : "eliminated",
+    "oneSeed" : "eliminated"
+  }, {
+    "team" : {
+      "teamId" : 12,
+      "abbrName" : "TEN",
+      "displayName" : "TEN"
+    },
+    "playoffs" : null,
+    "division" : null,
+    "oneSeed" : null
+  }, {
+    "team" : {
+      "teamId" : 20,
+      "abbrName" : "WAS",
+      "displayName" : "WAS"
+    },
+    "playoffs" : null,
+    "division" : null,
+    "oneSeed" : null
+  } ]
+}
