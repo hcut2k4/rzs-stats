@@ -154,7 +154,7 @@ public class WhatIfService {
                 var record = result.records().get(abbr);
                 var row = new PlayoffPictureService.Row(rank.position(), null, state.identities().get(abbr), divisions.get(abbr),
                         result.divisionRanks().get(abbr).position() == 1, record.wins(), record.losses(), record.ties(),
-                        otherSeeds.get(abbr), reasons.getOrDefault(abbr, List.of()));
+                        otherSeeds.get(abbr), reasons.getOrDefault(abbr, List.of()), null);
                 rows.add(new Seed(row, odds.get(abbr), uncertain.contains(abbr)));
             }
             conferences.put(name, List.copyOf(rows));
