@@ -12,7 +12,7 @@ import ExportMenu from '../ExportMenu'
 import { TeamLogo } from '../TeamLogo'
 import { useLoad } from '../../utils/useLoad'
 import { usePlayoffLoad } from '../../utils/usePlayoffLoad'
-import { formatOdds, GOALS, probShade, chanceShade } from '../../utils/playoffOdds'
+import { formatOdds, formatComputed, GOALS, probShade, chanceShade } from '../../utils/playoffOdds'
 import { seasonLabel, seasonNumber } from '../../utils/seasons'
 import { recordText } from '../../utils/teamProfile'
 
@@ -62,7 +62,7 @@ function ConferenceProbability({ conference, data, clinch, championship }) {
   const spec = {
     name: `${conference.name} playoff probability`, qualifier: seasonLabel(data.season), rows,
     description: 'Simulated playoff, division, No. 1 seed, conference title and championship chances.',
-    notes: [`${data.simulations.toLocaleString()} simulations, computed ${data.computedAt}. Elo and home field determine game probabilities; ratings stay fixed within each simulation, with no simulated ties.`, ...(championship?.preplayoff ? [PREPLAYOFF] : [])],
+    notes: [`${data.simulations.toLocaleString()} simulations, computed ${formatComputed(data.computedAt)}. Elo and home field determine game probabilities; ratings stay fixed within each simulation, with no simulated ties.`, ...(championship?.preplayoff ? [PREPLAYOFF] : [])],
     cols: [
       { label: 'Team', desc: 'Team name.', text: r => r.team.displayName, logo: r => r.team.abbrName },
       { label: 'Record', desc: 'Completed regular-season record.', text: recordText },
@@ -71,7 +71,7 @@ function ConferenceProbability({ conference, data, clinch, championship }) {
     ],
     api: { path: '/playoffs/odds', params: { season: data.season, rules: data.rules }, note: `${conference.name}; sorted by ${sorter.sort.key} ${sorter.sort.asc ? 'ascending' : 'descending'}. Title columns come from GET /api/playoffs/championship with the same season and rules.`, fields: { Team: 'team.displayName', Record: 'wins-losses[-ties]', ...Object.fromEntries(GOALS.map(g => [g.label, `odds.${g.value}`])), ...Object.fromEntries(titleCols.map(c => [c.label, `/playoffs/championship teams[].${c.key}, matched by team.teamId`])), Seeds: 'seedOdds[0..6]' } },
   }
-  const header = (key, label, tip) => <SortTh key={key} sortKey={key} tip={tip} state={sorter.sort} onSort={sorter.click} className={key === 'team' ? '' : 'text-right'}>{label}</SortTh>
+  const header = (key, label, tip) => <SortTh key={key} sortKey={key} tip={tip} state={sorter.sort} onSort={sorter.click} className={key === 'team' ? '!px-1' : 'text-right !px-1'}>{label}</SortTh>
   return <section aria-label={`${conference.name} probability`} className="min-w-0">
     <div className="flex justify-between flex-wrap gap-2 border-b-2 border-rule pb-2"><h2 className="font-display text-2xl font-bold">{conference.name}</h2><ExportMenu spec={spec} /></div>
     <div className="overflow-x-auto"><table className="w-full text-sm whitespace-nowrap" aria-label={`${conference.name} playoff probability`}>
@@ -83,11 +83,11 @@ function ConferenceProbability({ conference, data, clinch, championship }) {
         {header('seeds', 'Seeds', 'Chances of seeds 1–7. Sorts by seed strength, weighted toward higher seeds; missing the field counts zero.')}
       </tr></thead>
       <tbody>{rows.map((r, i) => <tr key={r.team.teamId} className={`border-t border-line ${i % 2 ? 'bg-surface' : 'bg-bg'}`}>
-        <td className="px-2 py-1.5"><span className="inline-flex items-center gap-1.5"><TeamLink team={r.team} season={data.season} /><ClinchBadge markers={r.markers} compact /></span></td>
-        <td className="px-2 num text-right">{recordText(r)}</td>
-        {goalCols.map(c => <td key={c.key} className="px-2 num text-right" style={{ background: c.color(r) }}>{c.text(r)}</td>)}
-        {titleCols.slice(0, 2).map(c => <td key={c.key} className="px-2 num text-right" style={{ background: c.color(r) }}><InfoTip text={`Reach round 2: ${formatOdds(r.title?.round2)}; conference final: ${formatOdds(r.title?.conferenceFinal)}.`}><span tabIndex={0}>{c.text(r)}</span></InfoTip></td>)}
-        <td className="px-2"><SeedBar seedOdds={r.seedOdds} size={88} /></td>
+        <td className="px-1 py-1.5"><span className="inline-flex items-center gap-1.5"><TeamLink team={r.team} season={data.season} /><ClinchBadge markers={r.markers} compact /></span></td>
+        <td className="px-1 num text-right">{recordText(r)}</td>
+        {goalCols.map(c => <td key={c.key} className="px-1 num text-right" style={{ background: c.color(r) }}>{c.text(r)}</td>)}
+        {titleCols.slice(0, 2).map(c => <td key={c.key} className="px-1 num text-right" style={{ background: c.color(r) }}><InfoTip text={`Reach round 2: ${formatOdds(r.title?.round2)}; conference final: ${formatOdds(r.title?.conferenceFinal)}.`}><span tabIndex={0}>{c.text(r)}</span></InfoTip></td>)}
+        <td className="px-1"><SeedBar seedOdds={r.seedOdds} size={52} /></td>
       </tr>)}</tbody>
     </table></div>
   </section>
@@ -105,11 +105,11 @@ export default function OddsTab({ season, rules }) {
     <div className="flex border border-line rounded overflow-hidden w-fit mb-2" role="group" aria-label="Probability view">
       {[['table', 'Table'], ['history', 'Over time']].map(([key, label]) => <button type="button" key={key} aria-pressed={view === key} onClick={() => setView(key)} className={`px-2 py-1 text-xs font-medium ${view === key ? 'bg-ink text-bg' : 'text-muted hover:text-ink'}`}>{label}</button>)}
     </div>
-    <p className="text-xs text-muted mb-2">{data.simulations.toLocaleString()} simulations · computed {data.computedAt}</p>
+    <p className="text-xs text-muted mb-2">{data.simulations.toLocaleString()} simulations · computed {formatComputed(data.computedAt)}</p>
     {view === 'history' ? <OddsHistory key={data.season} season={data.season} currentTeams={data.conferences.flatMap(c => c.teams)} /> : <>
       {championship.error && <p className="text-xs text-muted mb-2">Title probabilities unavailable. Playoff probabilities are shown below.</p>}
       <SeedLegend />
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">{data.conferences.map(conference => <ConferenceProbability key={conference.name} conference={conference} data={data} clinch={clinch} championship={championship.data} />)}</div>
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">{data.conferences.map(conference => <ConferenceProbability key={conference.name} conference={conference} data={data} clinch={clinch} championship={championship.data} />)}</div>
     </>}
     <Calibration season={data.season} />
   </>
