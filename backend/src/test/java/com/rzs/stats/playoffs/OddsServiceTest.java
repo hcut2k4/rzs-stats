@@ -153,7 +153,7 @@ class OddsServiceTest {
     }
 
     @Test
-    void unresolvedNflOrderReturns404WithoutInventingOdds() throws Exception {
+    void unresolvedNflOrderStillReturnsOddsUsingAlphabeticalFallback() throws Exception {
         populate(true);
         games.deleteAllInBatch();
         var entities = new HashMap<String, TeamEntity>();
@@ -163,7 +163,7 @@ class OddsServiceTest {
         tie.setHomeTeam(entities.get("BUF")); tie.setAwayTeam(entities.get("NE"));
         tie.setStatus(2); tie.setHomeScore(20); tie.setAwayScore(20);
         games.saveAndFlush(tie);
-        http.perform(get("/api/playoffs/odds?season=3&rules=nfl")).andExpect(status().isNotFound());
+        http.perform(get("/api/playoffs/odds?season=3&rules=nfl")).andExpect(status().isOk());
         http.perform(get("/api/playoffs/odds?season=3&rules=madden")).andExpect(status().isOk());
     }
 
