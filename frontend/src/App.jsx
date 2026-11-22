@@ -1,3 +1,4 @@
+import PlayoffPathPage from './pages/PlayoffPathPage'
 import { useState } from 'react'
 import { Routes, Route, NavLink, Link, Navigate } from 'react-router-dom'
 import HomePage from './pages/HomePage'
@@ -81,6 +82,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/playoffs" element={<PlayoffsPage />} />
+          <Route path="/playoffs/:abbr" element={<PlayoffPathPage />} />
           <Route path="/standings" element={<StandingsPage />} />
           <Route path="/efficiency" element={<EfficiencyPage />} />
           <Route path="/games" element={<GamesPage />} />

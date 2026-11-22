@@ -172,6 +172,27 @@ const PAGES = [
     ],
   },
   {
+    name: 'What-If',
+    bullets: [
+      'Pick home wins, away wins or ties. Picked games are forced; every other remaining game is simulated. Changes compare the scenario with the same simulation’s unpicked baseline.',
+      'Share the URL to share your picks. Pick every remaining game for final seeds. Winners alone can leave a spot dependent on scores: point differential or a coin toss can still decide the order. Those spots carry a Depends on scores badge and their odds can remain fractional.',
+    ],
+  },
+  {
+    name: 'Clinched / Eliminated',
+    bullets: [
+      'A badge means the result is proven in every possible outcome of the remaining games. Ties and unknown scores are considered. Proven odds show 100% or 0%; simulated estimates keep >99% or <1%.',
+      'A missing badge only means not proven yet. The proof can be conservative and can differ from Madden’s own flags because the game may use different assumptions about ties, scores or tiebreakers.',
+    ],
+  },
+  {
+    name: 'Path to the playoffs',
+    bullets: [
+      'Your team’s path shows whether winning out is proven to secure a playoff spot, its best simulated seed, and its odds at each final record. A simulated 100% alone is not proof that you control your destiny.',
+      'See which other results help if you win out, and who to root for this week. Swing measures percentage points of playoff probability. Load your remaining wins and the helpful results into What-If to explore the combined scenario.',
+    ],
+  },
+  {
     name: 'Playoff accuracy check',
     bullets: [
       'Do teams given a 70% win probability win about 70% of the time? The bucket table compares predicted home win probabilities with actual home win rates in completed regular-season games; ties count as half a win.',

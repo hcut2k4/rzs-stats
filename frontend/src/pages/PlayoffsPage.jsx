@@ -1,6 +1,7 @@
+import WhatIfTab from '../components/playoffs/WhatIfTab'
+import ClinchBadge, { useClinch, teamMarker, markerOdds, markerValue } from '../components/playoffs/ClinchBadge'
 import OddsTab from '../components/playoffs/OddsTab'
 import LeverageTab from '../components/playoffs/LeverageTab'
-import { formatOdds } from '../utils/playoffOdds'
 import { useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { getPlayoffPicture, getSeasons } from '../api/client'
@@ -14,21 +15,21 @@ import { seasonLabel, seasonNumber } from '../utils/seasons'
 import { weekName } from '../utils/playoffRounds'
 import { recordText } from '../utils/teamProfile'
 
-const TABS = [{ value: 'picture', label: 'Picture' }, { value: 'odds', label: 'Odds' }, { value: 'leverage', label: 'Leverage' }]
+const TABS = [{ value: 'picture', label: 'Picture' }, { value: 'odds', label: 'Odds' }, { value: 'leverage', label: 'Leverage' }, { value: 'whatif', label: 'What-If' }]
 const RULES = [{ value: 'madden', label: 'Madden 27' }, { value: 'nfl', label: 'Real NFL' }]
 const RULES_TIP = 'Madden 27 uses different tiebreakers than the real NFL. Switching rules can change which tied teams make the playoffs and their seeds.'
 const status = row => row.seed == null ? 'In the hunt' : row.divisionWinner ? 'Division leader' : 'Wild card'
 const otherSeed = row => row.otherRulesSeed == null ? 'out' : `seed ${row.otherRulesSeed}`
 const otherLabel = rules => rules === 'madden' ? 'Real NFL rules' : 'Madden 27 rules'
-const oddsText = row => row.odds?.playoffs == null ? '' : formatOdds(row.odds.playoffs)
+const oddsText = row => row.odds?.playoffs == null ? '' : markerOdds(row.odds.playoffs, row.markers?.playoffs)
 
 function pictureLabel(data) {
   const progress = data.throughWeek == null ? ' · No games played yet' : ` after ${weekName(data.throughWeek)}`
   return `If the season ended today · ${seasonLabel(data.season)}${progress}${data.nextWeek == null && data.throughWeek != null ? ' · Regular season complete' : ''}`
 }
 
-function Conference({ conference, data }) {
-  const rows = [...conference.seeds, ...conference.hunt]
+function Conference({ conference, data, clinch }) {
+  const rows = [...conference.seeds, ...conference.hunt].map(r => ({ ...r, markers: teamMarker(clinch, r.team.teamId) }))
   const hasOdds = rows.some(row => row.odds != null)
   const spec = {
     name: `Playoffs — ${conference.name}`,
@@ -43,7 +44,7 @@ function Conference({ conference, data }) {
       { label: 'Position', desc: 'Division leader, wild card or in the hunt.', text: status },
       { label: otherLabel(data.rules), desc: 'Playoff seed under the other tiebreak rules, or out.', text: otherSeed },
       { label: 'Tiebreakers', desc: 'Reasons a tiebreak determined this position.', text: r => r.reasons.join(' ') },
-      ...(hasOdds ? [{ label: 'Playoffs odds', desc: 'Chance of making the playoffs, rounded to a whole percent.', text: oddsText, value: r => r.odds?.playoffs, z: '0%' }] : []),
+      ...(hasOdds ? [{ label: 'Playoffs odds', desc: 'Chance of making the playoffs, rounded to a whole percent.', text: oddsText, value: r => markerValue(r.odds?.playoffs, r.markers?.playoffs), z: '0%' }] : []),
     ],
     api: {
       path: '/playoffs/picture', params: { season: data.season, rules: data.rules },
@@ -59,7 +60,7 @@ function Conference({ conference, data }) {
           <TeamLogo abbr={row.team.abbrName} />
           <Link to={`/teams/${row.team.abbrName}?season=${seasonNumber(data.season)}`} className="font-semibold hover:text-accent hover:underline">{row.team.displayName}</Link>
         </div>
-        <div className="text-xs text-muted mt-1">{status(row)}</div>
+        <ClinchBadge markers={row.markers} /><div className="text-xs text-muted mt-1">{status(row)}</div>
         {row.otherRulesSeed !== (row.seed ?? null) && <div className="text-xs text-accent mt-1">{otherLabel(data.rules)}: {otherSeed(row)}</div>}
         {row.reasons.length > 0 && (
           <details className="text-xs mt-1">
@@ -85,10 +86,10 @@ function Conference({ conference, data }) {
           <th scope="col" className="py-2 text-right">Record</th>
           {hasOdds && <th scope="col" className="py-2 pl-3 text-right">Playoffs odds</th>}
         </tr></thead>
-        <tbody>{conference.seeds.map(renderRow)}</tbody>
+        <tbody>{rows.filter(r => r.seed != null).map(renderRow)}</tbody>
         <tbody>
           <tr><th colSpan={hasOdds ? 4 : 3} className="text-left py-3 border-y-2 border-rule bg-surface text-xs uppercase tracking-wide">In the hunt</th></tr>
-          {conference.hunt.map(renderRow)}
+          {rows.filter(r => r.seed == null).map(renderRow)}
         </tbody>
       </table>
     </section>
@@ -118,11 +119,12 @@ export default function PlayoffsPage() {
     next.set(key, value)
     return next
   }, { replace: true })
+  const clinch = useClinch(season, rules)
   const data = picture.data
   const hasRows = data?.conferences.some(c => c.seeds.length || c.hunt.length)
   return (
     <div>
-      <PageHeader title="Playoffs" qualifier={tab === 'picture' ? (data ? pictureLabel(data) : 'If the season ended today') : tab === 'odds' ? 'Chances of reaching the postseason' : 'What a win or loss changes'}>
+      <PageHeader title="Playoffs" qualifier={tab === 'picture' ? (data ? pictureLabel(data) : 'If the season ended today') : tab === 'odds' ? 'Chances of reaching the postseason' : tab === 'whatif' ? 'Pick results and explore playoff scenarios' : 'What a win or loss changes'}>
         <select aria-label="Season" className="field" value={season ?? ''} onChange={e => updateParam('season', e.target.value)}>
           {(seasons.data ?? []).map(s => <option key={s} value={s}>{seasonLabel(s)}</option>)}
         </select>
@@ -134,6 +136,7 @@ export default function PlayoffsPage() {
         </div>
         <InfoTip text={RULES_TIP}><span className="text-xs text-muted" tabIndex={0}>Why different rules?</span></InfoTip>
       </div>
+      {tab === 'whatif' && season != null && <WhatIfTab season={season} rules={rules} />}
       {tab === 'odds' && season != null && <OddsTab season={season} rules={rules} />}
       {tab === 'leverage' && season != null && <LeverageTab season={season} rules={rules} params={params} updateParam={updateParam} />}
       {tab !== 'picture' && seasons.loading && <p className="text-muted">Loading…</p>}
@@ -143,7 +146,7 @@ export default function PlayoffsPage() {
       {(seasons.error || picture.error) && <p className="text-bad">Could not load playoff picture. Try again in a moment.</p>}
       {(seasons.loading || picture.loading) && <p className="text-muted">Loading…</p>}
       {((seasons.data?.length === 0) || (data && (data.throughWeek == null || !hasRows))) && <p className="text-muted">No playoff picture yet. Completed regular-season games will appear here.</p>}
-      {data?.throughWeek != null && hasRows && <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">{data.conferences.map(conference => <Conference key={conference.name} conference={conference} data={data} />)}</div>}
+      {data?.throughWeek != null && hasRows && <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">{data.conferences.map(conference => <Conference key={conference.name} conference={conference} data={data} clinch={clinch} />)}</div>}
       </>}
     </div>
   )
