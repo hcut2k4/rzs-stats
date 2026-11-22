@@ -20,7 +20,7 @@ public class PathService {
     public record Response(int season, String rules, EloService.Team team, int wins, int losses, int ties,
                            int remainingGames, int simulations, OddsService.Odds current, Markers markers,
                            WinOut winOut, Ceiling ceiling, List<WinsNeeded> winsNeeded,
-                           List<RootGame> winOutRisks, List<RootGame> rootThisWeek) {}
+                           List<RootGame> winOutRisks, List<RootGame> rootThisWeek, ScenarioService.Scenarios scenarios) {}
 
     private final ComputeGate gate;
     private final SeasonStateLoader loader;
@@ -113,7 +113,7 @@ public class PathService {
             }
             return new Response(state.season(), rules, row.team(), row.wins(), row.losses(), row.ties(), forced.size(),
                     baseline.simulations(), row.odds(), markers, new WinOut(winOdds.playoffs(), winOdds.division(), winOdds.oneSeed(), destiny),
-                    new Ceiling(best, row.seedOdds()), needed, top(risks), top(roots));
+                    new Ceiling(best, row.seedOdds()), needed, top(risks), top(roots), new ScenarioService().scenarios(state, abbr, rules));
         });
     }
 

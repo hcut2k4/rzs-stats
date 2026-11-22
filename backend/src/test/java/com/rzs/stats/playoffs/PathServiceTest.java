@@ -129,10 +129,20 @@ class PathServiceTest {
             assertThat(row.oneSeed()).isGreaterThanOrEqualTo(one); one = row.oneSeed();
         }
         assertThat(response.remainingGames()).isEqualTo(2);
+        assertThat(response.scenarios()).isNotNull();
         assertThat(paths.path(1, "A", "madden")).isSameAs(response);
+        assertThat(paths.path(1, "A", "madden").scenarios()).isSameAs(response.scenarios());
         assertThat(names.allStatsCaches(caches).resolveCaches(null)).extracting(c -> c.getName()).contains("playoffPath");
         http.perform(get("/api/playoffs/path/A?season=1")).andExpect(status().isOk()).andExpect(jsonPath("winOut.controlsDestiny").value(true))
-                .andExpect(jsonPath("simulations").value(200));
+                .andExpect(jsonPath("simulations").value(200))
+                .andExpect(jsonPath("scenarios.remainingGames").value(2))
+                .andExpect(jsonPath("scenarios.assumes").value("No tie games; point-differential tiebreaks are treated as unknown"))
+                .andExpect(jsonPath("scenarios.goals.division.status").value("open"))
+                .andExpect(jsonPath("scenarios.goals.division.clinchedBy[0].text").value("A beat B"))
+                .andExpect(jsonPath("scenarios.goals.division.clinchedBy[0].conditions[0].gameId").isNumber())
+                .andExpect(jsonPath("scenarios.goals.division.clinchedBy[0].conditions[0].winner").value("A"))
+                .andExpect(jsonPath("scenarios.goals.oneSeed.eliminatedBy").isArray())
+                .andExpect(jsonPath("scenarios.goals.playoffs.status").isString());
     }
 
     @Test
@@ -184,6 +194,7 @@ class PathServiceTest {
     void completedSeasonKeepsExactOddsAndNoFutureGames() throws Exception {
         var f = historical(); populate(f.teams(), f.games(), Set.of());
         var response = paths.path(1, "WAS", "madden");
+        assertThat(response.scenarios()).isNull();
         assertThat(response.simulations()).isZero();
         assertThat(response.remainingGames()).isZero();
         assertThat(response.current().playoffs()).isZero();
