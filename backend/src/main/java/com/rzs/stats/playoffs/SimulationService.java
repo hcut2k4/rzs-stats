@@ -30,7 +30,7 @@ public class SimulationService {
 
     public Championship championship(SeasonStateLoader.State state, Map<Integer, Double> probs,
                                      int sims, long seed, Rules rules, PlayoffProbability playoffProbability) {
-        return run(state, probs, Map.of(), sims, seed, rules, false, null, Objects.requireNonNull(playoffProbability), null);
+        return run(state, probs, Map.of(), sims, seed, rules, false, null, Objects.requireNonNull(playoffProbability), null, true);
     }
 
     public Simulation simulate(SeasonStateLoader.State state, Map<Integer, Double> probs,
@@ -47,22 +47,27 @@ public class SimulationService {
     public Simulation simulate(SeasonStateLoader.State state, Map<Integer, Double> probs,
                                Map<Integer, Outcome> forced, int sims, long seed, Rules rules,
                                boolean varyForcedMargins, String trackTeam) {
-        return run(state, probs, forced, sims, seed, rules, varyForcedMargins, trackTeam, null, null).baseline();
+        return run(state, probs, forced, sims, seed, rules, varyForcedMargins, trackTeam, null, null, trackTeam != null).baseline();
+    }
+
+    public Simulation baseline(SeasonStateLoader.State state, Map<Integer, Double> probs,
+                               int sims, long seed, Rules rules) {
+        return run(state, probs, Map.of(), sims, seed, rules, false, null, null, null, true).baseline();
     }
 
     private Championship run(SeasonStateLoader.State state, Map<Integer, Double> probs,
                              Map<Integer, Outcome> forced, int sims, long seed, Rules rules,
                              boolean varyForcedMargins, String trackTeam, PlayoffProbability playoffProbability,
-                             BiConsumer<PlayoffSeeding.Result, List<PlayoffSeeding.Game>> observer) {
+                             BiConsumer<PlayoffSeeding.Result, List<PlayoffSeeding.Game>> observer, boolean collectWins) {
         if (gate != null) return gate.execute(() -> runDirect(state, probs, forced, sims, seed, rules,
-                varyForcedMargins, trackTeam, playoffProbability, observer));
-        return runDirect(state, probs, forced, sims, seed, rules, varyForcedMargins, trackTeam, playoffProbability, observer);
+                varyForcedMargins, trackTeam, playoffProbability, observer, collectWins));
+        return runDirect(state, probs, forced, sims, seed, rules, varyForcedMargins, trackTeam, playoffProbability, observer, collectWins);
     }
 
     private Championship runDirect(SeasonStateLoader.State state, Map<Integer, Double> probs,
                              Map<Integer, Outcome> forced, int sims, long seed, Rules rules,
                              boolean varyForcedMargins, String trackTeam, PlayoffProbability playoffProbability,
-                             BiConsumer<PlayoffSeeding.Result, List<PlayoffSeeding.Game>> observer) {
+                             BiConsumer<PlayoffSeeding.Result, List<PlayoffSeeding.Game>> observer, boolean collectWins) {
         if (sims <= 0) throw new IllegalArgumentException("Simulations must be positive");
         var ids = new HashSet<Integer>();
         for (var game : state.remainingGames()) {
@@ -76,7 +81,7 @@ public class SimulationService {
         var index = new HashMap<String, Integer>();
         for (int i = 0; i < state.teams().size(); i++) index.put(state.teams().get(i).abbr(), i);
         if (trackTeam != null && !index.containsKey(trackTeam)) throw new IllegalArgumentException("Unknown tracked team");
-        int buckets = 1 + state.teams().stream().mapToInt(t -> (int) (state.completedGames().stream()
+        int buckets = !collectWins ? 0 : 1 + state.teams().stream().mapToInt(t -> (int) (state.completedGames().stream()
                 .filter(g -> g.home().equals(t.abbr()) || g.away().equals(t.abbr())).count()
                 + state.remainingGames().stream().filter(g -> g.home().equals(t.abbr()) || g.away().equals(t.abbr())).count())).max().orElse(0);
         var winTotals = new long[state.teams().size()][buckets][4];
@@ -89,12 +94,12 @@ public class SimulationService {
             var simulated = exact == null ? games(state, probs, forced, simulation, seed, varyForcedMargins) : state.completedGames();
             var result = exact != null ? exact : seed(state.teams(), simulated, rules);
             if (observer != null) observer.accept(result, simulated);
-            for (var team : state.teams())
+            if (collectWins) for (var team : state.teams())
                 winTotals[index.get(team.abbr())][result.records().get(team.abbr()).wins()][0]++;
             result.divisionRanks().forEach((team, rank) -> {
                 if (rank.position() == 1) {
                     totals[index.get(team)][1]++;
-                    winTotals[index.get(team)][result.records().get(team).wins()][2]++;
+                    if (collectWins) winTotals[index.get(team)][result.records().get(team).wins()][2]++;
                 }
             });
             result.conferences().values().forEach(ranks -> ranks.forEach(rank -> {
@@ -103,7 +108,7 @@ public class SimulationService {
                     row[0]++;
                     if (rank.position() == 1) row[2]++;
                     row[rank.position() + 2]++;
-                    for (String team : rank.teams()) {
+                    if (collectWins) for (String team : rank.teams()) {
                         var bucket = winTotals[index.get(team)][result.records().get(team).wins()];
                         bucket[1]++;
                         if (rank.position() == 1) bucket[3]++;
@@ -118,7 +123,7 @@ public class SimulationService {
             counts.put(team, new Counts(row[0], row[1], row[2], Arrays.stream(row, 3, 10).boxed().toList()));
         });
         var allWins = new TreeMap<String, Map<Integer, WinBucket>>();
-        index.forEach((team, i) -> {
+        if (collectWins) index.forEach((team, i) -> {
             var wins = new TreeMap<Integer, WinBucket>();
             for (int w = 0; w < buckets; w++) {
                 var row = winTotals[i][w];
@@ -133,13 +138,13 @@ public class SimulationService {
                 Collections.unmodifiableMap(counts), trackTeam == null ? Map.of() : allWins.get(trackTeam), Collections.unmodifiableMap(allWins)), Collections.unmodifiableMap(stages));
     }
 
-    public record Conditional(Simulation simulation, Map<Integer, Double> swings) {}
+    public record Conditional(Simulation simulation, Map<Integer, Double> swings, Map<Integer, Double> estimates) {}
 
     public Conditional conditioned(SeasonStateLoader.State state, Map<Integer, Double> probs,
                                    Map<Integer, Outcome> forced, int sims, long seed, Rules rules, String team) {
         var counts = new HashMap<Integer, long[]>();
         for (var g : state.remainingGames()) if (!forced.containsKey(g.gameId())) counts.put(g.gameId(), new long[4]);
-        var result = run(state, probs, forced, sims, seed, rules, true, null, null, (seeded, games) -> {
+        var result = run(state, probs, forced, sims, seed, rules, true, team, null, (seeded, games) -> {
             boolean in = ClinchAnalyzer.achieved(seeded, team, ClinchAnalyzer.Goal.PLAYOFFS);
             for (int i = 0; i < state.remainingGames().size(); i++) {
                 var count = counts.get(state.remainingGames().get(i).gameId());
@@ -149,12 +154,16 @@ public class SimulationService {
                 count[side]++;
                 if (in) count[side + 1]++;
             }
-        });
+        }, true);
         var swings = new HashMap<Integer, Double>();
         counts.forEach((id, c) -> {
-            if (c[0] > 0 && c[2] > 0) swings.put(id, c[1] / (double) c[0] - c[3] / (double) c[2]);
+            if (Math.min(c[0], c[2]) >= 50) swings.put(id, c[1] / (double) c[0] - c[3] / (double) c[2]);
         });
-        return new Conditional(result.baseline(), Map.copyOf(swings));
+        var estimates = new HashMap<Integer, Double>();
+        counts.forEach((id, c) -> {
+            if (c[0] > 0 && c[2] > 0) estimates.put(id, c[1] / (double) c[0] - c[3] / (double) c[2]);
+        });
+        return new Conditional(result.baseline(), Map.copyOf(swings), Map.copyOf(estimates));
     }
 
     private void bracket(PlayoffSeeding.Result result, Map<String, Integer> index, long[][] counts,

@@ -157,7 +157,7 @@ class PlayoffFixturesTest {
         assertThat(live.getInputFingerprint()).hasSize(64);
         assertThat(live.getOrigin()).isEqualTo("live");
         assertThat(snapshots.saveIfAbsent(2, 0, () -> new OddsService.Response(2, "madden", null, 0,
-                baseline.simulations(), baseline.computedAt(), baseline.conferences()))).isTrue();
+                baseline.simulations(), baseline.computedAt(), baseline.conferences(), baseline.provenance()))).isTrue();
         assertThat(snapshotRows.findBySeasonAndNextWeek(2, 0)).allSatisfy(row -> {
             assertThat(row.getOrigin()).isEqualTo("backfill");
             assertThat(row.getModelVersion()).isEqualTo(live.getModelVersion());

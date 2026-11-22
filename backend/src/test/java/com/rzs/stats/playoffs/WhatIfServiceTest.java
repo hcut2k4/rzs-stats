@@ -385,6 +385,11 @@ class WhatIfServiceTest {
         };
         var simulated = new ArrayList<SeasonStateLoader.State>();
         var simulator = new SimulationService() {
+            @Override public Simulation baseline(SeasonStateLoader.State state, Map<Integer, Double> probabilities,
+                                                 int count, long seed, Rules rules) {
+                simulated.add(state);
+                return super.baseline(state, probabilities, count, seed, rules);
+            }
             @Override public Simulation simulate(SeasonStateLoader.State state, Map<Integer, Double> probabilities,
                                                  Map<Integer, Outcome> forced, int count, long seed, Rules rules, boolean margins) {
                 simulated.add(state);
@@ -403,6 +408,11 @@ class WhatIfServiceTest {
         smallSchedule(true);
         var calls = new ArrayList<Map<Integer, SimulationService.Outcome>>();
         var simulator = new SimulationService() {
+            @Override public Simulation baseline(SeasonStateLoader.State state, Map<Integer, Double> probabilities,
+                                                 int count, long seed, Rules rules) {
+                calls.add(Map.of());
+                return super.baseline(state, probabilities, count, seed, rules);
+            }
             @Override public Simulation simulate(SeasonStateLoader.State state, Map<Integer, Double> probabilities,
                                                  Map<Integer, Outcome> forced, int count, long seed, Rules rules, boolean margins) {
                 calls.add(forced);

@@ -20,6 +20,14 @@ public class PlayoffCacheInvalidation {
         } else evict();
     }
 
+    public void failed() {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override public void afterCompletion(int status) { evict(); }
+            });
+        } else evict();
+    }
+
     private void evict() {
         CacheNames.PLAYOFF.forEach(name -> caches.getCache(name).clear());
         warm.set(true);

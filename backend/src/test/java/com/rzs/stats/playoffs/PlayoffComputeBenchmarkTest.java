@@ -71,7 +71,7 @@ class PlayoffComputeBenchmarkTest {
         long whatIfRequests = SimulationService.seedings() - unchanged - changedSync - pathRequests;
         assertThat(unchanged).isZero();
         assertThat(changedSync).isLessThan(360000);
-        assertThat(pathRequests).isEqualTo(32 * 10000L);
+        assertThat(pathRequests).isBetween(32 * 10000L, 32 * (10000L + 10 * 2 * 1500));
         assertThat(whatIfRequests).isEqualTo(20 * 20000L);
         System.out.printf("Compute diet seedings before -> after: no-change sync 360000 -> %d; changed-game sync 360000 -> %d; 32 Paths 5920000 -> %d; 20 What-If 400000 -> %d; total 7040000 -> %d%n",
                 unchanged, changedSync, pathRequests, whatIfRequests, SimulationService.seedings());

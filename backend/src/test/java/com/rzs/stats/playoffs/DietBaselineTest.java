@@ -5,22 +5,31 @@ import java.util.*;
 import static org.assertj.core.api.Assertions.*;
 
 class DietBaselineTest {
-    @Test
-    void sharedPassPreservesSeparateOddsChampionshipAndEveryTeamsWinBuckets() throws Exception {
-        var state = SimulationServiceTest.season(false);
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void sharedPassPreservesSeparateOddsChampionshipAndEveryTeamsWinBuckets(boolean completed) throws Exception {
+        var state = SimulationServiceTest.season(completed);
         var probs = SimulationServiceTest.probabilities(state);
         var simulator = new SimulationService();
         var old = new LegacySimulationOracle();
         for (var rules : SimulationService.Rules.values()) {
             var legacyRules = LegacySimulationOracle.Rules.valueOf(rules.name());
-            var shared = simulator.championship(state, probs, 40, 917, rules, (h, a, n) -> n ? .51 : .58);
-            var bracket = old.championship(state, probs, 40, 917, legacyRules, (h, a, n) -> n ? .51 : .58);
+            var shared = simulator.championship(state, probs, 2000, 917, rules, (h, a, n) -> n ? .51 : .58);
+            var bracket = old.championship(state, probs, 2000, 917, legacyRules, (h, a, n) -> n ? .51 : .58);
             assertThat(shared.teams()).usingRecursiveComparison().isEqualTo(bracket.teams());
-            var baseline = old.simulate(state, probs, Map.of(), 40, 917, legacyRules);
-            assertThat(shared.baseline().teams()).usingRecursiveComparison().isEqualTo(baseline.teams());
+            var baseline = old.simulate(state, probs, Map.of(), 2000, 917, legacyRules);
+            var odds = completed ? simulator.simulate(state, probs, Map.of(), 2000, 917, rules) : shared.baseline();
+            assertThat(odds.teams()).usingRecursiveComparison().isEqualTo(baseline.teams());
             for (var team : state.teams()) {
-                var tracked = old.simulate(state, probs, Map.of(), 40, 917, legacyRules, false, team.abbr());
-                assertThat(shared.baseline().allWins().get(team.abbr())).usingRecursiveComparison().isEqualTo(tracked.wins());
+                var tracked = old.simulate(state, probs, Map.of(), 2000, 917, legacyRules, false, team.abbr());
+                var buckets = shared.baseline().allWins().get(team.abbr());
+                if (completed) {
+                    var normalized = new TreeMap<Integer, SimulationService.WinBucket>();
+                    buckets.forEach((w, b) -> normalized.put(w, new SimulationService.WinBucket(b.simulations() / 2000,
+                            b.playoffs() / 2000, b.division() / 2000, b.oneSeed() / 2000)));
+                    buckets = normalized;
+                }
+                assertThat(buckets).usingRecursiveComparison().isEqualTo(tracked.wins());
             }
         }
     }

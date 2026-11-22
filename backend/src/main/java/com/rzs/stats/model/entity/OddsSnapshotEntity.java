@@ -33,8 +33,8 @@ public class OddsSnapshotEntity {
     private String inputFingerprint;
     private String origin;
 
-    public void provenance(String configHash, String fingerprint, String origin) {
-        this.modelVersion = MODEL_VERSION;
+    public void provenance(String configHash, String fingerprint, String modelVersion, String origin) {
+        this.modelVersion = modelVersion;
         this.eloConfigHash = configHash;
         this.inputFingerprint = fingerprint;
         this.origin = origin;

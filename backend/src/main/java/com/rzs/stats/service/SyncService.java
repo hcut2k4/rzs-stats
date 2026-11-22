@@ -108,6 +108,7 @@ public class SyncService {
             return new SyncResult(true, message);
 
         } catch (Exception e) {
+            persistedStatus.failed();
             String message = "Sync failed: " + e.getMessage();
             lastSyncTime = Instant.now();
             lastSyncMessage = message;
@@ -158,6 +159,7 @@ public class SyncService {
             return new SyncResult(true, message);
 
         } catch (Exception e) {
+            persistedStatus.failed();
             String message = "Force sync failed: " + e.getMessage();
             lastSyncTime = Instant.now();
             lastSyncMessage = message;
@@ -213,6 +215,7 @@ public class SyncService {
             return new VerboseSyncResult(true, message, log);
 
         } catch (Exception e) {
+            persistedStatus.failed();
             String message = "Sync failed: " + e.getMessage();
             lastSyncTime = Instant.now();
             lastSyncMessage = message;

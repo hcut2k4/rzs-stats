@@ -64,7 +64,8 @@ class SyncServiceTest {
             default -> service.sync().success();
         };
         assertThat(success).isFalse();
-        verifyNoInteractions(persistedStatus);
+        verify(persistedStatus).failed();
+        verify(persistedStatus, never()).successful(anyInt());
     }
 
     // ── sync() ─────────────────────────────────────────────────────────────────

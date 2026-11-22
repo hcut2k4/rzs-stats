@@ -38,6 +38,7 @@ class SyncPersistenceTest {
     @Autowired PlayoffCacheInvalidation invalidation;
     @Autowired SyncStatusController controller;
     @Autowired ObjectMapper json;
+    @Autowired jakarta.persistence.EntityManagerFactory entityManagerFactory;
 
     @BeforeEach
     @AfterEach
@@ -57,7 +58,7 @@ class SyncPersistenceTest {
         CacheNames.PLAYOFF.forEach(name -> caches.getCache(name).put("keep", "value"));
         var restarted = new SyncStatusService(rows, games, teams, config, invalidation);
         assertThat(restarted.lastSyncAt()).isEqualTo(saved.getLastSyncAt());
-        restarted.successful(2);
+        status.successful(2);
         assertThat(invalidation.takeWarm()).isFalse();
         CacheNames.PLAYOFF.forEach(name -> assertThat(caches.getCache(name).get("keep", String.class)).isEqualTo("value"));
         assertThat(rows.count()).isEqualTo(1);
@@ -73,7 +74,9 @@ class SyncPersistenceTest {
         status.successful(2); invalidation.takeWarm();
         var mutations = java.util.List.<Runnable>of(
                 () -> game.setHomeScore(24), () -> game.setAwayScore(17), () -> game.setStatus(2),
-                () -> game.setWeekIndex(2), () -> { home.setConference("NFC"); teams.save(home); },
+                () -> game.setWeekIndex(2), () -> game.setSeasonIndex(0), () -> game.setStageIndex(2),
+                () -> { home.setDisplayName("Renamed"); teams.save(home); },
+                () -> { home.setAbbrName("REN"); teams.save(home); }, () -> { home.setConference("NFC"); teams.save(home); },
                 () -> { home.setDivision("South"); teams.save(home); });
         for (var mutate : mutations) {
             caches.getCache("playoffOdds").put("old", "value");
@@ -87,6 +90,39 @@ class SyncPersistenceTest {
         config.update(new com.rzs.stats.model.dto.EloConfig(1500, 30, 400, true, 28, 0, .78));
         assertThat(caches.getCache("playoffBaseline").get("old")).isNull();
         assertThat(invalidation.takeWarm()).isTrue();
+    }
+
+    @Test
+    void fingerprintStreamsScalarRowsWithoutLoadingGameOrTeamEntities() {
+        var team = new TeamEntity(); team.setTeamId(1); team.setAbbrName("A"); teams.saveAndFlush(team);
+        for (int i = 0; i < 30; i++) {
+            var game = new GameEntity(); game.setGameId(i); game.setSeasonIndex(i % 3); game.setHomeTeam(team);
+            games.saveAndFlush(game);
+        }
+        var statistics = entityManagerFactory.unwrap(org.hibernate.SessionFactory.class).getStatistics();
+        boolean enabled = statistics.isStatisticsEnabled();
+        statistics.setStatisticsEnabled(true);
+        statistics.clear();
+        try {
+            assertThat(status.fingerprint(2)).hasSize(64);
+            assertThat(statistics.getEntityStatistics(GameEntity.class.getName()).getLoadCount()).isZero();
+            assertThat(statistics.getEntityStatistics(TeamEntity.class.getName()).getLoadCount()).isZero();
+            assertThat(statistics.getPrepareStatementCount()).isEqualTo(3);
+        } finally { statistics.setStatisticsEnabled(enabled); }
+    }
+
+    @Test
+    void correctionsToEarlierSeasonsInvalidateCurrentPlayoffCaches() {
+        var historical = new GameEntity(); historical.setGameId(7); historical.setSeasonIndex(0);
+        historical.setStatus(2); historical.setHomeScore(21); historical.setAwayScore(7);
+        games.saveAndFlush(historical);
+        status.successful(2);
+        var previous = rows.findById(1L).orElseThrow().getLastFingerprint();
+        CacheNames.PLAYOFF.forEach(name -> caches.getCache(name).put("old", "value"));
+        historical.setAwayScore(28); games.saveAndFlush(historical);
+        status.successful(2);
+        assertThat(rows.findById(1L).orElseThrow().getLastFingerprint()).isNotEqualTo(previous);
+        CacheNames.PLAYOFF.forEach(name -> assertThat(caches.getCache(name).get("old")).isNull());
     }
 
     @Test

@@ -47,6 +47,9 @@ class OddsServiceTest {
     @Autowired com.rzs.stats.controller.PlayoffsOddsHistoryController historyController;
     @Autowired EloQueryService elo;
     @Autowired EloConfigService configs;
+    @Autowired EloConfigRepository configRows;
+    @Autowired SyncStatusService syncStatus;
+    @Autowired org.springframework.transaction.PlatformTransactionManager transactions;
     @Autowired PlayoffsController controller;
     @Autowired CacheManager caches;
     MockMvc http;
@@ -359,6 +362,80 @@ class OddsServiceTest {
         assertThat(snapshots.findBySeasonAndNextWeek(2, 0)).allSatisfy(row -> assertThat(row.getOrigin()).isEqualTo("backfill"));
         var response = http.perform(get("/api/playoffs/odds/history?season=2")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         assertThat(response).doesNotContain("modelVersion", "eloConfigHash", "inputFingerprint", "origin");
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"live", "backfill"})
+    @org.springframework.transaction.annotation.Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
+    void inputChangesDuringComputationCannotRelabelSnapshotProvenance(String origin) throws Exception {
+        try {
+            populate(false);
+            var originalConfig = configs.get();
+            var originalFingerprint = syncStatus.fingerprint(2);
+            Runnable changeInputs = () -> {
+                assertThat(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+                var config = configRows.findById(1L).orElseGet(com.rzs.stats.model.entity.EloConfigEntity::new);
+                config.update(new com.rzs.stats.model.dto.EloConfig(1500, 37, 400, true, 28, 0, .78));
+                configRows.saveAndFlush(config);
+                var game = games.findBySeasonIndex(2).getFirst();
+                game.setHomeScore(79); games.saveAndFlush(game);
+            };
+            var changingSimulator = new SimulationService() {
+                @Override public Championship championship(SeasonStateLoader.State state, Map<Integer, Double> probabilities,
+                        int count, long seed, Rules rules, PlayoffProbability probability) {
+                    changeInputs.run();
+                    return super.championship(state, probabilities, count, seed, rules, probability);
+                }
+                @Override public Simulation simulate(SeasonStateLoader.State state, Map<Integer, Double> probabilities,
+                        Map<Integer, Outcome> forced, int count, long seed, Rules rules) {
+                    changeInputs.run();
+                    return super.simulate(state, probabilities, forced, count, seed, rules);
+                }
+            };
+            var service = new OddsService(loader, elo, changingSimulator, 100, caches, gate);
+            service.configureInputs(syncStatus, transactions);
+            if (origin.equals("live")) writer.save(service.odds(2, "madden"));
+            else assertThat(writer.saveIfAbsent(2, 0, () -> service.historical(loader.loadAtStart(2, 0)))).isTrue();
+            assertThat(syncStatus.fingerprint(2)).isNotEqualTo(originalFingerprint);
+            assertThat(snapshots.findAll()).hasSize(32).allSatisfy(row -> {
+                assertThat(row.getEloConfigHash()).isEqualTo(SyncStatusService.hash(originalConfig.toString()));
+                assertThat(row.getInputFingerprint()).isEqualTo(originalFingerprint);
+                assertThat(row.getModelVersion()).isEqualTo(com.rzs.stats.model.entity.OddsSnapshotEntity.MODEL_VERSION);
+                assertThat(row.getOrigin()).isEqualTo(origin);
+            });
+        } finally {
+            snapshots.deleteAll(); games.deleteAll(); teams.deleteAll();
+            configs.update(com.rzs.stats.model.dto.EloConfig.defaults());
+            caches.getCacheNames().forEach(name -> caches.getCache(name).clear());
+        }
+    }
+
+    @Test
+    void cachedForecastKeepsOriginalProvenanceWhenInputsChangeBeforeSaving() throws Exception {
+        populate(false);
+        var response = odds.odds(2, "madden");
+        var provenance = response.provenance();
+        assertThat(provenance).isNotNull();
+        configs.update(new com.rzs.stats.model.dto.EloConfig(1500, 35, 400, true, 28, 0, .78));
+        var game = games.findBySeasonIndex(2).getFirst();
+        game.setHomeScore(77); games.saveAndFlush(game);
+        writer.save(response);
+        assertThat(snapshots.findAll()).allSatisfy(row -> {
+            assertThat(row.getEloConfigHash()).isEqualTo(provenance.eloConfigHash());
+            assertThat(row.getInputFingerprint()).isEqualTo(provenance.inputFingerprint());
+            assertThat(row.getModelVersion()).isEqualTo(provenance.modelVersion());
+        });
+        var fresh = odds.odds(2, "madden");
+        assertThat(fresh.provenance().eloConfigHash()).isNotEqualTo(provenance.eloConfigHash());
+        assertThat(fresh.provenance().inputFingerprint()).isNotEqualTo(provenance.inputFingerprint());
+        assertThat(writer.saveIfAbsent(2, 0, () -> {
+            var historical = odds.historical(loader.loadAtStart(2, 0));
+            configs.update(com.rzs.stats.model.dto.EloConfig.defaults());
+            return historical;
+        })).isTrue();
+        assertThat(snapshots.findBySeasonAndNextWeek(2, 0)).allSatisfy(row ->
+                assertThat(row.getEloConfigHash()).isEqualTo(fresh.provenance().eloConfigHash()));
+        assertThat(json.copy().findAndRegisterModules().writeValueAsString(response)).doesNotContain("provenance", "eloConfigHash", "inputFingerprint", "modelVersion");
     }
 
     @Test

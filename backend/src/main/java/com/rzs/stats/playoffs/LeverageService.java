@@ -46,11 +46,12 @@ public class LeverageService {
     public Key canonicalKey(Integer season, Integer week) {
         if (week != null && (week < 0 || week > 17))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Week must be between 0 and 17");
+        if (season != null && week != null) return new Key(season, week);
         var state = loader.load(season);
         return new Key(state.season(), week == null ? state.nextWeek() : week);
     }
 
-    @Cacheable(value = "leverage", sync = true)
+    @Cacheable(value = "leverage", key = "new org.springframework.cache.interceptor.SimpleKey(#root.target.canonicalKey(#season, #week), #rules)", sync = true)
     public LeverageMatrix matrix(Integer season, Integer week, String rules) {
         if (!"madden".equals(rules) && !"nfl".equals(rules))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rules must be madden or nfl");

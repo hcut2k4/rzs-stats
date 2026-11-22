@@ -1,6 +1,5 @@
 package com.rzs.stats.playoffs;
 
-import com.rzs.stats.service.EloQueryService;
 import com.rzs.stats.service.EloService;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
@@ -18,12 +17,10 @@ public class ChampionshipService {
     public record Response(int season, String rules, int simulations, Instant computedAt, List<Row> teams, boolean preplayoff) {}
 
     private final SeasonStateLoader loader;
-    private final EloQueryService elo;
     private final OddsService odds;
 
-    public ChampionshipService(SeasonStateLoader loader, EloQueryService elo, OddsService odds) {
+    public ChampionshipService(SeasonStateLoader loader, OddsService odds) {
         this.loader = loader;
-        this.elo = elo;
         this.odds = odds;
     }
 
@@ -39,7 +36,7 @@ public class ChampionshipService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rules must be madden or nfl");
         }
         var state = loader.load(season);
-        var result = odds.baseline(state, rules, state.remainingGames().isEmpty() ? Map.of() : elo.homeWinProbabilities(state.season()));
+        var result = odds.baseline(state.season(), rules);
         if (result.teams().isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Championship requires two conferences with seven seeds");
         int simulations = result.baseline().simulations();
         var rows = new ArrayList<Row>();

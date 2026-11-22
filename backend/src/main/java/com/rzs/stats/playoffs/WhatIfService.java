@@ -52,6 +52,7 @@ public class WhatIfService {
                         state.identities().get(g.away()), probabilities.get(g.gameId()))).toList());
     }
 
+    @org.springframework.transaction.annotation.Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
     public Response simulate(Request request) {
         if (request == null) throw bad("Request is required");
         String rules = request.rules() == null ? "madden" : request.rules();

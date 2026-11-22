@@ -54,7 +54,7 @@ public class PathService {
         var matrix = leverage.matrix(state.season(), state.nextWeek(), rules);
         var markerResponse = clinch.clinch(state.season(), rules);
         var probs = state.remainingGames().isEmpty() ? Map.<Integer, Double>of() : elo.homeWinProbabilities(state.season());
-        var tracked = odds.baseline(state, rules, probs).baseline();
+        var tracked = odds.baseline(state.season(), rules).baseline();
         return gate.execute(() -> {
             var row = baseline.conferences().stream().flatMap(c -> c.teams().stream())
                     .filter(r -> r.team().abbrName().equals(abbr)).findFirst().orElseThrow();
@@ -106,8 +106,22 @@ public class PathService {
                             && (conference.contains(g.home()) || conference.contains(g.away())))
                     .sorted(Comparator.comparingInt(SeasonStateLoader.RemainingGame::week).thenComparingInt(SeasonStateLoader.RemainingGame::gameId))
                     .limit(40).toList();
+            var fallback = candidates.stream().filter(g -> !conditioned.swings().containsKey(g.gameId()))
+                    .sorted(Comparator.comparingDouble((SeasonStateLoader.RemainingGame g) ->
+                            conditioned.estimates().containsKey(g.gameId()) ? Math.abs(conditioned.estimates().get(g.gameId()))
+                                    : Math.min(probs.get(g.gameId()), 1 - probs.get(g.gameId())))
+                            .reversed().thenComparingInt(SeasonStateLoader.RemainingGame::gameId))
+                    .limit(10).map(SeasonStateLoader.RemainingGame::gameId).collect(java.util.stream.Collectors.toSet());
             for (var g : candidates) {
                 var swing = conditioned.swings().get(g.gameId());
+                if (swing == null && fallback.contains(g.gameId())) {
+                    var overrides = new HashMap<>(forced);
+                    overrides.put(g.gameId(), SimulationService.Outcome.HOME);
+                    var home = simulator.simulate(state, probs, overrides, 1500, seed, selected, true);
+                    overrides.put(g.gameId(), SimulationService.Outcome.AWAY);
+                    var away = simulator.simulate(state, probs, overrides, 1500, seed, selected, true);
+                    swing = fractions(home, abbr).playoffs() - fractions(away, abbr).playoffs();
+                }
                 if (swing != null) risks.add(root(g.gameId(), g.week(), state.identities().get(g.home()), state.identities().get(g.away()), swing));
             }
 

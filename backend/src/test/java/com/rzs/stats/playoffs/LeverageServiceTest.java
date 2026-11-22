@@ -136,6 +136,10 @@ class LeverageServiceTest {
     @Test
     void defaultAndExplicitWeekRequestsShareOneCachedMatrix() throws Exception {
         populate(false);
+        var cached = leverage.matrix(null, null, "madden");
+        long seeded = SimulationService.seedings();
+        assertThat(leverage.matrix(2, cached.week(), "madden")).isSameAs(cached);
+        assertThat(SimulationService.seedings()).isEqualTo(seeded);
         var implicit = json.readTree(http.perform(get("/api/playoffs/leverage?season=2")).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString());
         var explicit = json.readTree(http.perform(get("/api/playoffs/leverage?season=2&week=" + implicit.get("week").asInt()))

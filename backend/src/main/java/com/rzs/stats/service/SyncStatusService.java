@@ -27,20 +27,35 @@ public class SyncStatusService {
 
     public Instant lastSyncAt() { return status.findById(1L).map(SyncStatusEntity::getLastSyncAt).orElse(null); }
 
+    @Transactional(readOnly = true)
     public String fingerprint(int season) {
-        var rows = new ArrayList<String>();
-        rows.add("season:" + season);
-        games.findBySeasonIndex(season).forEach(g -> rows.add("game:" + Arrays.asList(g.getGameId(), g.getStatus(),
-                g.getHomeScore(), g.getAwayScore(), g.getWeekIndex(), g.getStageIndex(),
-                g.getHomeTeam() == null ? null : g.getHomeTeam().getTeamId(),
-                g.getAwayTeam() == null ? null : g.getAwayTeam().getTeamId())));
-        teams.findAll().forEach(t -> rows.add("team:" + Arrays.asList(t.getTeamId(), t.getAbbrName(), t.getConference(), t.getDivision())));
-        rows.add("config:" + config.get());
-        Collections.sort(rows);
-        return hash(String.join("\n", rows));
+        return fingerprint(config.get());
     }
 
-    public String configHash() { return hash(config.get().toString()); }
+    @Transactional(readOnly = true)
+    public String fingerprint(com.rzs.stats.model.dto.EloConfig eloConfig) {
+        try {
+            var digest = MessageDigest.getInstance("SHA-256");
+            try (var rows = games.fingerprintRows()) { rows.forEach(row -> update(digest, row)); }
+            try (var rows = teams.fingerprintRows()) { rows.forEach(row -> update(digest, row)); }
+            update(digest, new Object[]{eloConfig});
+            return HexFormat.of().formatHex(digest.digest());
+        } catch (NoSuchAlgorithmException e) { throw new IllegalStateException(e); }
+    }
+
+    private static void update(MessageDigest digest, Object[] row) {
+        for (var value : row) {
+            var text = value == null ? "-1:" : value.toString().length() + ":" + value;
+            digest.update(text.getBytes(StandardCharsets.UTF_8));
+        }
+        digest.update((byte) '\n');
+    }
+
+    public void failed() {
+        invalidation.failed();
+        if (org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive())
+            org.springframework.transaction.interceptor.TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+    }
 
     public static String hash(String value) {
         try { return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8))); }
