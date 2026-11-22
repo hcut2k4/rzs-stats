@@ -55,3 +55,6 @@ export const getPlayoffClinch = (season, rules = 'madden') => api.get('/playoffs
 export const getPlayoffRemaining = season => api.get('/playoffs/remaining', { params: { season } }).then(r => r.data)
 export const simulatePlayoffs = (body, signal) => api.post('/playoffs/simulate', body, { signal }).then(r => r.data)
 export const getPlayoffPath = (abbr, season, rules = 'madden') => api.get(`/playoffs/path/${encodeURIComponent(abbr)}`, { params: { season, rules } }).then(r => r.data)
+
+export const getPlayoffOddsHistory = (season, team) => api.get('/playoffs/odds/history', { params: { season, team } }).then(r => r.data)
+export const getPlayoffChampionship = (season, rules = 'madden') => api.get('/playoffs/championship', { params: { season, rules } }).then(r => r.data)

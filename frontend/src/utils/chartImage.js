@@ -145,3 +145,49 @@ export async function leveragePanel(ctx, width, rows, goal) {
     },
   }
 }
+
+export function oddsHistoryPanel(ctx, width, rows, teams, weekText) {
+  const plotHeight = 300
+  const legendRows = Math.ceil(teams.length / 4)
+  return {
+    height: plotHeight + 60 + legendRows * 22,
+    draw(ctx) {
+      const left = 55, right = width - 20, top = 15, bottom = plotHeight
+      const x = i => left + i / (rows.length - 1) * (right - left)
+      const y = p => bottom - p * (bottom - top)
+      ctx.font = '12px sans-serif'
+      ctx.lineWidth = 1
+      for (const p of [0, .25, .5, .75, 1]) {
+        ctx.strokeStyle = IMAGE.line
+        ctx.beginPath(); ctx.moveTo(left, y(p)); ctx.lineTo(right, y(p)); ctx.stroke()
+        ctx.fillStyle = IMAGE.muted
+        ctx.textAlign = 'right'
+        ctx.fillText(`${p * 100}%`, left - 8, y(p) + 4)
+      }
+      ctx.textAlign = 'center'
+      rows.forEach((r, i) => ctx.fillText(weekText(r.week), x(i), bottom + 22))
+      teams.forEach((t, index) => {
+        ctx.strokeStyle = t.color
+        ctx.lineWidth = 2
+        ctx.beginPath()
+        let connected = false
+        rows.forEach((r, i) => {
+          const p = r[t.teamId]
+          if (p == null) { connected = false; return }
+          if (connected) ctx.lineTo(x(i), y(p))
+          else ctx.moveTo(x(i), y(p))
+          connected = true
+        })
+        ctx.stroke()
+        rows.forEach((r, i) => {
+          if (r[t.teamId] == null) return
+          ctx.fillStyle = t.color
+          ctx.beginPath(); ctx.arc(x(i), y(r[t.teamId]), 3, 0, Math.PI * 2); ctx.fill()
+        })
+        ctx.fillStyle = t.color
+        ctx.textAlign = 'left'
+        ctx.fillText(t.abbrName, left + index % 4 * (right - left) / 4, bottom + 50 + Math.floor(index / 4) * 22)
+      })
+    },
+  }
+}
