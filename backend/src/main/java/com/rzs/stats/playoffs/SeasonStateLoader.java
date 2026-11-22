@@ -28,7 +28,7 @@ public class SeasonStateLoader {
         int selected = season == null ? games.findDistinctSeasonIndicesWithMinGames(1).stream()
                 .mapToInt(Integer::intValue).max().orElseThrow(() -> missing("No season data")) : season;
         var schedule = games.findBySeasonIndex(selected).stream()
-                .filter(g -> Objects.equals(g.getStageIndex(), 1) && g.getWeekIndex() != null
+                .filter(g -> g.getStatus() != null && Objects.equals(g.getStageIndex(), 1) && g.getWeekIndex() != null
                         && g.getWeekIndex() >= 0 && g.getWeekIndex() <= 17)
                 .sorted(Comparator.comparing(com.rzs.stats.model.entity.GameEntity::getWeekIndex)
                         .thenComparing(com.rzs.stats.model.entity.GameEntity::getGameId)).toList();

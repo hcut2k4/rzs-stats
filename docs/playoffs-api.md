@@ -148,7 +148,9 @@ Body:
   "picks": [ { "gameId": 123, "result": "home" }, { "gameId": 124, "result": "tie" } ],
   "simulations": 5000 }
 ```
-`season` optional (default current), `rules` default `madden`, `result` is `home` | `away` | `tie`, `simulations` optional (default 5000, max 20000). Validation (400): unknown gameId (not a remaining regular-season game of that season), duplicate gameId, bad `result`, unknown rules, simulations out of range. Picks are forced; every other remaining game is simulated on the same random draws as the baseline run (fresh simulation, never a filtered baseline).
+`season` optional (default current), `rules` default `madden`, `result` is `home` | `away` | `tie`, `simulations` optional (default the baseline’s `playoffs.simulations` count, normally 20000; min 1, max 20000). Validation (400): unknown JSON properties, fractional gameId or simulations, more than 272 picks (or more picks than remaining games), unknown gameId (not a remaining regular-season game of that season), duplicate gameId, bad `result`, unknown rules, simulations out of range. Picks are forced; every other remaining game is simulated on the same random draws as the baseline run (fresh simulation, never a filtered baseline). Empty picks return the baseline odds and seed odds unchanged, so all deltas are exactly zero even with an explicit lower simulation count. Lower counts are allowed for picked runs but can add Monte Carlo noise to deltas, including for teams unaffected by the picks.
+
+Identical requests (season, rules, sorted picks, simulation count) share a bounded 128-result Caffeine cache, evicted on sync. At most two uncached calculations run concurrently; extra calculations wait up to 250 ms, then return 503 with the plain message `Playoff simulations are busy; try again shortly`. Remaining schedules exclude games with unknown (null) status, matching Elo’s upcoming-game query.
 
 Response:
 ```json
@@ -163,7 +165,7 @@ Response:
                    "seedOdds": [0.41, 0.2, 0.15, 0.1, 0.07, 0.04, 0.02] } ],
       "seeds": null } ] }
 ```
-When every remaining game is picked (`exact: true`) there is one outcome: `seeds` is the final seeding (same row shape as the Picture endpoint `seeds`, including `reasons`) and each row additionally has `dependsOnScores` (boolean): true when a tiebreak that decided that team's position used point differential, a coin toss or the arbitrary alphabetical fallback, because picks specify winners but not scores. `odds` are then exactly 0 or 1 for rows not marked `dependsOnScores`; for flagged rows the odds come from simulating margins (so they may be fractional). `seeds` is null when `exact` is false.
+When every remaining game is picked (`exact: true`) there is one outcome: `seeds` is the final seeding (same row shape as the Picture endpoint `seeds`, including `reasons`) and each row additionally has `dependsOnScores` (boolean): true when a tiebreak that decided that team's position used point differential, a coin toss or the arbitrary alphabetical fallback, because picks specify winners but not scores. `odds` are then exactly 0 or 1 for rows not marked `dependsOnScores`; score-dependent cascades are also flagged when margin simulations produce fractional playoff, division or one-seed odds. If no teams are flagged, the forced simulation is skipped. For flagged rows the odds come from simulating margins (so they may be fractional). `seeds` is null when `exact` is false.
 
 ## Odds on the Picture endpoint
 
