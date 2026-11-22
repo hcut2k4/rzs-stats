@@ -35,6 +35,7 @@ class StatsCacheTest {
 
     @BeforeEach
     void setUp() {
+        cacheManager.getCache("playoffPicture");
         // Clear all caches and reset mock call counts between tests
         cacheManager.getCacheNames().forEach(name -> cacheManager.getCache(name).clear());
         reset(gameRepository, teamRepository, client);
