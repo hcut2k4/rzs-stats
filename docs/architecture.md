@@ -7,6 +7,7 @@ backend/src/main/java/com/rzs/stats/
 ├── controller/
 │   ├── StatsController.java       # public API: /api/* (standings, games, trends, elo)
 │   ├── PlayoffsController.java    # public API: /api/playoffs/picture
+│   ├── EloCalibrationController.java # public API: /api/playoffs/calibration
 │   ├── QbController.java          # public API: /api/qb/*
 │   ├── AdminController.java       # admin tools: /api/admin/*
 │   └── AdminAuthController.java   # GET /api/admin/auth — token probe for the UI
@@ -16,6 +17,7 @@ backend/src/main/java/com/rzs/stats/
 │   ├── OwnerChangeService.java    # hardcoded Madden 27 ownership changes
 │   ├── EloHistoryService.java     # replays every game to build rating history
 │   ├── EloQueryService.java       # ratings / games / upcoming / matchup reads
+│   ├── EloCalibrationService.java # pregame probability buckets and Brier scores
 │   ├── EloConfigService.java      # persisted, tunable Elo knobs
 │   ├── QbStatsService.java        # leaderboard + movement, ranking, qualification
 │   ├── QbStatsCalculator.java     # TANY/A and RUSH+ formulas
@@ -146,6 +148,14 @@ Uses completed stage 1 games in weeks 0–17. Invalid rules return 400; missing 
 
 The game-only NFL engine can leave ties unresolved when net touchdown totals or a coin toss are needed. The picture returns 404 if the requested order is unresolved; unresolved alternate seeds are null. This is a contract limitation: the response has no representation for an unknown seed.
 
+### Public — `EloCalibrationController (/api/playoffs)`
+
+| Method | Path | Params | Returns |
+|--------|------|--------|---------|
+| GET | `/calibration` | `season` (optional, all seasons by default) | `games`, `brier`, `coinFlipBrier`, and nonempty probability `buckets` |
+
+`EloCalibrationService` reads unrounded pregame home win probabilities from the shared Elo history, selecting completed stage 1 games in weeks 0–17. Buckets are 0.1 wide, include their lower bound, and exclude their upper bound except for 1.0 in the final bucket. Each bucket returns `low`, `high`, `games`, mean `predicted` probability, and `actual` home win rate. Ties count as 0.5 for both win rate and Brier scores. `brier` is mean squared prediction error; `coinFlipBrier` always predicts 0.5 over the same games. Empty selections return zero games, zero scores, and an empty bucket list. Shapes follow [the playoff API contract](playoffs-api.md#get-apiplayoffscalibration).
+
 ### Public — `QbController (/api/qb)`
 | Method | Path | Params | Returns |
 |--------|------|--------|---------|
@@ -183,11 +193,13 @@ The game-only NFL engine can leave ties unresolved when net touchdown totals or 
 
 **Caffeine** — max 500 entries, 24h write-through TTL.
 
-Cache names: `standings`, `games`, `weeks`, `seasons`, `seasonTrends`, `weeklyTrends`, `seasonGames`, `eloHistory`, `qbStats`, `teamEfficiency`, `playoffPicture`
+Cache names: `standings`, `games`, `weeks`, `seasons`, `seasonTrends`, `weeklyTrends`, `seasonGames`, `eloHistory`, `qbStats`, `teamEfficiency`, `playoffPicture`, `eloCalibration`
 
-The list lives in one place — [config/CacheNames.java](../backend/src/main/java/com/rzs/stats/config/CacheNames.java), as the `allStatsCaches` resolver. **A new cache must be added there**, or it silently survives eviction and serves stale data after a sync. All eleven are evicted together on sync, force-sync, or cache warm. `seasonGames` is cached directly on `GameRepository.findRegularSeasonGames()` (Spring Data JPA repos support `@Cacheable`) so all callers share the same cache regardless of call site.
+The list lives in one place — [config/CacheNames.java](../backend/src/main/java/com/rzs/stats/config/CacheNames.java), as the `allStatsCaches` resolver. **A new cache must be added there**, or it silently survives eviction and serves stale data after a sync. All are evicted together on sync, force-sync, or cache warm. `seasonGames` is cached directly on `GameRepository.findRegularSeasonGames()` (Spring Data JPA repos support `@Cacheable`) so all callers share the same cache regardless of call site.
 
 `playoffPicture` caches the complete response by season parameter and rules, including the default-season request. It participates in the same sync, force-sync, and cache-warm eviction resolver.
+
+`eloCalibration` caches reports separately for each requested season and for all seasons. It participates in shared eviction and is also evicted alongside `eloHistory` when Elo configuration changes.
 
 ## Data Sync
 

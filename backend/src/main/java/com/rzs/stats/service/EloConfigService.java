@@ -30,7 +30,7 @@ public class EloConfigService {
     }
 
     @Transactional
-    @CacheEvict(value = "eloHistory", allEntries = true)
+    @CacheEvict(value = {"eloHistory", "eloCalibration"}, allEntries = true)
     public EloConfig update(EloConfig config) {
         if (config == null || !config.valid()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid Elo configuration");
