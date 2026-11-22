@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { getSeasons, getStandings, getSeasonTrends, getAvailableWeeks } from '../api/client'
+import ClinchBadge, { useClinch, teamMarker } from '../components/playoffs/ClinchBadge'
 import ExportMenu from '../components/ExportMenu'
 import { specCols } from '../utils/exportTable'
 import { TeamCell } from '../components/TeamLogo'
@@ -47,6 +48,7 @@ export default function StandingsPage() {
   const [historyError, setHistoryError] = useState(false)
   const historyRequested = useRef(false)
   const latest = seasons.length ? seasons[seasons.length - 1] : null
+  const clinch = useClinch(season != null && season === latest ? season : null, 'madden')
   const weeks = useLoad(season != null && season === latest ? `weeks-${season}` : null, () => getAvailableWeeks(season, 1))
 
   useEffect(() => {
@@ -121,7 +123,7 @@ export default function StandingsPage() {
 
   const COLS = [
     { key: 'rank',           label: '#', desc: 'Row number in the current sort order. Not an official standing or playoff seed.', tx: (_, i) => i + 1, value: (_, i) => i + 1, z: '0', fmt: (_, i) => i + 1, stickyLeft: 'left-0', w: 'w-10' },
-    { key: 'displayName',    label: 'Team', logo: r => r.abbrName, desc: 'City plus nickname.', tx: (_, i, row) => `${row.cityName} ${row.displayName}`, fmt: (v, _, row) => <TeamCell abbr={row.abbrName} name={`${row.cityName} ${row.displayName}`} />, stickyLeft: 'left-10' },
+    { key: 'displayName',    label: 'Team', logo: r => r.abbrName, desc: 'City plus nickname.', tx: (_, i, row) => `${row.cityName} ${row.displayName}`, fmt: (v, _, row) => <span className="inline-flex items-center gap-2"><TeamCell abbr={row.abbrName} name={`${row.cityName} ${row.displayName}`} /><ClinchBadge markers={teamMarker(clinch, row.teamId)} /></span>, stickyLeft: 'left-10' },
     { key: 'wins',           label: 'W', desc: 'Wins. A tie counts 0.5 toward expected wins.', value: r => r.wins, z: '0', group: 'Record', groupStart: true },
     { key: 'losses',         label: 'L', desc: 'Losses.', value: r => r.losses, z: '0', group: 'Record' },
     { key: 'ties',           label: 'T', desc: 'Ties. A tie counts 0.5 toward expected wins.', value: r => r.ties, z: '0', group: 'Record' },

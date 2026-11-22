@@ -159,6 +159,7 @@ const PAGES = [
     bullets: [
       'Simulate the remaining regular-season games thousands of times, then apply the selected tiebreak rules to count playoff appearances, division wins and No. 1 seeds.',
       'Each game uses win probabilities from Elo ratings and home field. Ratings stay fixed within a simulated season, and simulated games have no ties.',
+      'In a simulated game, the loser scores 20 and the winner wins by 1, 3, 7, 10, 14 or 21 points, each equally likely. These scores only matter for point-differential tiebreakers.',
       'Odds round to whole percents. “>99%” replaces 100% (99.5% or higher), and “<1%” replaces 0% (under 0.5%). These are estimates, not clinch or elimination markers.',
       'The seed distribution shows the chance of each seed, 1–7. The unfilled part is the chance of missing the playoffs.',
     ],
@@ -207,6 +208,12 @@ const PAGES = [
     bullets: [
       'Your team’s path shows whether winning out is proven to secure a playoff spot, its best simulated seed, and its odds at each final record. A simulated 100% alone is not proof that you control your destiny.',
       'See which other results help if you win out, and who to root for this week. Swing measures percentage points of playoff probability. Load your remaining wins and the helpful results into What-If to explore the combined scenario.',
+    ],
+  },
+  {
+    name: 'Final-week scenarios',
+    bullets: [
+      'With 1–16 games left across the league, final-week scenarios check every combination of wins and losses. In means the goal is secured in every outcome; out means it is impossible; open means it is unresolved. Each listed condition is a sufficient combination of results to clinch the goal or eliminate us. No ties are assumed and scores are unknown, so score-dependent tiebreakers can leave a goal open with no proven conditions.',
     ],
   },
   {
