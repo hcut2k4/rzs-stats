@@ -28,7 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureCache(cacheProvider = CacheType.CAFFEINE)
 @EnableCaching
 @Import({SeasonStateLoader.class, OddsService.class, SimulationService.class, OddsSnapshotService.class,
-        PlayoffsController.class, PlayoffPictureService.class, CacheNames.class, EloQueryService.class,
+        PlayoffsController.class, ClinchService.class, PlayoffPictureService.class, CacheNames.class, EloQueryService.class,
         EloHistoryService.class, EloService.class, EloConfigService.class, OwnerChangeService.class})
 class OddsServiceTest {
     @Autowired GameRepository games;
