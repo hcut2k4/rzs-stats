@@ -46,7 +46,7 @@ export default function LeverageTab({ season, rules, params, updateParam }) {
   }
   spec.cols.splice(3, 0, { label: 'Range', desc: 'Current probability, shown by the logo between loss and win.', text: r => formatOdds(r.current[goal]), value: r => r.current[goal], z: '0%' })
   spec.image = { draw: (ctx, width) => leveragePanel(ctx, width, shown, goal) }
-  const others = g => g.others.filter(o => o.goal === goal).slice(0, 3).map(o => `${o.team.displayName} (${o.swing >= 0 ? '+' : ''}${Math.round(o.swing * 100)} pp with a home win)`).join('; ') || 'No other teams listed'
+  const others = g => g.others.filter(o => o.goal === goal && Math.abs(Math.round(o.swing * 100)) >= 1).slice(0, 3).map(o => `${o.team.displayName} (${o.swing >= 0 ? '+' : ''}${Math.round(o.swing * 100)} pp with a home win)`).join('; ') || 'No other teams listed'
   const games = gameSorter.apply(data?.games ?? [], { Game: g => `${g.away.abbrName} @ ${g.home.abbrName}`, Importance: g => g.importance[goal], 'Others affected': others })
   const gamesSpec = { name: 'Biggest games this week', qualifier, rows: games, description: 'Ranked by total probability moved across all teams, divided by two.', cols: [
     { label: 'Game', desc: 'Away at home.', text: g => `${g.away.displayName} @ ${g.home.displayName}` },
@@ -71,7 +71,7 @@ export default function LeverageTab({ season, rules, params, updateParam }) {
       </section>
       <section aria-label="Biggest games" className="min-w-0"><div className="flex items-center justify-between flex-wrap gap-2 mb-2"><h2 className="th mb-1">Biggest games this week</h2><ExportMenu spec={gamesSpec} /></div><p className="text-xs text-muted mb-2">Importance is how much playoff probability moves across all teams depending on who wins, in percentage points. Others affected shows how a home win changes other teams.</p><div className="overflow-x-auto border-y border-rule whitespace-nowrap"><table className="w-full text-sm num" aria-label="Biggest games this week"><thead><tr className="border-b border-rule">{gamesSpec.cols.map(c => <SortTh key={c.label} sortKey={c.label} state={gameSorter.sort} onSort={gameSorter.click} tip={c.desc} className={c.label === 'Importance' ? 'text-right' : 'text-left'}>{c.label}</SortTh>)}</tr></thead><tbody>{games.map((g, i) => <tr key={g.gameId} className={`border-t border-line ${i % 2 ? 'bg-surface' : 'bg-bg'}`}>
         <td className="px-2 py-2">{g.away.displayName} @ {g.home.displayName}</td><td className="px-2 py-2 num text-right" style={{ background: swingShade(g.importance[goal] * 100) }}>{Math.round(g.importance[goal] * 100)} pp</td>
-        <td className="px-2 py-2 text-muted">{g.others.filter(o => o.goal === goal).slice(0, 3).map(o => `${o.team.displayName} ${o.swing >= 0 ? '+' : '−'}${Math.abs(Math.round(o.swing * 100))} pp`).join(', ') || 'No other teams affected'}</td>
+        <td className="px-2 py-2 text-muted">{g.others.filter(o => o.goal === goal && Math.abs(Math.round(o.swing * 100)) >= 1).slice(0, 3).map(o => `${o.team.displayName} ${o.swing >= 0 ? '+' : '−'}${Math.abs(Math.round(o.swing * 100))} pp`).join(', ') || 'No other teams affected'}</td>
       </tr>)}</tbody></table></div></section>
     </div>}
   </>
