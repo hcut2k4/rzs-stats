@@ -134,12 +134,24 @@ class LeverageServiceTest {
     }
 
     @Test
+    void defaultAndExplicitWeekRequestsShareOneCachedMatrix() throws Exception {
+        populate(false);
+        var implicit = json.readTree(http.perform(get("/api/playoffs/leverage?season=2")).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString());
+        var explicit = json.readTree(http.perform(get("/api/playoffs/leverage?season=2&week=" + implicit.get("week").asInt()))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        assertThat(explicit.get("computedAt").asText()).isEqualTo(implicit.get("computedAt").asText());
+    }
+
+    @Test
     void emptyWeeksAndCompletedSeasonsReturnEmptyGamesAndInvalidRequestsHaveContractStatuses() throws Exception {
         populate(true);
         http.perform(get("/api/playoffs/leverage?season=2&week=0")).andExpect(status().isOk()).andExpect(jsonPath("$.games").isEmpty());
         http.perform(get("/api/playoffs/leverage?season=2")).andExpect(status().isOk()).andExpect(jsonPath("$.games").isEmpty());
         http.perform(get("/api/playoffs/leverage?season=99")).andExpect(status().isNotFound());
         http.perform(get("/api/playoffs/leverage?rules=bad")).andExpect(status().isBadRequest());
+        http.perform(get("/api/playoffs/leverage?season=2&week=99")).andExpect(status().isBadRequest());
+        http.perform(get("/api/playoffs/leverage?season=2&week=-1")).andExpect(status().isBadRequest());
     }
 
     @Test

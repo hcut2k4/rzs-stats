@@ -39,6 +39,15 @@ public class LeverageService {
         this.simulations = simulations;
     }
 
+    public record Key(int season, Integer week) {}
+
+    public Key canonicalKey(Integer season, Integer week) {
+        if (week != null && (week < 0 || week > 17))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Week must be between 0 and 17");
+        var state = loader.load(season);
+        return new Key(state.season(), week == null ? state.nextWeek() : week);
+    }
+
     @Cacheable(value = "leverage", sync = true)
     public LeverageMatrix matrix(Integer season, Integer week, String rules) {
         if (!"madden".equals(rules) && !"nfl".equals(rules))
@@ -51,8 +60,8 @@ public class LeverageService {
         var selectedRules = rules.equals("madden") ? SimulationService.Rules.MADDEN : SimulationService.Rules.NFL;
         var result = new ArrayList<GameMatrix>();
         for (var game : games) {
-            var home = simulator.simulate(state, probs, Map.of(game.gameId(), SimulationService.Outcome.HOME), simulations, seed, selectedRules);
-            var away = simulator.simulate(state, probs, Map.of(game.gameId(), SimulationService.Outcome.AWAY), simulations, seed, selectedRules);
+            var home = simulator.simulate(state, probs, Map.of(game.gameId(), SimulationService.Outcome.HOME), simulations, seed, selectedRules, true);
+            var away = simulator.simulate(state, probs, Map.of(game.gameId(), SimulationService.Outcome.AWAY), simulations, seed, selectedRules, true);
             var teams = new TreeMap<String, ConditionalOdds>();
             for (var team : state.teams()) teams.put(team.abbr(), new ConditionalOdds(
                     fractions(home.teams().get(team.abbr())), fractions(away.teams().get(team.abbr()))));
