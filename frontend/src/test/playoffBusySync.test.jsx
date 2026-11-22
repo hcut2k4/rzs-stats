@@ -17,9 +17,9 @@ beforeEach(() => { vi.resetAllMocks(); clearLoadCache() })
 afterEach(() => vi.useRealTimers())
 
 it.each([
-  [syncFixture.lastSyncAt, 'Last synced Dec 31, 7:00 PM ET'],
-  ['2026-11-22T09:02:11Z', 'Last synced Nov 22, 4:02 AM ET'],
-  ['2026-07-22T09:02:11Z', 'Last synced Jul 22, 5:02 AM ET'],
+  [syncFixture.lastSyncAt, 'Last synced Dec 31, 7:00 PM ET.'],
+  ['2026-11-22T09:02:11Z', 'Last synced Nov 22, 4:02 AM ET.'],
+  ['2026-07-22T09:02:11Z', 'Last synced Jul 22, 5:02 AM ET.'],
 ])('shares one sync request between the footer and About, formatting %s in Eastern time', async (lastSyncAt, text) => {
   client.getPublicSyncStatus.mockResolvedValue({ ...syncFixture, lastSyncAt })
   render(<MemoryRouter initialEntries={['/about']}><App /></MemoryRouter>)
