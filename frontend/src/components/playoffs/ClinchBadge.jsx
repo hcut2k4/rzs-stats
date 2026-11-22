@@ -3,7 +3,7 @@ import { useLoad } from '../../utils/useLoad'
 import { formatOdds } from '../../utils/playoffOdds'
 import InfoTip from '../InfoTip'
 
-export const CLINCH_TIP = 'Proven in every possible outcome of the remaining games, including ties and unknown scores. A missing badge only means not proven yet.'
+export const CLINCH_TIP = 'Guaranteed under Madden 27\'s tiebreak rules for every possible result of the remaining games, including ties. No badge means it isn\'t settled yet.'
 export function useClinch(season, rules) {
   return useLoad(season == null ? null : `playoffs-clinch-${season}-${rules}`, async () => getPlayoffClinch(season, rules)).data
 }

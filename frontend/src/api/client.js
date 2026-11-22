@@ -19,6 +19,8 @@ api.interceptors.request.use(config => {
 
 export const checkAdminAuth = () => api.get('/admin/auth').then(r => r.data)
 
+export const getPublicSyncStatus = () => api.get('/sync/status').then(r => r.data)
+
 export const getSeasons = () => api.get('/seasons').then(r => r.data)
 export const getPlayoffPicture = (season, rules = 'madden') => api.get('/playoffs/picture', { params: { season, rules } }).then(r => r.data)
 export const getPlayoffOdds = (season, rules = 'madden') => api.get('/playoffs/odds', { params: { season, rules } }).then(r => r.data)
