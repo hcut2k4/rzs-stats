@@ -33,9 +33,12 @@ public final class PlayoffSeeding {
     public record Record(int wins, int losses, int ties, double strengthOfVictory, double strengthOfSchedule) {
         public double winPercentage() { return wins + losses + ties == 0 ? 0 : (wins + ties * 0.5) / (wins + losses + ties); }
     }
+    public record PointTie(String conference, boolean divisionTitle, Set<String> tied, Step step) {
+        public PointTie { tied = Set.copyOf(tied); }
+    }
     public record Result(Map<String, List<Rank>> conferences, Map<String, Rank> divisionRanks,
                          Map<String, Record> records, List<Trace> trace,
-                         Map<String, List<Rank>> unresolvedConferences) {}
+                         Map<String, List<Rank>> unresolvedConferences, List<PointTie> pointTies) {}
 
     private record Ratio(long numerator, long denominator) implements Comparable<Ratio> {
         private Ratio {
@@ -54,6 +57,7 @@ public final class PlayoffSeeding {
     private final Map<String, List<Game>> games = new HashMap<>();
     private final Map<String, Rank> divisionRanks = new TreeMap<>();
     private final List<Trace> trace = new ArrayList<>();
+    private final Set<PointTie> pointTies = new LinkedHashSet<>();
 
     private PlayoffSeeding(List<Team> teams, List<Game> schedule, TiebreakerRules rules, boolean alphabeticalFallback) {
         this.alphabeticalFallback = alphabeticalFallback;
@@ -124,7 +128,19 @@ public final class PlayoffSeeding {
             records.put(team, new Record(wins, losses, ties, strength(team, true).value(), strength(team, false).value()));
         });
         return new Result(Collections.unmodifiableMap(conferences), Collections.unmodifiableMap(divisionRanks),
-                Collections.unmodifiableMap(records), List.copyOf(trace), Collections.unmodifiableMap(unresolvedConferences));
+                Collections.unmodifiableMap(records), List.copyOf(trace), Collections.unmodifiableMap(unresolvedConferences), List.copyOf(pointTies));
+    }
+
+    private void pointTie(Set<String> tied, boolean division, Step step) {
+        pointTies.add(new PointTie(teams.get(tied.iterator().next()).conference(), division, tied, step));
+    }
+
+    static boolean marginDependent(Step step) {
+        return step == null || switch (step) {
+            case NET_POINTS_COMMON, NET_POINTS_CONFERENCE, NET_POINTS_ALL, COMBINED_RANKING_CONFERENCE,
+                    COMBINED_RANKING_ALL, NET_TOUCHDOWNS, COIN_TOSS, ALPHABETICAL -> true;
+            default -> false;
+        };
     }
 
     private List<Rank> order(Set<String> clubs, boolean division, String context, int start) {
@@ -187,6 +203,7 @@ public final class PlayoffSeeding {
         var steps = steps(tied, division);
         for (int index = firstStep; index < steps.size(); index++) {
             var step = steps.get(index);
+            if (marginDependent(step)) pointTie(tied, division, step);
             if (step == Step.NET_TOUCHDOWNS || step == Step.COIN_TOSS) {
                 trace.add(new Trace(context, tied, step, tied, Status.UNRESOLVED));
                 return List.of(new Selection(tied, step));
@@ -201,6 +218,7 @@ public final class PlayoffSeeding {
             }
             return result;
         }
+        pointTie(tied, division, null);
         trace.add(new Trace(context, tied, null, tied, Status.UNRESOLVED));
         return List.of(new Selection(tied, null));
     }
@@ -222,6 +240,7 @@ public final class PlayoffSeeding {
         if (candidates.size() == 1) return new Selection(candidates, null);
         var steps = steps(candidates, division);
         for (var step : steps) {
+            if (marginDependent(step)) pointTie(candidates, division, step);
             if (step == Step.NET_TOUCHDOWNS || step == Step.COIN_TOSS) {
                 trace.add(new Trace(context, candidates, step, candidates, Status.UNRESOLVED));
                 return new Selection(candidates, step);
@@ -233,6 +252,7 @@ public final class PlayoffSeeding {
             if (rules.restartAfterElimination()) return select(remaining, division, context);
             candidates = new TreeSet<>(remaining);
         }
+        pointTie(candidates, division, null);
         trace.add(new Trace(context, candidates, null, candidates, Status.UNRESOLVED));
         return new Selection(candidates, steps.isEmpty() ? null : steps.getLast());
     }

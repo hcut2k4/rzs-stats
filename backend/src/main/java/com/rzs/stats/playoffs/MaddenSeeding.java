@@ -23,6 +23,7 @@ public record MaddenSeeding() {
         private final int[] totalWins, totalGames, totalTies, net, conferenceNet;
         private final double[] pct, divisionPct, conferencePct, sov, sos;
         private final List<Trace> trace = new ArrayList<>();
+        private final Set<PointTie> pointTies = new LinkedHashSet<>();
 
         Engine(List<Team> source, List<Game> schedule) {
             teams = source.stream().sorted(Comparator.comparing(Team::abbr)).toList();
@@ -98,7 +99,7 @@ public record MaddenSeeding() {
                 conferences.put(conference.getKey(), List.copyOf(ranks));
             }
             return new Result(Collections.unmodifiableMap(conferences), Collections.unmodifiableMap(divisionRanks),
-                    Collections.unmodifiableMap(records), List.copyOf(trace), Map.of());
+                    Collections.unmodifiableMap(records), List.copyOf(trace), Map.of(), List.copyOf(pointTies));
         }
 
         private Rank rank(int position, int team) {
@@ -117,6 +118,7 @@ public record MaddenSeeding() {
             var group = pool.stream().sorted().toList();
             if (group.size() < 2) return group;
             for (var step : STEPS) {
+                if (marginDependent(step)) pointTie(context, group, step);
                 var values = values(group, step);
                 var clusters = new TreeMap<Double, List<Integer>>(Comparator.reverseOrder());
                 if (group.size() == 2) {
@@ -147,8 +149,16 @@ public record MaddenSeeding() {
                 for (var cluster : rest) ordered.addAll(tiedOrder(cluster, context));
                 return ordered;
             }
+            pointTie(context, group, Step.ALPHABETICAL);
             log(context, group, Step.ALPHABETICAL, group.subList(0, 1), new double[teams.size()], false);
             return group;
+        }
+
+        private void pointTie(String context, List<Integer> group, Step step) {
+            var tied = new TreeSet<String>();
+            group.forEach(t -> tied.add(teams.get(t).abbr()));
+            pointTies.add(new PointTie(teams.get(group.getFirst()).conference(),
+                    context.contains(" division ") && !context.contains("winner seeding"), tied, step));
         }
 
         private double[] values(List<Integer> group, Step step) {
