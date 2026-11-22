@@ -7,15 +7,21 @@ import { clearLoadCache } from '../utils/useLoad'
 import { withBusyRetry } from '../utils/usePlayoffLoad'
 import * as client from '../api/client'
 
+
+import syncFixture from './fixtures/playoffs/sync-status.json'
+import emptySyncFixture from './fixtures/playoffs/sync-status-empty.json'
+import oddsFixture from './fixtures/playoffs/odds.json'
+
 vi.mock('../api/client')
 beforeEach(() => { vi.resetAllMocks(); clearLoadCache() })
 afterEach(() => vi.useRealTimers())
 
 it.each([
+  [syncFixture.lastSyncAt, 'Last synced Dec 31, 7:00 PM ET'],
   ['2026-11-22T09:02:11Z', 'Last synced Nov 22, 4:02 AM ET'],
   ['2026-07-22T09:02:11Z', 'Last synced Jul 22, 5:02 AM ET'],
 ])('shares one sync request between the footer and About, formatting %s in Eastern time', async (lastSyncAt, text) => {
-  client.getPublicSyncStatus.mockResolvedValue({ lastSyncAt })
+  client.getPublicSyncStatus.mockResolvedValue({ ...syncFixture, lastSyncAt })
   render(<MemoryRouter initialEntries={['/about']}><App /></MemoryRouter>)
   await waitFor(() => expect(screen.getAllByText(text, { exact: false })).toHaveLength(2))
   expect(client.getPublicSyncStatus).toHaveBeenCalledTimes(1)
@@ -27,7 +33,7 @@ it.each([
 it.each(['loading', 'error', 'null'])('keeps the schedule fallback when sync status is %s', async mode => {
   if (mode === 'loading') client.getPublicSyncStatus.mockReturnValue(new Promise(() => {}))
   if (mode === 'error') client.getPublicSyncStatus.mockRejectedValue(new Error('unavailable'))
-  if (mode === 'null') client.getPublicSyncStatus.mockResolvedValue({ lastSyncAt: null })
+  if (mode === 'null') client.getPublicSyncStatus.mockResolvedValue(emptySyncFixture)
   render(<MemoryRouter initialEntries={['/about']}><App /></MemoryRouter>)
   await act(async () => {})
   expect(screen.getAllByText(/Stats sync from NeonSportz nightly at 4 AM ET/)).toHaveLength(2)
@@ -49,7 +55,7 @@ it('retries a shared busy odds request only once after a delay of one to three s
   expect(screen.getByText('The server is busy. Try again')).toBeInTheDocument()
   await act(async () => vi.advanceTimersByTimeAsync(10000))
   expect(client.getPlayoffOdds).toHaveBeenCalledTimes(2)
-  client.getPlayoffOdds.mockResolvedValue({ conferences: [] })
+  client.getPlayoffOdds.mockResolvedValue({ ...oddsFixture, conferences: [] })
   fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
   await act(async () => {})
   expect(screen.getByText('No playoff odds available.')).toBeInTheDocument()

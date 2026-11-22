@@ -1,3 +1,4 @@
+import clinchFixture from './fixtures/playoffs/clinch.json'
 import { createElement } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
@@ -213,7 +214,7 @@ describe('Standings exports', () => {
 })
 
 it('displays current-season clinch badges without changing export columns or team sorting', async () => {
-  client.getPlayoffClinch.mockResolvedValue({ teams: [{ team: { teamId: 1 }, playoffs: 'clinched' }, { team: { teamId: 2 }, playoffs: 'eliminated' }] })
+  client.getPlayoffClinch.mockResolvedValue({ ...clinchFixture, teams: clinchFixture.teams.filter(row => [1, 2].includes(row.team.teamId)).map(row => row.team.teamId === 1 ? { ...row, playoffs: 'clinched' } : row) })
   await show()
   expect(await screen.findByText('Clinched playoffs')).toBeInTheDocument()
   expect(screen.getByText('Eliminated from the playoffs')).toBeInTheDocument()

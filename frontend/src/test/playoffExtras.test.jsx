@@ -11,25 +11,34 @@ import * as client from '../api/client'
 import * as exports from '../utils/exportTable'
 import { clearLoadCache } from '../utils/useLoad'
 
+import oddsFixture from './fixtures/playoffs/odds.json'
+import clinchFixture from './fixtures/playoffs/clinch.json'
+import historyFixture from './fixtures/playoffs/odds-history.json'
+import championshipFixture from './fixtures/playoffs/championship.json'
+import preplayoffFixture from './fixtures/playoffs/championship-preplayoff.json'
+
 vi.mock('../api/client')
 vi.mock('recharts', async importOriginal => ({
   ...await importOriginal(),
   ResponsiveContainer: ({ children }) => cloneElement(children, { width: 800, height: 288 }),
 }))
 
-const teams = Array.from({ length: 8 }, (_, i) => ({ teamId: i + 1, abbrName: `T${i + 1}`, displayName: `Team ${i + 1}`, ...(i === 7 ? { primaryColor: '16711680' } : {}) }))
-const current = teams.map((team, i) => ({ team, odds: { playoffs: (i + 1) / 10, division: .2, oneSeed: .1 }, wins: 5, losses: 2, ties: 0, seedOdds: Array(7).fill(.1) }))
-const history = (season = 2) => ({ season, snapshots: [3, 5].map((week, i) => ({ week, computedAt: '2026-11-22T03:00:00Z', simulations: 20000, teams: teams.map(team => ({ team, playoffs: .6 + i / 10, division: .3 + i / 10, oneSeed: .1 + i / 10 })) })) })
-const championship = (season = 2, rules = 'madden') => ({ season, rules, simulations: 20000, computedAt: '2026-11-22T03:00:00Z', teams: [
-  { team: teams[0], conference: 'AFC', playoffs: .999, round2: .7, conferenceFinal: .4, final: .2, champion: .001 },
-  { team: teams[1], conference: 'NFC', playoffs: .8, round2: .6, conferenceFinal: .5, final: .4, champion: .234 },
-] })
+
+const current = structuredClone(oddsFixture.conferences[0].teams.slice(0, 8).reverse())
+current.at(-1).team.primaryColor = '16711680'
+const teams = current.map(row => row.team)
+const history = (season = 2) => ({ ...structuredClone(historyFixture), season,
+  snapshots: [0, 1].map(i => ({ ...structuredClone(historyFixture.snapshots[0]), week: historyFixture.snapshots[0].week + i,
+    teams: historyFixture.snapshots[0].teams.map(row => ({ ...row, playoffs: Math.min(1, row.playoffs + i / 10) })),
+  })),
+})
+const championship = (season = 2, rules = 'madden') => ({ ...structuredClone(championshipFixture), season, rules })
 const show = node => render(<MemoryRouter>{node}</MemoryRouter>)
 const expand = async () => {
   const summary = screen.getByText('Odds over time')
   summary.closest('details').open = true
   fireEvent(summary.closest('details'), new Event('toggle'))
-  await screen.findByRole('checkbox', { name: 'Team 1' })
+  await screen.findByRole('checkbox', { name: teams[0].displayName })
 }
 const formats = region => {
   for (const name of ['XLSX', 'CSV', 'PNG', 'AI']) expect(within(region).getByRole('button', { name })).toBeInTheDocument()
@@ -38,8 +47,8 @@ const formats = region => {
 beforeEach(() => {
   vi.resetAllMocks()
   clearLoadCache()
-  client.getPlayoffOdds.mockResolvedValue({ season: 2, rules: 'madden', simulations: 20000, computedAt: 'now', conferences: [{ name: 'AFC', teams: current }] })
-  client.getPlayoffClinch.mockResolvedValue({ teams: [] })
+  client.getPlayoffOdds.mockResolvedValue(oddsFixture)
+  client.getPlayoffClinch.mockResolvedValue({ ...clinchFixture, teams: [] })
   client.getPlayoffOddsHistory.mockImplementation(async season => history(season))
   client.getPlayoffChampionship.mockImplementation(async (season, rules) => championship(season, rules))
 })
@@ -49,30 +58,30 @@ it('defaults to the top six teams, searches all teams and changes the chart goal
   expect(client.getPlayoffOddsHistory).not.toHaveBeenCalled()
   await expand()
   expect(screen.getAllByRole('checkbox').filter(c => c.checked)).toHaveLength(6)
-  expect(screen.getByRole('checkbox', { name: 'Team 1' })).not.toBeChecked()
-  expect(screen.getByRole('checkbox', { name: 'Team 2' })).not.toBeChecked()
-  for (let i = 3; i <= 8; i++) expect(screen.getByRole('checkbox', { name: `Team ${i}` })).toBeChecked()
+  expect(screen.getByRole('checkbox', { name: teams[0].displayName })).not.toBeChecked()
+  expect(screen.getByRole('checkbox', { name: teams[1].displayName })).not.toBeChecked()
+  for (let i = 3; i <= 8; i++) expect(screen.getByRole('checkbox', { name: teams[i - 1].displayName })).toBeChecked()
   const chart = screen.getByRole('img', { name: /Playoffs odds history:/ })
   expect(chart.querySelectorAll('.recharts-line-curve')).toHaveLength(6)
   expect(chart.querySelector('[stroke="#ff0000"]')).toBeInTheDocument()
-  expect(within(chart).getByText('Week 4')).toBeInTheDocument()
-  expect(within(chart).getByText('Week 6')).toBeInTheDocument()
-  expect(within(chart).queryByText('Week 5')).not.toBeInTheDocument()
+  expect(within(chart).getByText('Week 17')).toBeInTheDocument()
+  expect(within(chart).getByText('Week 18')).toBeInTheDocument()
+  expect(within(chart).queryByText('Week 16')).not.toBeInTheDocument()
   expect(within(chart).getByText('100%')).toBeInTheDocument()
   const playoffPath = chart.querySelector('.recharts-line-curve').getAttribute('d')
   await userEvent.selectOptions(screen.getByLabelText('History goal'), 'division')
   expect(screen.getByRole('img', { name: /Division odds history:/ }).querySelector('.recharts-line-curve').getAttribute('d')).not.toBe(playoffPath)
   await userEvent.selectOptions(screen.getByLabelText('History goal'), 'oneSeed')
   expect(screen.getByRole('img', { name: /No. 1 seed odds history:/ })).toBeInTheDocument()
-  await userEvent.type(screen.getByLabelText('Search teams'), 'T1')
+  await userEvent.type(screen.getByLabelText('Search teams'), teams[0].abbrName)
   expect(screen.getAllByRole('checkbox')).toHaveLength(1)
-  await userEvent.click(screen.getByRole('checkbox', { name: 'Team 1' }))
-  expect(screen.getByRole('img', { name: /odds history:/ })).toHaveAttribute('aria-label', expect.stringContaining('Team 1'))
+  await userEvent.click(screen.getByRole('checkbox', { name: teams[0].displayName }))
+  expect(screen.getByRole('img', { name: /odds history:/ })).toHaveAttribute('aria-label', expect.stringContaining(teams[0].displayName))
   expect(client.getPlayoffOddsHistory).toHaveBeenCalledExactlyOnceWith(2)
 })
 
 it.each([0])('shows the history starting message for %i snapshots', async count => {
-  client.getPlayoffOddsHistory.mockResolvedValue({ season: 2, snapshots: history().snapshots.slice(0, count) })
+  client.getPlayoffOddsHistory.mockResolvedValue({ ...history(), snapshots: history().snapshots.slice(0, count) })
   show(<OddsHistory season={2} currentTeams={current} />)
   const details = screen.getByText('Odds over time').closest('details')
   details.open = true
@@ -90,10 +99,10 @@ it('exports a weeks-by-selected-teams table for the selected goal with a chart i
   await userEvent.selectOptions(screen.getByLabelText('History goal'), 'division')
   await userEvent.click(within(region).getByRole('button', { name: 'CSV' }))
   const spec = csv.mock.lastCall[0]
-  expect(spec.rows.map(r => r.week)).toEqual([3, 5])
-  expect(spec.cols.map(c => c.label)).toEqual(['Week', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8'])
-  expect(spec.cols[1].text(spec.rows[0])).toBe('30%')
-  expect(spec.cols[1].value(spec.rows[0])).toBe(.3)
+  expect(spec.rows.map(r => r.week)).toEqual([16, 17])
+  expect(spec.cols.map(c => c.label)).toEqual(['Week', ...teams.slice(2).map(t => t.abbrName).sort()])
+  expect(spec.cols[1].text(spec.rows[0])).toBe('69%')
+  expect(spec.cols[1].value(spec.rows[0])).toBe(.69)
   expect(spec.cols[1].z).toBe('0%')
   expect(spec.api.params).toEqual({ season: 2 })
   expect(spec.image.draw).toBeTypeOf('function')
@@ -102,16 +111,20 @@ it('exports a weeks-by-selected-teams table for the selected goal with a chart i
 
 it('sorts championship odds by champion and formats whole percent estimates with exports', async () => {
   const csv = vi.spyOn(exports, 'exportCsv').mockReturnValue('saved')
+  const data = championship(1, 'nfl')
+  data.teams.reverse()
+  client.getPlayoffChampionship.mockResolvedValue(data)
   show(<ChampionshipOdds season={1} rules="nfl" />)
   const table = await screen.findByRole('table', { name: 'Championship odds' })
   const rows = within(table).getAllByRole('row')
-  expect(rows[1]).toHaveTextContent('Team 2NFC80%60%50%40%23%')
-  expect(rows[2]).toHaveTextContent('Team 1AFC>99%70%40%20%<1%')
+  expect(rows[1]).toHaveTextContent('SEANFC>99%80%56%39%19%')
+  expect(rows[2]).toHaveTextContent('CINAFC81%61%38%25%14%')
+  expect(rows.at(-1)).toHaveTextContent('<1%')
   expect(client.getPlayoffChampionship).toHaveBeenCalledExactlyOnceWith(1, 'nfl')
   const region = screen.getByRole('region', { name: 'Championship odds' })
   formats(region)
   await userEvent.click(within(region).getByRole('button', { name: 'CSV' }))
-  expect(csv.mock.lastCall[0].rows[0].champion).toBe(.234)
+  expect(csv.mock.lastCall[0].rows[0].champion).toBe(.19)
   expect(csv.mock.lastCall[0].api.params).toEqual({ season: 1, rules: 'nfl' })
   csv.mockRestore()
 })
@@ -124,8 +137,8 @@ it('places history and championship sections below the current odds tables', asy
 })
 
 it('adds title odds and a small history SVG to the team outlook', async () => {
-  show(<PlayoffOutlook teamId={1} season={2} />)
-  expect(await screen.findByText('Title odds <1%')).toBeInTheDocument()
+  show(<PlayoffOutlook teamId={teams[0].teamId} season={2} />)
+  expect(await screen.findByText('Title odds 2%')).toBeInTheDocument()
   const spark = await screen.findByRole('img', { name: /Playoff odds went from/ })
   expect(spark.querySelector('polyline')).toHaveAttribute('points', '3,15 157,12')
 })
@@ -136,9 +149,9 @@ it.each(['failed', 'short', 'missing'])('keeps the team outlook while hiding una
     client.getPlayoffOddsHistory.mockRejectedValue(new Error('Unavailable'))
   } else {
     client.getPlayoffChampionship.mockResolvedValue({ ...championship(), teams: [] })
-    client.getPlayoffOddsHistory.mockResolvedValue({ season: 2, snapshots: mode === 'short' ? history().snapshots.slice(0, 1) : [] })
+    client.getPlayoffOddsHistory.mockResolvedValue({ ...history(), snapshots: mode === 'short' ? history().snapshots.slice(0, 1) : [] })
   }
-  show(<PlayoffOutlook teamId={1} season={2} />)
+  show(<PlayoffOutlook teamId={teams[0].teamId} season={2} />)
   await screen.findByRole('region', { name: 'Playoff outlook' })
   await act(async () => {})
   expect(screen.queryByText(/Title odds/)).not.toBeInTheDocument()
@@ -158,7 +171,7 @@ it('ignores a late championship response from a previous season', async () => {
 
 it.each([[[null, 0]], [[null]], [[0, 0]]])('renders finite history charts and exports final snapshots last: %j', async weeks => {
   const csv = vi.spyOn(exports, 'exportCsv').mockReturnValue('saved')
-  client.getPlayoffOddsHistory.mockResolvedValue({ season: 2, snapshots: weeks.map((week, i) => ({ ...history().snapshots[0], week, teams: [{ team: teams[0], playoffs: .6 + i / 10 }] })) })
+  client.getPlayoffOddsHistory.mockResolvedValue({ ...history(), snapshots: weeks.map((week, i) => ({ ...history().snapshots[0], week, teams: [{ ...history().snapshots[0].teams.find(row => row.team.teamId === teams[0].teamId), playoffs: .6 + i / 10 }] })) })
   show(<OddsHistory season={2} currentTeams={current.slice(0, 1)} />)
   await expand()
   const chart = screen.getByRole('img', { name: /Playoffs odds history:/ })
@@ -181,9 +194,9 @@ it.each([[[null, 0]], [[null]], [[0, 0]]])('renders finite history charts and ex
 })
 
 it.each([[[null, 0]], [[0, 0]], [[null]]])('keeps the outlook sparkline finite for final or repeated weeks: %j', async weeks => {
-  client.getPlayoffOddsHistory.mockResolvedValue({ season: 2, snapshots: weeks.map((week, i) => ({ ...history().snapshots[i % 2], week })) })
-  show(<PlayoffOutlook teamId={1} season={2} />)
-  await screen.findByText('Title odds <1%')
+  client.getPlayoffOddsHistory.mockResolvedValue({ ...history(), snapshots: weeks.map((week, i) => ({ ...history().snapshots[i % 2], week })) })
+  show(<PlayoffOutlook teamId={teams[0].teamId} season={2} />)
+  await screen.findByText('Title odds 2%')
   await act(async () => {})
   const spark = screen.queryByRole('img', { name: /Playoff odds went from/ })
   if (weeks.length === 1) expect(spark).not.toBeInTheDocument()
@@ -194,7 +207,7 @@ it.each([[[null, 0]], [[0, 0]], [[null]]])('keeps the outlook sparkline finite f
 })
 
 it('labels the frozen pre-playoff projection and keeps its table', async () => {
-  client.getPlayoffChampionship.mockResolvedValue({ ...championship(), preplayoff: true })
+  client.getPlayoffChampionship.mockResolvedValue(preplayoffFixture)
   show(<ChampionshipOdds season={2} rules="madden" />)
   expect(await screen.findByRole('heading', { name: 'Pre-playoff projection (end of regular season)' })).toBeInTheDocument()
   expect(screen.getByText(/Ratings are frozen at the end of the regular season/)).toBeInTheDocument()
@@ -210,17 +223,17 @@ it('shows selected teams and whole percentages in an expandable history table wi
   await userEvent.click(screen.getByText('Show data table'))
   const table = screen.getByRole('table', { name: 'Odds history data' })
   expect(within(table).getAllByRole('columnheader')).toHaveLength(7)
-  expect(within(table).getAllByRole('row').at(-1)).toHaveTextContent('Final70%')
-  expect(table).not.toHaveTextContent('T1')
+  expect(within(table).getAllByRole('row').at(-1)).toHaveTextContent('Final90%')
+  expect(table).not.toHaveTextContent(teams[0].abbrName)
   const chart = screen.getByRole('img', { name: /Playoffs odds history:/ })
   expect(chart.querySelectorAll('path[stroke-dasharray]').length).toBeGreaterThan(1)
 })
 
 it('describes the sparkline and exposes its underlying weekly percentages', async () => {
-  show(<PlayoffOutlook teamId={1} season={2} />)
+  show(<PlayoffOutlook teamId={teams[0].teamId} season={2} />)
   expect(await screen.findByRole('img', { name: 'Playoff odds went from 60% to 70% over 2 weeks' })).toBeInTheDocument()
   await userEvent.click(screen.getByText('Show data table'))
   const table = screen.getByRole('table', { name: 'Playoff outlook history data' })
-  expect(table).toHaveTextContent('Week 460%')
-  expect(table).toHaveTextContent('Week 670%')
+  expect(table).toHaveTextContent('Week 1760%')
+  expect(table).toHaveTextContent('Week 1870%')
 })

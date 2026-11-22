@@ -8,20 +8,11 @@ import * as client from '../api/client'
 import * as exports from '../utils/exportTable'
 import { clearLoadCache } from '../utils/useLoad'
 
+import pictureFixture from './fixtures/playoffs/picture.json'
+
 vi.mock('../api/client')
 
-const row = (seed, extra = {}) => ({
-  seed, team: { teamId: seed, abbrName: `T${seed}`, displayName: `Team ${seed}` },
-  division: 'AFC East', divisionWinner: seed <= 4,
-  wins: 11 - seed, losses: seed, ties: 0, otherRulesSeed: seed, reasons: [], ...extra,
-})
-const response = (extra = {}) => ({
-  season: 1, rules: 'madden', throughWeek: 10, nextWeek: 11, gamesPlayed: 176, gamesRemaining: 80,
-  conferences: ['AFC', 'NFC'].map(name => ({
-    name, seeds: Array.from({ length: 7 }, (_, i) => row(i + 1)),
-    hunt: [row(undefined, { rank: 8, wins: 6, losses: 5, team: { teamId: 8, abbrName: 'WAS', displayName: 'Washington' }, otherRulesSeed: null })],
-  })), ...extra,
-})
+const response = (extra = {}) => ({ ...structuredClone(pictureFixture), ...extra })
 function Where() {
   return <div data-testid="where">{useLocation().search}</div>
 }
@@ -37,18 +28,18 @@ beforeEach(() => {
 describe('Playoff picture', () => {
   it('renders seven seeds and the hunt in each conference with team profile links', async () => {
     show()
-    await screen.findByText('If the season ended today · Season 104 after Week 11')
+    await screen.findByText('If the season ended today · Season 104 after Week 16')
     for (const name of ['AFC', 'NFC']) {
       const conference = within(screen.getByRole('region', { name }))
-      for (let seed = 1; seed <= 7; seed++) {
-        const link = conference.getByRole('link', { name: `Team ${seed}` })
-        expect(link).toHaveAttribute('href', `/teams/T${seed}?season=104`)
+      for (const { seed, team } of pictureFixture.conferences.find(c => c.name === name).seeds) {
+        const link = conference.getByRole('link', { name: team.displayName })
+        expect(link).toHaveAttribute('href', `/teams/${team.abbrName}?season=104`)
         expect(within(link.closest('tr')).getAllByRole('cell')[0]).toHaveTextContent(String(seed))
       }
       expect(conference.getAllByText('Division leader')).toHaveLength(4)
       expect(conference.getAllByText('Wild card')).toHaveLength(3)
       expect(conference.getByRole('columnheader', { name: 'In the hunt' })).toBeInTheDocument()
-      expect(conference.getByRole('link', { name: 'Washington' })).toBeInTheDocument()
+      expect(conference.getByRole('link', { name: pictureFixture.conferences.find(c => c.name === name).hunt[0].team.displayName })).toBeInTheDocument()
     }
     expect(screen.getByRole('tab', { name: 'Picture', selected: true })).toBeInTheDocument()
     expect(screen.getByTestId('where')).toHaveTextContent('?tab=picture&rules=madden')
@@ -65,6 +56,7 @@ describe('Playoff picture', () => {
 
   it.each(['madden', 'nfl'])('shows changed seeds and teams out under the other rules for %s', async rules => {
     const data = response({ rules })
+    for (const c of data.conferences) for (const row of [...c.seeds, ...c.hunt]) row.otherRulesSeed = row.seed ?? null
     data.conferences[0].seeds[4].otherRulesSeed = 6
     data.conferences[0].seeds[6].otherRulesSeed = null
     data.conferences[0].hunt[0].otherRulesSeed = 7
@@ -79,6 +71,7 @@ describe('Playoff picture', () => {
 
   it('expands the plain-English reasons for a tiebreak', async () => {
     const data = response()
+    for (const c of data.conferences) for (const row of [...c.seeds, ...c.hunt]) row.reasons = []
     data.conferences[0].seeds[4].reasons = ['Philadelphia and Detroit won the tiebreak.', 'Washington missed the field.']
     client.getPlayoffPicture.mockResolvedValue(data)
     show()
@@ -99,7 +92,7 @@ describe('Playoff picture', () => {
   it('labels a completed regular season', async () => {
     client.getPlayoffPicture.mockResolvedValue(response({ throughWeek: 17, nextWeek: null }))
     show()
-    expect(await screen.findByText('If the season ended today · Season 104 after Week 18 · Regular season complete')).toBeInTheDocument()
+    expect(await screen.findByText('If the season ended today · Season 105 after Week 18 · Regular season complete')).toBeInTheDocument()
   })
 
   it('offers every export format for each conference with the displayed rows and response parameters', async () => {
@@ -111,20 +104,24 @@ describe('Playoff picture', () => {
       for (const format of ['XLSX', 'CSV', 'PNG', 'AI']) expect(conference.getByRole('button', { name: format })).toBeInTheDocument()
       await userEvent.click(conference.getByRole('button', { name: 'CSV' }))
       const spec = csv.mock.lastCall[0]
-      expect(spec.rows).toHaveLength(8)
+      expect(spec.rows).toHaveLength(16)
       expect(spec.api).toMatchObject({ path: '/playoffs/picture', params: { season: 1, rules: 'madden' } })
       expect(spec.cols.every(col => col.desc)).toBe(true)
-      expect(exports.toRows(spec)[8]).toEqual(['', '8', 'Washington', '6-5', 'In the hunt', 'out', ''])
+      const hunt = pictureFixture.conferences.find(c => c.name === name).hunt[0]
+      expect(exports.toRows(spec)[8]).toEqual(['', '8', hunt.team.displayName, `${hunt.wins}-${hunt.losses}`, 'In the hunt', hunt.otherRulesSeed == null ? 'out' : `seed ${hunt.otherRulesSeed}`, hunt.reasons.join(' '), `${Math.round(hunt.odds.playoffs * 100)}%`])
     }
     csv.mockRestore()
   })
 
   it('renders whole-percent odds only when the response includes odds', async () => {
     const data = response()
+    for (const row of [...data.conferences[1].seeds, ...data.conferences[1].hunt]) delete row.odds
     data.conferences[0].seeds[0].odds = { playoffs: 0.645, division: 0.31, oneSeed: 0.03 }
     client.getPlayoffPicture.mockResolvedValue(data)
     show()
-    expect(await screen.findByText('65%')).toBeInTheDocument()
+    await screen.findByRole('region', { name: 'AFC' })
+    const row = afc().getByRole('link', { name: data.conferences[0].seeds[0].team.displayName }).closest('tr')
+    expect(within(row).getByText('65%')).toBeInTheDocument()
     expect(afc().getByRole('columnheader', { name: 'Playoffs odds' })).toBeInTheDocument()
     expect(within(screen.getByRole('region', { name: 'NFC' })).queryByRole('columnheader', { name: 'Playoffs odds' })).not.toBeInTheDocument()
   })
@@ -137,16 +134,16 @@ describe('Playoff picture', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Real NFL' }))
     await screen.findByRole('region', { name: 'AFC' })
     await act(async () => finish(response({ throughWeek: 0 })))
-    expect(screen.getByText(/after Week 11/)).toBeInTheDocument()
+    expect(screen.getByText(/after Week 16/)).toBeInTheDocument()
     expect(screen.queryByText(/after Week 1$/)).not.toBeInTheDocument()
   })
 
   it('loads a selected season from the URL and refetches on season changes', async () => {
     show('/playoffs?tab=picture&rules=nfl&season=0')
-    await screen.findByText(/Season 103 after Week 11/)
+    await screen.findByText(/Season 103 after Week 16/)
     expect(client.getPlayoffPicture).toHaveBeenCalledWith(0, 'nfl')
     await userEvent.selectOptions(screen.getByLabelText('Season'), '1')
-    await screen.findByText(/Season 104 after Week 11/)
+    await screen.findByText(/Season 104 after Week 16/)
     expect(client.getPlayoffPicture).toHaveBeenLastCalledWith(1, 'nfl')
     expect(screen.getByTestId('where')).toHaveTextContent('season=1')
   })
