@@ -1,3 +1,11 @@
+import { goodBadColor, tint } from './heat'
+
+export const SEED_COLORS = ['#2453ad', '#2874b5', '#14999b', '#097c6c', '#dfa32b', '#cf7025', '#b33232']
+
+export const probShade = p => goodBadColor(p, [0, 1])
+export const chanceShade = p => p == null || !Number.isFinite(p) || p <= 0 ? undefined : tint('22 163 74', Math.min(p, 1))
+export const swingShade = points => points == null || !Number.isFinite(points) || points === 0 ? undefined : tint('37 99 235', Math.min(Math.abs(points) / 60, 1))
+
 export function formatOdds(p, proven = false) {
   if (p == null || !Number.isFinite(p)) return '—'
   if (!proven && p >= 0.995) return '>99%'

@@ -8,6 +8,8 @@ import App from '../App'
 import { TeamCell } from '../components/TeamLogo'
 import TeamPage from '../pages/TeamPage'
 import { clearLoadCache } from '../utils/useLoad'
+import oddsFixture from './fixtures/playoffs/odds.json'
+import pictureFixture from './fixtures/playoffs/picture.json'
 
 vi.mock('../api/client')
 
@@ -35,6 +37,7 @@ const hist = (teamId, season, week, endElo, rank) => ({ teamId, season, week, se
 describe('Team profile', () => {
   beforeEach(() => {
     clearLoadCache()
+    client.getPlayoffOdds.mockResolvedValue({ ...oddsFixture, conferences: [] })
     client.getAvailableWeeks.mockResolvedValue([])
     client.getEloRatings.mockResolvedValue([{ teamId: 1, rank: 1 }, { teamId: 2, rank: 2 }])
     client.getSeasons.mockResolvedValue([0, 1])
@@ -86,6 +89,20 @@ describe('Team profile', () => {
     expect(await within(road).findByText('2-1')).toBeInTheDocument()
     const rivals = screen.getByRole('region', { name: 'Rivalries' })
     expect(await within(rivals).findByText('3-0')).toBeInTheDocument()
+  })
+
+  it('places the full-width playoff hero before Fingerprint and keeps its navigation anchor', async () => {
+    const odds = structuredClone(oddsFixture)
+    odds.season = 1
+    odds.conferences[0].teams.find(r => r.team.teamId === 1).team = A
+    client.getPlayoffOdds.mockResolvedValue(odds)
+    client.getPlayoffPicture.mockResolvedValue({ ...pictureFixture, season: 1 })
+    renderAt('/teams/aaa')
+    const hero = await screen.findByRole('region', { name: 'Playoff outlook' })
+    const fingerprint = screen.getByRole('region', { name: 'Team Fingerprint' })
+    expect(hero.compareDocumentPosition(fingerprint) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(hero.parentElement).toBe(fingerprint.parentElement.parentElement)
+    expect(within(screen.getByRole('navigation', { name: 'Profile sections' })).getByRole('link', { name: 'Playoff outlook' })).toHaveAttribute('href', '#playoff-outlook')
   })
 
   it.each([[7, 'previous-season', '50.0%'], [9, 'current-season', '48.0%'], [17, 'current-season', '48.0%']])(

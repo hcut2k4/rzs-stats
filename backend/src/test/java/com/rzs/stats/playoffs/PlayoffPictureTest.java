@@ -27,7 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@DataJpaTest(showSql = false, properties = "playoffs.simulations=100")
+@DataJpaTest(showSql = false, properties = {"playoffs.simulations=100", "playoffs.nfl-comparison=true"})
 @AutoConfigureCache(cacheProvider = CacheType.CAFFEINE)
 @EnableCaching
 @Import({com.rzs.stats.config.CacheNames.class, com.rzs.stats.playoffs.ComputeGate.class, SeasonStateLoader.class, PlayoffPictureService.class, PlayoffsController.class, CacheNames.class, OddsService.class, SimulationService.class, ClinchService.class,
@@ -55,6 +55,29 @@ class PlayoffPictureTest {
         http = MockMvcBuilders.standaloneSetup(controller).build();
         try (var input = getClass().getResourceAsStream("/playoffs/rzs-seasons.json")) {
             fixtures = json.readValue(input, new TypeReference<>() {});
+        }
+    }
+
+    @Test
+    void comparisonIsSkippedByDefaultAndExplicitNflStillWorks() throws Exception {
+        seed(1, fixtures.get("104"));
+        var service = new PlayoffPictureService(loader, odds);
+        var state = loader.load(1);
+        try (var seeding = org.mockito.Mockito.mockStatic(PlayoffSeeding.class, org.mockito.Mockito.CALLS_REAL_METHODS)) {
+            var result = service.picture(1, "madden");
+            seeding.verify(() -> PlayoffSeeding.seedForPicture(state.teams(), state.completedGames()), org.mockito.Mockito.never());
+            assertThat(result.conferences()).allSatisfy(c ->
+                    assertThat(java.util.stream.Stream.concat(c.seeds().stream(), c.hunt().stream()))
+                            .allSatisfy(r -> assertThat(r.otherRulesSeed()).isNull()));
+            service.picture(1, "nfl");
+            seeding.verify(() -> PlayoffSeeding.seedForPicture(state.teams(), state.completedGames()));
+        }
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "nflComparison", true);
+        try (var seeding = org.mockito.Mockito.mockStatic(PlayoffSeeding.class, org.mockito.Mockito.CALLS_REAL_METHODS)) {
+            var result = service.picture(1, "madden");
+            seeding.verify(() -> PlayoffSeeding.seedForPicture(state.teams(), state.completedGames()));
+            assertThat(result.conferences()).anySatisfy(c ->
+                    assertThat(c.seeds()).anySatisfy(r -> assertThat(r.otherRulesSeed()).isNotNull()));
         }
     }
 

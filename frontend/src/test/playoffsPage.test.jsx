@@ -42,43 +42,27 @@ describe('Playoff picture', () => {
       expect(conference.getByRole('link', { name: pictureFixture.conferences.find(c => c.name === name).hunt[0].team.displayName })).toBeInTheDocument()
     }
     expect(screen.getByRole('tab', { name: 'Picture', selected: true })).toBeInTheDocument()
-    expect(screen.getByTestId('where')).toHaveTextContent('?tab=picture&rules=madden')
+    expect(screen.getByTestId('where')).toHaveTextContent('?tab=picture')
   })
 
-  it('refetches and updates the URL when switching rules', async () => {
-    show()
+  it('ignores old rules parameters and hides the comparison UI', async () => {
+    show('/playoffs?rules=nfl')
     await screen.findByRole('region', { name: 'AFC' })
-    await userEvent.click(screen.getByRole('button', { name: 'Real NFL' }))
-    await waitFor(() => expect(client.getPlayoffPicture).toHaveBeenLastCalledWith(1, 'nfl'))
-    expect(screen.getByTestId('where')).toHaveTextContent('tab=picture&rules=nfl')
-    expect(screen.getByRole('button', { name: 'Real NFL' })).toHaveAttribute('aria-pressed', 'true')
+    expect(client.getPlayoffPicture).toHaveBeenCalledWith(1, 'madden')
+    expect(screen.queryByRole('group', { name: 'Tiebreak rules' })).not.toBeInTheDocument()
+    expect(screen.queryByText(/Real NFL|Why different rules/)).not.toBeInTheDocument()
+    expect(screen.getByTestId('where')).not.toHaveTextContent('rules=')
   })
 
-  it.each(['madden', 'nfl'])('shows changed seeds and teams out under the other rules for %s', async rules => {
-    const data = response({ rules })
-    for (const c of data.conferences) for (const row of [...c.seeds, ...c.hunt]) row.otherRulesSeed = row.seed ?? null
-    data.conferences[0].seeds[4].otherRulesSeed = 6
-    data.conferences[0].seeds[6].otherRulesSeed = null
-    data.conferences[0].hunt[0].otherRulesSeed = 7
-    client.getPlayoffPicture.mockResolvedValue(data)
-    show(`/playoffs?rules=${rules}`)
-    const label = rules === 'madden' ? 'Real NFL rules' : 'Madden 27 rules'
-    await screen.findByText(`${label}: seed 6`)
-    expect(afc().getByText(`${label}: out`)).toBeInTheDocument()
-    expect(afc().getByText(`${label}: seed 7`)).toBeInTheDocument()
-    expect(screen.queryByText(`${label}: seed 1`)).not.toBeInTheDocument()
-  })
-
-  it('expands the plain-English reasons for a tiebreak', async () => {
+  it('shows plain-English tiebreak reasons in a compact tooltip', async () => {
     const data = response()
     for (const c of data.conferences) for (const row of [...c.seeds, ...c.hunt]) row.reasons = []
     data.conferences[0].seeds[4].reasons = ['Philadelphia and Detroit won the tiebreak.', 'Washington missed the field.']
     client.getPlayoffPicture.mockResolvedValue(data)
     show()
-    await userEvent.click(await screen.findByText('Tiebreak details'))
-    const reason = screen.getByText('Philadelphia and Detroit won the tiebreak.')
-    expect(reason.closest('details')).toHaveAttribute('open')
-    expect(screen.getByText('Washington missed the field.')).toBeVisible()
+    const icon = await screen.findByLabelText(`Tiebreak for ${data.conferences[0].seeds[4].team.displayName}`)
+    expect(icon.parentElement).toHaveAttribute('title', 'Philadelphia and Detroit won the tiebreak. Washington missed the field.')
+    expect(screen.queryByText('Tiebreak details')).not.toBeInTheDocument()
   })
 
   it('shows an empty state when no regular-season game has been completed', async () => {
@@ -108,7 +92,7 @@ describe('Playoff picture', () => {
       expect(spec.api).toMatchObject({ path: '/playoffs/picture', params: { season: 1, rules: 'madden' } })
       expect(spec.cols.every(col => col.desc)).toBe(true)
       const hunt = pictureFixture.conferences.find(c => c.name === name).hunt[0]
-      expect(exports.toRows(spec)[8]).toEqual(['', '8', hunt.team.displayName, `${hunt.wins}-${hunt.losses}`, 'In the hunt', hunt.otherRulesSeed == null ? 'out' : `seed ${hunt.otherRulesSeed}`, hunt.reasons.join(' '), `${Math.round(hunt.odds.playoffs * 100)}%`])
+      expect(exports.toRows(spec)[8]).toEqual(['', '8', hunt.team.displayName, `${hunt.wins}-${hunt.losses}`, 'In the hunt', hunt.reasons.join(' '), `${Math.round(hunt.odds.playoffs * 100)}%`])
     }
     csv.mockRestore()
   })
@@ -122,16 +106,16 @@ describe('Playoff picture', () => {
     await screen.findByRole('region', { name: 'AFC' })
     const row = afc().getByRole('link', { name: data.conferences[0].seeds[0].team.displayName }).closest('tr')
     expect(within(row).getByText('65%')).toBeInTheDocument()
-    expect(afc().getByRole('columnheader', { name: 'Playoffs odds' })).toBeInTheDocument()
-    expect(within(screen.getByRole('region', { name: 'NFC' })).queryByRole('columnheader', { name: 'Playoffs odds' })).not.toBeInTheDocument()
+    expect(afc().getByRole('columnheader', { name: /^Playoff probability/ })).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: 'NFC' })).queryByRole('columnheader', { name: /^Playoff probability/ })).not.toBeInTheDocument()
   })
 
-  it('ignores a late response for rules the user has left', async () => {
+  it('ignores a late response for a season the user has left', async () => {
     let finish
     client.getPlayoffPicture.mockReturnValueOnce(new Promise(resolve => { finish = resolve }))
-    show()
-    await waitFor(() => expect(client.getPlayoffPicture).toHaveBeenCalledWith(1, 'madden'))
-    await userEvent.click(screen.getByRole('button', { name: 'Real NFL' }))
+    show('/playoffs?season=0')
+    await waitFor(() => expect(client.getPlayoffPicture).toHaveBeenCalledWith(0, 'madden'))
+    await userEvent.selectOptions(screen.getByLabelText('Season'), '1')
     await screen.findByRole('region', { name: 'AFC' })
     await act(async () => finish(response({ throughWeek: 0 })))
     expect(screen.getByText(/after Week 16/)).toBeInTheDocument()
@@ -141,10 +125,10 @@ describe('Playoff picture', () => {
   it('loads a selected season from the URL and refetches on season changes', async () => {
     show('/playoffs?tab=picture&rules=nfl&season=0')
     await screen.findByText(/Season 103 after Week 16/)
-    expect(client.getPlayoffPicture).toHaveBeenCalledWith(0, 'nfl')
+    expect(client.getPlayoffPicture).toHaveBeenCalledWith(0, 'madden')
     await userEvent.selectOptions(screen.getByLabelText('Season'), '1')
     await screen.findByText(/Season 104 after Week 16/)
-    expect(client.getPlayoffPicture).toHaveBeenLastCalledWith(1, 'nfl')
+    expect(client.getPlayoffPicture).toHaveBeenLastCalledWith(1, 'madden')
     expect(screen.getByTestId('where')).toHaveTextContent('season=1')
   })
 
@@ -173,7 +157,7 @@ describe('Playoff picture', () => {
     show('/playoffs?tab=unknown&rules=unknown')
     await screen.findByRole('region', { name: 'AFC' })
     expect(screen.getByRole('tab', { selected: true })).toHaveTextContent('Picture')
-    expect(screen.getByTestId('where')).toHaveTextContent('tab=picture&rules=madden')
+    expect(screen.getByTestId('where')).toHaveTextContent('tab=picture')
   })
 
   it('registers the page and labels the navigation entry Beta', async () => {
