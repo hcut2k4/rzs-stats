@@ -32,7 +32,7 @@ public class LeverageService {
     private final int simulations;
 
     public LeverageService(SeasonStateLoader loader, EloQueryService elo, SimulationService simulator,
-                           @Value("${playoffs.leverage-simulations:10000}") int simulations, ComputeGate gate) {
+                           @Value("${playoffs.leverage-simulations:5000}") int simulations, ComputeGate gate) {
         if (simulations <= 0) throw new IllegalArgumentException("playoffs.leverage-simulations must be positive");
         this.gate = gate;
         this.loader = loader;
@@ -46,19 +46,20 @@ public class LeverageService {
     public Key canonicalKey(Integer season, Integer week) {
         if (week != null && (week < 0 || week > 17))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Week must be between 0 and 17");
+        if (season != null && week != null) return new Key(season, week);
         var state = loader.load(season);
         return new Key(state.season(), week == null ? state.nextWeek() : week);
     }
 
-    @Cacheable(value = "leverage", sync = true)
+    @Cacheable(value = "leverage", key = "new org.springframework.cache.interceptor.SimpleKey(#root.target.canonicalKey(#season, #week), #rules)", sync = true)
     public LeverageMatrix matrix(Integer season, Integer week, String rules) {
         if (!"madden".equals(rules) && !"nfl".equals(rules))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rules must be madden or nfl");
         var state = loader.load(season);
-        return gate.compute(() -> {
-            Integer selectedWeek = week == null ? state.nextWeek() : week;
+        Integer selectedWeek = week == null ? state.nextWeek() : week;
             var games = state.remainingGames().stream().filter(g -> Objects.equals(g.week(), selectedWeek)).toList();
             var probs = games.isEmpty() ? Map.<Integer, Double>of() : elo.homeWinProbabilities(state.season());
+        return gate.execute(() -> {
             long seed = SimulationService.mix(((long) state.season() << 32) ^ Objects.hashCode(selectedWeek) ^ rules.hashCode());
             var selectedRules = rules.equals("madden") ? SimulationService.Rules.MADDEN : SimulationService.Rules.NFL;
             var result = new ArrayList<GameMatrix>();

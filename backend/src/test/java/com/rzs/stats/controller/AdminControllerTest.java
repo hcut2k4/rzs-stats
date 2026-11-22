@@ -21,6 +21,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(AdminController.class)
 @org.springframework.context.annotation.Import(EloConfigService.class)
 class AdminControllerTest {
+    @org.springframework.boot.test.mock.mockito.MockBean
+    com.rzs.stats.config.PlayoffCacheInvalidation playoffInvalidation;
 
     @MockBean com.rzs.stats.repository.EloConfigRepository eloConfigs;
     @Autowired MockMvc mvc;

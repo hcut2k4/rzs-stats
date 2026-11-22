@@ -1,0 +1,72 @@
+{
+  "season" : 2,
+  "rules" : "madden",
+  "team" : {
+    "teamId" : 9,
+    "abbrName" : "HOU",
+    "displayName" : "HOU"
+  },
+  "wins" : 7,
+  "losses" : 9,
+  "ties" : 0,
+  "remainingGames" : 1,
+  "simulations" : 100,
+  "current" : {
+    "playoffs" : 0.0,
+    "division" : 0.0,
+    "oneSeed" : 0.0
+  },
+  "markers" : {
+    "playoffs" : "eliminated",
+    "division" : "eliminated",
+    "oneSeed" : "eliminated"
+  },
+  "winOut" : {
+    "playoffs" : 0.0,
+    "division" : 0.0,
+    "oneSeed" : 0.0,
+    "controlsDestiny" : false
+  },
+  "ceiling" : {
+    "bestSeed" : null,
+    "seedOdds" : [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ]
+  },
+  "winsNeeded" : [ {
+    "finalWins" : 7,
+    "record" : "7-10",
+    "chance" : 0.46,
+    "playoffs" : 0.0,
+    "division" : 0.0,
+    "oneSeed" : 0.0
+  }, {
+    "finalWins" : 8,
+    "record" : "8-9",
+    "chance" : 0.54,
+    "playoffs" : 0.0,
+    "division" : 0.0,
+    "oneSeed" : 0.0
+  } ],
+  "winOutRisks" : [ ],
+  "rootThisWeek" : [ ],
+  "scenarios" : {
+    "remainingGames" : 2,
+    "assumes" : "No tie games; point-differential tiebreaks are treated as unknown",
+    "goals" : {
+      "playoffs" : {
+        "status" : "out",
+        "clinchedBy" : [ ],
+        "eliminatedBy" : [ ]
+      },
+      "division" : {
+        "status" : "out",
+        "clinchedBy" : [ ],
+        "eliminatedBy" : [ ]
+      },
+      "oneSeed" : {
+        "status" : "out",
+        "clinchedBy" : [ ],
+        "eliminatedBy" : [ ]
+      }
+    }
+  }
+}

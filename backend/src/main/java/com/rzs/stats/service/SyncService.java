@@ -38,12 +38,15 @@ public class SyncService {
     private final QbGameStatRepository qbRepository;
     private final TeamGameStatRepository teamStatRepository;
 
+    private final SyncStatusService persistedStatus;
+
     private Instant lastSyncTime;
     private String lastSyncMessage;
     private boolean lastSyncSuccess;
 
     public SyncService(NeonSportzClient client, TeamRepository teamRepository, GameRepository gameRepository, QbGameStatRepository qbRepository,
-                       TeamGameStatRepository teamStatRepository) {
+                       TeamGameStatRepository teamStatRepository, SyncStatusService persistedStatus) {
+        this.persistedStatus = persistedStatus;
         this.client = client;
         this.qbRepository = qbRepository;
         this.teamStatRepository = teamStatRepository;
@@ -51,7 +54,7 @@ public class SyncService {
         this.gameRepository = gameRepository;
     }
 
-    @CacheEvict(cacheResolver = CacheNames.ALL, allEntries = true)
+    @CacheEvict(cacheResolver = CacheNames.SITE, allEntries = true)
     @Transactional
     public SyncResult sync() {
         int teamsUpserted = 0;
@@ -99,11 +102,13 @@ public class SyncService {
             String message = teamsUpserted + " teams synced, " + gamesAdded + " games added/updated";
             lastSyncTime = Instant.now();
             lastSyncMessage = message;
+            persistedStatus.successful(currentSeasonIndex);
             lastSyncSuccess = true;
             log.info("Sync completed: {}", message);
             return new SyncResult(true, message);
 
         } catch (Exception e) {
+            persistedStatus.failed();
             String message = "Sync failed: " + e.getMessage();
             lastSyncTime = Instant.now();
             lastSyncMessage = message;
@@ -113,7 +118,7 @@ public class SyncService {
         }
     }
 
-    @CacheEvict(cacheResolver = CacheNames.ALL, allEntries = true)
+    @CacheEvict(cacheResolver = CacheNames.SITE, allEntries = true)
     @Transactional
     public SyncResult syncForce() {
         int teamsUpserted = 0;
@@ -148,11 +153,13 @@ public class SyncService {
             String message = teamsUpserted + " teams synced, " + gamesAdded + " games added/updated";
             lastSyncTime = Instant.now();
             lastSyncMessage = message;
+            persistedStatus.successful(currentSeasonIndex);
             lastSyncSuccess = true;
             log.info("Force sync completed: {}", message);
             return new SyncResult(true, message);
 
         } catch (Exception e) {
+            persistedStatus.failed();
             String message = "Force sync failed: " + e.getMessage();
             lastSyncTime = Instant.now();
             lastSyncMessage = message;
@@ -162,7 +169,7 @@ public class SyncService {
         }
     }
 
-    @CacheEvict(cacheResolver = CacheNames.ALL, allEntries = true)
+    @CacheEvict(cacheResolver = CacheNames.SITE, allEntries = true)
     @Transactional
     public VerboseSyncResult syncVerbose() {
         List<String> log = new ArrayList<>();
@@ -202,11 +209,13 @@ public class SyncService {
             String message = teamsUpserted + " teams synced, " + gamesAdded + " games added/updated";
             lastSyncTime = Instant.now();
             lastSyncMessage = message;
+            persistedStatus.successful(currentSeasonIndex);
             lastSyncSuccess = true;
             log.add("[DONE] " + message);
             return new VerboseSyncResult(true, message, log);
 
         } catch (Exception e) {
+            persistedStatus.failed();
             String message = "Sync failed: " + e.getMessage();
             lastSyncTime = Instant.now();
             lastSyncMessage = message;

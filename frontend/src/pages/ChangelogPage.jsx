@@ -1,3 +1,4 @@
+import { useSyncLine } from '../utils/useSyncLine'
 import { Link } from 'react-router-dom'
 import PageHeader from '../components/PageHeader'
 import { TIERS, UPSET_LEVELS, pct0 } from '../utils/eloLean'
@@ -12,6 +13,7 @@ function Screenshot({ name, alt }) {
 }
 
 export default function ChangelogPage() {
+  const syncLine = useSyncLine()
   return (
     <article className="max-w-3xl mx-auto space-y-8 text-sm leading-relaxed" aria-label="Nov 11 – 18, 2026">
       <PageHeader
@@ -154,7 +156,7 @@ export default function ChangelogPage() {
       </section>
 
       <footer className="border-t border-line pt-4 text-sm text-muted">
-        Every number is explained on the <Link to="/about" className="text-accent hover:underline">About page</Link>. Stats sync from NeonSportz every morning at 4:00 AM ET.
+        Every number is explained on the <Link to="/about" className="text-accent hover:underline">About page</Link>. {syncLine}
       </footer>
     </article>
   )

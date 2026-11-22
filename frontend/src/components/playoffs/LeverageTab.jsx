@@ -1,5 +1,6 @@
+import PlayoffError from './PlayoffError'
 import { getPlayoffLeverage } from '../../api/client'
-import { useLoad } from '../../utils/useLoad'
+import { usePlayoffLoad } from '../../utils/usePlayoffLoad'
 import { GOALS, LOSS, WIN, formatOdds, swingPoints } from '../../utils/playoffOdds'
 import { seasonLabel } from '../../utils/seasons'
 import { weekName } from '../../utils/playoffRounds'
@@ -23,7 +24,7 @@ export default function LeverageTab({ season, rules, params, updateParam }) {
   const weekParam = params.get('week')
   const week = weekParam != null && /^\d+$/.test(weekParam) && Number(weekParam) < 18 ? Number(weekParam) : undefined
   const small = params.get('small') === 'true'
-  const { data, loading, error } = useLoad(season == null ? null : `playoffs-leverage-${season}-${rules}-${week ?? 'next'}`, () => getPlayoffLeverage(season, week, rules))
+  const { data, loading, error, retry } = usePlayoffLoad(season == null ? null : `playoffs-leverage-${season}-${rules}-${week ?? 'next'}`, () => getPlayoffLeverage(season, week, rules))
   const rows = (data?.games ?? []).flatMap(game => game.teams.map(row => ({ ...row, game, opp: row.side === 'home' ? game.away : game.home }))).sort((a, b) => b.current[goal] - a.current[goal])
   const shown = rows.filter(r => small || swingPoints(r, goal) >= 10 - 1e-9)
   const label = GOALS.find(g => g.value === goal).label
@@ -48,7 +49,7 @@ export default function LeverageTab({ season, rules, params, updateParam }) {
   ], api: { ...spec.api, note: `${label}; importance descending.`, fields: { Game: 'away, home', Importance: `importance.${goal} × 100`, 'Others affected': `others filtered by goal=${goal}, largest three in API order` } } }
   return <>
     <div className="flex flex-wrap gap-4 mb-5"><label className="text-sm">Week <select className="field" aria-label="Week" value={week ?? data?.week ?? ''} onChange={e => updateParam('week', e.target.value)}>{data?.week == null && week == null && <option value="">Next week</option>}{Array.from({ length: 18 }, (_, i) => <option key={i} value={i}>{weekName(i)}</option>)}</select></label><label className="text-sm">Goal <select className="field" aria-label="Goal" value={goal} onChange={e => updateParam('goal', e.target.value)}>{GOALS.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}</select></label></div>
-    {loading && <p className="text-muted">Loading…</p>}{error && <p className="text-bad">Could not load playoff leverage.</p>}
+    {loading && <p className="text-muted">Loading…</p>}{error && <PlayoffError error={error} retry={retry}>Could not load playoff leverage.</PlayoffError>}
     {data && !rows.length && <p className="text-muted">No remaining games this week.</p>}
     {rows.length > 0 && <div className="space-y-8">
       <section aria-label="Win or lose chart"><div className="flex items-center justify-between flex-wrap gap-2"><h2 className="font-display text-2xl font-bold">Win or lose</h2><ExportMenu spec={chartSpec} /></div><p className="text-xs text-muted my-2">Orange: if lose · Logo: current odds · Blue: if win · {label}</p>

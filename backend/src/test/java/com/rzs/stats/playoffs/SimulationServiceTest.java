@@ -31,6 +31,21 @@ class SimulationServiceTest {
     }
 
     @Test
+    void ordinaryRunsSkipWinBucketsWhileBaselineAndConditioningCollectThem() throws Exception {
+        var state = season(false);
+        var probs = probabilities(state);
+        var ordinary = simulator.simulate(state, probs, Map.of(), 60, 42, Rules.MADDEN);
+        assertThat(ordinary.allWins()).isEmpty();
+        assertThat(ordinary.wins()).isEmpty();
+        var baseline = simulator.baseline(state, probs, 60, 42, Rules.MADDEN);
+        var conditioned = simulator.conditioned(state, probs, Map.of(), 60, 42, Rules.MADDEN, "WAS");
+        assertThat(baseline.allWins()).hasSize(32);
+        assertThat(conditioned.simulation().wins()).isEqualTo(baseline.allWins().get("WAS"));
+        assertThat(conditioned.swings()).isEmpty();
+        assertThat(baseline.teams()).isEqualTo(ordinary.teams());
+    }
+
+    @Test
     void trackedWinsIncludeTheSeventeenthWinAtTheSeasonBoundary() {
         var teams = List.of(new PlayoffSeeding.Team("A", "AFC", "East"), new PlayoffSeeding.Team("B", "AFC", "East"));
         var completed = new ArrayList<PlayoffSeeding.Game>();
@@ -175,7 +190,7 @@ class SimulationServiceTest {
         var state = season(false);
         for (var rules : Rules.values()) {
             var result = simulator.championship(state, probabilities(state), 300, 42, rules, (h, a, n) -> 0.5);
-            assertThat(result.baseline()).isEqualTo(simulator.simulate(state, probabilities(state), Map.of(), 300, 42, rules));
+            assertThat(result.baseline()).isEqualTo(simulator.baseline(state, probabilities(state), 300, 42, rules));
             assertThat(simulator.championship(state, probabilities(state), 300, 42, rules, (h, a, n) -> 0.5)).isEqualTo(result);
             assertThat(result.teams().values().stream().mapToLong(ChampionshipCounts::champion).sum()).isEqualTo(300);
             assertThat(result.teams().values().stream().mapToLong(ChampionshipCounts::finalCount).sum()).isEqualTo(600);

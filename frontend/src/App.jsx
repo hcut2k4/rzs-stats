@@ -13,7 +13,7 @@ import EfficiencyPage from './pages/EfficiencyPage'
 import TeamsPage from './pages/TeamsPage'
 import TeamPage from './pages/TeamPage'
 import PlayoffsPage from './pages/PlayoffsPage'
-import { SYNC_LINE } from './utils/siteCopy'
+import { useSyncLine } from './utils/useSyncLine'
 import ThemeToggle from './components/ThemeToggle'
 
 const LINKS = [
@@ -38,6 +38,7 @@ const mobileNavClass = ({ isActive }) =>
   }`
 
 export default function App() {
+  const syncLine = useSyncLine()
   const [open, setOpen] = useState(false)
 
   return (
@@ -100,7 +101,7 @@ export default function App() {
 
       <footer className="border-t border-line text-xs text-muted">
         <div className="max-w-7xl mx-auto px-4 py-4">
-          {SYNC_LINE} Seasons use the league's numbering (Season 103 and on).
+          {syncLine} Seasons use the league's numbering (Season 103 and on).
         </div>
       </footer>
     </div>

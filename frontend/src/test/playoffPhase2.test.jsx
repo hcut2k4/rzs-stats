@@ -8,21 +8,19 @@ import * as client from '../api/client'
 import * as exports from '../utils/exportTable'
 import { clearLoadCache } from '../utils/useLoad'
 
+import oddsFixture from './fixtures/playoffs/odds.json'
+import leverageFixture from './fixtures/playoffs/leverage.json'
+import calibrationFixture from './fixtures/playoffs/calibration.json'
+
 vi.mock('../api/client')
-const A = { teamId: 1, abbrName: 'BUF', displayName: 'Bills' }
-const B = { teamId: 2, abbrName: 'NYJ', displayName: 'Jets' }
-const C = { teamId: 3, abbrName: 'MIA', displayName: 'Dolphins' }
+
+const A = oddsFixture.conferences[0].teams.find(t => t.team.abbrName === 'BUF').team
+const C = oddsFixture.conferences[0].teams.find(t => t.team.abbrName === 'MIA').team
 const goals = (playoffs, division = playoffs / 2, oneSeed = playoffs / 4) => ({ playoffs, division, oneSeed })
-const odds = (season = 2, rules = 'madden') => ({ season, rules, simulations: 20000, computedAt: '2026-11-22T03:00:00Z', conferences: ['AFC', 'NFC'].map(name => ({ name, teams: [
-  { team: B, wins: 3, losses: 7, ties: 0, odds: goals(0.001), seedOdds: Array(7).fill(0) },
-  { team: A, wins: 9, losses: 1, ties: 0, odds: goals(0.999), seedOdds: [0.4, 0.3, 0.1, 0.1, 0.05, 0.03, 0.019] },
-] })) })
-const leverage = (season = 2, week = 11, rules = 'madden') => ({ season, week, rules, simulations: 4000, computedAt: '2026-11-22T03:00:00Z', games: [
-  { gameId: 1, home: A, away: B, importance: goals(0.3), others: [{ team: C, goal: 'playoffs', swing: -0.04 }], teams: [
-    { team: A, side: 'home', current: goals(0.6), ifWin: goals(0.8, 0.2, 0.1), ifLoss: goals(0.4, 0.15, 0.05) },
-    { team: B, side: 'away', current: goals(0.1), ifWin: goals(0.14, 0.08, 0.04), ifLoss: goals(0.09, 0.03, 0.01) },
-  ] },
-] })
+const odds = (season = 2, rules = 'madden') => ({ ...structuredClone(oddsFixture), season, rules })
+const leverage = (season = 2, week = 16, rules = 'madden') => ({ ...structuredClone(leverageFixture), season, week, rules,
+  games: structuredClone(leverageFixture.games.filter(g => g.home.abbrName === 'PIT')),
+})
 function Where() { return <output data-testid="where">{useLocation().search}</output> }
 const show = url => render(<MemoryRouter initialEntries={[url]}><PlayoffsPage /><Where /></MemoryRouter>)
 const formats = region => { for (const name of ['XLSX', 'CSV', 'PNG', 'AI']) expect(within(region).getByRole('button', { name })).toBeInTheDocument() }
@@ -33,19 +31,23 @@ beforeEach(() => {
   client.getSeasons.mockResolvedValue([1, 2])
   client.getPlayoffOdds.mockImplementation(async (season, rules) => odds(season, rules))
   client.getPlayoffLeverage.mockImplementation(async (season, week, rules) => leverage(season, week, rules))
-  client.getPlayoffCalibration.mockResolvedValue({ games: 400, brier: 0.2, coinFlipBrier: 0.25, buckets: [{ low: 0.5, high: 0.6, games: 400, predicted: 0.55, actual: 0.57 }] })
+  client.getPlayoffCalibration.mockResolvedValue(calibrationFixture)
 })
 
 it('sorts odds by playoff probability, bounds rounded estimates and exports each conference', async () => {
   const csv = vi.spyOn(exports, 'exportCsv').mockReturnValue('saved')
+  const data = odds(1, 'nfl')
+  data.conferences[0].teams.reverse()
+  data.conferences[0].teams.find(t => t.team.abbrName === 'BUF').odds.playoffs = .999
+  client.getPlayoffOdds.mockResolvedValue(data)
   show('/playoffs?tab=odds&season=1&rules=nfl')
   const table = await screen.findByRole('table', { name: 'AFC playoff odds' })
   const rows = within(table).getAllByRole('row')
-  expect(rows[1]).toHaveTextContent('Bills9-1>99%')
-  expect(rows[2]).toHaveTextContent('Jets3-7<1%')
-  expect(within(table).getByRole('link', { name: 'Bills' })).toHaveAttribute('href', '/teams/BUF?season=104')
-  expect(within(table).getAllByRole('img').some(i => i.getAttribute('aria-label')?.includes('Seed 1: 40%'))).toBe(true)
-  expect(screen.getByText(/20,000 simulations.*2026-11-22/)).toBeInTheDocument()
+  expect(rows[1]).toHaveTextContent('BUF9-6>99%')
+  expect(rows.at(-1)).toHaveTextContent('HOU6-9<1%')
+  expect(within(table).getByRole('link', { name: 'BUF' })).toHaveAttribute('href', '/teams/BUF?season=104')
+  expect(within(table).getAllByRole('img').some(i => i.getAttribute('aria-label')?.includes('Seed 1: 20%'))).toBe(true)
+  expect(screen.getByText(/100 simulations.*2026-01-01/)).toBeInTheDocument()
   for (const name of ['AFC odds', 'NFC odds']) formats(screen.getByRole('region', { name }))
   await userEvent.click(within(screen.getByRole('region', { name: 'AFC odds' })).getByRole('button', { name: 'CSV' }))
   expect(csv.mock.lastCall[0].rows[0].team).toEqual(A)
@@ -59,21 +61,21 @@ it('loads calibration on expansion and renders predicted and actual bucket rates
   expect(client.getPlayoffCalibration).not.toHaveBeenCalled()
   await userEvent.click(screen.getByText('How accurate are these odds?'))
   const table = await screen.findByRole('table', { name: 'Calibration buckets' })
-  expect(table).toHaveTextContent('50–60%40055%57%')
-  expect(screen.getByText(/Brier score: 0.200 vs a coin flip: 0.250/)).toBeInTheDocument()
+  expect(table).toHaveTextContent('20–30%1727%65%')
+  expect(screen.getByText(/Brier score: 0.252 vs a coin flip: 0.250/)).toBeInTheDocument()
   formats(table.closest('details'))
 })
 
 it('switches goals, reveals small swings, and refetches the selected week with URL controls', async () => {
   show('/playoffs?tab=leverage&rules=nfl&season=1')
   const table = await screen.findByRole('table', { name: 'Game swings' })
-  expect(screen.getByLabelText('Week')).toHaveValue('11')
-  expect(table).toHaveTextContent('Bills')
-  expect(table).not.toHaveTextContent('Jets')
+  expect(screen.getByLabelText('Week')).toHaveValue('16')
+  expect(table).toHaveTextContent('PIT')
+  expect(within(table).queryByRole('link', { name: 'NYJ' })).not.toBeInTheDocument()
   await userEvent.click(screen.getByLabelText('Show small swings'))
-  expect(table).toHaveTextContent('Jets')
+  expect(within(table).getByRole('link', { name: 'NYJ' })).toBeInTheDocument()
   await userEvent.selectOptions(screen.getByLabelText('Goal'), 'division')
-  expect(table).toHaveTextContent('15%20%5 pp')
+  expect(table).toHaveTextContent('7%57%50 pp')
   await userEvent.selectOptions(screen.getByLabelText('Week'), '12')
   await waitFor(() => expect(client.getPlayoffLeverage).toHaveBeenLastCalledWith(1, 12, 'nfl'))
   await screen.findByRole('table', { name: 'Game swings' })
@@ -104,13 +106,13 @@ it('ranks the biggest games by importance and names other affected teams', async
   client.getPlayoffLeverage.mockResolvedValue(data)
   show('/playoffs?tab=leverage')
   const table = await screen.findByRole('table', { name: 'Biggest games this week' })
-  expect(within(table).getAllByRole('row')[1]).toHaveTextContent('Jets @ Dolphins90 pp')
-  expect(table).toHaveTextContent('Dolphins (-4 pp with a home win)')
+  expect(within(table).getAllByRole('row')[1]).toHaveTextContent('NYJ @ MIA90 pp')
+  expect(table).toHaveTextContent('CLE (-15 pp with a home win)')
 })
 
 it.each(['404', 'empty', 'no team'])('hides the team outlook when odds are %s', async mode => {
   if (mode === '404') client.getPlayoffOdds.mockRejectedValue({ response: { status: 404 } })
-  if (mode === 'empty') client.getPlayoffOdds.mockResolvedValue({ conferences: [] })
+  if (mode === 'empty') client.getPlayoffOdds.mockResolvedValue({ ...odds(), conferences: [] })
   render(<MemoryRouter><PlayoffOutlook teamId={mode === 'no team' ? 999 : 1} season={2} nextWeek={12} /></MemoryRouter>)
   await act(async () => {})
   expect(screen.queryByRole('region', { name: 'Playoff outlook' })).not.toBeInTheDocument()
@@ -118,10 +120,11 @@ it.each(['404', 'empty', 'no team'])('hides the team outlook when odds are %s', 
 })
 
 it('shows the next game outlook for all goals and links to that leverage week', async () => {
+  client.getPlayoffLeverage.mockImplementation(async (season, week, rules) => ({ ...leverage(season, week, rules), games: leverageFixture.games.filter(g => g.home.abbrName === 'BUF') }))
   render(<MemoryRouter><PlayoffOutlook teamId={1} season={2} nextWeek={12} /></MemoryRouter>)
   const region = await screen.findByRole('region', { name: 'Playoff outlook' })
-  await within(region).findByText(/Next game: Week 13 · vs Jets/)
-  expect(region).toHaveTextContent('40%80%40 pp')
+  await within(region).findByText(/Next game: Week 13 · vs DAL/)
+  expect(region).toHaveTextContent('52%90%38 pp')
   expect(within(region).getByRole('link')).toHaveAttribute('href', '/playoffs?tab=leverage&rules=madden&season=2&week=12')
   formats(region)
 })
@@ -129,7 +132,7 @@ it('shows the next game outlook for all goals and links to that leverage week', 
 it('omits game scenarios when no regular-season games remain', async () => {
   render(<MemoryRouter><PlayoffOutlook teamId={1} season={2} /></MemoryRouter>)
   const region = await screen.findByRole('region', { name: 'Playoff outlook' })
-  expect(region).toHaveTextContent('>99%')
+  expect(region).toHaveTextContent('80%')
   expect(region).not.toHaveTextContent('If lose')
   expect(client.getPlayoffLeverage).not.toHaveBeenCalled()
 })
@@ -142,7 +145,7 @@ it('ignores late odds responses after changing season', async () => {
   await userEvent.selectOptions(screen.getByLabelText('Season'), '2')
   await screen.findByRole('table', { name: 'AFC playoff odds' })
   await act(async () => finish({ ...odds(1), simulations: 123 }))
-  expect(screen.getByText(/20,000 simulations/)).toBeInTheDocument()
+  expect(screen.getByText(/100 simulations/)).toBeInTheDocument()
   expect(screen.queryByText(/123 simulations/)).not.toBeInTheDocument()
 })
 
@@ -156,7 +159,7 @@ it('exports the complete chart while the swing table export follows the small-sw
   const tableCsv = within(screen.getByRole('region', { name: 'Swing table' })).getByRole('button', { name: 'CSV' })
   await userEvent.click(tableCsv)
   expect(csv.mock.lastCall[0].rows).toHaveLength(1)
-  expect(csv.mock.lastCall[0].api.params).toEqual({ season: 2, rules: 'madden', week: 11 })
+  expect(csv.mock.lastCall[0].api.params).toEqual({ season: 2, rules: 'madden', week: 16 })
   await userEvent.click(screen.getByLabelText('Show small swings'))
   await userEvent.click(tableCsv)
   expect(csv.mock.lastCall[0].rows).toHaveLength(2)

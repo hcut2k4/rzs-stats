@@ -1,6 +1,7 @@
+import PlayoffError from '../components/playoffs/PlayoffError'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { getPlayoffPath, getPlayoffRemaining } from '../api/client'
-import { useLoad } from '../utils/useLoad'
+import { usePlayoffLoad } from '../utils/usePlayoffLoad'
 import { formatOdds, GOALS } from '../utils/playoffOdds'
 import { pathScenario } from '../utils/playoffScenario'
 import { recordText } from '../utils/teamProfile'
@@ -35,11 +36,11 @@ export default function PlayoffPathPage() {
   const value = params.get('season')
   const season = value != null && /^\d+$/.test(value) && Number.isSafeInteger(Number(value)) ? Number(value) : undefined
   const rules = params.get('rules') === 'nfl' ? 'nfl' : 'madden'
-  const path = useLoad(`playoffs-path-${abbr.toUpperCase()}-${season ?? 'current'}-${rules}`, () => getPlayoffPath(abbr.toUpperCase(), season, rules))
+  const path = usePlayoffLoad(`playoffs-path-${abbr.toUpperCase()}-${season ?? 'current'}-${rules}`, () => getPlayoffPath(abbr.toUpperCase(), season, rules))
   const data = path.data
-  const remaining = useLoad(data ? `playoffs-remaining-${data.season}` : null, () => getPlayoffRemaining(data.season))
+  const remaining = usePlayoffLoad(data ? `playoffs-remaining-${data.season}` : null, () => getPlayoffRemaining(data.season))
   if (path.loading) return <p className="text-muted">Loading path to the playoffs…</p>
-  if (path.error || !data) return <><PageHeader title="Path to the playoffs" /><p className="text-bad">No playoff path available for this team or season. Check the team abbreviation or try again later.</p><Link className="text-accent" to="/playoffs">Back to Playoffs</Link></>
+  if (path.error || !data) return <><PageHeader title="Path to the playoffs" /><PlayoffError error={path.error} retry={path.retry}>No playoff path available for this team or season. Check the team abbreviation or try again later.</PlayoffError><Link className="text-accent" to="/playoffs">Back to Playoffs</Link></>
   return <div className="space-y-8">
     <header><PageHeader title={<span className="inline-flex gap-3 items-center"><TeamLogo abbr={data.team.abbrName} />{data.team.displayName}: Path to the playoffs</span>} qualifier={`${seasonLabel(data.season)} · ${recordText(data)} · ${rules} rules`} /><ClinchBadge markers={data.markers} /></header>
     {data.scenarios != null && <PathTable title="Final-week scenarios" data={data} notes={[data.scenarios.assumes]} rows={GOALS.map(g => ({ ...g, ...data.scenarios.goals[g.value] }))} cols={scenarioCols} />}
@@ -49,6 +50,6 @@ export default function PlayoffPathPage() {
     <PathTable title="How many wins do we need?" data={data} rows={data.winsNeeded} cols={[{ label: 'Final record', desc: 'Final regular-season record; record.', text: r => r.record }, chanceCol('chance', 'Chance of record'), ...GOALS.map(g => chanceCol(g.value, g.label))]} />
     <PathTable title="If we win out, what can still go wrong" data={data} rows={data.winOutRisks} cols={rootCols} />
     <PathTable title="Root for this week" data={data} rows={data.rootThisWeek} cols={rootCols} />
-    {remaining.loading && <p className="text-muted">Loading win-out scenario…</p>}{remaining.error && <p className="text-muted">Could not load the remaining schedule for What-If.</p>}{remaining.data && <Link className="inline-block field text-accent" to={pathScenario(data, remaining.data.games)}>Load win out + helpful results into What-If</Link>}
+    {remaining.loading && <p className="text-muted">Loading win-out scenario…</p>}{remaining.error && <PlayoffError error={remaining.error} retry={remaining.retry}>Could not load the remaining schedule for What-If.</PlayoffError>}{remaining.data && <Link className="inline-block field text-accent" to={pathScenario(data, remaining.data.games)}>Load win out + helpful results into What-If</Link>}
   </div>
 }

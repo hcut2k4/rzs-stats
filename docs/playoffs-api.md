@@ -51,7 +51,7 @@ Unknown `rules` -> 400. Season with no data -> 404.
 ## GET /api/playoffs/odds
 
 Query: `season` (optional, default current), `rules` = `madden` (default) | `nfl`.
-Baseline Monte Carlo over remaining regular-season games (Elo + home field win probability, no simulated ties). Cached; recomputed after each sync.
+Baseline Monte Carlo over remaining regular-season games (Elo + home field win probability, no simulated ties). Cached; recomputed when sync inputs or the Elo configuration change.
 
 ```json
 {
@@ -77,11 +77,11 @@ The Picture endpoint rows gain the same `odds` object (added after Phase 2's fir
 ## GET /api/playoffs/leverage
 
 Query: `season`, `week` (optional, default `nextWeek`), `rules`.
-Paired simulations: each game forced as a home win and as an away win with every other game's random draw identical.
+Paired simulations: each game forced as a home win and as an away win with every other game's random draw identical. `playoffs.leverage-simulations` defaults to 5,000 per side.
 
 ```json
 {
-  "season": 2, "week": 11, "rules": "madden", "simulations": 4000, "computedAt": "...",
+  "season": 2, "week": 11, "rules": "madden", "simulations": 5000, "computedAt": "...",
   "games": [
     { "gameId": 123, "home": { "teamId": 1, "abbrName": "NYG", "displayName": "Giants" },
       "away": { "teamId": 2, "abbrName": "JAX", "displayName": "Jaguars" },
@@ -150,7 +150,7 @@ Body:
 ```
 `season` optional (default current), `rules` default `madden`, `result` is `home` | `away` | `tie`, `simulations` optional (default the baseline’s `playoffs.simulations` count, normally 20000; min 1, max 20000). Validation (400): unknown JSON properties, fractional gameId or simulations, more than 272 picks (or more picks than remaining games), unknown gameId (not a remaining regular-season game of that season), duplicate gameId, bad `result`, unknown rules, simulations out of range. Picks are forced; every other remaining game is simulated on the same random draws as the baseline run (fresh simulation, never a filtered baseline). Empty picks return the baseline odds and seed odds unchanged, so all deltas are exactly zero even with an explicit lower simulation count. Lower counts are allowed for picked runs but can add Monte Carlo noise to deltas, including for teams unaffected by the picks.
 
-Identical requests (season, rules, sorted picks, simulation count) share a bounded 128-result Caffeine cache, evicted on sync and Elo configuration changes. The shared playoff compute gate allows two cold calculations by default across simulation, Path, leverage, championship and baseline odds; extra calculations wait up to 10 seconds, then return 503 with the plain message `Playoff simulations are busy; try again shortly`. Remaining schedules exclude games with unknown (null) status, matching Elo’s upcoming-game query.
+Identical requests (season, rules, sorted picks, simulation count) share a bounded 128-result Caffeine cache, evicted when sync inputs change and on Elo configuration changes. The shared playoff compute gate allows two cold calculations by default across simulation, Path, leverage, championship, baseline odds, clinch, scenarios and historical/backfill odds; extra calculations wait up to 10 seconds, then return 503 with `Retry-After: 5` and the plain message `Playoff simulations are busy; try again shortly`. Admitted calculations have a 30-second deadline (`playoffs.compute-deadline-ms`) and return the same 503 on timeout. Remaining schedules exclude games with unknown (null) status, matching Elo’s upcoming-game query.
 
 Response:
 ```json
@@ -194,7 +194,7 @@ Leverage computation keeps, for every game of the week and every team in the lea
 - `winOutRisks`: games of other teams, ranked by absolute swing on this team's playoff odds GIVEN the team wins out, `rootFor` = side that helps; top 5, swing under 0.02 omitted.
 - `rootThisWeek`: this week's games not involving the team, ranked by absolute swing on its playoff odds, top 5, swing under 0.02 omitted.
 
-Path implementation limits: `simulations` reports the baseline sample count (zero for a completed season). Win-out uses `playoffs.path-simulations` (default 5,000); each risk side uses `playoffs.path-risk-simulations` (default 2,000). Risk candidates are capped at the nearest 40 games ordered by week then game ID, including cross-conference games involving another conference member. The per-instance concurrency limit admits one uncached Path computation; excess requests return 503. Responses are cached lazily and never warmed.
+Path implementation limits: `simulations` reports the baseline sample count (zero for a completed season). Win-out uses one `playoffs.path-simulations` run (default 10,000); risks condition this same run on each candidate game's home/away result. Risk candidates are capped at the nearest 40 games ordered by week then game ID, including cross-conference games involving another conference member. The shared compute gate admits two cold computations by default; excess requests return 503 after the admission timeout. Responses are cached lazily and never warmed. Wins-needed buckets reuse the shared odds/championship baseline. Final-week outcome classification is computed once for every team and goal and reused across Path requests until inputs change.
 
 ## GET /api/playoffs/odds/history
 
@@ -240,3 +240,15 @@ Query: `season`, `rules`. Extends each baseline simulation through the bracket (
 - `status`: `in` (in every outcome), `out` (out in every outcome), `open` otherwise.
 - `clinchedBy` = minimal sufficient sets of game results (prime implicants of the "definitely achieved" outcomes), `eliminatedBy` = minimal sets that make the goal impossible. Each has `text` (team display names, "beat" / "lose to" wording, game results joined with "and") and `conditions` (`winner` = team abbreviation). At most 6 entries each, shortest first, then alphabetical; empty list when none exist. `status: "in"` has `clinchedBy: []` (no condition needed) and `status: "out"` has `eliminatedBy: []`.
 - Only games that can change the answer appear in conditions.
+
+## GET /api/sync/status
+
+Public. Last successful data sync (persisted, survives restarts).
+```json
+{ "lastSyncAt": "2026-11-22T09:02:11Z" }
+```
+`lastSyncAt` is null when no successful sync has been recorded. The site footer shows it ("Last synced Nov 22, 4:02 AM ET") and falls back to the static schedule line when null.
+
+## Championship: pre-playoff label
+
+`GET /api/playoffs/championship` gains `"preplayoff": true|false`: true when no regular-season games remain (the field is then a frozen pre-playoff projection, not live odds). In that state the bracket uses Elo ratings as of the end of the regular season (not ratings updated by playoff games) so the favourite does not drift during the postseason. The UI keeps showing the table and labels it "Pre-playoff projection (end of regular season)".

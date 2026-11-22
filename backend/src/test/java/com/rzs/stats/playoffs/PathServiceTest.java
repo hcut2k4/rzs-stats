@@ -28,11 +28,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @DataJpaTest(showSql = false, properties = {"playoffs.simulations=200", "playoffs.path-simulations=200",
-        "playoffs.path-risk-simulations=40", "playoffs.leverage-simulations=100",
+        "playoffs.leverage-simulations=100",
         "playoffs.max-concurrent-computations=1", "playoffs.compute-timeout-ms=20"})
 @AutoConfigureCache(cacheProvider = CacheType.CAFFEINE)
 @EnableCaching
-@Import({com.rzs.stats.playoffs.ComputeGate.class, SeasonStateLoader.class, PathService.class, PlayoffsPathController.class, OddsService.class,
+@Import({com.rzs.stats.config.CacheNames.class, com.rzs.stats.playoffs.ScenarioService.class, com.rzs.stats.playoffs.ComputeGate.class, SeasonStateLoader.class, PathService.class, PlayoffsPathController.class, OddsService.class,
         ClinchService.class, LeverageService.class, SimulationService.class, CacheNames.class, EloQueryService.class,
         EloHistoryService.class, EloService.class, EloConfigService.class, OwnerChangeService.class})
 class PathServiceTest {
@@ -78,6 +78,71 @@ class PathServiceTest {
         var schedule = new ArrayList<PlayoffSeeding.Game>();
         for (int w = 0; w < 17; w++) schedule.add(new PlayoffSeeding.Game(w, w == 16 ? "B" : "A", w == 16 ? "A" : "B", w < 8 ? 7 : 0, w < 8 ? 0 : 7));
         populate(List.of(new PlayoffSeeding.Team("A", "AFC", "East"), new PlayoffSeeding.Team("B", "AFC", "East")), schedule, Set.of(15, 16));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"false,madden", "true,madden", "false,nfl", "true,nfl"})
+    void servicesMatchSeparateOddsChampionshipAndWinsNeededAtTwoThousandSimulations(boolean completed, String rules) throws Exception {
+        var fixture = historical();
+        var remaining = new HashSet<Integer>();
+        if (!completed) for (int i = 0; i < fixture.games().size(); i++)
+            if (fixture.games().get(i).week() >= 16) remaining.add(i);
+        populate(fixture.teams(), fixture.games(), remaining);
+        try (var computation = new ComputeGate(2, 100)) {
+            var baseline = new OddsService(loader, elo, simulator, 2000, caches, computation);
+            var championship = new ChampionshipService(loader, baseline);
+            var service = new PathService(loader, baseline, clinch, leverage, simulator, elo, 2000, computation, new ScenarioService());
+            var state = loader.load(1);
+            var probs = completed ? Map.<Integer, Double>of() : elo.homeWinProbabilities(1);
+            var ratings = completed ? elo.ratingsAtStart(1, 18) : elo.currentRatings(1);
+            var legacy = new LegacySimulationOracle();
+            var selected = LegacySimulationOracle.Rules.valueOf(rules.toUpperCase(java.util.Locale.ROOT));
+            long seed = OddsService.seed(state, rules);
+            var expectedOdds = legacy.simulate(state, probs, Map.of(), 2000, seed, selected);
+            var expectedChampionship = legacy.championship(state, probs, 2000, seed, selected,
+                    (home, away, neutral) -> elo.winProbability(ratings, state.identities().get(home).teamId(),
+                            state.identities().get(away).teamId(), neutral));
+            var expectedWins = legacy.simulate(state, probs, Map.of(), 2000, seed, selected, false, "WAS");
+            var actualOdds = baseline.odds(1, rules);
+            double denominator = Math.max(1, expectedOdds.simulations());
+            for (var conference : actualOdds.conferences()) for (var row : conference.teams()) {
+                var expected = expectedOdds.teams().get(row.team().abbrName());
+                assertThat(row.odds()).isEqualTo(new OddsService.Odds(expected.playoffs() / denominator,
+                        expected.division() / denominator, expected.oneSeed() / denominator));
+                assertThat(row.seedOdds()).isEqualTo(expected.seedCounts().stream().map(n -> n / denominator).toList());
+            }
+            for (var row : championship.championship(1, rules).teams()) {
+                var expected = expectedChampionship.teams().get(row.team().abbrName());
+                assertThat(row.round2()).isEqualTo(expected.round2() / 2000.0);
+                assertThat(row.conferenceFinal()).isEqualTo(expected.conferenceFinal() / 2000.0);
+                assertThat(row.finalCount()).isEqualTo(expected.finalCount() / 2000.0);
+                assertThat(row.champion()).isEqualTo(expected.champion() / 2000.0);
+            }
+            var path = service.path(1, "WAS", rules);
+            assertThat(path.current()).isEqualTo(actualOdds.conferences().stream().flatMap(c -> c.teams().stream())
+                    .filter(row -> row.team().abbrName().equals("WAS")).findFirst().orElseThrow().odds());
+            var expectedBuckets = expectedWins.wins().entrySet().stream()
+                    .filter(e -> e.getValue().simulations() / (double) Math.max(1, expectedWins.simulations()) >= .005).toList();
+            assertThat(path.winsNeeded()).hasSize(expectedBuckets.size());
+            for (var row : path.winsNeeded()) {
+                var expected = expectedWins.wins().get(row.finalWins());
+                double n = expected.simulations();
+                assertThat(row.chance()).isEqualTo(n / Math.max(1, expectedWins.simulations()));
+                assertThat(row.playoffs()).isEqualTo(expected.playoffs() / n);
+                assertThat(row.division()).isEqualTo(expected.division() / n);
+                assertThat(row.oneSeed()).isEqualTo(expected.oneSeed() / n);
+            }
+        }
+    }
+
+    @Test
+    void defaultAndExplicitSeasonSharePathAndClinchResults() {
+        race();
+        var response = paths.path(null, "A", "madden");
+        long seeded = SimulationService.seedings();
+        assertThat(paths.path(1, "A", "madden")).isSameAs(response);
+        assertThat(clinch.clinch(null, "madden")).isSameAs(clinch.clinch(1, "madden"));
+        assertThat(SimulationService.seedings()).isEqualTo(seeded);
     }
 
     @Test
@@ -207,38 +272,58 @@ class PathServiceTest {
     }
 
     @Test
-    void riskAnalysisExaminesOnlyTheFirstFortyEligibleGamesInScheduleOrder() throws Exception {
+    void riskAnalysisUsesOneWinOutPassAndReusesTheBaseline() throws Exception {
         var f = historical();
         var remaining = new HashSet<Integer>();
         for (int i = 0; i < f.games().size(); i++) if (f.games().get(i).week() >= 10) remaining.add(i);
         populate(f.teams(), f.games(), remaining);
-        var state = loader.load(1);
-        var conference = state.teams().stream().filter(t -> t.conference().equals("NFC"))
-                .map(PlayoffSeeding.Team::abbr).collect(java.util.stream.Collectors.toSet());
-        var eligible = state.remainingGames().stream().filter(g -> !g.home().equals("WAS") && !g.away().equals("WAS")
-                        && (conference.contains(g.home()) || conference.contains(g.away())))
-                .sorted(Comparator.comparingInt(SeasonStateLoader.RemainingGame::week)
-                        .thenComparingInt(SeasonStateLoader.RemainingGame::gameId)).toList();
-        assertThat(eligible.size()).isGreaterThan(40);
-        var examined = new ArrayList<Integer>();
-        var recorder = new SimulationService() {
-            @Override public Simulation simulate(SeasonStateLoader.State input, Map<Integer, Double> probabilities,
-                                                 Map<Integer, Outcome> forced, int count, long seed, Rules rules, boolean margins) {
-                if (count == 1) forced.keySet().stream()
-                        .filter(id -> eligible.stream().anyMatch(g -> g.gameId() == id)).forEach(examined::add);
-                return super.simulate(input, probabilities, forced, count, seed, rules, margins);
-            }
-        };
-        var service = new PathService(loader, odds, clinch, leverage, recorder, elo, 2, 1, gate);
-        service.path(1, "WAS", "madden");
-        var expected = eligible.stream().limit(40).flatMap(g -> java.util.stream.Stream.of(g.gameId(), g.gameId())).toList();
-        assertThat(examined).containsExactlyElementsOf(expected);
+        odds.odds(1, "madden");
+        leverage.matrix(1, 10, "madden");
+        SimulationService.resetSeedings();
+        paths.path(1, "WAS", "madden");
+        long seedings = SimulationService.seedings();
+        assertThat(seedings).isBetween(200L, 200L + 10 * 2 * 1500);
+        assertThat((seedings - 200) % 3000).isZero();
+    }
+
+    @Test
+    void skewedCandidateRetainsLargeSwingAndStableRootingAcrossSampleCountsAndProbabilities() {
+        var league = new ArrayList<PlayoffSeeding.Team>();
+        for (int i = 0; i < 8; i++) league.add(new PlayoffSeeding.Team("T" + i, "AFC", "East"));
+        var schedule = new ArrayList<PlayoffSeeding.Game>();
+        for (int i = 0; i < 5; i++) for (int j = i + 1; j < 8; j++)
+            schedule.add(new PlayoffSeeding.Game(0, "T" + i, "T" + j, 30, 0));
+        schedule.add(new PlayoffSeeding.Game(0, "T6", "T7", 21, 20));
+        schedule.add(new PlayoffSeeding.Game(0, "T5", "T6", 30, 0));
+        int candidate = schedule.size();
+        schedule.add(new PlayoffSeeding.Game(17, "T5", "T7", 0, 0));
+        populate(league, schedule, Set.of(candidate));
+        int gameId = candidate + 1;
+        String direction = null;
+        for (int count : List.of(60, 200, 2000)) {
+            double probability = count == 60 ? 1 : count == 200 ? .999 : .001;
+            var skewed = new EloQueryService(null, null, null) {
+                @Override public Map<Integer, Double> homeWinProbabilities(int season) { return Map.of(gameId, probability); }
+            };
+            var service = new PathService(loader, odds, clinch, leverage, simulator, skewed, count, gate, new ScenarioService());
+            var response = service.path(1, "T6", "madden");
+            assertThat(response.winOutRisks()).hasSize(1);
+            var risk = response.winOutRisks().getFirst();
+            assertThat(risk.gameId()).isEqualTo(gameId);
+            assertThat(Math.abs(risk.swing())).isGreaterThan(.1);
+            assertThat(risk.rootFor()).isEqualTo("home");
+            assertThat(risk.swing()).isPositive();
+            if (direction != null) assertThat(risk.rootFor()).isEqualTo(direction);
+            direction = risk.rootFor();
+        }
     }
 
     @Test
     void cachedPathRemainsAvailableWhileTheSharedAdmissionCapRejectsColdPaths() throws Exception {
         race();
         var cached = paths.path(1, "A", "madden");
+        assertThat(paths.path(null, "A", "madden")).isSameAs(cached);
+        assertThat(clinch.clinch(null, "madden")).isSameAs(clinch.clinch(1, "madden"));
         var started = new java.util.concurrent.CountDownLatch(1);
         var finish = new java.util.concurrent.CountDownLatch(1);
         try (var executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
@@ -275,10 +360,10 @@ class PathServiceTest {
         for (int i = 0; i < f.games().size() && remaining.size() < 3; i++) if (f.games().get(i).week() == 17) remaining.add(i);
         populate(f.teams(), f.games(), remaining);
         var baseline = new OddsService(loader, elo, simulator, 20000, caches, new com.rzs.stats.playoffs.ComputeGate(2, 100));
-        var service = new PathService(loader, baseline, clinch, leverage, simulator, elo, 5000, 2000, new com.rzs.stats.playoffs.ComputeGate(2, 100));
+        var service = new PathService(loader, baseline, clinch, leverage, simulator, elo, 5000, new com.rzs.stats.playoffs.ComputeGate(2, 100), new ScenarioService());
         long start = System.nanoTime();
         var response = service.path(1, "WAS", "madden");
         assertThat(response.simulations()).isEqualTo(20000);
-        System.out.printf("Path benchmark: 32 teams, 20,000 baseline + 20,000 tracked + 5,000 win-out + paired risks, %.3f seconds%n", (System.nanoTime() - start) / 1e9);
+        System.out.printf("Path benchmark: 32 teams, 20,000 shared baseline + 5,000 conditioned win-out, %.3f seconds%n", (System.nanoTime() - start) / 1e9);
     }
 }

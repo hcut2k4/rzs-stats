@@ -49,7 +49,7 @@ class EloHistoryServiceTest {
         preseason.setHomeTeam(team(99));
         when(games.findAllForElo()).thenReturn(List.of(game(5, 1, 1, 0), game(4, 0, 1, 22),
                 game(3, 0, 1, 20), game(2, 0, 1, 19), game(0, 0, 1, 18), simmed, preseason));
-        var timeline = new EloHistoryService(games, new EloConfigService(configs), new EloService(), new OwnerChangeService()).getTimeline();
+        var timeline = new EloHistoryService(games, new EloConfigService(configs, new com.rzs.stats.config.PlayoffCacheInvalidation(new org.springframework.cache.concurrent.ConcurrentMapCacheManager())), new EloService(), new OwnerChangeService()).getTimeline();
         assertThat(timeline.games()).extracting(r -> r.game().week()).containsExactly(17, 18, 19, 20, 22, 0);
         assertThat(timeline.history()).hasSize(12);
         assertThat(timeline.history()).noneMatch(s -> s.team().teamId() == 99);
@@ -81,7 +81,7 @@ class EloHistoryServiceTest {
         input.add(scheduled);
         input.add(game(42, 0, 1, 1));
         when(games.findAllForElo()).thenReturn(input);
-        var timeline = new EloHistoryService(games, new EloConfigService(configs), new EloService(), new OwnerChangeService()).getTimeline();
+        var timeline = new EloHistoryService(games, new EloConfigService(configs, new com.rzs.stats.config.PlayoffCacheInvalidation(new org.springframework.cache.concurrent.ConcurrentMapCacheManager())), new EloService(), new OwnerChangeService()).getTimeline();
         assertThat(timeline.games()).hasSize(1);
         assertThat(timeline.history()).hasSize(3);
         assertThat(timeline.history()).allMatch(s -> s.week() == 1);
@@ -91,7 +91,7 @@ class EloHistoryServiceTest {
     @Test
     void emptyDataProducesEmptyTimeline() {
         when(games.findAllForElo()).thenReturn(List.of());
-        var timeline = new EloHistoryService(games, new EloConfigService(configs), new EloService(), new OwnerChangeService()).getTimeline();
+        var timeline = new EloHistoryService(games, new EloConfigService(configs, new com.rzs.stats.config.PlayoffCacheInvalidation(new org.springframework.cache.concurrent.ConcurrentMapCacheManager())), new EloService(), new OwnerChangeService()).getTimeline();
         assertThat(timeline.history()).isEmpty();
         assertThat(timeline.games()).isEmpty();
     }
@@ -131,7 +131,7 @@ class EloOwnerChangeHistoryTest {
         after.setHomeTeam(team(776601634));
         games.saveAll(List.of(before, after));
         var engine = new EloService();
-        var timeline = new EloHistoryService(games, new EloConfigService(configs), engine, new OwnerChangeService()).getTimeline();
+        var timeline = new EloHistoryService(games, new EloConfigService(configs, new com.rzs.stats.config.PlayoffCacheInvalidation(new org.springframework.cache.concurrent.ConcurrentMapCacheManager())), engine, new OwnerChangeService()).getTimeline();
         var reset = timeline.history().stream().filter(EloService.Snapshot::ownerReset).toList();
         assertThat(reset).hasSize(1);
         assertThat(reset.getFirst().team().teamId()).isEqualTo(776601634);

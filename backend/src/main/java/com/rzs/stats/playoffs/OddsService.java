@@ -14,12 +14,20 @@ import java.time.Instant;
 import java.util.*;
 
 @Service
+@org.springframework.context.annotation.Import(com.rzs.stats.service.SyncStatusService.class)
 public class OddsService {
     public record Odds(double playoffs, double division, double oneSeed) {}
     public record Row(EloService.Team team, String division, int wins, int losses, int ties, Odds odds, List<Double> seedOdds) {}
     public record Conference(String name, List<Row> teams) {}
+    public record Provenance(String eloConfigHash, String inputFingerprint, String modelVersion) {}
     public record Response(int season, String rules, Integer throughWeek, Integer nextWeek, int simulations,
-                           Instant computedAt, List<Conference> conferences) {}
+                           Instant computedAt, List<Conference> conferences,
+                           @com.fasterxml.jackson.annotation.JsonIgnore Provenance provenance) {
+        public Response(int season, String rules, Integer throughWeek, Integer nextWeek, int simulations,
+                        Instant computedAt, List<Conference> conferences) {
+            this(season, rules, throughWeek, nextWeek, simulations, computedAt, conferences, null);
+        }
+    }
     private final ComputeGate gate;
     private final SeasonStateLoader loader;
     private final EloQueryService elo;
@@ -36,6 +44,42 @@ public class OddsService {
         this.simulator = simulator;
         this.simulations = simulations;
         this.caches = caches;
+    }
+
+    private com.rzs.stats.service.SyncStatusService inputs;
+    private org.springframework.transaction.support.TransactionTemplate reads;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void configureInputs(com.rzs.stats.service.SyncStatusService inputs, org.springframework.transaction.PlatformTransactionManager manager) {
+        this.inputs = inputs;
+        reads = new org.springframework.transaction.support.TransactionTemplate(manager);
+        reads.setReadOnly(true);
+        reads.setIsolationLevel(org.springframework.transaction.TransactionDefinition.ISOLATION_REPEATABLE_READ);
+    }
+
+    private record Prepared(SeasonStateLoader.State state, Map<Integer, Double> probabilities,
+                            EloQueryService.Ratings ratings, Provenance provenance) {}
+    private record Forecast(SeasonStateLoader.State state, SimulationService.Championship result, Provenance provenance) {}
+
+    private Prepared prepare(Integer season, Integer week) {
+        return prepare(season, week, null, null);
+    }
+
+    private Prepared prepare(Integer season, Integer week, SeasonStateLoader.State suppliedState, Map<Integer, Double> suppliedProbabilities) {
+        java.util.function.Supplier<Prepared> load = () -> {
+            var state = suppliedState != null ? suppliedState : week == null ? loader.load(season) : loader.loadAtStart(season, week);
+            var ratings = week != null ? elo.ratingsAtStart(state.season(), week)
+                    : state.remainingGames().isEmpty() ? elo.ratingsAtStart(state.season(), 18) : elo.currentRatings(state.season());
+            var probabilities = new HashMap<Integer, Double>();
+            if (suppliedProbabilities != null) probabilities.putAll(suppliedProbabilities);
+            else for (var game : state.remainingGames()) probabilities.put(game.gameId(),
+                    elo.winProbability(ratings, game.homeTeamId(), game.awayTeamId(), false));
+            var provenance = inputs == null ? null : new Provenance(
+                    com.rzs.stats.service.SyncStatusService.hash(ratings.config().toString()),
+                    inputs.fingerprint(ratings.config()), com.rzs.stats.model.entity.OddsSnapshotEntity.MODEL_VERSION);
+            return new Prepared(state, Map.copyOf(probabilities), ratings, provenance);
+        };
+        return reads == null ? load.get() : reads.execute(status -> load.get());
     }
 
     public Response available(Integer season, String rules) {
@@ -56,23 +100,55 @@ public class OddsService {
         if (!rules.equals("madden") && !rules.equals("nfl")) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rules must be madden or nfl");
         }
-        var state = loader.load(season);
-        return gate.compute(() -> compute(state, rules, state.remainingGames().isEmpty() ? Map.of() : elo.homeWinProbabilities(state.season())));
+        var forecast = forecast(canonicalSeason(season, rules), rules);
+        return response(forecast.state(), rules, forecast.result().baseline(), forecast.provenance());
     }
 
     int simulationCount() { return simulations; }
 
     Response compute(SeasonStateLoader.State state, String rules, Map<Integer, Double> probabilities) {
-        var selected = rules.equals("madden") ? SimulationService.Rules.MADDEN : SimulationService.Rules.NFL;
-        long seed = seed(state, rules);
-        SimulationService.Simulation result;
+        var forecast = forecast(state.season(), rules, () -> prepare(state.season(), null, state, probabilities));
+        return response(forecast.state(), rules, forecast.result().baseline(), forecast.provenance());
+    }
+
+    public SimulationService.Championship baseline(int season, String rules) {
+        return forecast(season, rules).result();
+    }
+
+    private Forecast forecast(int season, String rules) {
+        return forecast(season, rules, () -> prepare(season, null));
+    }
+
+    private Forecast forecast(int season, String rules, java.util.function.Supplier<Prepared> load) {
+        var cache = caches.getCache("playoffBaseline");
         try {
-            result = simulator.simulate(state, probabilities,
-                    Map.of(), simulations, seed, selected);
-        } catch (IllegalStateException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Available game data cannot resolve the requested playoff order", e);
+            return cache.get(new SimpleKey(season, rules), () -> {
+                var prepared = load.get();
+                var state = prepared.state();
+                var probabilities = prepared.probabilities();
+                boolean bracket = state.teams().stream().map(PlayoffSeeding.Team::conference).distinct().count() == 2
+                        && state.teams().stream().collect(java.util.stream.Collectors.groupingBy(PlayoffSeeding.Team::conference,
+                        java.util.stream.Collectors.counting())).values().stream().allMatch(n -> n >= 7);
+                var selected = rules.equals("madden") ? SimulationService.Rules.MADDEN : SimulationService.Rules.NFL;
+                SimulationService.Championship result;
+                if (!bracket) result = gate.execute(() -> new SimulationService.Championship(
+                        simulator.baseline(state, probabilities, simulations, seed(state, rules), selected), Map.of()));
+                else {
+                    var hosted = new HashMap<String, Double>();
+                    var neutral = new HashMap<String, Double>();
+                    state.identities().forEach((home, h) -> state.identities().forEach((away, a) -> {
+                        hosted.put(home + ":" + away, elo.winProbability(prepared.ratings(), h.teamId(), a.teamId(), false));
+                        neutral.put(home + ":" + away, elo.winProbability(prepared.ratings(), h.teamId(), a.teamId(), true));
+                    }));
+                    result = gate.execute(() -> simulator.championship(state, probabilities, simulations, seed(state, rules), selected,
+                            (home, away, finalGame) -> (finalGame ? neutral : hosted).get(home + ":" + away)));
+                }
+                return new Forecast(state, result, prepared.provenance());
+            });
+        } catch (org.springframework.cache.Cache.ValueRetrievalException e) {
+            if (e.getCause() instanceof RuntimeException cause) throw cause;
+            throw e;
         }
-        return response(state, rules, result);
     }
 
     static long seed(SeasonStateLoader.State state, String rules) {
@@ -80,15 +156,19 @@ public class OddsService {
     }
 
     public Response historical(SeasonStateLoader.State state) {
-        var ratings = elo.ratingsAtStart(state.season(), state.nextWeek());
-        var probabilities = new HashMap<Integer, Double>();
-        state.remainingGames().forEach(g -> probabilities.put(g.gameId(),
-                elo.winProbability(ratings, g.homeTeamId(), g.awayTeamId(), false)));
-        return response(state, "madden", simulator.simulate(state, probabilities, Map.of(), simulations,
-                seed(state, "madden"), SimulationService.Rules.MADDEN));
+        var prepared = prepare(state.season(), state.nextWeek());
+        return gate.execute(() -> response(prepared.state(), "madden", simulator.simulate(prepared.state(), prepared.probabilities(), Map.of(), simulations,
+                seed(prepared.state(), "madden"), SimulationService.Rules.MADDEN), prepared.provenance()));
     }
 
-    private Response response(SeasonStateLoader.State state, String rules, SimulationService.Simulation result) {
+    private Response response(SeasonStateLoader.State state, String rules, SimulationService.Simulation result, Provenance provenance) {
+        if (state.remainingGames().isEmpty() && result.simulations() > 0) {
+            int n = result.simulations();
+            var counts = new TreeMap<String, SimulationService.Counts>();
+            result.teams().forEach((team, c) -> counts.put(team, new SimulationService.Counts(c.playoffs() / n,
+                    c.division() / n, c.oneSeed() / n, c.seedCounts().stream().map(v -> v / n).toList())));
+            result = new SimulationService.Simulation(0, counts, Map.of(), result.allWins());
+        }
         double denominator = Math.max(1, result.simulations());
         var records = MaddenSeeding.madden27().seed(state.teams(), state.completedGames()).records();
         var conferences = new TreeMap<String, List<Row>>();
@@ -100,9 +180,9 @@ public class OddsService {
                     count.seedCounts().stream().map(n -> n / denominator).toList());
             conferences.computeIfAbsent(team.conference(), key -> new ArrayList<>()).add(row);
         }
-        return new Response(state.season(), rules, state.throughWeek(), state.nextWeek(), result.simulations(), Instant.now(),
+        return new Response(state.season(), rules, state.throughWeek(), state.nextWeek(), state.remainingGames().isEmpty() ? 0 : result.simulations(), Instant.now(),
                 conferences.entrySet().stream().map(e -> new Conference(e.getKey(), e.getValue().stream()
                         .sorted(Comparator.comparingDouble((Row r) -> r.odds().playoffs()).reversed()
-                                .thenComparing(r -> r.team().abbrName())).toList())).toList());
+                                .thenComparing(r -> r.team().abbrName())).toList())).toList(), provenance);
     }
 }
