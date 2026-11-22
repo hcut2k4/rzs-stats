@@ -149,44 +149,42 @@ const PAGES = [
     bullets: [
       'Picture — “If the season ended today” applies end-of-season tiebreakers to completed regular-season games only. Unplayed games do not count; this is the current field, not a forecast.',
       'The top four seeds in each conference are division leaders; seeds five through seven are wild cards. Every remaining team is shown in the hunt.',
-      'Madden 27 breaks ties differently from the real NFL. Switch rules to compare the field, and open Tiebreak details to see why a team is placed there.',
-      'Season 104 NFC: Washington swept Philadelphia, but Washington still missed the playoffs when both finished 10–7.',
-      'In that same tie, Detroit had played neither team. Madden put Detroit and Philadelphia ahead of Washington, so both got in.',
+      "Seeds follow Madden 27's tiebreaker rules.",
       'Each conference exports to Excel, CSV, an image or an AI-ready text block.',
     ],
   },
   {
-    name: 'Playoff Odds',
+    name: 'Playoff probability',
     bullets: [
-      'Simulate the remaining regular-season games thousands of times, then apply the selected tiebreak rules to count playoff appearances, division wins and No. 1 seeds.',
+      'Simulate the remaining regular-season games thousands of times, then apply the Madden 27 tiebreaker rules to count playoff appearances, division wins and No. 1 seeds.',
       'Each game uses win probabilities from Elo ratings and home field. Ratings stay fixed within a simulated season, and simulated games have no ties.',
       'In a simulated game, the loser scores 20 and the winner wins by 1, 3, 7, 10, 14 or 21 points, each equally likely. These scores only matter for point-differential tiebreakers.',
-      'Odds round to whole percents. “>99%” replaces 100% (99.5% or higher), and “<1%” replaces 0% (under 0.5%). These are estimates, not clinch or elimination markers.',
-      'The seed distribution shows the chance of each seed, 1–7. The unfilled part is the chance of missing the playoffs.',
+      'Probabilities round to whole percents. “>99%” replaces 100% (99.5% or higher), and “<1%” replaces 0% (under 0.5%). These are estimates, not clinch or elimination markers.',
+      'Green playoff shading means a higher probability; red means a lower probability, with neutral at 50%. Other chances use green intensity. The seed distribution shows the chance of each seed, 1–7. Blue to teal marks division winners (1–4); amber to red marks wild cards (5–7). The unfilled part is the chance of missing the playoffs.',
     ],
   },
   {
-    name: 'Odds history',
+    name: 'Probability history',
     bullets: [
-      'Odds over time tracks saved weekly chances of making the playoffs, winning the division or earning the No. 1 seed under Madden rules. Pick teams and a goal to compare their paths.',
+      'Probability over time tracks saved weekly chances of making the playoffs, winning the division or earning the No. 1 seed using Madden 27’s tiebreakers. Pick teams and a goal to compare their paths.',
       'Weekly snapshots are saved after each sync. Snapshots only start accumulating after launch; an admin backfill can fill earlier weeks using Elo ratings as of those weeks. Weeks without a snapshot are not shown.',
-      'Team profiles include a small playoff-odds history chart when at least two snapshots exist. Export the selected teams and goal to Excel, CSV, a chart image or AI-ready text.',
+      'Team profiles include a small playoff probability history chart when at least two snapshots exist. Export the selected teams and goal to Excel, CSV, a chart image or AI-ready text.',
     ],
   },
   {
-    name: 'Championship odds',
+    name: 'Title probability',
     bullets: [
       'Each regular-season simulation continues through a seven-seed playoff bracket in each conference. Seed 1 gets a bye; the wild-card games are 2 vs 7, 3 vs 6 and 4 vs 5. The best remaining seed then hosts the lowest remaining seed.',
       'Games use Elo win probabilities with home field for the better seed, except the neutral-site final. Ratings stay fixed within each simulated season and games have no ties.',
-      'Make playoffs, Reach round 2 (including a bye), Conference final, Final and Champion are the chances of reaching each stage from today, including the chance of missing the playoffs. Title odds also appear on team profiles. Once the regular season ends, this is a pre-playoff projection with ratings frozen at the end of the regular season to show who was favoured going in.',
+      'Make playoffs, Reach round 2 (including a bye), Conference final, Final and Champion are the chances of reaching each stage from today, including the chance of missing the playoffs. Title probability also appears on team profiles. Once the regular season ends, this is a pre-playoff projection with ratings frozen at the end of the regular season to show who was favoured going in.',
       'These are estimates rounded to whole percents, using >99% and <1% at the extremes. The league table sorts by title chance and exports to Excel, CSV, an image or AI-ready text.',
     ],
   },
   {
     name: 'Leverage',
     bullets: [
-      'Compare a team’s odds if it wins its next game with its odds if it loses. Swing is the difference in percentage points; 70% minus 45% is a 25-point swing.',
-      'Orange marks a loss and blue a win; the logo marks current odds. Small swings under 10 points can be shown with the toggle.',
+      'Compare a team’s probability if it wins its next game with its probability if it loses. Swing is the difference in percentage points; 70% minus 45% is a 25-point swing.',
+      'Orange marks a loss and blue a win; the logo marks current probability. Small swings under 10 points can be shown with the toggle.',
       'Biggest games are ranked by importance: add up how much probability moves across all teams between the two outcomes, then divide by two. Other affected teams show who benefits or loses probability with a home win.',
     ],
   },
@@ -194,20 +192,20 @@ const PAGES = [
     name: 'What-If',
     bullets: [
       'Pick home wins, away wins or ties. Picked games are forced; every other remaining game is simulated. Changes compare the scenario with the same simulation’s unpicked baseline.',
-      'Share the URL to share your picks. Pick every remaining game for final seeds. Winners alone can leave a spot dependent on scores: point differential or a coin toss can still decide the order. Those spots carry a Depends on scores badge and their odds can remain fractional.',
+      'Share the URL to share your picks. Pick every remaining game for final seeds. Winners alone can leave a spot dependent on scores: point differential or a coin toss can still decide the order. Those spots carry a Depends on scores badge and their probabilities can remain fractional.',
     ],
   },
   {
     name: 'Clinched / Eliminated',
     bullets: [
-      'A badge means the result is proven in every possible outcome of the remaining games. Ties and unknown scores are considered. Proven odds show 100% or 0%; simulated estimates keep >99% or <1%.',
+      'A badge means the result is proven in every possible outcome of the remaining games. Ties and unknown scores are considered. Proven probabilities show 100% or 0%; simulated estimates keep >99% or <1%.',
       'No badge means it is not settled yet. The proof relies on Madden 27’s tiebreak rules, which match past decisions about 99.85% of the time.',
     ],
   },
   {
     name: 'Path to the playoffs',
     bullets: [
-      'Your team’s path shows whether winning out is proven to secure a playoff spot, its best simulated seed, and its odds at each final record. A simulated 100% alone is not proof that you control your destiny.',
+      'Your team’s path shows whether winning out is proven to secure a playoff spot, its best simulated seed, and its probability at each final record. A simulated 100% alone is not proof that you control your destiny.',
       'See which other results help if you win out, and who to root for this week. Swing measures percentage points of playoff probability. Load your remaining wins and the helpful results into What-If to explore the combined scenario.',
     ],
   },

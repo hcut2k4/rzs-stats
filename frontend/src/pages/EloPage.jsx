@@ -297,7 +297,7 @@ export function MatchupTab({ ratedTeams, config }) {
         {select(a, setA, 'Team A')}
         <span className="text-muted text-sm">vs</span>
         {select(b, setB, 'Team B')}
-        <label className="flex items-center gap-2 text-sm text-muted" title={config ? (config.homeFieldAdvantage ? `Home field adds ${config.homeFieldAdvantage} Elo points to the home team. Neutral means no home-field effect.` : 'Home field is currently worth 0 Elo points, so picking a home team doesn\'t change the odds.') : 'Choose which team has home field, or Neutral for no home-field effect.'}>
+        <label className="flex items-center gap-2 text-sm text-muted" title={config ? (config.homeFieldAdvantage ? `Home field adds ${config.homeFieldAdvantage} Elo points to the home team. Neutral means no home-field effect.` : 'Home field is currently worth 0 Elo points, so picking a home team doesn\'t change the probability.') : 'Choose which team has home field, or Neutral for no home-field effect.'}>
           Home team
           <select className="field" aria-label="Home team" value={home} onChange={e => setHome(e.target.value)}>
             <option value="">Neutral</option>

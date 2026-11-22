@@ -58,7 +58,7 @@ it('retries a shared busy odds request only once after a delay of one to three s
   client.getPlayoffOdds.mockResolvedValue({ ...oddsFixture, conferences: [] })
   fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
   await act(async () => {})
-  expect(screen.getByText('No playoff odds available.')).toBeInTheDocument()
+  expect(screen.getByText('No playoff probability available.')).toBeInTheDocument()
 })
 
 it('does not automatically retry a 500 response', async () => {
@@ -66,7 +66,7 @@ it('does not automatically retry a 500 response', async () => {
   client.getPlayoffOdds.mockRejectedValue({ response: { status: 500 } })
   render(<MemoryRouter><OddsTab season={2} rules="madden" /></MemoryRouter>)
   await act(async () => {})
-  expect(screen.getByText('Could not load playoff odds.')).toBeInTheDocument()
+  expect(screen.getByText('Could not load playoff probability.')).toBeInTheDocument()
   await act(async () => vi.advanceTimersByTimeAsync(10000))
   expect(client.getPlayoffOdds).toHaveBeenCalledTimes(1)
 })

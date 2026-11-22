@@ -17,6 +17,6 @@ export function pathScenario(data, games) {
     if (g.home.teamId === data.team.teamId) picks.set(g.gameId, 'home')
     else if (g.away.teamId === data.team.teamId) picks.set(g.gameId, 'away')
   }
-  const params = new URLSearchParams({ tab: 'whatif', v: '1', season: data.season, rules: data.rules, picks: encodePicks([...picks].map(([gameId, result]) => ({ gameId, result }))) })
+  const params = new URLSearchParams({ tab: 'whatif', v: '1', season: data.season, picks: encodePicks([...picks].map(([gameId, result]) => ({ gameId, result }))) })
   return `/playoffs?${params}`
 }

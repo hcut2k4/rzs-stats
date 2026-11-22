@@ -24,22 +24,22 @@ export default function LeverageTab({ season, rules, params, updateParam }) {
   const weekParam = params.get('week')
   const week = weekParam != null && /^\d+$/.test(weekParam) && Number(weekParam) < 18 ? Number(weekParam) : undefined
   const small = params.get('small') === 'true'
-  const { data, loading, error, retry } = usePlayoffLoad(season == null ? null : `playoffs-leverage-${season}-${rules}-${week ?? 'next'}`, () => getPlayoffLeverage(season, week, rules))
+  const { data, loading, error, retry } = usePlayoffLoad(season == null ? null : `playoffs-leverage-${season}-${rules}-${week ?? 'next'}`, () => getPlayoffLeverage(season, week, 'madden'))
   const rows = (data?.games ?? []).flatMap(game => game.teams.map(row => ({ ...row, game, opp: row.side === 'home' ? game.away : game.home }))).sort((a, b) => b.current[goal] - a.current[goal])
   const shown = rows.filter(r => small || swingPoints(r, goal) >= 10 - 1e-9)
   const label = GOALS.find(g => g.value === goal).label
-  const qualifier = data ? `${seasonLabel(data.season)} · ${weekName(data.week)} · ${data.rules} rules · ${label}` : ''
+  const qualifier = data ? `${seasonLabel(data.season)} · ${weekName(data.week)} · ${label}` : ''
   const spec = {
     name: 'How much does each game matter', qualifier, rows: shown,
-    description: 'Odds if this team loses or wins its game; swing is the difference in percentage points.',
+    description: 'Probability if this team loses or wins its game; swing is the difference in percentage points.',
     cols: [
       { label: 'Team', desc: 'Team playing this week.', text: r => r.team.displayName, logo: r => r.team.abbrName },
       { label: 'Opp', desc: 'Opponent; vs means home, @ means away.', text: r => `${r.side === 'home' ? 'vs' : '@'} ${r.opp.abbrName}` },
       ...[['ifLoss', 'If lose'], ['ifWin', 'If win']].map(([key, title]) => ({ label: title, desc: `${label} probability: ${title.toLowerCase()}.`, text: r => formatOdds(r[key][goal]), value: r => r[key][goal], z: '0%' })),
-      { label: 'Swing', desc: 'Win minus loss odds in percentage points.', text: r => `${Math.round(swingPoints(r, goal))} pp`, value: r => swingPoints(r, goal), z: '0" pp"', color: r => `rgb(${WIN} / ${Math.min(0.5, Math.abs(swingPoints(r, goal)) / 100)})` },
-    ], api: { path: '/playoffs/leverage', params: data ? { season: data.season, week: data.week, rules: data.rules } : {}, note: `${label}; current odds descending; ${small ? 'all swings' : 'swings of at least 10 points'}.`, fields: { Team: 'teams[].team.displayName', Opp: 'side, home, away', 'If lose': `teams[].ifLoss.${goal}`, Current: `teams[].current.${goal}`, 'If win': `teams[].ifWin.${goal}`, Swing: `(ifWin.${goal} - ifLoss.${goal}) × 100` } },
+      { label: 'Swing', desc: 'Win minus loss probability in percentage points.', text: r => `${Math.round(swingPoints(r, goal))} pp`, value: r => swingPoints(r, goal), z: '0" pp"', color: r => `rgb(${WIN} / ${Math.min(0.5, Math.abs(swingPoints(r, goal)) / 100)})` },
+    ], api: { path: '/playoffs/leverage', params: data ? { season: data.season, week: data.week, rules: data.rules } : {}, note: `${label}; current probability descending; ${small ? 'all swings' : 'swings of at least 10 points'}.`, fields: { Team: 'teams[].team.displayName', Opp: 'side, home, away', 'If lose': `teams[].ifLoss.${goal}`, Current: `teams[].current.${goal}`, 'If win': `teams[].ifWin.${goal}`, Swing: `(ifWin.${goal} - ifLoss.${goal}) × 100` } },
   }
-  const chartSpec = { ...spec, cols: [...spec.cols.slice(0, 3), { label: 'Current', desc: 'Current probability, shown by the team logo.', text: r => formatOdds(r.current[goal]), value: r => r.current[goal], z: '0%' }, ...spec.cols.slice(3)], name: 'Win or lose: playoff leverage', rows, api: { ...spec.api, note: `${label}; all participants, current odds descending.` }, image: { draw: (ctx, width) => leveragePanel(ctx, width, rows, goal) } }
+  const chartSpec = { ...spec, cols: [...spec.cols.slice(0, 3), { label: 'Current', desc: 'Current probability, shown by the team logo.', text: r => formatOdds(r.current[goal]), value: r => r.current[goal], z: '0%' }, ...spec.cols.slice(3)], name: 'Win or lose: playoff leverage', rows, api: { ...spec.api, note: `${label}; all participants, current probability descending.` }, image: { draw: (ctx, width) => leveragePanel(ctx, width, rows, goal) } }
   const games = [...(data?.games ?? [])].sort((a, b) => b.importance[goal] - a.importance[goal])
   const others = g => g.others.filter(o => o.goal === goal).slice(0, 3).map(o => `${o.team.displayName} (${o.swing >= 0 ? '+' : ''}${Math.round(o.swing * 100)} pp with a home win)`).join('; ') || 'No other teams listed'
   const gamesSpec = { name: 'Biggest games this week', qualifier, rows: games, description: 'Ranked by total probability moved across all teams, divided by two.', cols: [
@@ -52,7 +52,7 @@ export default function LeverageTab({ season, rules, params, updateParam }) {
     {loading && <p className="text-muted">Loading…</p>}{error && <PlayoffError error={error} retry={retry}>Could not load playoff leverage.</PlayoffError>}
     {data && !rows.length && <p className="text-muted">No remaining games this week.</p>}
     {rows.length > 0 && <div className="space-y-8">
-      <section aria-label="Win or lose chart"><div className="flex items-center justify-between flex-wrap gap-2"><h2 className="font-display text-2xl font-bold">Win or lose</h2><ExportMenu spec={chartSpec} /></div><p className="text-xs text-muted my-2">Orange: if lose · Logo: current odds · Blue: if win · {label}</p>
+      <section aria-label="Win or lose chart"><div className="flex items-center justify-between flex-wrap gap-2"><h2 className="font-display text-2xl font-bold">Win or lose</h2><ExportMenu spec={chartSpec} /></div><p className="text-xs text-muted my-2">Orange: if lose · Logo: current probability · Blue: if win · {label}</p>
         <div className="overflow-x-auto"><div className="min-w-[520px]"><div className="ml-52 mr-14 flex justify-between text-xs text-muted"><span>0%</span><span>50%</span><span>100%</span></div>{rows.map(r => <div key={r.team.teamId} className="grid grid-cols-[9rem_3rem_1fr_3rem] items-center gap-2 border-t border-line text-sm"><TeamLink team={r.team} season={data.season} rules={data.rules} path /><span className="text-right num" style={{ color: `rgb(${LOSS})` }}>{formatOdds(r.ifLoss[goal])}</span><Range row={r} goal={goal} logo /><span className="num" style={{ color: `rgb(${WIN})` }}>{formatOdds(r.ifWin[goal])}</span></div>)}</div></div>
       </section>
       <section aria-label="Swing table"><div className="flex justify-between flex-wrap gap-2"><h2 className="font-display text-2xl font-bold">How much does each game matter</h2><ExportMenu spec={spec} /></div><label className="inline-flex items-center gap-2 text-sm my-3"><input type="checkbox" checked={small} onChange={e => updateParam('small', String(e.target.checked))} />Show small swings</label>

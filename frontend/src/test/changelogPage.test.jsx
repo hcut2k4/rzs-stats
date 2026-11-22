@@ -32,7 +32,7 @@ it('links the feature index, app pages, and full screenshots', () => {
     expect(document.getElementById(link.hash.slice(1))).toBeInTheDocument()
   }
   for (const [name, path] of [
-    ['Playoffs → Picture', '/playoffs?tab=picture&rules=madden'],
+    ['Playoffs → Picture', '/playoffs?tab=picture'],
     ['Elo → Games', '/elo?tab=games'], ['QB leaderboard', '/qb'],
     ['Efficiency overview', '/efficiency'], ['Best Games Ahead', '/'],
     ['Season History', '/standings?tab=history'], ['About page', '/about'],

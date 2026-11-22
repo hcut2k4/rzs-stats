@@ -225,6 +225,10 @@ Forced runs use `SimulationService` with the baseline's season/week/rules seed, 
 
 ### Playoff simulation
 
+The UI follows Madden 27 tiebreakers and always requests `madden`; old `rules` UI parameters are ignored. The Probability tab uses `tab=probability`, accepting `tab=odds` as a legacy alias. API paths and JSON fields retain their existing names.
+
+`playoffs.nfl-comparison` defaults to `false`: Picture and exact What-If compute only the requested rule set and return `otherRulesSeed: null`. Setting it to `true` restores the additional comparison pass. Explicit API requests with `rules=nfl` continue to work. Cache warming and weekly snapshots use Madden only; NFL requests remain on demand.
+
 `SimulationService.simulate(state, probabilities, forced, simulations, seed, rules)` seeds the full league independently for each simulation and reduces integer counts on the shared compute executor. `Outcome` supports HOME, AWAY and forced TIE. Its `games` primitive exposes each simulated schedule for paired leverage; `outcomeGame` shares outcome-to-score conversion with future clinch integration. SplitMix64 counters depend only on base seed, simulation index and game ID, so forcing a game leaves every other game's outcome and margin unchanged. Unforced draws never tie. Losers score 20; margins 1, 3, 7, 10, 14 and 21 are equally likely; forced ties score 20-20. By default forced margins depend on seed and game ID alone, so fully forced schedules give exact 0/1 odds. The optional `varyForcedMargins` overload instead uses each simulation's existing margin counter, allowing What-If to model score-sensitive ties while preserving paired draws for unpicked games.
 
 `OddsService` uses the selected season's latest Elo timeline ratings and the same `EloService.probability` plus home field as upcoming games. Teams without a timeline rating start at the configured initial rating. `playoffs.simulations` defaults to 20,000; the baseline seed is stable for season, next week and rules. Completed seasons use exact seeding with zero simulations. Unresolved NFL orders use the same alphabetical fallback as Picture, as documented in the API contract.

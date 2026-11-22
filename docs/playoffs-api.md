@@ -28,7 +28,7 @@ Unknown `rules` -> 400. Season with no data -> 404.
           "division": "AFC East",
           "divisionWinner": true,
           "wins": 9, "losses": 2, "ties": 0,
-          "otherRulesSeed": 1,
+          "otherRulesSeed": null,
           "reasons": ["plain-English sentence about a tiebreak that decided this team's place"]
         }
       ],
@@ -43,7 +43,7 @@ Unknown `rules` -> 400. Season with no data -> 404.
 - `seeds` has exactly 7 entries per conference (when at least 7 teams exist), seeds 1-4 are division winners.
 - `hunt` is every remaining team in order (`rank` 8...).
 - Unresolved NFL ties use alphabetical order within each tied rank, including division ties, so both conferences still render. Affected teams receive a reason explaining that the displayed order is arbitrary and the NFL uses a coin toss.
-- `otherRulesSeed`: seed (1-7) the team would hold under the other rule set (`nfl` when `rules=madden`, and the reverse), or null when it would miss the playoffs.
+- `otherRulesSeed`: null by default. Set `playoffs.nfl-comparison=true` to compute the other rule set (`nfl` when `rules=madden`, and the reverse); then this is its seed (1–7), or null when it would miss the playoffs. The default `false` skips the extra seeding pass in Picture and exact What-If. Explicit `rules=nfl` requests still compute NFL seeding, with no comparison pass unless enabled. The frontend always requests `madden` and ignores old `rules` URL parameters.
 - `reasons` is empty when no tiebreaker was needed. Sentences are plain English with team names, no internal jargon.
 - `throughWeek` is the last week with a completed regular-season game (null if none); `nextWeek` is the earliest week with an unplayed regular-season game (null once the regular season is complete).
 - Phase 2 adds `odds` (`{ "playoffs": 0.64, "division": 0.31, "oneSeed": 0.03 }`, fractions) to each seed/hunt row; the UI renders it when present.
@@ -165,7 +165,7 @@ Response:
                    "seedOdds": [0.41, 0.2, 0.15, 0.1, 0.07, 0.04, 0.02] } ],
       "seeds": null } ] }
 ```
-When every remaining game is picked (`exact: true`) there is one outcome: `seeds` is the final seeding (same row shape as the Picture endpoint `seeds`, including `reasons`) and each row additionally has `dependsOnScores` (boolean): true when a tiebreak that decided that team's position used point differential, a coin toss or the arbitrary alphabetical fallback, because picks specify winners but not scores. `odds` are then exactly 0 or 1 for rows not marked `dependsOnScores`; score-dependent cascades are also flagged when margin simulations produce fractional playoff, division or one-seed odds. If no teams are flagged, the forced simulation is skipped. For flagged rows the odds come from simulating margins (so they may be fractional). `seeds` is null when `exact` is false. Each `teams[]` row also exposes `dependsOnScores`, flagging exact-mode odds that depend on unresolved scores or fractional simulated counts, including teams outside `seeds[]`.
+When every remaining game is picked (`exact: true`) there is one outcome: `seeds` is the final seeding (same row shape as the Picture endpoint `seeds`, including `reasons`) and each row additionally has `dependsOnScores` (boolean): true when a tiebreak that decided that team's position used point differential, a coin toss or the arbitrary alphabetical fallback, because picks specify winners but not scores. `odds` are then exactly 0 or 1 for rows not marked `dependsOnScores`; score-dependent cascades are also flagged when margin simulations produce fractional playoff, division or one-seed odds. If no teams are flagged, the forced simulation is skipped. For flagged rows the odds come from simulating margins (so they may be fractional). `seeds` is null when `exact` is false. Exact seed rows return `otherRulesSeed: null` unless `playoffs.nfl-comparison=true`. Each `teams[]` row also exposes `dependsOnScores`, flagging exact-mode odds that depend on unresolved scores or fractional simulated counts, including teams outside `seeds[]`.
 
 ## Odds on the Picture endpoint
 

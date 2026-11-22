@@ -312,7 +312,7 @@ describe('EloPage', () => {
 
   it.each([
     [50, 'Home field adds 50 Elo points to the home team. Neutral means no home-field effect.'],
-    [0, "Home field is currently worth 0 Elo points, so picking a home team doesn't change the odds."],
+    [0, "Home field is currently worth 0 Elo points, so picking a home team doesn't change the probability."],
   ])('explains a configured home-field adjustment of %s', async (homeFieldAdvantage, title) => {
     client.getPublicEloConfig.mockResolvedValue({ movEnabled: true, marginCap: 14, homeFieldAdvantage })
     render(<MemoryRouter initialEntries={['/elo?tab=matchup']}><EloPage /></MemoryRouter>)
