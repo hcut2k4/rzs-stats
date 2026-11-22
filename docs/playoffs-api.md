@@ -191,3 +191,24 @@ Leverage computation keeps, for every game of the week and every team in the lea
 - `winsNeeded`: one row per achievable final win total, from the baseline run (`chance` = probability of that final record); rows with chance under 0.5% omitted.
 - `winOutRisks`: games of other teams, ranked by absolute swing on this team's playoff odds GIVEN the team wins out, `rootFor` = side that helps; top 5, swing under 0.02 omitted.
 - `rootThisWeek`: this week's games not involving the team, ranked by absolute swing on its playoff odds, top 5, swing under 0.02 omitted.
+
+## GET /api/playoffs/odds/history
+
+Query: `season` (optional, default current), `team` (optional abbreviation; default all teams). Saved weekly snapshots (Madden rules), oldest first.
+```json
+{ "season": 2,
+  "snapshots": [ { "week": 11, "computedAt": "2026-11-18T03:00:00Z", "simulations": 20000,
+                   "teams": [ { "team": { "teamId": 1, "abbrName": "NYG", "displayName": "Giants" },
+                                "playoffs": 0.64, "division": 0.31, "oneSeed": 0.03 } ] } ] }
+```
+`week` is the `nextWeek` the snapshot was taken for. Weeks without a snapshot are absent (no interpolation). `POST /api/admin/playoffs/odds/backfill?season=` (admin token) re-simulates every earlier week of the season using the Elo ratings as of that week and stores any missing snapshot rows (never overwrites an existing snapshot); returns `{ "season": 2, "created": 9, "skipped": 2 }`.
+
+## GET /api/playoffs/championship
+
+Query: `season`, `rules`. Extends each baseline simulation through the bracket (7 seeds per conference, seed 1 gets a bye, wild-card round 2v7 3v6 4v5, then the top remaining seed hosts the lowest remaining, conference final, final). Playoff game win probability = Elo with home-field advantage for the better seed (neutral site for the final), ratings fixed within a simulated season; no ties.
+```json
+{ "season": 2, "rules": "madden", "simulations": 20000, "computedAt": "...",
+  "teams": [ { "team": {}, "conference": "AFC",
+               "playoffs": 0.97, "round2": 0.71, "conferenceFinal": 0.44, "final": 0.27, "champion": 0.15 } ] }
+```
+`round2` = reaches the second round (bye or wild-card win), then `conferenceFinal`, `final`, `champion`. Sorted by `champion` descending. Sum of `champion` is 1; sum of `final` is 2.
