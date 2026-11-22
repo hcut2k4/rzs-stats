@@ -192,6 +192,8 @@ Leverage computation keeps, for every game of the week and every team in the lea
 - `winOutRisks`: games of other teams, ranked by absolute swing on this team's playoff odds GIVEN the team wins out, `rootFor` = side that helps; top 5, swing under 0.02 omitted.
 - `rootThisWeek`: this week's games not involving the team, ranked by absolute swing on its playoff odds, top 5, swing under 0.02 omitted.
 
+Path implementation limits: `simulations` reports the baseline sample count (zero for a completed season). Win-out uses `playoffs.path-simulations` (default 5,000); each risk side uses `playoffs.path-risk-simulations` (default 2,000). Risk candidates are capped at the nearest 40 games ordered by week then game ID, including cross-conference games involving another conference member. The per-instance concurrency limit admits one uncached Path computation; excess requests return 503. Responses are cached lazily and never warmed.
+
 ## GET /api/playoffs/odds/history
 
 Query: `season` (optional, default current), `team` (optional abbreviation; default all teams). Saved weekly snapshots (Madden rules), oldest first.
