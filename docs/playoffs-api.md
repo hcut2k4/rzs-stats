@@ -216,3 +216,27 @@ Query: `season`, `rules`. Extends each baseline simulation through the bracket (
                "playoffs": 0.97, "round2": 0.71, "conferenceFinal": 0.44, "final": 0.27, "champion": 0.15 } ] }
 ```
 `round2` = reaches the second round (bye or wild-card win), then `conferenceFinal`, `final`, `champion`. Sorted by `champion` descending. Sum of `champion` is 1; sum of `final` is 2.
+
+## Path: final-week scenarios (`scenarios` field of GET /api/playoffs/path/{abbr})
+
+`scenarios` is null unless at least 1 and at most 16 regular-season games remain league-wide. When present it lists plain-English conditions proven by exhaustive win/loss enumeration of every remaining game (2^n outcomes, no tie games assumed, scores unknown: any outcome whose result for the team's goal depends on point differential, a coin toss or the alphabetical fallback counts as "not proven in" and "not proven out").
+```json
+"scenarios": {
+  "remainingGames": 3,
+  "assumes": "No tie games; point-differential tiebreaks are treated as unknown",
+  "goals": {
+    "playoffs": {
+      "status": "open",
+      "clinchedBy": [ { "text": "Giants beat Jaguars", "conditions": [ { "gameId": 123, "winner": "NYG" } ] },
+                      { "text": "Lions lose to Buccaneers and Panthers lose to Ravens",
+                        "conditions": [ { "gameId": 130, "winner": "TB" }, { "gameId": 131, "winner": "BAL" } ] } ],
+      "eliminatedBy": [ { "text": "Giants lose to Jaguars and Lions beat Buccaneers", "conditions": [] } ]
+    },
+    "division": { "status": "open", "clinchedBy": [], "eliminatedBy": [] },
+    "oneSeed":  { "status": "out",  "clinchedBy": [], "eliminatedBy": [] }
+  }
+}
+```
+- `status`: `in` (in every outcome), `out` (out in every outcome), `open` otherwise.
+- `clinchedBy` = minimal sufficient sets of game results (prime implicants of the "definitely achieved" outcomes), `eliminatedBy` = minimal sets that make the goal impossible. Each has `text` (team display names, "beat" / "lose to" wording, game results joined with "and") and `conditions` (`winner` = team abbreviation). At most 6 entries each, shortest first, then alphabetical; empty list when none exist. `status: "in"` has `clinchedBy: []` (no condition needed) and `status: "out"` has `eliminatedBy: []`.
+- Only games that can change the answer appear in conditions.
