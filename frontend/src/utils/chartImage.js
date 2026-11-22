@@ -1,3 +1,4 @@
+import { formatOdds } from './playoffOdds'
 import { IMAGE, imageFrame, copyPng } from './tableImage'
 import { loadLogo } from './teamLogo'
 
@@ -109,4 +110,38 @@ export async function drawChartPlot(ctx, width, height, { points, league, xScale
 
 export function copyChartImage(spec) {
   return copyPng(spec, drawChart(spec))
+}
+
+export async function leveragePanel(ctx, width, rows, goal) {
+  const logos = await Promise.all(rows.map(r => loadLogo(r.team.abbrName)))
+  const x = p => 170 + p * (width - 260)
+  return {
+    height: rows.length * 42 + 35,
+    draw(ctx) {
+      ctx.font = '12px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillStyle = IMAGE.muted
+      for (const p of [0, 0.25, 0.5, 0.75, 1]) ctx.fillText(`${p * 100}%`, x(p), 16)
+      rows.forEach((r, i) => {
+        const y = 42 + i * 42
+        ctx.textAlign = 'left'
+        ctx.fillStyle = IMAGE.ink
+        ctx.fillText(r.team.displayName, 10, y + 4)
+        ctx.strokeStyle = IMAGE.line
+        ctx.beginPath(); ctx.moveTo(x(0), y); ctx.lineTo(x(1), y); ctx.stroke()
+        ctx.lineWidth = 4
+        ctx.strokeStyle = IMAGE.muted
+        ctx.beginPath(); ctx.moveTo(x(r.ifLoss[goal]), y); ctx.lineTo(x(r.ifWin[goal]), y); ctx.stroke()
+        ctx.lineWidth = 1
+        for (const [p, color, align, offset] of [[r.ifLoss[goal], '#ea580c', 'right', -9], [r.ifWin[goal], '#2563eb', 'left', 9]]) {
+          ctx.fillStyle = color
+          ctx.beginPath(); ctx.arc(x(p), y, 4, 0, Math.PI * 2); ctx.fill()
+          ctx.textAlign = align
+          ctx.fillText(formatOdds(p), x(p) + offset, y - 10)
+        }
+        if (logos[i]) ctx.drawImage(logos[i], x(r.current[goal]) - 12, y - 12, 24, 24)
+        else { ctx.textAlign = 'center'; ctx.fillStyle = IMAGE.ink; ctx.fillText(r.team.abbrName, x(r.current[goal]), y + 4) }
+      })
+    },
+  }
 }
