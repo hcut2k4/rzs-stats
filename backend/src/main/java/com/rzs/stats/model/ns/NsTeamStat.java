@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class NsTeamStat {
     public String team__abbrName;
     public int offTotalPassYds;
+    public Integer offTotalRushYds;
     public int offTotalSacks;
     public int offTotalFumLost;
     public int offTotalIntsLost;
