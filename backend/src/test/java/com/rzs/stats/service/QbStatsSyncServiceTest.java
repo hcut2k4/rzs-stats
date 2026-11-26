@@ -97,6 +97,125 @@ class QbStatsSyncServiceTest {
         assertThat(rows.getFirst().getTeamFumbles()).isEqualTo(2);
     }
 
+    private List<NsPassingStat> tradedPassing() {
+        var wrongTeam = passer("555222907", "QB", 181);
+        wrongTeam.team__abbrName = "NO";
+        wrongTeam.passTotalAtt = 24;
+        var correctTeam = passer("555222907", "QB", 181);
+        correctTeam.team__abbrName = "MIN";
+        correctTeam.passTotalAtt = 24;
+        var other = passer("shough", "QB", 271);
+        other.team__abbrName = "NO";
+        other.passTotalAtt = 30;
+        return List.of(wrongTeam, correctTeam, other);
+    }
+
+    private List<NsRushingStat> tradedRushing() {
+        var wrongTeam = rusher("555222907", "QB", 1);
+        wrongTeam.team__abbrName = "NO";
+        wrongTeam.rushTotalYds = 20;
+        wrongTeam.rushTotalAtt = 4;
+        var correctTeam = rusher("555222907", "QB", 1);
+        correctTeam.team__abbrName = "MIN";
+        correctTeam.rushTotalYds = 20;
+        correctTeam.rushTotalAtt = 4;
+        var other = rusher("hb", "HB", 2);
+        other.team__abbrName = "NO";
+        other.rushTotalYds = 100;
+        other.rushTotalAtt = 18;
+        return List.of(wrongTeam, correctTeam, other);
+    }
+
+    private List<NsTeamStat> tradedTeamStats() {
+        var min = new NsTeamStat();
+        min.team__abbrName = "MIN";
+        min.offTotalPassYds = 181;
+        min.offTotalRushYds = 20;
+        var no = new NsTeamStat();
+        no.team__abbrName = "NO";
+        no.offTotalPassYds = 271;
+        no.offTotalRushYds = 100;
+        return List.of(min, no);
+    }
+
+    private Map<String, TeamEntity> tradedTeams() {
+        var min = new TeamEntity();
+        min.setAbbrName("MIN");
+        var no = new TeamEntity();
+        no.setAbbrName("NO");
+        return Map.of("MIN", min, "NO", no);
+    }
+
+    @Test
+    void tradedQuarterbackBelongsToMatchingTeamWithoutInflatingEitherTeamsYardsOrFumbles() {
+        var rows = service.buildRows(0, 0, tradedPassing(), tradedRushing(), tradedTeamStats(),
+                tradedTeams(), Set.of("MIN", "NO"));
+        assertThat(rows).hasSize(2);
+        var murray = rows.stream().filter(r -> r.getRosterId().equals("555222907")).findFirst().orElseThrow();
+        assertThat(murray.getTeam().getAbbrName()).isEqualTo("MIN");
+        assertThat(murray.getTeamPasserYards()).isEqualTo(181);
+        assertThat(murray.getRushAtt()).isEqualTo(4);
+        assertThat(murray.getTeamFumbles()).isEqualTo(1);
+        var shough = rows.stream().filter(r -> r.getRosterId().equals("shough")).findFirst().orElseThrow();
+        assertThat(shough.getTeam().getAbbrName()).isEqualTo("NO");
+        assertThat(shough.getTeamPasserYards()).isEqualTo(271);
+        assertThat(shough.getTeamFumbles()).isEqualTo(2);
+        assertThat(rows).allSatisfy(r -> assertThat(r.getTeamPasserYards() - r.getTeamNetPassYds()).isZero());
+    }
+
+    @Test
+    void tradedPlayersAttemptsCountOnlyForTheMatchingTeam() {
+        var rows = service.buildTeamRows(0, 0, tradedPassing(), tradedRushing(), tradedTeamStats(),
+                List.of(), List.of(), tradedTeams(), Set.of("MIN", "NO"));
+        assertThat(rows).hasSize(2);
+        assertThat(rows.getFirst().getPassAtt()).isEqualTo(24);
+        assertThat(rows.getFirst().getRushAtt()).isEqualTo(4);
+        assertThat(rows.getLast().getPassAtt()).isEqualTo(30);
+        assertThat(rows.getLast().getRushAtt()).isEqualTo(18);
+    }
+
+    @Test
+    void rushingDuplicatesUseRushingYardsEvenWithoutPassingRows() {
+        var rows = service.buildTeamRows(0, 0, List.of(), tradedRushing(), tradedTeamStats(),
+                List.of(), List.of(), tradedTeams(), Set.of("MIN", "NO"));
+        assertThat(rows.getFirst().getRushAtt()).isEqualTo(4);
+        assertThat(rows.getLast().getRushAtt()).isEqualTo(18);
+    }
+
+    @Test
+    void rushingDuplicatesFollowPassingTeamEvenWhenRushingYardsFavorAnotherTeam() {
+        var contexts = tradedTeamStats();
+        contexts.getFirst().offTotalRushYds = 200;
+        contexts.getLast().offTotalRushYds = 120;
+        var deduped = service.dedupeWeeklyStats(tradedPassing(), tradedRushing(), contexts);
+        assertThat(deduped.passing()).filteredOn(p -> p.player__rosterId.equals("555222907"))
+                .extracting(p -> p.team__abbrName).containsExactly("MIN");
+        assertThat(deduped.rushing()).filteredOn(r -> r.player__rosterId.equals("555222907"))
+                .extracting(r -> r.team__abbrName).containsExactly("MIN");
+    }
+
+    @Test
+    void rushingDuplicatesFollowPassingTeamWhenRushingTeamYardsAreMissing() {
+        var contexts = tradedTeamStats();
+        contexts.forEach(t -> t.offTotalRushYds = null);
+        var rows = service.buildRows(0, 0, tradedPassing(), tradedRushing(), contexts,
+                tradedTeams(), Set.of("MIN", "NO"));
+        var murray = rows.stream().filter(r -> r.getRosterId().equals("555222907")).findFirst().orElseThrow();
+        assertThat(murray.getTeam().getAbbrName()).isEqualTo("MIN");
+        assertThat(murray.getTeamFumbles()).isEqualTo(1);
+        assertThat(rows.stream().filter(r -> r.getRosterId().equals("shough")).findFirst().orElseThrow().getTeamFumbles()).isEqualTo(2);
+    }
+
+    @Test
+    void duplicateYardTiesAndMissingContextsKeepTheFirstRow() {
+        var contexts = tradedTeamStats();
+        contexts.getFirst().offTotalPassYds = 0;
+        var deduped = service.dedupeWeeklyStats(tradedPassing(), tradedRushing(), contexts);
+        assertThat(deduped.passing().getFirst().team__abbrName).isEqualTo("NO");
+        deduped = service.dedupeWeeklyStats(List.of(), tradedRushing(), List.of());
+        assertThat(deduped.rushing().getFirst().team__abbrName).isEqualTo("NO");
+    }
+
     private GameEntity game(int week) {
         var g = new GameEntity();
         g.setHomeTeam(team);
@@ -117,7 +236,7 @@ class QbStatsSyncServiceTest {
         when(games.findCompletedInScope(0, 0, 22)).thenReturn(List.of(game(17)));
         when(games.findCompletedInScope(1, 0, 22)).thenReturn(List.of(game(0), game(1), game(18)));
         when(repository.existsBySeasonIndexAndStageIndexAndWeekIndex(anyInt(), eq(1), anyInt())).thenReturn(true);
-        when(teamRepository.existsBySeasonIndexAndStageIndexAndWeekIndex(anyInt(), eq(1), anyInt())).thenReturn(true);
+        when(teamRepository.countBySeasonIndexAndStageIndexAndWeekIndex(anyInt(), eq(1), anyInt())).thenReturn(1L);
         service.syncIncremental();
         verify(client).fetchPassingStats(1, 1, 18);
         verify(client).fetchRushingStats(1, 1, 18);
@@ -129,6 +248,27 @@ class QbStatsSyncServiceTest {
         assertThat(service.getStatus().success()).isTrue();
         assertThat(service.getStatus().inProgress()).isFalse();
         assertThat(service.getStatus().completedAt()).isNotNull();
+    }
+
+    @Test
+    void incrementalRefetchesOlderWeekWhenNewlyCompletedTeamsOutnumberStoredTeamRows() {
+        league();
+        var other = new TeamEntity();
+        other.setAbbrName("BBB");
+        when(games.findCompletedInScope(0, 0, 22)).thenReturn(List.of());
+        var partiallyStored = game(0);
+        partiallyStored.setAwayTeam(other);
+        when(games.findCompletedInScope(1, 0, 22)).thenReturn(List.of(partiallyStored, game(1), game(2)));
+        when(repository.existsBySeasonIndexAndStageIndexAndWeekIndex(1, 1, 0)).thenReturn(true);
+        when(repository.existsBySeasonIndexAndStageIndexAndWeekIndex(1, 1, 1)).thenReturn(true);
+        when(teamRepository.countBySeasonIndexAndStageIndexAndWeekIndex(1, 1, 0)).thenReturn(1L);
+        when(teamRepository.countBySeasonIndexAndStageIndexAndWeekIndex(1, 1, 1)).thenReturn(1L);
+        service.syncIncremental();
+        verify(writer).replaceWeek(1, 1, 0, List.of(), List.of());
+        verify(writer).replaceWeek(1, 1, 2, List.of(), List.of());
+        verifyNoMoreInteractions(writer);
+        verify(client, never()).fetchPassingStats(1, 1, 1);
+        assertThat(service.getStatus().success()).isTrue();
     }
 
     @Test
@@ -261,7 +401,7 @@ class QbStatsSyncServiceTest {
         league();
         when(games.findCompletedInScope(0, 0, 22)).thenReturn(List.of(game(0)));
         when(repository.existsBySeasonIndexAndStageIndexAndWeekIndex(0, 1, 0)).thenReturn(true);
-        when(teamRepository.existsBySeasonIndexAndStageIndexAndWeekIndex(0, 1, 0)).thenReturn(false);
+        when(teamRepository.countBySeasonIndexAndStageIndexAndWeekIndex(0, 1, 0)).thenReturn(0L);
         var context = new NsTeamStat();
         context.team__abbrName = "AAA";
         when(client.fetchPassingStats(0, 1, 0)).thenReturn(List.of(passer("a", "QB", 200)));

@@ -2,6 +2,15 @@ package com.rzs.stats.repository;
 
 import com.rzs.stats.model.entity.QbGameStatEntity;
 import com.rzs.stats.model.entity.TeamEntity;
+import com.rzs.stats.model.entity.GameEntity;
+import com.rzs.stats.model.entity.TeamGameStatEntity;
+import com.rzs.stats.client.NeonSportzClient;
+import com.rzs.stats.service.QbStatsSyncService;
+import com.sun.net.httpserver.HttpServer;
+import org.springframework.test.util.ReflectionTestUtils;
+import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import com.rzs.stats.service.QbStatsWeekWriter;
 import com.rzs.stats.service.QbStatsService;
 import com.rzs.stats.service.QbStatsCalculator;
@@ -19,6 +28,8 @@ class QbStatsPersistenceTest {
     @Autowired TeamRepository teams;
     @Autowired QbStatsWeekWriter writer;
     @Autowired QbStatsService stats;
+    @Autowired GameRepository games;
+    @Autowired TeamGameStatRepository teamStats;
 
     private QbGameStatEntity row(int week, int yards) {
         TeamEntity team = teams.findByTeamId(1).orElseGet(() -> {
@@ -68,6 +79,87 @@ class QbStatsPersistenceTest {
         repository.flush();
         assertThat(repository.findInScope(0, 0, 17)).extracting(QbGameStatEntity::getPassYds).containsExactly(300, 200);
         assertThat(repository.existsBySeasonIndexAndStageIndexAndWeekIndex(0, 1, 0)).isTrue();
+    }
+
+    @Test
+    void incrementalSyncRefetchesPartlyStoredOlderWeekThenSkipsItOnceAllCompletedTeamsAreStored() throws Exception {
+        var qb = row(0, 100);
+        var home = qb.getTeam();
+        var away = new TeamEntity();
+        away.setTeamId(2);
+        away.setAbbrName("BBB");
+        teams.saveAndFlush(away);
+        for (int week = 0; week <= 2; week++) {
+            var game = new GameEntity();
+            game.setGameId(week);
+            game.setSeasonIndex(0);
+            game.setStageIndex(1);
+            game.setWeekIndex(week);
+            game.setStatus(2);
+            game.setHomeTeam(home);
+            game.setAwayTeam(away);
+            games.save(game);
+        }
+        games.flush();
+        writer.replaceWeek(0, 1, 0, List.of(qb), List.of(teamRow(home, 0)));
+        writer.replaceWeek(0, 1, 1, List.of(row(1, 200)), List.of(teamRow(home, 1), teamRow(away, 1)));
+        teamStats.flush();
+        assertThat(teamStats.countBySeasonIndexAndStageIndexAndWeekIndex(0, 1, 0)).isEqualTo(1);
+        var requests = new ArrayList<String>();
+        var server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/leagues/TEST/", exchange -> {
+            String path = exchange.getRequestURI().getPath();
+            requests.add(exchange.getRequestURI().toString());
+            String response = switch (path) {
+                case "/leagues/TEST/" -> "{\"season\":0}";
+                case "/leagues/TEST/stats/passing/" -> """
+                        {"results":[{"player__rosterId":"123","player__fullName":"Quarterback",
+                        "player__position":"QB","team__abbrName":"AAA","passTotalYds":300}],"next":null}
+                        """;
+                case "/leagues/TEST/stats/teams/" -> """
+                        {"results":[{"team__abbrName":"AAA","offTotalPassYds":300},
+                        {"team__abbrName":"BBB"}],"next":null}
+                        """;
+                default -> "{\"results\":[],\"next\":null}";
+            };
+            byte[] body = response.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, body.length);
+            try (var output = exchange.getResponseBody()) {
+                output.write(body);
+            }
+        });
+        server.start();
+        try {
+            var client = new NeonSportzClient();
+            ReflectionTestUtils.setField(client, "baseUrl", "http://127.0.0.1:" + server.getAddress().getPort());
+            ReflectionTestUtils.setField(client, "league", "TEST");
+            var sync = new QbStatsSyncService(client, games, teams, repository, teamStats, writer);
+            sync.syncIncremental();
+            assertThat(sync.getStatus().success()).isTrue();
+            assertThat(sync.getStatus().message()).isEqualTo("2 QB weeks synced");
+            assertThat(teamStats.countBySeasonIndexAndStageIndexAndWeekIndex(0, 1, 0)).isEqualTo(2);
+            assertThat(repository.findInScope(0, 0, 0)).extracting(QbGameStatEntity::getPassYds).containsExactly(300);
+            assertThat(requests).anyMatch(r -> r.contains("weekIndex=0"));
+            assertThat(requests).noneMatch(r -> r.contains("weekIndex=1"));
+            requests.clear();
+            sync.syncIncremental();
+            assertThat(sync.getStatus().success()).isTrue();
+            assertThat(sync.getStatus().message()).isEqualTo("1 QB weeks synced");
+            assertThat(requests).noneMatch(r -> r.contains("weekIndex=0") || r.contains("weekIndex=1"));
+            assertThat(requests).anyMatch(r -> r.contains("weekIndex=2"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    private TeamGameStatEntity teamRow(TeamEntity team, int week) {
+        var row = new TeamGameStatEntity();
+        row.setTeam(team);
+        row.setSeasonIndex(0);
+        row.setStageIndex(1);
+        row.setWeekIndex(week);
+        return row;
     }
 
     @Test

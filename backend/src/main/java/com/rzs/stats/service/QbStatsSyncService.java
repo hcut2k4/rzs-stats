@@ -20,6 +20,8 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.function.Function;
+import java.util.function.ToIntFunction;
 
 @Service
 public class QbStatsSyncService {
@@ -64,20 +66,20 @@ public class QbStatsSyncService {
                 List<Integer> weeks = completed.stream().map(g -> g.getWeekIndex()).distinct().sorted().toList();
                 int latest = weeks.stream().mapToInt(Integer::intValue).max().orElse(-1);
                 for (int week : weeks) {
+                    Set<String> completedTeams = new HashSet<>();
+                    completed.stream().filter(g -> g.getWeekIndex() == week).forEach(g -> {
+                        if (g.getHomeTeam() != null) completedTeams.add(g.getHomeTeam().getAbbrName());
+                        if (g.getAwayTeam() != null) completedTeams.add(g.getAwayTeam().getAbbrName());
+                    });
                     if (!full && !(season == current && week == latest)
                             && repository.existsBySeasonIndexAndStageIndexAndWeekIndex(season, 1, week)
-                            && teamRepository.existsBySeasonIndexAndStageIndexAndWeekIndex(season, 1, week)) continue;
+                            && teamRepository.countBySeasonIndexAndStageIndexAndWeekIndex(season, 1, week) >= completedTeams.size()) continue;
                     status = new Status(true, "Syncing QB season " + season + ", week " + week, null, null);
                     List<NsPassingStat> passing = client.fetchPassingStats(season, 1, week);
                     List<NsRushingStat> rushing = client.fetchRushingStats(season, 1, week);
                     List<NsTeamStat> teamStats = client.fetchTeamsStats(season, 1, week);
                     List<NsKickingStat> kicking = client.fetchKickingStats(season, 1, week);
                     List<NsPuntingStat> punting = client.fetchPuntingStats(season, 1, week);
-                    Set<String> completedTeams = new HashSet<>();
-                    completed.stream().filter(g -> g.getWeekIndex() == week).forEach(g -> {
-                        if (g.getHomeTeam() != null) completedTeams.add(g.getHomeTeam().getAbbrName());
-                        if (g.getAwayTeam() != null) completedTeams.add(g.getAwayTeam().getAbbrName());
-                    });
                     writer.replaceWeek(season, 1, week, buildRows(season, week, passing, rushing, teamStats, byAbbr, completedTeams),
                             buildTeamRows(season, week, passing, rushing, teamStats, kicking, punting, byAbbr, completedTeams));
                     weeksSynced++;
@@ -92,6 +94,9 @@ public class QbStatsSyncService {
 
     List<QbGameStatEntity> buildRows(int season, int week, List<NsPassingStat> passing, List<NsRushingStat> rushing,
                                     List<NsTeamStat> teamStats, Map<String, TeamEntity> teams, Set<String> completedTeams) {
+        var deduped = dedupeWeeklyStats(passing, rushing, teamStats);
+        passing = deduped.passing();
+        rushing = deduped.rushing();
         Map<String, Integer> passerYards = new HashMap<>();
         Map<String, Integer> fumbles = new HashMap<>();
         Map<String, NsTeamStat> contexts = teamStats.stream().collect(Collectors.toMap(t -> t.team__abbrName, t -> t));
@@ -132,6 +137,9 @@ public class QbStatsSyncService {
     List<TeamGameStatEntity> buildTeamRows(int season, int week, List<NsPassingStat> passing, List<NsRushingStat> rushing,
                                            List<NsTeamStat> teamStats, List<NsKickingStat> kicking, List<NsPuntingStat> punting,
                                            Map<String, TeamEntity> teams, Set<String> completedTeams) {
+        var deduped = dedupeWeeklyStats(passing, rushing, teamStats);
+        passing = deduped.passing();
+        rushing = deduped.rushing();
         Map<String, Integer> passAtt = new HashMap<>();
         Map<String, Integer> rushAtt = new HashMap<>();
         Map<String, Integer> punts = new HashMap<>();
@@ -181,6 +189,38 @@ public class QbStatsSyncService {
             rows.add(row);
         }
         return rows;
+    }
+
+    record WeeklyStats(List<NsPassingStat> passing, List<NsRushingStat> rushing) {}
+
+    WeeklyStats dedupeWeeklyStats(List<NsPassingStat> passing, List<NsRushingStat> rushing, List<NsTeamStat> teamStats) {
+        Map<String, NsTeamStat> contexts = teamStats.stream().collect(Collectors.toMap(t -> t.team__abbrName, t -> t));
+        passing = dedupeByPlayer(passing, p -> p.player__rosterId, p -> p.team__abbrName, p -> p.passTotalYds,
+                abbr -> contexts.containsKey(abbr) ? contexts.get(abbr).offTotalPassYds : null, Map.of());
+        Map<String, String> passingTeams = passing.stream().collect(Collectors.toMap(p -> p.player__rosterId, p -> p.team__abbrName));
+        rushing = dedupeByPlayer(rushing, r -> r.player__rosterId, r -> r.team__abbrName, r -> r.rushTotalYds,
+                abbr -> contexts.containsKey(abbr) ? contexts.get(abbr).offTotalRushYds : null, passingTeams);
+        return new WeeklyStats(passing, rushing);
+    }
+
+    private <T> List<T> dedupeByPlayer(List<T> stats, Function<T, String> rosterId, Function<T, String> team,
+                                      ToIntFunction<T> yards, Function<String, Integer> teamYards, Map<String, String> preferredTeams) {
+        Map<String, Integer> rawYards = new HashMap<>();
+        stats.forEach(s -> rawYards.merge(team.apply(s), yards.applyAsInt(s), Integer::sum));
+        Map<String, T> selected = new LinkedHashMap<>();
+        Map<String, Long> distances = new HashMap<>();
+        for (T stat : stats) {
+            String id = rosterId.apply(stat);
+            String abbr = team.apply(stat);
+            Integer target = teamYards.apply(abbr);
+            long distance = preferredTeams.containsKey(id) ? (abbr.equals(preferredTeams.get(id)) ? 0 : Long.MAX_VALUE)
+                    : target != null ? Math.abs((long) rawYards.get(abbr) - target) : Long.MAX_VALUE;
+            if (!selected.containsKey(id) || distance < distances.get(id)) {
+                selected.put(id, stat);
+                distances.put(id, distance);
+            }
+        }
+        return new ArrayList<>(selected.values());
     }
 
     private QbGameStatEntity newRow(String id, String name, String abbr, Map<String, TeamEntity> teams, int season, int week) {
