@@ -11,6 +11,8 @@ import com.rzs.stats.model.dto.EloConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -42,9 +44,15 @@ public class AdminController {
     }
 
     @PostMapping("/sync/qb")
-    public Map<String, Object> triggerQbSync() {
-        CompletableFuture.runAsync(qbSync::syncAll);
-        return Map.of("success", true, "message", "QB sync started");
+    public Map<String, Object> triggerQbSync(@RequestParam(required = false) Integer season) {
+        if (season != null && (season < 0 || season > client.fetchLeagueInfo().getSeason())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid season");
+        }
+        CompletableFuture.runAsync(() -> {
+            if (season == null) qbSync.syncAll();
+            else qbSync.syncAll(season);
+        });
+        return Map.of("success", true, "message", "QB sync started" + (season == null ? "" : " for season " + season));
     }
 
     @GetMapping("/sync/qb/status")

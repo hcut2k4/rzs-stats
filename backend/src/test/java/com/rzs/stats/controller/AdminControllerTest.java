@@ -42,6 +42,32 @@ class AdminControllerTest {
     }
 
     @Test
+    void qbSyncRestrictsResyncToRequestedSeason() throws Exception {
+        var league = new com.rzs.stats.model.ns.NsLeague();
+        league.setSeason(2);
+        when(client.fetchLeagueInfo()).thenReturn(league);
+        for (int season : new int[]{0, 2}) {
+            mvc.perform(post("/api/admin/sync/qb").param("season", String.valueOf(season)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.message").value("QB sync started for season " + season));
+            verify(qbSync, timeout(1000)).syncAll(season);
+        }
+        verify(qbSync, never()).syncAll();
+    }
+
+    @Test
+    void qbSyncRejectsSeasonsOutsideLeagueHistory() throws Exception {
+        var league = new com.rzs.stats.model.ns.NsLeague();
+        league.setSeason(2);
+        when(client.fetchLeagueInfo()).thenReturn(league);
+        for (String season : new String[]{"-1", "3"}) {
+            mvc.perform(post("/api/admin/sync/qb").param("season", season))
+                    .andExpect(status().isBadRequest());
+        }
+        verifyNoInteractions(qbSync);
+    }
+
+    @Test
     void qbSyncStatusIncludesProgressAndOutcome() throws Exception {
         when(qbSync.getStatus()).thenReturn(new com.rzs.stats.service.QbStatsSyncService.Status(
                 false, "Done", Instant.parse("2026-11-14T12:00:00Z"), true));
