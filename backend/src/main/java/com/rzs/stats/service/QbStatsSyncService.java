@@ -46,22 +46,24 @@ public class QbStatsSyncService {
 
     public record Status(boolean inProgress, String message, Instant completedAt, Boolean success) {}
     public Status getStatus() { return status; }
-    public void syncIncremental() { sync(false); }
-    public void syncAll() { sync(true); }
+    public void syncIncremental() { sync(false, null); }
+    public void syncAll() { syncAll(null); }
+    public void syncAll(Integer season) { sync(true, season); }
 
-    private synchronized boolean begin() {
+    private synchronized boolean begin(Integer season) {
         if (status.inProgress()) return false;
-        status = new Status(true, "QB sync started", null, null);
+        status = new Status(true, "QB sync started" + (season == null ? "" : " for season " + season), null, null);
         return true;
     }
 
-    private void sync(boolean full) {
-        if (!begin()) return;
+    private void sync(boolean full, Integer requestedSeason) {
+        if (!begin(requestedSeason)) return;
         try {
             int current = client.fetchLeagueInfo().getSeason();
             Map<String, TeamEntity> byAbbr = teams.findAll().stream().collect(Collectors.toMap(TeamEntity::getAbbrName, t -> t));
             int weeksSynced = 0;
-            for (int season = 0; season <= current; season++) {
+            for (int season = requestedSeason == null ? 0 : requestedSeason;
+                 season <= (requestedSeason == null ? current : requestedSeason); season++) {
                 List<GameEntity> completed = games.findCompletedInScope(season, 0, 22);
                 List<Integer> weeks = completed.stream().map(g -> g.getWeekIndex()).distinct().sorted().toList();
                 int latest = weeks.stream().mapToInt(Integer::intValue).max().orElse(-1);
@@ -85,9 +87,9 @@ public class QbStatsSyncService {
                     weeksSynced++;
                 }
             }
-            status = new Status(false, weeksSynced + " QB weeks synced", Instant.now(), true);
+            status = new Status(false, weeksSynced + " QB weeks synced" + (requestedSeason == null ? "" : " for season " + requestedSeason), Instant.now(), true);
         } catch (Exception e) {
-            status = new Status(false, "QB sync failed: " + e.getMessage(), Instant.now(), false);
+            status = new Status(false, "QB sync failed" + (requestedSeason == null ? "" : " for season " + requestedSeason) + ": " + e.getMessage(), Instant.now(), false);
             log.error("QB sync failed", e);
         }
     }
@@ -197,10 +199,80 @@ public class QbStatsSyncService {
         Map<String, NsTeamStat> contexts = teamStats.stream().collect(Collectors.toMap(t -> t.team__abbrName, t -> t));
         passing = dedupeByPlayer(passing, p -> p.player__rosterId, p -> p.team__abbrName, p -> p.passTotalYds,
                 abbr -> contexts.containsKey(abbr) ? contexts.get(abbr).offTotalPassYds : null, Map.of());
+        for (int iteration = 0; iteration < 10; iteration++) {
+            Map<String, Integer> sacks = new HashMap<>();
+            Map<String, Integer> yards = new HashMap<>();
+            passing.forEach(p -> {
+                sacks.merge(p.team__abbrName, p.passTotalSacks, Integer::sum);
+                yards.merge(p.team__abbrName, p.passTotalYds, Integer::sum);
+            });
+            int bestIndex = -1;
+            String bestTeam = null;
+            long bestGap = Long.MAX_VALUE;
+            boolean tied = false;
+            for (int i = 0; i < passing.size(); i++) {
+                NsPassingStat p = passing.get(i);
+                NsTeamStat source = contexts.get(p.team__abbrName);
+                if (p.passTotalSacks <= 0 || source == null
+                        || sacks.get(p.team__abbrName) <= source.offTotalSacks
+                        || sacks.get(p.team__abbrName) - p.passTotalSacks != source.offTotalSacks) continue;
+                long gapA = (long) yards.get(p.team__abbrName) - p.passTotalYds - source.offTotalPassYds;
+                if (gapA < 0) continue;
+                for (NsTeamStat target : teamStats) {
+                    int targetSacks = sacks.getOrDefault(target.team__abbrName, 0);
+                    if (targetSacks >= target.offTotalSacks || targetSacks + p.passTotalSacks != target.offTotalSacks) continue;
+                    long gapB = (long) yards.getOrDefault(target.team__abbrName, 0) + p.passTotalYds - target.offTotalPassYds;
+                    if (gapB < 0) continue;
+                    long gap = gapA + gapB;
+                    if (gap < bestGap) {
+                        bestIndex = i;
+                        bestTeam = target.team__abbrName;
+                        bestGap = gap;
+                        tied = false;
+                    } else if (gap == bestGap) {
+                        tied = true;
+                    }
+                }
+            }
+            if (bestIndex < 0 || tied) break;
+            passing.set(bestIndex, onTeam(passing.get(bestIndex), bestTeam));
+        }
         Map<String, String> passingTeams = passing.stream().collect(Collectors.toMap(p -> p.player__rosterId, p -> p.team__abbrName));
         rushing = dedupeByPlayer(rushing, r -> r.player__rosterId, r -> r.team__abbrName, r -> r.rushTotalYds,
                 abbr -> contexts.containsKey(abbr) ? contexts.get(abbr).offTotalRushYds : null, passingTeams);
+        rushing = rushing.stream().map(r -> passingTeams.containsKey(r.player__rosterId)
+                && !r.team__abbrName.equals(passingTeams.get(r.player__rosterId))
+                ? onTeam(r, passingTeams.get(r.player__rosterId)) : r).toList();
         return new WeeklyStats(passing, rushing);
+    }
+
+    private NsPassingStat onTeam(NsPassingStat stat, String team) {
+        var copy = new NsPassingStat();
+        copy.player__rosterId = stat.player__rosterId;
+        copy.player__fullName = stat.player__fullName;
+        copy.player__position = stat.player__position;
+        copy.passerAvgRating = stat.passerAvgRating;
+        copy.passTotalAtt = stat.passTotalAtt;
+        copy.passTotalComp = stat.passTotalComp;
+        copy.passTotalYds = stat.passTotalYds;
+        copy.passTotalTDs = stat.passTotalTDs;
+        copy.passTotalInts = stat.passTotalInts;
+        copy.passTotalSacks = stat.passTotalSacks;
+        copy.team__abbrName = team;
+        return copy;
+    }
+
+    private NsRushingStat onTeam(NsRushingStat stat, String team) {
+        var copy = new NsRushingStat();
+        copy.player__rosterId = stat.player__rosterId;
+        copy.player__fullName = stat.player__fullName;
+        copy.player__position = stat.player__position;
+        copy.rushTotalAtt = stat.rushTotalAtt;
+        copy.rushTotalYds = stat.rushTotalYds;
+        copy.rushTotalTDs = stat.rushTotalTDs;
+        copy.rushTotalFum = stat.rushTotalFum;
+        copy.team__abbrName = team;
+        return copy;
     }
 
     private <T> List<T> dedupeByPlayer(List<T> stats, Function<T, String> rosterId, Function<T, String> team,

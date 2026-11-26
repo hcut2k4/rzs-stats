@@ -207,7 +207,7 @@ Forced runs use `SimulationService` with the baseline's season/week/rules seed, 
 | GET | `/sync/status` | `{lastSyncTime, lastSyncMessage, lastSyncSuccess}` |
 | POST | `/cache/warm` | Evict all caches, rebuild async |
 | GET | `/cache/warm/status` | `{inProgress, message, completedAt, success}` |
-| POST | `/sync/qb` | Sync QB and team game stats from NeonSportz |
+| POST | `/sync/qb` | Sync QB and team game stats from NeonSportz; optional `?season=N` restricts the full resync to that season |
 | GET | `/sync/qb/status` | QB sync progress + last result |
 | GET | `/elo/config` | Current `EloConfig` |
 | PUT | `/elo/config` | Update Elo knobs — validated, rejects out-of-range values |
@@ -271,7 +271,7 @@ NeonSportzClient paginates via `next` links until null. SyncService:
 `nsPk` is the NeonSportz URL key (e.g. `11263917`). `gameId` is an external ref ID (e.g. `544735511`) used only for deduplication — never for URLs.
 
 ### QB and team stat sync is separate
-`QbStatsSyncService` runs on its own trigger (`POST /api/admin/sync/qb`) and walks season/stage/week, with `QbStatsWeekWriter` replacing one week of QB rows and team rows together in one transaction. Each week reads five paginated feeds (passing, rushing, teams, kicking, punting) at 100 rows a page, so a week is at least five requests and more when a feed spans pages (rushing usually does); a 429 is waited out and retried up to six times. The incremental run skips a week only when both QB and team rows exist, so the first run after deploying team stats backfills history by itself. A fresh database that has games synced can still have **zero QB rows** — the QB leaderboard and the Efficiency page will come back empty until this sync runs. Worth remembering when a local environment looks half-empty.
+`QbStatsSyncService` runs on its own trigger (`POST /api/admin/sync/qb`) and walks season/stage/week (optional `?season=N` rewrites every completed week of that season; omitted rewrites all seasons), with `QbStatsWeekWriter` replacing one week of QB rows and team rows together in one transaction. Traded passers are reassigned only when team sack totals and non-negative yard gaps identify a unique best move; their rushing rows follow them. Each week reads five paginated feeds (passing, rushing, teams, kicking, punting) at 100 rows a page, so a week is at least five requests and more when a feed spans pages (rushing usually does); a 429 is waited out and retried up to six times. The incremental run skips a week only when both QB and team rows exist, so the first run after deploying team stats backfills history by itself. A fresh database that has games synced can still have **zero QB rows** — the QB leaderboard and the Efficiency page will come back empty until this sync runs. Worth remembering when a local environment looks half-empty.
 
 ## N+1 Prevention
 

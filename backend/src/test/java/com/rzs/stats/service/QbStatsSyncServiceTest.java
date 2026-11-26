@@ -216,6 +216,138 @@ class QbStatsSyncServiceTest {
         assertThat(deduped.rushing().getFirst().team__abbrName).isEqualTo("NO");
     }
 
+    private List<NsPassingStat> misattributedPassing() {
+        var green = passer("green", "QB", 277);
+        green.team__abbrName = "CLE";
+        green.passTotalAtt = 21;
+        green.passTotalSacks = 2;
+        var young = passer("young", "QB", 165);
+        young.team__abbrName = "CLE";
+        young.passTotalAtt = 25;
+        young.passTotalComp = 15;
+        young.passTotalTDs = 2;
+        young.passTotalInts = 1;
+        young.passTotalSacks = 5;
+        young.passerAvgRating = "90.1";
+        return List.of(green, young);
+    }
+
+    private NsTeamStat context(String abbr, int yards, int sacks) {
+        var stat = new NsTeamStat();
+        stat.team__abbrName = abbr;
+        stat.offTotalPassYds = yards;
+        stat.offTotalSacks = sacks;
+        return stat;
+    }
+
+    @Test
+    void singlyListedTradedQuarterbackAndHisRushingFollowMatchingSackTotalsWithoutChangingInputs() {
+        var passing = misattributedPassing();
+        var rush = rusher("young", "QB", 1);
+        rush.team__abbrName = "CLE";
+        rush.rushTotalAtt = 4;
+        rush.rushTotalYds = 20;
+        rush.rushTotalTDs = 1;
+        var contexts = List.of(context("CLE", 267, 2), context("CAR", 122, 5));
+        var cle = new TeamEntity();
+        cle.setAbbrName("CLE");
+        var car = new TeamEntity();
+        car.setAbbrName("CAR");
+        var teams = Map.of("CLE", cle, "CAR", car);
+        var completed = Set.of("CLE", "CAR");
+        var rows = service.buildRows(0, 2, passing, List.of(rush), contexts, teams, completed);
+        assertThat(rows).hasSize(2);
+        var green = rows.getFirst();
+        assertThat(green.getTeam().getAbbrName()).isEqualTo("CLE");
+        assertThat(green.getTeamPasserYards()).isEqualTo(277);
+        assertThat(green.getTeamPasserYards() - green.getTeamNetPassYds()).isEqualTo(10);
+        assertThat(green.getTeamSacks()).isEqualTo(2);
+        var young = rows.getLast();
+        assertThat(young.getTeam().getAbbrName()).isEqualTo("CAR");
+        assertThat(young.getTeamPasserYards()).isEqualTo(165);
+        assertThat(young.getTeamPasserYards() - young.getTeamNetPassYds()).isEqualTo(43);
+        assertThat(young.getTeamSacks()).isEqualTo(5);
+        assertThat(young.getPassComp()).isEqualTo(15);
+        assertThat(young.getPassTd()).isEqualTo(2);
+        assertThat(young.getPassInt()).isEqualTo(1);
+        assertThat(young.getPasserRating()).isEqualTo(90.1);
+        assertThat(young.getRushAtt()).isEqualTo(4);
+        assertThat(young.getRushYds()).isEqualTo(20);
+        assertThat(young.getRushTd()).isEqualTo(1);
+        assertThat(young.getTeamFumbles()).isEqualTo(1);
+        assertThat(green.getTeamFumbles()).isZero();
+        var teamRows = service.buildTeamRows(0, 2, passing, List.of(rush), contexts,
+                List.of(), List.of(), teams, completed);
+        assertThat(teamRows).extracting(r -> r.getPassAtt()).containsExactly(21, 25);
+        assertThat(teamRows).extracting(r -> r.getRushAtt()).containsExactly(0, 4);
+        assertThat(passing).allSatisfy(p -> assertThat(p.team__abbrName).isEqualTo("CLE"));
+        assertThat(rush.team__abbrName).isEqualTo("CLE");
+        assertThat(service.buildRows(0, 2, passing, List.of(rush), contexts, teams, completed))
+                .usingRecursiveComparison().isEqualTo(rows);
+    }
+
+    @Test
+    void equallyGoodDestinationsAndTeamsWithoutPassersLeaveAttributionUnchanged() {
+        var passing = misattributedPassing();
+        var contexts = List.of(context("CLE", 267, 2), context("CAR", 122, 5),
+                context("DAL", 122, 5), context("DET", 200, 3));
+        var result = service.dedupeWeeklyStats(passing, List.of(), contexts);
+        assertThat(result.passing()).containsExactlyElementsOf(passing);
+        assertThat(result.passing()).allSatisfy(p -> assertThat(p.team__abbrName).isEqualTo("CLE"));
+        assertThat(service.dedupeWeeklyStats(List.of(), List.of(), contexts).passing()).isEmpty();
+    }
+
+    @Test
+    void equallyGoodPassersLeaveAttributionUnchanged() {
+        var passing = misattributedPassing();
+        var other = passer("other", "QB", 165);
+        other.team__abbrName = "CLE";
+        other.passTotalSacks = 5;
+        var result = service.dedupeWeeklyStats(List.of(passing.getLast(), other), List.of(),
+                List.of(context("CLE", 122, 5), context("CAR", 122, 5)));
+        assertThat(result.passing()).extracting(p -> p.team__abbrName).containsExactly("CLE", "CLE");
+    }
+
+    @Test
+    void negativeYardGapsPreventReassignment() {
+        var passing = misattributedPassing();
+        for (var contexts : List.of(List.of(context("CLE", 278, 2), context("CAR", 122, 5)),
+                List.of(context("CLE", 267, 2), context("CAR", 166, 5)))) {
+            var result = service.dedupeWeeklyStats(passing, List.of(), contexts);
+            assertThat(result.passing()).extracting(p -> p.team__abbrName).containsExactly("CLE", "CLE");
+        }
+    }
+
+    @Test
+    void zeroSackPassersStayOnTheirListedTeam() {
+        var passer = passer("zero", "QB", 200);
+        var result = service.dedupeWeeklyStats(List.of(passer), List.of(),
+                List.of(context("AAA", 0, 0), context("CAR", 150, 1)));
+        assertThat(result.passing()).containsExactly(passer);
+        assertThat(passer.team__abbrName).isEqualTo("AAA");
+    }
+
+    @Test
+    void bestYardGapWinsAndFurtherMovesAreReconsidered() {
+        var passing = misattributedPassing();
+        var other = passer("other", "QB", 180);
+        other.team__abbrName = "MIN";
+        other.passTotalSacks = 3;
+        var result = service.dedupeWeeklyStats(List.of(passing.getFirst(), passing.getLast(), other), List.of(),
+                List.of(context("CLE", 267, 2), context("CAR", 122, 5),
+                        context("NO", 100, 5), context("MIN", 0, 0), context("KC", 160, 3)));
+        assertThat(result.passing()).extracting(p -> p.team__abbrName).containsExactly("CLE", "CAR", "KC");
+    }
+
+    @Test
+    void singlyListedRushingFollowsPassingEvenWhenPassingWasOnlyDeduplicated() {
+        var rush = tradedRushing().getFirst();
+        var result = service.dedupeWeeklyStats(tradedPassing(), List.of(rush), tradedTeamStats());
+        assertThat(result.rushing()).hasSize(1);
+        assertThat(result.rushing().getFirst().team__abbrName).isEqualTo("MIN");
+        assertThat(rush.team__abbrName).isEqualTo("NO");
+    }
+
     private GameEntity game(int week) {
         var g = new GameEntity();
         g.setHomeTeam(team);
@@ -281,6 +413,28 @@ class QbStatsSyncServiceTest {
         verify(writer).replaceWeek(1, 1, 22, List.of(), List.of());
         verifyNoInteractions(repository);
         assertThat(service.getStatus().success()).isTrue();
+    }
+
+    @Test
+    void singleSeasonResyncRewritesEveryCompletedWeekOnlyInRequestedSeason() {
+        league();
+        when(games.findCompletedInScope(0, 0, 22)).thenReturn(List.of(game(0), game(2), game(18)));
+        service.syncAll(0);
+        verify(games).findCompletedInScope(0, 0, 22);
+        verifyNoMoreInteractions(games);
+        for (int week : List.of(0, 2, 18)) {
+            verify(client).fetchPassingStats(0, 1, week);
+            verify(client).fetchRushingStats(0, 1, week);
+            verify(client).fetchTeamsStats(0, 1, week);
+            verify(client).fetchKickingStats(0, 1, week);
+            verify(client).fetchPuntingStats(0, 1, week);
+            verify(writer).replaceWeek(0, 1, week, List.of(), List.of());
+        }
+        verify(client).fetchLeagueInfo();
+        verifyNoMoreInteractions(client, writer);
+        verifyNoInteractions(repository, teamRepository);
+        assertThat(service.getStatus().success()).isTrue();
+        assertThat(service.getStatus().message()).isEqualTo("3 QB weeks synced for season 0");
     }
 
     @Test
