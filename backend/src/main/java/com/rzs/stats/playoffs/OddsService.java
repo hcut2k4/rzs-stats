@@ -28,6 +28,7 @@ public class OddsService {
             this(season, rules, throughWeek, nextWeek, simulations, computedAt, conferences, null);
         }
     }
+    private final com.rzs.stats.config.PlayoffCacheInvalidation invalidation;
     private final ComputeGate gate;
     private final SeasonStateLoader loader;
     private final EloQueryService elo;
@@ -36,7 +37,8 @@ public class OddsService {
     private final CacheManager caches;
 
     public OddsService(SeasonStateLoader loader, EloQueryService elo, SimulationService simulator,
-                       @Value("${playoffs.simulations:20000}") int simulations, CacheManager caches, ComputeGate gate) {
+                       @Value("${playoffs.simulations:20000}") int simulations, CacheManager caches, ComputeGate gate, com.rzs.stats.config.PlayoffCacheInvalidation invalidation) {
+        this.invalidation = invalidation;
         if (simulations <= 0) throw new IllegalArgumentException("playoffs.simulations must be positive");
         this.gate = gate;
         this.loader = loader;
@@ -85,8 +87,14 @@ public class OddsService {
     public Response available(Integer season, String rules) {
         var cache = caches.getCache("playoffOdds");
         if (cache == null) return null;
-        var result = cache.get(new SimpleKey(season, rules), Response.class);
+        var result = cache.get(new SimpleKey(season, rules, invalidation.generation()), Response.class);
         return result != null && Objects.equals(result.season(), season) ? result : null;
+    }
+
+    public long generation() { return invalidation.generation(); }
+
+    public void publish(long generation, Response response) {
+        invalidation.publish(generation, "playoffOdds", new SimpleKey(response.season(), response.rules(), generation), response);
     }
 
     public int canonicalSeason(Integer season, String rules) {
@@ -96,7 +104,7 @@ public class OddsService {
     }
 
     public Object cacheKey(Integer season, String rules) {
-        return new org.springframework.cache.interceptor.SimpleKey(canonicalSeason(season, rules), rules);
+        return new org.springframework.cache.interceptor.SimpleKey(canonicalSeason(season, rules), rules, invalidation.generation());
     }
 
 
@@ -111,8 +119,8 @@ public class OddsService {
 
     int simulationCount() { return simulations; }
 
-    Response compute(SeasonStateLoader.State state, String rules, Map<Integer, Double> probabilities) {
-        var forecast = forecast(state.season(), rules, () -> prepare(state.season(), null, state, probabilities));
+    Response compute(SeasonStateLoader.State state, String rules, Map<Integer, Double> probabilities, long generation) {
+        var forecast = forecast(state.season(), rules, generation, () -> prepare(state.season(), null, state, probabilities));
         return response(forecast.state(), rules, forecast.result().baseline(), forecast.provenance());
     }
 
@@ -121,13 +129,13 @@ public class OddsService {
     }
 
     private Forecast forecast(int season, String rules) {
-        return forecast(season, rules, () -> prepare(season, null));
+        return forecast(season, rules, invalidation.generation(), () -> prepare(season, null));
     }
 
-    private Forecast forecast(int season, String rules, java.util.function.Supplier<Prepared> load) {
+    private Forecast forecast(int season, String rules, long generation, java.util.function.Supplier<Prepared> load) {
         var cache = caches.getCache("playoffBaseline");
         try {
-            return cache.get(new SimpleKey(season, rules), () -> {
+            return cache.get(new SimpleKey(season, rules, generation), () -> {
                 var prepared = load.get();
                 var state = prepared.state();
                 var probabilities = prepared.probabilities();

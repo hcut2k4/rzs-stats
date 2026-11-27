@@ -10,7 +10,7 @@ const ELO_FIELDS = [
 ]
 const INTERVALS = [[0, 'Off'], [5, '5 min'], [15, '15 min'], [30, '30 min'], [60, '1 h'], [120, '2 h'], [360, '6 h']]
 const errorText = e => typeof e.response?.data === 'string' && e.response.data ? e.response.data : e.response?.data?.message || e.response?.data?.detail || e.message || 'Request failed'
-const busy = s => s?.pipeline?.inProgress || s?.qb?.inProgress || s?.warm?.inProgress
+const busy = s => s?.pipeline?.inProgress
 
 function relative(time, now, empty = 'Never') {
   if (!time) return empty
@@ -33,14 +33,15 @@ function useAdminStatus() {
   const fastUntil = useRef(0)
   useEffect(() => {
     let active = true, timer, loading = false, queued = false
-    let latest
+    let latest, controller
     const refresh = async () => {
       clearTimeout(timer)
       if (!active || document.hidden) return
       if (loading) { queued = true; return }
       loading = true
       try {
-        const next = await getAdminStatus()
+        controller = new AbortController()
+        const next = await getAdminStatus(controller.signal)
         if (active) { latest = next; setData(next); setUpdatedAt(Date.now()); setError(null) }
       } catch (e) { if (active) setError(errorText(e)) }
       finally {
@@ -56,7 +57,7 @@ function useAdminStatus() {
     refresh()
     window.addEventListener('focus', refresh)
     document.addEventListener('visibilitychange', visibility)
-    return () => { active = false; clearTimeout(timer); window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', visibility) }
+    return () => { active = false; controller?.abort(); clearTimeout(timer); window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', visibility) }
   }, [])
   const refresh = useCallback(() => { fastUntil.current = Date.now() + 6000; refreshRef.current() }, [])
   return { data, updatedAt, error, refresh, setSettings: settings => setData(previous => ({ ...previous, settings })) }
@@ -69,7 +70,7 @@ function Section({ title, description, children }) {
   </section>
 }
 
-function EloConfigPanel({ run }) {
+function EloConfigPanel({ run, locked }) {
   const [config, setConfig] = useState(null)
   const [saved, setSaved] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -90,7 +91,7 @@ function EloConfigPanel({ run }) {
       <div className="flex justify-between text-sm"><div><label htmlFor="elo-mov">Margin-of-victory adjustment</label>{config.movEnabled !== ELO_DEFAULTS.movEnabled && <p className="text-xs text-muted">Default: On</p>}</div>
         <input id="elo-mov" type="checkbox" checked={config.movEnabled} onChange={e => setConfig({ ...config, movEnabled: e.target.checked })} />
       </div>
-      <div className="flex gap-2"><button className="btn-primary" disabled={!changed || saving}>Save</button><button type="button" className="btn" disabled={saving} onClick={() => setConfig({ ...ELO_DEFAULTS })}>Reset to defaults</button></div>
+      <div className="flex gap-2"><button className="btn-primary" disabled={!changed || saving || locked}>Save</button><button type="button" className="btn" disabled={saving} onClick={() => setConfig({ ...ELO_DEFAULTS })}>Reset to defaults</button></div>
     </form>
   </Section>
 }
@@ -116,8 +117,10 @@ function AdminTools() {
     catch (e) { setMessage({ ok: false, text: errorText(e) }) }
     finally { setPending(false); refresh() }
   }
+  const stale = updatedAt && now - updatedAt > 20000
+  const disconnected = error || stale
   const locked = pending || pipeline.inProgress
-  const operation = pipeline.inProgress ? pipeline.operation || 'Sync' : warm.inProgress ? 'Cache rebuild' : qb.inProgress ? 'Player & team stats re-sync' : pipeline.operation || 'Sync'
+  const operation = pipeline.operation || 'Sync'
   const repair = (key, action, needsConfirm = true) => {
     if (needsConfirm && confirm !== key) { setConfirm(key); return }
     setConfirm(null); run(action)
@@ -133,16 +136,16 @@ function AdminTools() {
       <PageHeader title="Admin" qualifier="Data, maintenance and model settings" />
       <section className="border border-line rounded p-5 space-y-3" aria-label="Live status">
         <p className="flex items-center gap-2 text-xs text-muted">
-          <span className={`h-2 w-2 rounded-full ${error ? 'bg-bad' : 'bg-good'}`} />
+          <span className={`h-2 w-2 rounded-full ${disconnected ? 'bg-bad' : 'bg-good'}`} />
           {updatedAt ? `Updated ${Math.max(0, Math.floor((now - updatedAt) / 1000))}s ago` : 'Connecting'}
-          {updatedAt && !error && <span className="text-good">Live</span>}
+          {disconnected ? <span className="text-bad">{error ? 'Disconnected' : 'Stale'}</span> : updatedAt && <span className="text-good">Live</span>}
         </p>
         {busy(data) ? (
           <div>
             <p className="font-medium text-accent">{operation}</p>
             <p className="text-sm mt-1">{warm.inProgress ? warm.message : qb.inProgress ? qb.message : pipeline.message}</p>
             <p className="text-xs text-muted mt-1">
-              Elapsed {duration(now - new Date(pipeline.startedAt || warm.startedAt || now).getTime())}
+              Elapsed {duration(now - new Date(pipeline.startedAt || now).getTime())}
             </p>
           </div>
         ) : (
@@ -150,7 +153,7 @@ function AdminTools() {
             <p className={pipeline.success === false ? 'text-bad' : pipeline.success ? 'text-good' : 'text-muted'}>
               {pipeline.operation ? `${pipeline.operation} · ${pipeline.success === false ? 'Failed' : 'Completed'}` : 'No runs yet'}
             </p>
-            {pipeline.operation && <p className="text-xs text-muted mt-1">Started {relative(pipeline.startedAt || pipeline.lastSyncTime, now)}</p>}
+            {pipeline.operation && <p className="text-xs text-muted mt-1">Last run {relative(pipeline.completedAt, now)}</p>}
             {pipeline.success === false && pipeline.message && <p className="text-sm mt-1">{pipeline.message}</p>}
           </div>
         )}
@@ -228,7 +231,7 @@ function AdminTools() {
           </div>
         </div>
       </Section>
-      <EloConfigPanel run={run} />
+      <EloConfigPanel run={run} locked={locked} />
     </div>
   )
 }
@@ -243,7 +246,12 @@ export default function AdminPage() {
       .then(() => setAuthed(true))
       .catch(() => setAuthed(false))
 
-  useEffect(() => { check() }, [])
+  useEffect(() => {
+    const unauthorized = () => { setPasscode(''); setAuthed(false) }
+    window.addEventListener('admin-unauthorized', unauthorized)
+    check()
+    return () => window.removeEventListener('admin-unauthorized', unauthorized)
+  }, [])
 
   const submit = async e => {
     e.preventDefault()

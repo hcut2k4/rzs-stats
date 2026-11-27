@@ -34,8 +34,9 @@ class EloControllerTest {
         var configService = new EloConfigService(configs, new com.rzs.stats.config.PlayoffCacheInvalidation(new org.springframework.cache.concurrent.ConcurrentMapCacheManager()));
         var engine = new EloService();
         var queries = new EloQueryService(new EloHistoryService(games, configService, engine, new OwnerChangeService()), engine, games);
+        var pipeline = new SyncPipeline(new SyncService(null, null, games, null, null, null), null, null, null, null);
         mvc = MockMvcBuilders.standaloneSetup(new StatsController(null, queries, null, configService),
-                new AdminController(null, games, null, configService, null, null, null)).build();
+                new AdminController(null, games, null, configService, null, pipeline, null)).build();
     }
 
     private GameEntity game(int id, int season, int week, int score) {

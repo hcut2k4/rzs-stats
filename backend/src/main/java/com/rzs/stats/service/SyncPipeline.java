@@ -26,7 +26,7 @@ public class SyncPipeline {
     private final Executor executor;
     private volatile boolean startup = true;
     private boolean warmRequired;
-    private volatile Status status = new Status(false, "completed", null, null, null, null, null);
+    private volatile Status status = new Status(false, "completed", null, null, null, null, null, null);
 
     @Autowired
     public SyncPipeline(SyncService sync, QbStatsSyncService qb, CacheWarmingService warming,
@@ -40,8 +40,8 @@ public class SyncPipeline {
         this.executor = executor;
     }
 
-    public record Status(boolean inProgress, String outcome, String message, Boolean success, Instant lastSyncTime, String operation, Instant startedAt) {}
-    public Status getStatus() { return status; }
+    public record Status(boolean inProgress, String outcome, String message, Boolean success, Instant lastSyncTime, String operation, Instant startedAt, Instant completedAt) {}
+    public synchronized Status getStatus() { return status; }
     public boolean needsStartup() { return startup; }
 
     public static class BusyException extends ResponseStatusException {
@@ -50,18 +50,21 @@ public class SyncPipeline {
 
     private synchronized void acquire(String operation) {
         if (!lock.tryAcquire()) throw new BusyException(status.operation());
-        status = new Status(true, "running", "Running", null, status.lastSyncTime(), operation, Instant.now());
+        status = new Status(true, "running", "Running", null, status.lastSyncTime(), operation, Instant.now(), null);
+    }
+
+    private synchronized void finish(Throwable failure) {
+        lock.release();
+        status = new Status(false, failure == null ? "completed" : "failed", failure == null ? "Completed" : failure.getMessage(),
+                failure == null, failure == null ? sync.getStatus().lastSyncTime() : status.lastSyncTime(),
+                status.operation(), status.startedAt(), Instant.now());
     }
 
     private <T> T execute(Supplier<T> work) {
-        try {
-            T result = work.get();
-            status = new Status(false, "completed", "Completed", true, sync.getStatus().lastSyncTime(), status.operation(), status.startedAt());
-            return result;
-        } catch (RuntimeException | Error e) {
-            status = new Status(false, "failed", e.getMessage(), false, status.lastSyncTime(), status.operation(), status.startedAt());
-            throw e;
-        } finally { lock.release(); }
+        Throwable failure = null;
+        try { return work.get(); }
+        catch (RuntimeException | Error e) { failure = e; throw e; }
+        finally { finish(failure); }
     }
 
     public <T> T exclusive(Supplier<T> work) { return exclusive("Sync", work); }
@@ -77,18 +80,18 @@ public class SyncPipeline {
 
     private Map<String, Object> dispatch(String operation, String message, Runnable work, Runnable validate) {
         acquire(operation);
-        boolean handedOff = false;
+        var workerStarted = new java.util.concurrent.atomic.AtomicBoolean();
         try {
             validate.run();
             var response = Map.<String, Object>of("success", true, "message", message);
-            executor.execute(() -> execute(() -> { work.run(); return null; }));
-            handedOff = true;
+            executor.execute(() -> {
+                workerStarted.set(true);
+                execute(() -> { work.run(); return null; });
+            });
             return response;
         } catch (RuntimeException | Error e) {
-            status = new Status(false, "failed", e.getMessage(), false, status.lastSyncTime(), status.operation(), status.startedAt());
+            if (!workerStarted.get()) finish(e);
             throw e;
-        } finally {
-            if (!handedOff) lock.release();
         }
     }
 
@@ -97,13 +100,22 @@ public class SyncPipeline {
     public Map<String, Object> start(Mode mode) { return start(mode == Mode.FORCE ? "Full re-sync" : "Sync", "Sync started", () -> syncAndWarm(mode)); }
 
     public void warm() {
+        warmRequired = true;
         warming.warmCaches();
         if (Boolean.FALSE.equals(warming.getStatus().success())) throw new IllegalStateException(warming.getStatus().message());
+        warmRequired = false;
     }
 
     public Map<String, Object> startQb(Integer season) {
         return dispatch("Player & team stats re-sync" + (season == null ? "" : " (Season " + (season + 103) + ")"), "QB sync started" + (season == null ? "" : " for season " + season), () -> {
-            if (season == null) qb.syncAll(); else qb.syncAll(season);
+            long before = qb.committedChanges();
+            try { if (season == null) qb.syncAll(); else qb.syncAll(season); }
+            finally {
+                if (qb.committedChanges() > before) {
+                    settings.recordChanges();
+                    warmRequired = true;
+                }
+            }
             warm();
             if (Boolean.FALSE.equals(qb.getStatus().success())) throw new IllegalStateException(qb.getStatus().message());
         }, () -> {
@@ -129,7 +141,7 @@ public class SyncPipeline {
         boolean changed = result.changed() > 0 || qbChanges > 0;
         settings.recordChanges(league, changed);
         warmRequired |= startup;
-        if (warmRequired) { warm(); warmRequired = false; }
+        if (warmRequired) warm();
         if (Boolean.FALSE.equals(qb.getStatus().success())) throw new IllegalStateException(qb.getStatus().message());
         if (full) settings.fullSucceeded();
         startup = false;

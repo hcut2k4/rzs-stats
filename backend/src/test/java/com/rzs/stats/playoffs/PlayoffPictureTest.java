@@ -43,6 +43,7 @@ class PlayoffPictureTest {
     @Autowired SeasonStateLoader loader;
     @Autowired PlayoffsController controller;
     @Autowired CacheManager caches;
+    @Autowired com.rzs.stats.config.PlayoffCacheInvalidation invalidation;
     @Autowired OddsService odds;
     @Autowired com.rzs.stats.service.EloQueryService elo;
     private final ObjectMapper json = new ObjectMapper();
@@ -261,7 +262,7 @@ class PlayoffPictureTest {
     void missingOrFailedOddsNeverBreakPictureAndAreOmitted() throws Exception {
         seed(0, fixtures.get("103"));
         for (boolean fail : List.of(false, true)) {
-            var unavailable = new OddsService(loader, elo, new SimulationService(), 100, caches, new com.rzs.stats.playoffs.ComputeGate(2, 100)) {
+            var unavailable = new OddsService(loader, elo, new SimulationService(), 100, caches, new com.rzs.stats.playoffs.ComputeGate(2, 100), invalidation) {
                 @Override public Response available(Integer season, String rules) {
                     if (fail) throw new IllegalStateException("Unavailable baseline");
                     return null;

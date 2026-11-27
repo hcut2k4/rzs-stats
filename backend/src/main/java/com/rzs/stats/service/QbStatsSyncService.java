@@ -52,20 +52,24 @@ public class QbStatsSyncService {
     public void syncAll() { syncAll(null); }
     public void syncAll(Integer season) { sync(true, season, client.fetchLeagueInfo().getSeason(), Set.of()); }
 
-    private synchronized boolean begin(Integer season) {
-        if (status.inProgress()) return false;
+    private synchronized void begin(Integer season) {
+        if (status.inProgress()) throw new IllegalStateException("QB sync is already running");
         status = new Status(true, "QB sync started" + (season == null ? "" : " for season " + season), null, null);
-        return true;
     }
+
+    private volatile long committedChanges;
+    public long committedChanges() { return committedChanges; }
 
     private final Set<SyncService.Week> pending = new HashSet<>();
 
     private int sync(boolean full, Integer requestedSeason, int current, Set<SyncService.Week> changedWeeks) {
-        if (!begin(requestedSeason)) return 0;
-        pending.addAll(changedWeeks);
+        begin(requestedSeason);
         int weeksSynced = 0;
         int changed = 0;
+        String failure = "QB sync interrupted";
+        boolean success = false;
         try {
+            pending.addAll(changedWeeks);
             Map<String, TeamEntity> byAbbr = teams.findAll().stream().collect(Collectors.toMap(TeamEntity::getAbbrName, t -> t));
             for (int season = requestedSeason == null ? 0 : requestedSeason;
                  season <= (requestedSeason == null ? current : requestedSeason); season++) {
@@ -90,15 +94,20 @@ public class QbStatsSyncService {
                     List<NsKickingStat> kicking = client.fetchKickingStats(season, 1, week);
                     List<NsPuntingStat> punting = client.fetchPuntingStats(season, 1, week);
                     if (writer.replaceWeek(season, 1, week, buildRows(season, week, passing, rushing, teamStats, byAbbr, completedTeams),
-                            buildTeamRows(season, week, passing, rushing, teamStats, kicking, punting, byAbbr, completedTeams))) changed++;
+                            buildTeamRows(season, week, passing, rushing, teamStats, kicking, punting, byAbbr, completedTeams))) { changed++; committedChanges++; }
                     pending.remove(new SyncService.Week(season, week));
                     weeksSynced++;
                 }
             }
-            status = new Status(false, weeksSynced + " QB weeks synced" + (requestedSeason == null ? "" : " for season " + requestedSeason), Instant.now(), true);
+            success = true;
         } catch (Exception e) {
-            status = new Status(false, "QB sync failed" + (requestedSeason == null ? "" : " for season " + requestedSeason) + ": " + e.getMessage(), Instant.now(), false);
+            failure = e.getMessage();
             log.error("QB sync failed", e);
+        } catch (Error e) {
+            failure = e.getMessage();
+            throw e;
+        } finally {
+            status = new Status(false, success ? weeksSynced + " QB weeks synced" + (requestedSeason == null ? "" : " for season " + requestedSeason) : "QB sync failed: " + failure, Instant.now(), success);
         }
         return changed;
     }

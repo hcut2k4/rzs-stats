@@ -15,7 +15,63 @@ describe('AdminPage passcode gate', () => {
     client.getEloConfig.mockResolvedValue(ELO_CONFIG)
     client.getSeasons.mockResolvedValue([0, 1, 2])
   })
-  afterEach(() => vi.clearAllMocks())
+  afterEach(() => vi.resetAllMocks())
+
+  it('returns to the existing gate when an admin request loses authorization', async () => {
+    client.checkAdminAuth.mockResolvedValue({ ok: true })
+    render(<MemoryRouter><AdminPage /></MemoryRouter>)
+    await screen.findByText('Sync now')
+    act(() => window.dispatchEvent(new Event('admin-unauthorized')))
+    expect(screen.getByLabelText('Passcode')).toBeInTheDocument()
+    expect(screen.queryByText('Sync now')).toBeNull()
+  })
+
+  it('disables edited Elo settings while the pipeline is busy', async () => {
+    client.checkAdminAuth.mockResolvedValue({ ok: true })
+    client.getAdminStatus.mockResolvedValue({ pipeline: { inProgress: true, operation: 'Auto-sync' } })
+    render(<MemoryRouter><AdminPage /></MemoryRouter>)
+    fireEvent.change(await screen.findByLabelText('K factor'), { target: { value: '30' } })
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
+  })
+
+  it('uses pipeline completion and outcome even if a sampled phase is still running', async () => {
+    client.checkAdminAuth.mockResolvedValue({ ok: true })
+    client.getAdminStatus.mockResolvedValue({ pipeline: { inProgress: false, operation: 'Sync', success: true, completedAt: new Date(Date.now() - 60000).toISOString() }, warm: { inProgress: true, message: 'old phase' } })
+    render(<MemoryRouter><AdminPage /></MemoryRouter>)
+    expect(await screen.findByText('Sync · Completed')).toBeInTheDocument()
+    expect(screen.getByText('Last run 1 min ago')).toBeInTheDocument()
+    expect(screen.queryByText('old phase')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Sync now' })).toBeEnabled()
+  })
+
+  it('marks old status stale, shows a failed poll as disconnected, and recovers on the next poll', async () => {
+    vi.useFakeTimers()
+    try {
+      client.checkAdminAuth.mockResolvedValue({ ok: true })
+      let fail
+      client.getAdminStatus.mockResolvedValueOnce({ pipeline: {} }).mockImplementationOnce(() => new Promise((resolve, reject) => { fail = reject }))
+      await act(async () => { render(<MemoryRouter><AdminPage /></MemoryRouter>) })
+      await act(async () => { await vi.advanceTimersByTimeAsync(21000) })
+      expect(screen.getByText('Stale')).toBeInTheDocument()
+      expect(screen.queryByText('Live')).toBeNull()
+      await act(async () => { fail(new Error('timeout')) })
+      expect(screen.getByText('Disconnected')).toBeInTheDocument()
+      client.getAdminStatus.mockResolvedValue({ pipeline: {} })
+      await act(async () => { await vi.advanceTimersByTimeAsync(10000) })
+      expect(screen.getByText('Live')).toBeInTheDocument()
+    } finally { vi.useRealTimers() }
+  })
+
+  it('aborts an in-flight status request on unmount', async () => {
+    client.checkAdminAuth.mockResolvedValue({ ok: true })
+    client.getAdminStatus.mockImplementation(() => new Promise(() => {}))
+    const page = render(<MemoryRouter><AdminPage /></MemoryRouter>)
+    await screen.findByText('Sync now')
+    const signal = client.getAdminStatus.mock.calls.at(-1)[0]
+    expect(signal.aborted).toBe(false)
+    page.unmount()
+    expect(signal.aborted).toBe(true)
+  })
 
   it('shows admin tools straight away when no passcode is required', async () => {
     client.checkAdminAuth.mockResolvedValue({ ok: true })
@@ -181,7 +237,7 @@ describe('AdminPage passcode gate', () => {
       const before = client.getAdminStatus.mock.calls.length
       await act(async () => { await vi.advanceTimersByTimeAsync(2000) })
       expect(client.getAdminStatus.mock.calls.length).toBeGreaterThan(before)
-      client.getAdminStatus.mockResolvedValue({ pipeline: { inProgress: true, operation: 'Cache rebuild' }, qb: {}, warm: { inProgress: true, message: 'Season 1 of 3' }, settings: { intervalMinutes: 15 } })
+      client.getAdminStatus.mockResolvedValue({ pipeline: { inProgress: true, operation: 'Cache rebuild', message: 'Season 1 of 3' }, qb: {}, warm: { inProgress: true, message: 'Season 1 of 3' }, settings: { intervalMinutes: 15 } })
       await act(async () => { await vi.advanceTimersByTimeAsync(2000) })
       expect(screen.getByText('Season 1 of 3')).toBeInTheDocument()
     } finally { vi.useRealTimers() }

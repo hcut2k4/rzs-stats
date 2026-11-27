@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
-import org.springframework.cache.interceptor.SimpleKey;
 import com.rzs.stats.service.EloQueryService;
 import com.rzs.stats.service.EloService;
 import org.springframework.http.HttpStatus;
@@ -36,7 +35,7 @@ public class WhatIfService {
     private final SimulationService simulator;
     private final OddsService baseline;
     private final CacheManager caches;
-    private record Key(int season, String rules, List<Pick> picks, int simulations) {}
+    private record Key(int season, String rules, List<Pick> picks, int simulations, long generation) {}
 
     public WhatIfService(SeasonStateLoader loader, EloQueryService elo, SimulationService simulator, OddsService baseline, CacheManager caches, ComputeGate gate) {
         this.gate = gate;
@@ -64,6 +63,7 @@ public class WhatIfService {
         if (simulations < 1 || simulations > 20000) throw bad("Simulations must be between 1 and 20000");
         var picks = request.picks() == null ? List.<Pick>of() : request.picks();
         if (picks.size() > WhatIfRequestDeserializer.MAX_PICKS) throw bad("Too many picks");
+        long generation = baseline.generation();
         var state = loader.load(request.season());
         if (picks.size() > state.remainingGames().size()) throw bad("Too many picks for the remaining schedule");
         var ids = new HashSet<Integer>();
@@ -80,12 +80,12 @@ public class WhatIfService {
             };
             if (forced.putIfAbsent(pick.gameId(), outcome) != null) throw bad("Duplicate gameId");
         }
-        var key = new Key(state.season(), rules, picks.stream().sorted(Comparator.comparing(Pick::gameId)).toList(), simulations);
+        var key = new Key(state.season(), rules, picks.stream().sorted(Comparator.comparing(Pick::gameId)).toList(), simulations, generation);
         var cache = caches.getCache("playoffWhatIf");
         var cached = cache.get(key, Response.class);
         if (cached != null) return cached;
         try {
-            return cache.get(key, () -> compute(state, rules, forced, simulations));
+            return cache.get(key, () -> compute(state, rules, forced, simulations, generation));
         } catch (Cache.ValueRetrievalException e) {
             if (e.getCause() instanceof RuntimeException cause) throw cause;
             throw e;
@@ -93,15 +93,15 @@ public class WhatIfService {
     }
 
     private Response compute(SeasonStateLoader.State state, String rules,
-                             Map<Integer, SimulationService.Outcome> forced, int simulations) {
+                             Map<Integer, SimulationService.Outcome> forced, int simulations, long generation) {
         var selected = rules.equals("madden") ? SimulationService.Rules.MADDEN : SimulationService.Rules.NFL;
         long seed = SimulationService.mix(((long) state.season() << 32) ^ Objects.hashCode(state.nextWeek()) ^ rules.hashCode());
         var baselineResponse = baseline.available(state.season(), rules);
         var probabilities = state.remainingGames().isEmpty() ? Map.<Integer, Double>of() : elo.homeWinProbabilities(state.season());
         if (baselineResponse == null || !Objects.equals(baselineResponse.throughWeek(), state.throughWeek())
                 || !Objects.equals(baselineResponse.nextWeek(), state.nextWeek())) {
-            baselineResponse = baseline.compute(state, rules, probabilities);
-            caches.getCache("playoffOdds").put(new SimpleKey(state.season(), rules), baselineResponse);
+            baselineResponse = baseline.compute(state, rules, probabilities, generation);
+            baseline.publish(generation, baselineResponse);
         }
         var base = new HashMap<String, OddsService.Row>();
         baselineResponse.conferences().forEach(c -> c.teams().forEach(r -> base.put(r.team().abbrName(), r)));

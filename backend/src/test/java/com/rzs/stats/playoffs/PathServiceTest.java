@@ -49,6 +49,7 @@ class PathServiceTest {
     @Autowired EloQueryService elo;
     @Autowired CacheNames names;
     @Autowired CacheManager caches;
+    @Autowired com.rzs.stats.config.PlayoffCacheInvalidation invalidation;
     MockMvc http;
     record Fixture(List<PlayoffSeeding.Team> teams, List<PlayoffSeeding.Game> games) {}
 
@@ -89,7 +90,7 @@ class PathServiceTest {
             if (fixture.games().get(i).week() >= 16) remaining.add(i);
         populate(fixture.teams(), fixture.games(), remaining);
         try (var computation = new ComputeGate(2, 100)) {
-            var baseline = new OddsService(loader, elo, simulator, 2000, caches, computation);
+            var baseline = new OddsService(loader, elo, simulator, 2000, caches, computation, invalidation);
             var championship = new ChampionshipService(loader, baseline);
             var service = new PathService(loader, baseline, clinch, leverage, simulator, elo, 2000, computation, new ScenarioService());
             var state = loader.load(1);
@@ -359,7 +360,7 @@ class PathServiceTest {
         remaining.add(own);
         for (int i = 0; i < f.games().size() && remaining.size() < 3; i++) if (f.games().get(i).week() == 17) remaining.add(i);
         populate(f.teams(), f.games(), remaining);
-        var baseline = new OddsService(loader, elo, simulator, 20000, caches, new com.rzs.stats.playoffs.ComputeGate(2, 100));
+        var baseline = new OddsService(loader, elo, simulator, 20000, caches, new com.rzs.stats.playoffs.ComputeGate(2, 100), invalidation);
         var service = new PathService(loader, baseline, clinch, leverage, simulator, elo, 5000, new com.rzs.stats.playoffs.ComputeGate(2, 100), new ScenarioService());
         long start = System.nanoTime();
         var response = service.path(1, "WAS", "madden");

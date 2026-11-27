@@ -54,7 +54,7 @@ public class AdminController {
 
     @PutMapping("/elo/config")
     public EloConfig updateEloConfig(@RequestBody EloConfig config) {
-        return eloConfig.update(config);
+        return pipeline.exclusive("Elo recalculation", () -> eloConfig.update(config));
     }
 
     @PostMapping("/sync")
@@ -71,7 +71,9 @@ public class AdminController {
 
     @GetMapping("/status")
     public Status getStatus() {
-        return new Status(pipeline.getStatus(), qbSync.getStatus(), cacheWarmingService.getStatus(), settings.view());
+        synchronized (pipeline) {
+            return new Status(pipeline.getStatus(), qbSync.getStatus(), cacheWarmingService.getStatus(), settings.view());
+        }
     }
 
     @GetMapping("/sync/status")

@@ -37,11 +37,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AdminControllerTest {
     @Autowired SyncService sync;
     @Autowired SyncSettingsService settings;
-    @Autowired QbStatsSyncService qb;
+    @org.springframework.boot.test.mock.mockito.SpyBean QbStatsSyncService qb;
     @Autowired CacheWarmingService warming;
+    @org.springframework.boot.test.mock.mockito.SpyBean StatsService stats;
     @Autowired NeonSportzClient client;
     @Autowired GameRepository games;
     @Autowired EloConfigService elo;
+    @Autowired org.springframework.cache.CacheManager caches;
     SyncPipeline pipeline;
     MockMvc mvc;
 
@@ -51,6 +53,99 @@ class AdminControllerTest {
         mvc = MockMvcBuilders.standaloneSetup(new AdminController(client, games, warming, elo, qb, pipeline, settings))
                 .setControllerAdvice(new WhatIfExceptionHandler()).build();
     }
+
+    @Test
+    void missingLatestSeasonScheduleDoesNotKeepCacheWarmingDue() {
+        org.mockito.Mockito.doReturn(java.util.List.of(1)).when(stats).getAvailableSeasons();
+        assertThatThrownBy(() -> new SeasonStateLoader(games).load(1))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class)
+                .hasMessageContaining("404").hasMessageContaining("No regular-season data");
+        pipeline.exclusive("Cache rebuild", () -> { pipeline.warm(); return null; });
+        assertThat(warming.getStatus().success()).isTrue();
+        assertThat(pipeline.getStatus().success()).isTrue();
+        assertThat(org.springframework.test.util.ReflectionTestUtils.getField(pipeline, "warmRequired")).isEqualTo(false);
+        assertThat(caches.getCache("standings").getNativeCache()).isInstanceOf(com.github.benmanes.caffeine.cache.Cache.class);
+    }
+
+    @Test
+    void statusSamplingCannotCrossAnOperationCompletion() throws Exception {
+        var workEntered = new CountDownLatch(1);
+        var finishWork = new CountDownLatch(1);
+        var phaseSampled = new CountDownLatch(1);
+        var finishSample = new CountDownLatch(1);
+        org.mockito.Mockito.doAnswer(call -> {
+            phaseSampled.countDown();
+            assertThat(finishSample.await(10, TimeUnit.SECONDS)).isTrue();
+            return call.callRealMethod();
+        }).when(qb).getStatus();
+        var running = CompletableFuture.runAsync(() -> pipeline.exclusive("First", () -> {
+            workEntered.countDown();
+            try { assertThat(finishWork.await(10, TimeUnit.SECONDS)).isTrue(); }
+            catch (InterruptedException e) { throw new RuntimeException(e); }
+            return null;
+        }));
+        try {
+            assertThat(workEntered.await(10, TimeUnit.SECONDS)).isTrue();
+            var controller = new AdminController(client, games, warming, elo, qb, pipeline, settings);
+            var sampling = CompletableFuture.supplyAsync(controller::getStatus);
+            assertThat(phaseSampled.await(10, TimeUnit.SECONDS)).isTrue();
+            finishWork.countDown();
+            assertThatThrownBy(() -> running.get(100, TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
+            finishSample.countDown();
+            var sampled = sampling.get(10, TimeUnit.SECONDS).pipeline();
+            assertThat(sampled.operation()).isEqualTo("First");
+            assertThat(sampled.inProgress()).isTrue();
+            assertThat(sampled.completedAt()).isNull();
+        } finally { finishWork.countDown(); finishSample.countDown(); }
+        running.get(10, TimeUnit.SECONDS);
+        assertThat(pipeline.getStatus().completedAt()).isNotNull();
+    }
+
+    @Test
+    void eloSaveIsGuardedAndReleasesOnlyAfterCommitAndInvalidation() throws Exception {
+        var controller = new AdminController(client, games, warming, elo, qb, pipeline, settings);
+        var before = elo.get();
+        pipeline.exclusive("Auto-sync", () -> {
+            assertThatThrownBy(() -> controller.updateEloConfig(before)).hasMessageContaining("Busy: Auto-sync");
+            return null;
+        });
+        caches.getCache("playoffOdds").put("old", "value");
+        controller.updateEloConfig(before);
+        assertThat(pipeline.getStatus().operation()).isEqualTo("Elo recalculation");
+        assertThat(pipeline.getStatus().completedAt()).isNotNull();
+        assertThat(caches.getCache("playoffOdds").get("old")).isNull();
+        assertThat(elo.get()).isEqualTo(before);
+    }
+
+
+    @Test
+    void terminalStatusIsNotVisibleUntilThePermitIsReleased() throws Exception {
+        var releasing = new CountDownLatch(1);
+        var allowRelease = new CountDownLatch(1);
+        var semaphore = new Semaphore(1) {
+            @Override public void release() {
+                releasing.countDown();
+                try { assertThat(allowRelease.await(10, TimeUnit.SECONDS)).isTrue(); }
+                catch (InterruptedException e) { throw new RuntimeException(e); }
+                super.release();
+            }
+        };
+        org.springframework.test.util.ReflectionTestUtils.setField(pipeline, "lock", semaphore);
+        var worker = CompletableFuture.runAsync(() -> pipeline.exclusive("First", () -> null));
+        try {
+            assertThat(releasing.await(10, TimeUnit.SECONDS)).isTrue();
+            var reading = new CountDownLatch(1);
+            var status = CompletableFuture.supplyAsync(() -> { reading.countDown(); return pipeline.getStatus(); });
+            assertThat(reading.await(10, TimeUnit.SECONDS)).isTrue();
+            assertThatThrownBy(() -> status.get(100, TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
+            allowRelease.countDown();
+            assertThat(status.get(10, TimeUnit.SECONDS).inProgress()).isFalse();
+            pipeline.exclusive("Second", () -> null);
+            assertThat(pipeline.getStatus().operation()).isEqualTo("Second");
+        } finally { allowRelease.countDown(); }
+        worker.get(10, TimeUnit.SECONDS);
+    }
+
 
     @Test
     void combinedStatusIncludesAllServicesAndPersistedSettings() throws Exception {

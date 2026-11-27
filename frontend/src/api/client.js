@@ -17,6 +17,14 @@ api.interceptors.request.use(config => {
   return config
 })
 
+api.interceptors.response.use(response => response, error => {
+  if (error.response?.status === 401 && error.config?.url?.startsWith('/admin')) {
+    setAdminToken(null)
+    window.dispatchEvent(new Event('admin-unauthorized'))
+  }
+  return Promise.reject(error)
+})
+
 export const checkAdminAuth = () => api.get('/admin/auth').then(r => r.data)
 
 export const getPublicSyncStatus = () => api.get('/sync/status').then(r => r.data)
@@ -61,4 +69,4 @@ export const getPlayoffChampionship = (season, rules = 'madden') => api.get('/pl
 
 export const putSyncSettings = intervalMinutes => api.put('/admin/sync/settings', { intervalMinutes }).then(r => r.data)
 
-export const getAdminStatus = () => api.get('/admin/status').then(r => r.data)
+export const getAdminStatus = signal => api.get('/admin/status', { signal, timeout: 8000 }).then(r => r.data)
