@@ -57,6 +57,38 @@ class QbStatsSyncServiceTest {
     }
 
     @Test
+    void errorPublishesFailureAndAllowsTheNextSync() {
+        when(teams.findAll()).thenThrow(new AssertionError("broken")).thenReturn(List.of());
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.syncIncremental(0, Set.of()))
+                .isInstanceOf(AssertionError.class);
+        assertThat(service.getStatus().inProgress()).isFalse();
+        assertThat(service.getStatus().success()).isFalse();
+        assertThat(service.getStatus().message()).contains("broken");
+        service.syncIncremental(0, Set.of());
+        assertThat(service.getStatus().success()).isTrue();
+    }
+
+    @Test
+    void overlappingSyncFailsExplicitlyWithoutChangingTheRunningStatus() throws Exception {
+        var entered = new java.util.concurrent.CountDownLatch(1);
+        var release = new java.util.concurrent.CountDownLatch(1);
+        when(teams.findAll()).thenAnswer(call -> {
+            entered.countDown();
+            assertThat(release.await(10, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+            return List.of();
+        });
+        var worker = java.util.concurrent.CompletableFuture.runAsync(() -> service.syncIncremental(0, Set.of()));
+        try {
+            assertThat(entered.await(10, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.syncIncremental(0, Set.of()))
+                    .isInstanceOf(IllegalStateException.class).hasMessageContaining("already running");
+            assertThat(service.getStatus().inProgress()).isTrue();
+        } finally { release.countDown(); }
+        worker.get(10, java.util.concurrent.TimeUnit.SECONDS);
+        assertThat(service.getStatus().success()).isTrue();
+    }
+
+    @Test
     void unionsPassingAndRushingQuarterbacksAndBuildsTeamContextFromAllPositions() {
         NsTeamStat context = new NsTeamStat();
         context.team__abbrName = "AAA";

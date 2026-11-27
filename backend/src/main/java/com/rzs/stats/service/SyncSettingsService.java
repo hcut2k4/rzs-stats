@@ -62,6 +62,12 @@ public class SyncSettingsService {
     }
 
     @Transactional
+    public void recordChanges() {
+        get();
+        repository.updateChanged(Instant.now());
+    }
+
+    @Transactional
     public void fullSucceeded() {
         get();
         repository.updateFullSuccess(Instant.now());

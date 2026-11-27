@@ -47,6 +47,7 @@ class WhatIfServiceTest {
     @Autowired EloQueryService elo;
     @Autowired EloConfigService configs;
     @Autowired CacheManager caches;
+    @Autowired com.rzs.stats.config.PlayoffCacheInvalidation invalidation;
     final ObjectMapper json = new ObjectMapper();
     MockMvc http;
 
@@ -86,6 +87,38 @@ class WhatIfServiceTest {
         var response = http.perform(post("/api/playoffs/simulate").contentType(MediaType.APPLICATION_JSON)
                 .content(json.writeValueAsString(body))).andExpect(status().is(statusCode)).andReturn().getResponse();
         return statusCode == 200 ? json.readTree(response.getContentAsString()) : null;
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {true, false})
+    void invalidatedBaselineCannotBeRepublishedByAnInflightWhatIf(boolean beforeCompute) throws Exception {
+        populate("104", true);
+        var computed = new java.util.concurrent.CountDownLatch(1);
+        var invalidated = new java.util.concurrent.CountDownLatch(1);
+        Runnable barrier = () -> {
+            computed.countDown();
+            try { assertThat(invalidated.await(10, java.util.concurrent.TimeUnit.SECONDS)).isTrue(); }
+            catch (InterruptedException e) { throw new RuntimeException(e); }
+        };
+        var delayed = new OddsService(loader, elo, new SimulationService(), 50, caches, new ComputeGate(2, 100), invalidation) {
+            @Override public Response compute(SeasonStateLoader.State state, String rules, Map<Integer, Double> probabilities, long generation) {
+                if (beforeCompute) barrier.run();
+                var response = super.compute(state, rules, probabilities, generation);
+                if (!beforeCompute) barrier.run();
+                return response;
+            }
+        };
+        var worker = java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try { assertThat(computed.await(10, java.util.concurrent.TimeUnit.SECONDS)).isTrue(); }
+            catch (InterruptedException e) { throw new RuntimeException(e); }
+            invalidation.changed();
+            invalidated.countDown();
+        });
+        var candidate = new WhatIfService(loader, elo, new SimulationService(), delayed, caches, new ComputeGate(2, 100));
+        candidate.simulate(new WhatIfService.Request(1, "madden", List.of(), 50));
+        worker.get(10, java.util.concurrent.TimeUnit.SECONDS);
+        assertThat(odds.available(1, "madden")).isNull();
+        assertThat(caches.getCache("playoffBaseline").get(new org.springframework.cache.interceptor.SimpleKey(1, "madden", invalidation.generation()))).isNull();
     }
 
     @Test
@@ -384,7 +417,7 @@ class WhatIfServiceTest {
         var expected = odds.odds(null, "madden");
         var cache = caches.getCache("playoffOdds");
         var response = service.simulate(new WhatIfService.Request(1, "madden", List.of(), 1));
-        assertThat(cache.get(new org.springframework.cache.interceptor.SimpleKey(1, "madden"), OddsService.Response.class)).isSameAs(expected);
+        assertThat(cache.get(odds.cacheKey(1, "madden"), OddsService.Response.class)).isSameAs(expected);
         assertThat(response.conferences().getFirst().teams()).allSatisfy(row ->
                 assertThat(row.baseline()).isEqualTo(expected.conferences().getFirst().teams().stream()
                         .filter(r -> r.team().equals(row.team())).findFirst().orElseThrow().odds()));
@@ -415,7 +448,7 @@ class WhatIfServiceTest {
                 return super.simulate(state, probabilities, forced, count, seed, rules, margins);
             }
         };
-        var baseline = new OddsService(loaded, elo, simulator, 50, caches, new com.rzs.stats.playoffs.ComputeGate(2, 100));
+        var baseline = new OddsService(loaded, elo, simulator, 50, caches, new com.rzs.stats.playoffs.ComputeGate(2, 100), invalidation);
         var whatIf = new WhatIfService(loaded, elo, simulator, baseline, caches, new com.rzs.stats.playoffs.ComputeGate(2, 100));
         whatIf.simulate(new WhatIfService.Request(null, "madden", List.of(new WhatIfService.Pick(1, "home")), 10));
         assertThat(loads).hasSize(1);
@@ -438,7 +471,7 @@ class WhatIfServiceTest {
                 return super.simulate(state, probabilities, forced, count, seed, rules, margins);
             }
         };
-        var whatIf = new WhatIfService(loader, elo, simulator, new OddsService(loader, elo, simulator, 50, caches, new com.rzs.stats.playoffs.ComputeGate(2, 100)), caches, new com.rzs.stats.playoffs.ComputeGate(2, 100));
+        var whatIf = new WhatIfService(loader, elo, simulator, new OddsService(loader, elo, simulator, 50, caches, new com.rzs.stats.playoffs.ComputeGate(2, 100), invalidation), caches, new com.rzs.stats.playoffs.ComputeGate(2, 100));
         var response = whatIf.simulate(new WhatIfService.Request(1, "madden", List.of(
                 new WhatIfService.Pick(1, "home"), new WhatIfService.Pick(2, "home"), new WhatIfService.Pick(3, "home")), 100));
         assertThat(calls).containsExactly(Map.of());

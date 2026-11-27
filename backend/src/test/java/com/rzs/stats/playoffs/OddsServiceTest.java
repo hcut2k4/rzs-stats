@@ -55,6 +55,7 @@ class OddsServiceTest {
     @Autowired org.springframework.transaction.PlatformTransactionManager transactions;
     @Autowired PlayoffsController controller;
     @Autowired CacheManager caches;
+    @Autowired com.rzs.stats.config.PlayoffCacheInvalidation invalidation;
     MockMvc http;
     final ObjectMapper json = new ObjectMapper();
 
@@ -293,7 +294,7 @@ class OddsServiceTest {
             odds.odds(null, "madden");
             championship.championship(null, "madden");
         });
-        var warmedOdds = caches.getCache("playoffOdds").get(new org.springframework.cache.interceptor.SimpleKey(2, "madden"), OddsService.Response.class);
+        var warmedOdds = caches.getCache("playoffOdds").get(odds.cacheKey(2, "madden"), OddsService.Response.class);
         var warmedChampionship = caches.getCache("playoffChampionship").get(new org.springframework.cache.interceptor.SimpleKey(2, "madden"), ChampionshipService.Response.class);
         assertThat(warmedOdds).isNotNull();
         assertThat(warmedChampionship).isNotNull();
@@ -395,7 +396,7 @@ class OddsServiceTest {
                     return super.simulate(state, probabilities, forced, count, seed, rules);
                 }
             };
-            var service = new OddsService(loader, elo, changingSimulator, 100, caches, gate);
+            var service = new OddsService(loader, elo, changingSimulator, 100, caches, gate, invalidation);
             service.configureInputs(syncStatus, transactions);
             if (origin.equals("live")) writer.save(service.odds(2, "madden"));
             else assertThat(writer.saveIfAbsent(2, 0, () -> service.historical(loader.loadAtStart(2, 0)))).isTrue();

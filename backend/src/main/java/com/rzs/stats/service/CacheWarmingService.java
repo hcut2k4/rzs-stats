@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -65,7 +66,9 @@ public class CacheWarmingService {
         startedAt = Instant.now();
         message = "Warming in progress...";
         success = null;
+        var failures = new java.util.ArrayList<String>();
         try {
+            invalidation.changed();
             log.info("Cache warming started — all caches evicted");
             List<Integer> seasons = statsService.getAvailableSeasons();
             statsService.getSeasonTrends();
@@ -86,6 +89,7 @@ public class CacheWarmingService {
                         efficiency.efficiency(season, stage);
                     }
                 } catch (Exception e) {
+                    failures.add("QB season " + season);
                     log.warn("Cache warming: QB season {} failed", season, e);
                 }
                 log.info("Cache warming: season {}/{} (index={}, {} weeks) done", i + 1, total, season, weeks.size());
@@ -95,6 +99,7 @@ public class CacheWarmingService {
                 try {
                     qbStatsService.leaderboard(Scope.ALLTIME, null, null, stage, null, false);
                 } catch (Exception e) {
+                    failures.add("all-time QB " + stage);
                     log.warn("Cache warming: all-time QB {} failed", stage, e);
                 }
             }
@@ -103,6 +108,7 @@ public class CacheWarmingService {
                 try {
                     qbStatsService.movement(latestSeason, Stage.REGULAR, 1, Basis.SEASON);
                 } catch (Exception e) {
+                    failures.add("QB movement " + latestSeason);
                     log.warn("Cache warming: QB movement for season {} failed", latestSeason, e);
                 }
             }
@@ -111,23 +117,39 @@ public class CacheWarmingService {
                 try {
                     gate.warm(() -> snapshots.save(odds.odds(null, "madden")));
                 } catch (Exception e) {
-                    log.warn("Cache warming: playoff odds failed", e);
+                    if (e instanceof ResponseStatusException missing && missing.getStatusCode().value() == 404) {
+                        log.info("Cache warming: skipping playoff odds: {}", missing.getReason());
+                    } else {
+                        failures.add("playoff odds");
+                        log.warn("Cache warming: playoff odds failed", e);
+                    }
                 }
                 try {
                     var key = leverage.canonicalKey(null, null);
                     gate.warm(() -> leverage.matrix(key.season(), key.week(), "madden"));
                 } catch (Exception e) {
-                    log.warn("Cache warming: playoff leverage failed", e);
+                    if (e instanceof ResponseStatusException missing && missing.getStatusCode().value() == 404) {
+                        log.info("Cache warming: skipping playoff leverage: {}", missing.getReason());
+                    } else {
+                        failures.add("playoff leverage");
+                        log.warn("Cache warming: playoff leverage failed", e);
+                    }
                 }
                 try {
                     gate.warm(() -> clinch.clinch(null, "madden"));
                 } catch (Exception e) {
-                    log.warn("Cache warming: playoff clinch failed", e);
+                    if (e instanceof ResponseStatusException missing && missing.getStatusCode().value() == 404) {
+                        log.info("Cache warming: skipping playoff clinch: {}", missing.getReason());
+                    } else {
+                        failures.add("playoff clinch");
+                        log.warn("Cache warming: playoff clinch failed", e);
+                    }
                 }
             }
             long elapsed = Duration.between(startedAt, Instant.now()).getSeconds();
             message = total + " seasons and QB stats cached in " + elapsed + "s";
-            success = true;
+            success = failures.isEmpty();
+            if (!success) message = "Cache warming incomplete: " + String.join(", ", failures);
             log.info("Cache warming complete — {}", message);
         } catch (Exception e) {
             message = "Cache warming failed: " + e.getMessage();

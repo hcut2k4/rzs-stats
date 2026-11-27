@@ -17,6 +17,7 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.util.AopTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.*;
@@ -46,6 +47,7 @@ class SyncPipelineFlowTest {
     static volatile int score = 20, season = 0, stage = 1, leagueWeek = 21, playedWeek = 20, attempts = 20;
     static volatile boolean seasonOver, preseason;
     static volatile boolean renamed, failStats;
+    static volatile Integer failStatsWeek;
     static volatile CountDownLatch entered, release;
 
     @BeforeAll
@@ -81,7 +83,7 @@ class SyncPipelineFlowTest {
             } else body = "{\"season\":" + season + ",\"stage\":" + stage + ",\"week\":" + leagueWeek + "}";
             byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().add("Content-Type", "application/json");
-            exchange.sendResponseHeaders(failStats && path.contains("/stats/passing/") ? 500 : 200, bytes.length);
+            exchange.sendResponseHeaders(path.contains("/stats/passing/") && (failStats || failStatsWeek != null && Objects.toString(uri.getQuery(), "").matches(".*weekIndex=" + failStatsWeek + "(&.*)?")) ? 500 : 200, bytes.length);
             try (var out = exchange.getResponseBody()) { out.write(bytes); }
         });
         upstream.start();
@@ -110,23 +112,60 @@ class SyncPipelineFlowTest {
     @Autowired OddsSnapshotRepository snapshots;
     @Autowired CacheManager caches;
     @SpyBean CacheWarmingService warming;
+    @SpyBean LeverageService leverage;
     SyncPipeline pipeline;
     MockMvc http;
 
     @BeforeEach
     void setup() {
-        entered = null; release = null; renamed = false; failStats = false; score = 20; season = 0; seasonOver = false; preseason = false; attempts = 20; stage = 1; leagueWeek = 21; playedWeek = 20;
+        entered = null; release = null; failStatsWeek = null; renamed = false; failStats = false; score = 20; season = 0; seasonOver = false; preseason = false; attempts = 20; stage = 1; leagueWeek = 21; playedWeek = 20;
         snapshots.deleteAll(); qbRows.deleteAll(); teamRows.deleteAll(); games.deleteAll(); teams.deleteAll();
         statuses.deleteAll(); settingRows.deleteAll();
         caches.getCacheNames().forEach(n -> caches.getCache(n).clear());
         pipeline = new SyncPipeline(sync, qb, warming, settings, client);
-        http = MockMvcBuilders.standaloneSetup(new AdminController(client, games, warming, elo, qb, pipeline, settings)).build();
+        http = MockMvcBuilders.standaloneSetup(new AdminController(client, games, warming, elo, qb, pipeline, settings))
+                .setControllerAdvice(new com.rzs.stats.playoffs.WhatIfExceptionHandler()).build();
         pipeline.run(SyncPipeline.Mode.QUICK);
         requests.clear(); clearInvocations(warming);
     }
 
     @AfterAll
     static void stop() { upstream.stop(0); }
+
+
+    @Test
+    void partialWarmingFailureRemainsDueForTheNextIdlePoll() {
+        LeverageService target = AopTestUtils.getUltimateTargetObject(leverage);
+        doThrow(new IllegalStateException("warm failed")).doCallRealMethod().when(target).matrix(any(), any(), eq("madden"));
+        score++;
+        assertThatThrownBy(() -> pipeline.run(SyncPipeline.Mode.QUICK)).hasMessageContaining("playoff leverage");
+        clearInvocations(warming);
+        pipeline.run(SyncPipeline.Mode.QUICK);
+        verify(warming).warmCaches();
+        assertThat(warming.getStatus().success()).isTrue();
+        assertThat(caches.getCache("leverage").getNativeCache()).isInstanceOf(com.github.benmanes.caffeine.cache.Cache.class);
+    }
+
+    @Test
+    void manualQbRepairRecordsCommittedChangesBeforeALaterWeekFails() {
+        var before = settings.view().lastChangedAt();
+        var manual = new SyncPipeline(sync, qb, warming, settings, client, Runnable::run);
+        manual.startQb(0);
+        assertThat(settings.view().lastChangedAt()).isEqualTo(before);
+        attempts++;
+        requests.clear();
+        failStatsWeek = 20;
+        assertThatThrownBy(() -> manual.startQb(0)).hasMessageContaining("QB sync failed");
+        assertThat(qb.getStatus().success()).isFalse();
+        assertThat(requests).anyMatch(r -> r.contains("/stats/passing/") && r.matches(".*weekIndex=20(&.*)?"));
+        assertThat(qbRows.findInScope(0, 20, 20)).hasSize(2).allMatch(row -> row.getPassAtt() == attempts - 1);
+        assertThat(qbRows.findAll()).anyMatch(row -> row.getWeekIndex() == 0 && row.getPassAtt() == attempts);
+        assertThat(settings.view().lastChangedAt()).isAfter(before);
+        failStatsWeek = null;
+        manual.startQb(0);
+        assertThat(manual.getStatus().success()).isTrue();
+    }
+
 
     @Test
     void idleQuickPollKeepsCachesAndSkipsWritesAndStatRequests() {
@@ -165,7 +204,7 @@ class SyncPipelineFlowTest {
     void quickWindowUsesWeekTwentyBeforeWeekTwentyTwo() {
         assertThat(sync.quickWindow(0)).containsExactly(22, 20);
         pipeline.run(SyncPipeline.Mode.QUICK);
-        assertThat(requests).anyMatch(r -> r.contains("weekIndex=20&")).anyMatch(r -> r.contains("weekIndex=22&"));
+        assertThat(requests).anyMatch(r -> r.matches(".*weekIndex=20(&.*)?")).anyMatch(r -> r.contains("weekIndex=22&"));
         assertThat(requests).noneMatch(r -> r.contains("weekIndex=21&"));
     }
 
@@ -277,9 +316,33 @@ class SyncPipelineFlowTest {
         var running = CompletableFuture.runAsync(() -> pipeline.run(SyncPipeline.Mode.QUICK));
         try {
             assertThat(entered.await(5, TimeUnit.SECONDS)).isTrue();
+            assertThat(pipeline.getStatus().operation()).isEqualTo("Auto-sync");
+            assertThat(pipeline.getStatus().startedAt()).isNotNull();
+            http.perform(get("/api/admin/status")).andExpect(status().isOk())
+                    .andExpect(jsonPath("$.pipeline.operation").value("Auto-sync"))
+                    .andExpect(jsonPath("$.pipeline.startedAt").isNotEmpty())
+                    .andExpect(jsonPath("$.settings.lastCheckedAt").isNotEmpty());
             for (String endpoint : List.of("/sync", "/sync/force", "/sync/verbose", "/cache/warm", "/sync/qb"))
-                http.perform(post("/api/admin" + endpoint)).andExpect(status().isConflict());
+                http.perform(post("/api/admin" + endpoint)).andExpect(status().isConflict())
+                        .andExpect(content().string("Busy: Auto-sync is running"));
         } finally { release.countDown(); running.get(10, TimeUnit.SECONDS); entered = null; }
+    }
+
+    @Test
+    void asyncOperationsExposeTheirLabelBeforeWorkerStarts() {
+        for (var entry : Map.of(SyncPipeline.Mode.FULL, "Sync", SyncPipeline.Mode.FORCE, "Full re-sync").entrySet()) {
+            var queued = new ArrayList<Runnable>();
+            var pending = new SyncPipeline(sync, qb, warming, settings, client, queued::add);
+            pending.start(entry.getKey());
+            assertThat(queued).hasSize(1);
+            assertThat(pending.getStatus().inProgress()).isTrue();
+            assertThat(pending.getStatus().operation()).isEqualTo(entry.getValue());
+            assertThat(pending.getStatus().startedAt()).isNotNull();
+            assertThatThrownBy(() -> pending.startQb(null)).hasMessageContaining("Busy: " + entry.getValue() + " is running");
+        }
+        var pending = new SyncPipeline(sync, qb, warming, settings, client, command -> {});
+        pending.startQb(0);
+        assertThat(pending.getStatus().operation()).isEqualTo("Player & team stats re-sync (Season 103)");
     }
 
     @Test

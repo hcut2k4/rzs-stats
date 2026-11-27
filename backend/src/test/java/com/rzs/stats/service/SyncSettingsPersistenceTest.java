@@ -58,7 +58,7 @@ class SyncSettingsPersistenceTest {
                     new com.rzs.stats.controller.PlayoffsOddsHistoryController(null, pipeline))
                     .setControllerAdvice(new com.rzs.stats.playoffs.WhatIfExceptionHandler()).build();
             for (String endpoint : List.of("/sync", "/sync/force", "/sync/verbose", "/cache/warm", "/sync/qb", "/playoffs/odds/backfill?season=0"))
-                http.perform(post("/api/admin" + endpoint)).andExpect(status().isConflict()).andExpect(content().string("already running"));
+                http.perform(post("/api/admin" + endpoint)).andExpect(status().isConflict()).andExpect(content().string("Busy: Holding guard is running"));
         } finally {
             release.countDown();
             assertThat(finished.await(5, java.util.concurrent.TimeUnit.SECONDS)).isTrue();

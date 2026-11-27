@@ -21,6 +21,10 @@ public interface SyncSettingsRepository extends JpaRepository<SyncSettingsEntity
     void updateChanges(Integer season, Integer stage, Integer week, boolean changed, Instant now);
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update SyncSettingsEntity s set s.lastChangedAt = :now where s.id = 1")
+    void updateChanged(Instant now);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("update SyncSettingsEntity s set s.lastFullSuccessAt = :now where s.id = 1")
     void updateFullSuccess(Instant now);
 }

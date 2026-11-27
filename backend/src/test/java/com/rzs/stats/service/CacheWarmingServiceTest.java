@@ -26,16 +26,35 @@ class CacheWarmingServiceTest {
     @Mock com.rzs.stats.playoffs.LeverageService leverage;
     @Mock OddsSnapshotService snapshots;
     @Mock TeamEfficiencyService efficiency;
+    @Mock com.rzs.stats.playoffs.ClinchService clinch;
     CacheWarmingService warming;
 
     private com.rzs.stats.config.PlayoffCacheInvalidation invalidation() {
-        return new com.rzs.stats.config.PlayoffCacheInvalidation(new org.springframework.cache.concurrent.ConcurrentMapCacheManager());
+        return new com.rzs.stats.config.PlayoffCacheInvalidation(new org.springframework.cache.caffeine.CaffeineCacheManager());
     }
 
     @BeforeEach
     void setUp() {
-        warming = new CacheWarmingService(stats, elo, qb, odds, snapshots, leverage, championship, new com.rzs.stats.playoffs.ComputeGate(2, 100), org.mockito.Mockito.mock(com.rzs.stats.playoffs.ClinchService.class), invalidation(), efficiency);
+        warming = new CacheWarmingService(stats, elo, qb, odds, snapshots, leverage, championship, new com.rzs.stats.playoffs.ComputeGate(2, 100), clinch, invalidation(), efficiency);
         lenient().when(leverage.canonicalKey(null, null)).thenReturn(new com.rzs.stats.playoffs.LeverageService.Key(2, 11));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(ints = {404, 503})
+    void missingPlayoffDataIsSkippedButOtherHttpErrorsFailWarming(int status) {
+        when(stats.getAvailableSeasons()).thenReturn(List.of(2));
+        var failure = new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatusCode.valueOf(status), "No regular-season data for season 2");
+        when(odds.odds(null, "madden")).thenThrow(failure);
+        when(leverage.matrix(2, 11, "madden")).thenThrow(failure);
+        when(clinch.clinch(null, "madden")).thenThrow(failure);
+        warming.warmCaches();
+        verify(odds).odds(null, "madden");
+        verify(leverage).matrix(2, 11, "madden");
+        verify(clinch).clinch(null, "madden");
+        verifyNoInteractions(snapshots);
+        assertThat(warming.getStatus().success()).isEqualTo(status == 404);
+        if (status != 404) assertThat(warming.getStatus().message()).contains("playoff odds", "playoff leverage", "playoff clinch");
     }
 
     @Test
@@ -80,7 +99,8 @@ class CacheWarmingServiceTest {
         verify(qb).leaderboard(SEASON, 1, null, REGULAR, null, false);
         verify(qb).leaderboard(ALLTIME, null, null, PLAYOFFS, null, false);
         verify(elo).getTimeline();
-        assertThat(warming.getStatus().success()).isTrue();
+        assertThat(warming.getStatus().success()).isFalse();
+        assertThat(warming.getStatus().message()).contains("incomplete");
     }
 
     @Test
@@ -92,7 +112,8 @@ class CacheWarmingServiceTest {
         verifyNoInteractions(snapshots);
         verifyNoInteractions(championship);
         verify(leverage).matrix(2, 11, "madden");
-        assertThat(warming.getStatus().success()).isTrue();
+        assertThat(warming.getStatus().success()).isFalse();
+        assertThat(warming.getStatus().message()).contains("incomplete");
     }
 
     @Test

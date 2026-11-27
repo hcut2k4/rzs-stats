@@ -17,6 +17,14 @@ api.interceptors.request.use(config => {
   return config
 })
 
+api.interceptors.response.use(response => response, error => {
+  if (error.response?.status === 401 && error.config?.url?.startsWith('/admin')) {
+    setAdminToken(null)
+    window.dispatchEvent(new Event('admin-unauthorized'))
+  }
+  return Promise.reject(error)
+})
+
 export const checkAdminAuth = () => api.get('/admin/auth').then(r => r.data)
 
 export const getPublicSyncStatus = () => api.get('/sync/status').then(r => r.data)
@@ -33,9 +41,7 @@ export const getSeasonTrends = () => api.get('/trends/season').then(r => r.data)
 export const getWeeklyTrends = (season) => api.get('/trends/weekly', { params: { season } }).then(r => r.data)
 export const triggerSync = () => api.post('/admin/sync').then(r => r.data)
 export const triggerForceSync = () => api.post('/admin/sync/force').then(r => r.data)
-export const getSyncStatus = () => api.get('/admin/sync/status').then(r => r.data)
 export const triggerCacheWarm = () => api.post('/admin/cache/warm').then(r => r.data)
-export const getCacheWarmStatus = () => api.get('/admin/cache/warm/status').then(r => r.data)
 
 export const getEloRatings = (season, week) => api.get('/elo/ratings', { params: { season, week } }).then(r => r.data)
 export const getEloHistory = (season) => api.get('/elo/history', { params: { season } }).then(r => r.data)
@@ -49,8 +55,7 @@ export const getEloUpcoming = (season) => api.get('/elo/upcoming', { params: { s
 export const getQbLeaderboard = (params) => api.get('/qb/leaderboard', { params }).then(r => r.data)
 export const getQbMovement = (params) => api.get('/qb/movement', { params }).then(r => r.data)
 export const triggerProbabilityBackfill = season => api.post('/admin/playoffs/odds/backfill', null, { params: { season } }).then(r => r.data)
-export const triggerQbSync = () => api.post('/admin/sync/qb').then(r => r.data)
-export const getQbSyncStatus = () => api.get('/admin/sync/qb/status').then(r => r.data)
+export const triggerQbSync = season => api.post('/admin/sync/qb', null, { params: { season } }).then(r => r.data)
 
 export const getEfficiency = (season, stage) => api.get('/efficiency', { params: { season, stage } }).then(r => r.data)
 
@@ -62,5 +67,6 @@ export const getPlayoffPath = (abbr, season, rules = 'madden') => api.get(`/play
 export const getPlayoffOddsHistory = (season, team) => api.get('/playoffs/odds/history', { params: { season, team } }).then(r => r.data)
 export const getPlayoffChampionship = (season, rules = 'madden') => api.get('/playoffs/championship', { params: { season, rules } }).then(r => r.data)
 
-export const getSyncSettings = () => api.get('/admin/sync/settings').then(r => r.data)
 export const putSyncSettings = intervalMinutes => api.put('/admin/sync/settings', { intervalMinutes }).then(r => r.data)
+
+export const getAdminStatus = signal => api.get('/admin/status', { signal, timeout: 8000 }).then(r => r.data)

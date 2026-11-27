@@ -12,8 +12,8 @@ public class WhatIfExceptionHandler {
     }
 
     @ExceptionHandler(com.rzs.stats.service.SyncPipeline.BusyException.class)
-    public ResponseEntity<String> syncBusy() {
-        return ResponseEntity.status(409).body("already running");
+    public ResponseEntity<String> syncBusy(com.rzs.stats.service.SyncPipeline.BusyException exception) {
+        return ResponseEntity.status(409).body(exception.getReason());
     }
 
 }
