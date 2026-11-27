@@ -120,7 +120,8 @@ class SyncPipelineFlowTest {
         statuses.deleteAll(); settingRows.deleteAll();
         caches.getCacheNames().forEach(n -> caches.getCache(n).clear());
         pipeline = new SyncPipeline(sync, qb, warming, settings, client);
-        http = MockMvcBuilders.standaloneSetup(new AdminController(client, games, warming, elo, qb, pipeline, settings)).build();
+        http = MockMvcBuilders.standaloneSetup(new AdminController(client, games, warming, elo, qb, pipeline, settings))
+                .setControllerAdvice(new com.rzs.stats.playoffs.WhatIfExceptionHandler()).build();
         pipeline.run(SyncPipeline.Mode.QUICK);
         requests.clear(); clearInvocations(warming);
     }
@@ -277,9 +278,33 @@ class SyncPipelineFlowTest {
         var running = CompletableFuture.runAsync(() -> pipeline.run(SyncPipeline.Mode.QUICK));
         try {
             assertThat(entered.await(5, TimeUnit.SECONDS)).isTrue();
+            assertThat(pipeline.getStatus().operation()).isEqualTo("Auto-sync");
+            assertThat(pipeline.getStatus().startedAt()).isNotNull();
+            http.perform(get("/api/admin/status")).andExpect(status().isOk())
+                    .andExpect(jsonPath("$.pipeline.operation").value("Auto-sync"))
+                    .andExpect(jsonPath("$.pipeline.startedAt").isNotEmpty())
+                    .andExpect(jsonPath("$.settings.lastCheckedAt").isNotEmpty());
             for (String endpoint : List.of("/sync", "/sync/force", "/sync/verbose", "/cache/warm", "/sync/qb"))
-                http.perform(post("/api/admin" + endpoint)).andExpect(status().isConflict());
+                http.perform(post("/api/admin" + endpoint)).andExpect(status().isConflict())
+                        .andExpect(content().string("Busy: Auto-sync is running"));
         } finally { release.countDown(); running.get(10, TimeUnit.SECONDS); entered = null; }
+    }
+
+    @Test
+    void asyncOperationsExposeTheirLabelBeforeWorkerStarts() {
+        for (var entry : Map.of(SyncPipeline.Mode.FULL, "Sync", SyncPipeline.Mode.FORCE, "Full re-sync").entrySet()) {
+            var queued = new ArrayList<Runnable>();
+            var pending = new SyncPipeline(sync, qb, warming, settings, client, queued::add);
+            pending.start(entry.getKey());
+            assertThat(queued).hasSize(1);
+            assertThat(pending.getStatus().inProgress()).isTrue();
+            assertThat(pending.getStatus().operation()).isEqualTo(entry.getValue());
+            assertThat(pending.getStatus().startedAt()).isNotNull();
+            assertThatThrownBy(() -> pending.startQb(null)).hasMessageContaining("Busy: " + entry.getValue() + " is running");
+        }
+        var pending = new SyncPipeline(sync, qb, warming, settings, client, command -> {});
+        pending.startQb(0);
+        assertThat(pending.getStatus().operation()).isEqualTo("Player & team stats re-sync (Season 103)");
     }
 
     @Test

@@ -21,6 +21,6 @@ public class PlayoffsOddsHistoryController {
 
     @PostMapping("/api/admin/playoffs/odds/backfill")
     public OddsHistoryService.Backfill backfill(@RequestParam int season) {
-        return pipeline.exclusive(() -> history.backfill(season));
+        return pipeline.exclusive("Probability backfill", () -> history.backfill(season));
     }
 }

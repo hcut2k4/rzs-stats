@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, act, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
@@ -11,10 +11,7 @@ const ELO_CONFIG = { initialRating: 1500, k: 25, divisor: 400, movEnabled: true,
 
 describe('AdminPage passcode gate', () => {
   beforeEach(() => {
-    client.getSyncStatus.mockResolvedValue({})
-    client.getSyncSettings.mockResolvedValue({ intervalMinutes: 15, lastCheckedAt: null, lastChangedAt: null, nextRunAt: '2026-11-26T12:00:00Z' })
-    client.getCacheWarmStatus.mockResolvedValue({})
-    client.getQbSyncStatus.mockResolvedValue({})
+    client.getAdminStatus.mockResolvedValue({ pipeline: {}, qb: {}, warm: {}, settings: { intervalMinutes: 15, lastCheckedAt: null, lastChangedAt: null, nextRunAt: null } })
     client.getEloConfig.mockResolvedValue(ELO_CONFIG)
     client.getSeasons.mockResolvedValue([0, 1, 2])
   })
@@ -23,14 +20,14 @@ describe('AdminPage passcode gate', () => {
   it('shows admin tools straight away when no passcode is required', async () => {
     client.checkAdminAuth.mockResolvedValue({ ok: true })
     render(<MemoryRouter><AdminPage /></MemoryRouter>)
-    expect(await screen.findByText('Sync Now')).toBeInTheDocument()
+    expect(await screen.findByText('Sync now')).toBeInTheDocument()
   })
 
   it('asks for a passcode when the backend rejects the request', async () => {
     client.checkAdminAuth.mockRejectedValue({ response: { status: 401 } })
     render(<MemoryRouter><AdminPage /></MemoryRouter>)
     expect(await screen.findByLabelText('Passcode')).toBeInTheDocument()
-    expect(screen.queryByText('Sync Now')).toBeNull()
+    expect(screen.queryByText('Sync now')).toBeNull()
   })
 
   it('unlocks and remembers the passcode when it is accepted', async () => {
@@ -38,7 +35,7 @@ describe('AdminPage passcode gate', () => {
     render(<MemoryRouter><AdminPage /></MemoryRouter>)
     await userEvent.type(await screen.findByLabelText('Passcode'), 'secret')
     await userEvent.click(screen.getByRole('button', { name: 'Unlock' }))
-    expect(await screen.findByText('Sync Now')).toBeInTheDocument()
+    expect(await screen.findByText('Sync now')).toBeInTheDocument()
     expect(client.setAdminToken).toHaveBeenCalledWith('secret')
   })
 
@@ -67,8 +64,11 @@ describe('AdminPage passcode gate', () => {
     client.checkAdminAuth.mockResolvedValue({ ok: true })
     client.putEloConfig.mockRejectedValue({ response: { status: 400 } })
     render(<MemoryRouter><AdminPage /></MemoryRouter>)
-    await userEvent.click(await screen.findByRole('button', { name: 'Save' }))
-    expect(await screen.findByText(/Rejected/)).toBeInTheDocument()
+    const k = await screen.findByLabelText('K factor')
+    await userEvent.clear(k)
+    await userEvent.type(k, '30')
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByText(/Request failed/)).toBeInTheDocument()
   })
 
   it('backfills the playoff probability history for the chosen season and shows the result', async () => {
@@ -86,49 +86,121 @@ describe('AdminPage passcode gate', () => {
     client.triggerProbabilityBackfill.mockRejectedValue(new Error('boom'))
     render(<MemoryRouter><AdminPage /></MemoryRouter>)
     await userEvent.click(await screen.findByRole('button', { name: 'Backfill probability history' }))
-    expect(await screen.findByText('Request failed')).toBeInTheDocument()
+    expect(await screen.findByText('boom')).toBeInTheDocument()
     expect(client.triggerProbabilityBackfill).toHaveBeenCalledWith(2)
   })
-  it('saves Off and shows that the next check is disabled', async () => {
+  it('saves an interval preset from the select', async () => {
     client.checkAdminAuth.mockResolvedValue({ ok: true })
-    client.putSyncSettings.mockResolvedValue({ intervalMinutes: 0, nextRunAt: null })
+    client.putSyncSettings.mockImplementation(async () => {
+      client.getAdminStatus.mockResolvedValue({ pipeline: {}, qb: {}, warm: {}, settings: { intervalMinutes: 120, nextRunAt: null } })
+      return { intervalMinutes: 120, nextRunAt: null }
+    })
     render(<MemoryRouter><AdminPage /></MemoryRouter>)
     const input = await screen.findByLabelText('Auto-sync interval')
-    await waitFor(() => expect(input).toHaveValue(15))
-    await userEvent.clear(input)
-    await userEvent.type(input, '0')
-    await userEvent.click(screen.getByRole('button', { name: 'Save interval' }))
-    expect(client.putSyncSettings).toHaveBeenCalledWith(0)
-    await waitFor(() => expect(screen.getByLabelText('Auto-sync interval')).toHaveValue(0))
-    expect(screen.getByText('Last checked:')).toBeInTheDocument()
-    expect(screen.getByText('Last data change:')).toBeInTheDocument()
-    expect(screen.getByText('Next check:')).toBeInTheDocument()
-  })
-
-  it('keeps the saved interval when updating it fails', async () => {
-    client.checkAdminAuth.mockResolvedValue({ ok: true })
-    client.putSyncSettings.mockRejectedValue(new Error('failed'))
-    render(<MemoryRouter><AdminPage /></MemoryRouter>)
-    const input = await screen.findByLabelText('Auto-sync interval')
-    await waitFor(() => expect(input).toHaveValue(15))
-    await userEvent.clear(input)
-    await userEvent.type(input, '120')
-    await userEvent.click(screen.getByRole('button', { name: 'Save interval' }))
+    await waitFor(() => expect(input).toHaveValue('15'))
+    await userEvent.selectOptions(input, '120')
     expect(client.putSyncSettings).toHaveBeenCalledWith(120)
-    expect(await screen.findByRole('alert')).toHaveTextContent('Failed to save auto-sync interval')
+    await waitFor(() => expect(input).toHaveValue('120'))
   })
 
-  it('keeps Sync Now disabled until the background run completes', async () => {
+  it('saves a custom interval only after Save and enforces the allowed range', async () => {
     client.checkAdminAuth.mockResolvedValue({ ok: true })
-    client.triggerSync.mockResolvedValue({ success: true, message: 'Sync started' })
-    client.getSyncStatus.mockResolvedValueOnce({ inProgress: false })
-      .mockResolvedValueOnce({ inProgress: true })
-      .mockResolvedValue({ inProgress: false, success: true, message: 'Completed' })
+    client.putSyncSettings.mockResolvedValue({ intervalMinutes: 45, nextRunAt: null })
     render(<MemoryRouter><AdminPage /></MemoryRouter>)
-    await userEvent.click(await screen.findByRole('button', { name: 'Sync Now' }))
-    expect(screen.getByRole('button', { name: 'Syncing...' })).toBeDisabled()
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Sync Now' })).toBeEnabled(), { timeout: 3500 })
-    expect(client.getSyncStatus.mock.calls.length).toBeGreaterThan(2)
+    const preset = await screen.findByLabelText('Auto-sync interval')
+    await waitFor(() => expect(preset).toHaveValue('15'))
+    await userEvent.selectOptions(preset, 'custom')
+    const input = screen.getByLabelText('Custom interval in minutes')
+    await userEvent.clear(input)
+    await userEvent.type(input, '10081')
+    expect(screen.getByRole('button', { name: 'Save interval' })).toBeDisabled()
+    await userEvent.clear(input)
+    await userEvent.type(input, '45')
+    expect(client.putSyncSettings).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByRole('button', { name: 'Save interval' }))
+    expect(client.putSyncSettings).toHaveBeenCalledWith(45)
   })
 
+  it('shows the backend busy message when another operation wins the lock', async () => {
+    client.checkAdminAuth.mockResolvedValue({ ok: true })
+    client.triggerSync.mockRejectedValue({ response: { status: 409, data: 'Busy: Auto-sync is running' } })
+    render(<MemoryRouter><AdminPage /></MemoryRouter>)
+    await userEvent.click(await screen.findByRole('button', { name: 'Sync now' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Busy: Auto-sync is running')
+  })
+
+  it('passes the chosen season to the player and team repair', async () => {
+    client.checkAdminAuth.mockResolvedValue({ ok: true })
+    client.triggerQbSync.mockResolvedValue({ message: 'QB sync started' })
+    render(<MemoryRouter><AdminPage /></MemoryRouter>)
+    await userEvent.selectOptions(await screen.findByLabelText('Stats season'), '1')
+    await userEvent.click(screen.getByRole('button', { name: 'Re-sync player & team stats' }))
+    expect(client.triggerQbSync).toHaveBeenCalledWith(1)
+  })
+
+  it('requires confirmation before repairing all seasons', async () => {
+    client.checkAdminAuth.mockResolvedValue({ ok: true })
+    render(<MemoryRouter><AdminPage /></MemoryRouter>)
+    await userEvent.click(await screen.findByRole('button', { name: 'Re-sync player & team stats' }))
+    expect(client.triggerQbSync).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByRole('button', { name: 'Confirm re-sync player & team stats' }))
+    expect(client.triggerQbSync).toHaveBeenCalledWith(undefined)
+  })
+
+  it('keeps Elo Save disabled until a field changes', async () => {
+    client.checkAdminAuth.mockResolvedValue({ ok: true })
+    render(<MemoryRouter><AdminPage /></MemoryRouter>)
+    expect(await screen.findByRole('button', { name: 'Save' })).toBeDisabled()
+  })
+
+  it('shows a scheduled auto-sync without a user action and refreshes settings', async () => {
+    vi.useFakeTimers()
+    try {
+      client.checkAdminAuth.mockResolvedValue({ ok: true })
+      const idle = { pipeline: {}, qb: {}, warm: {}, settings: { intervalMinutes: 15 } }
+      client.getAdminStatus.mockResolvedValueOnce(idle).mockResolvedValue({ ...idle, pipeline: { inProgress: true, operation: 'Auto-sync', startedAt: new Date().toISOString(), message: 'Running' }, settings: { intervalMinutes: 15, lastChangedAt: new Date().toISOString() } })
+      await act(async () => { render(<MemoryRouter><AdminPage /></MemoryRouter>) })
+      expect(screen.getByText('No runs yet')).toBeInTheDocument()
+      await act(async () => { await vi.advanceTimersByTimeAsync(10000) })
+      expect(screen.getByText('Auto-sync')).toBeInTheDocument()
+      expect(screen.getByText('Waiting for Auto-sync to finish')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Sync now' })).toBeDisabled()
+      expect(screen.getByText('Data last changed').nextSibling).toHaveTextContent('0s ago')
+      await act(async () => { await vi.advanceTimersByTimeAsync(2000) })
+      expect(client.getAdminStatus).toHaveBeenCalledTimes(3)
+    } finally { vi.useRealTimers() }
+  })
+
+  it('keeps polling fast when the first status after a cache rebuild is idle', async () => {
+    vi.useFakeTimers()
+    try {
+      client.checkAdminAuth.mockResolvedValue({ ok: true })
+      client.triggerCacheWarm.mockResolvedValue({ message: 'Cache warming started' })
+      await act(async () => { render(<MemoryRouter><AdminPage /></MemoryRouter>) })
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Rebuild caches' })) })
+      const before = client.getAdminStatus.mock.calls.length
+      await act(async () => { await vi.advanceTimersByTimeAsync(2000) })
+      expect(client.getAdminStatus.mock.calls.length).toBeGreaterThan(before)
+      client.getAdminStatus.mockResolvedValue({ pipeline: { inProgress: true, operation: 'Cache rebuild' }, qb: {}, warm: { inProgress: true, message: 'Season 1 of 3' }, settings: { intervalMinutes: 15 } })
+      await act(async () => { await vi.advanceTimersByTimeAsync(2000) })
+      expect(screen.getByText('Season 1 of 3')).toBeInTheDocument()
+    } finally { vi.useRealTimers() }
+  })
+
+  it('pauses hidden polling and refreshes on visibility and focus', async () => {
+    vi.useFakeTimers()
+    try {
+      client.checkAdminAuth.mockResolvedValue({ ok: true })
+      await act(async () => { render(<MemoryRouter><AdminPage /></MemoryRouter>) })
+      const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true)
+      await act(async () => { fireEvent(document, new Event('visibilitychange')); await vi.advanceTimersByTimeAsync(20000) })
+      expect(client.getAdminStatus).toHaveBeenCalledTimes(1)
+      hidden.mockReturnValue(false)
+      await act(async () => { fireEvent(document, new Event('visibilitychange')) })
+      expect(client.getAdminStatus).toHaveBeenCalledTimes(2)
+      await act(async () => { fireEvent(window, new Event('focus')) })
+      expect(client.getAdminStatus).toHaveBeenCalledTimes(3)
+      hidden.mockRestore()
+    } finally { vi.useRealTimers() }
+  })
 })

@@ -26,7 +26,7 @@ public class SyncPipeline {
     private final Executor executor;
     private volatile boolean startup = true;
     private boolean warmRequired;
-    private volatile Status status = new Status(false, "completed", null, null, null);
+    private volatile Status status = new Status(false, "completed", null, null, null, null, null);
 
     @Autowired
     public SyncPipeline(SyncService sync, QbStatsSyncService qb, CacheWarmingService warming,
@@ -40,38 +40,43 @@ public class SyncPipeline {
         this.executor = executor;
     }
 
-    public record Status(boolean inProgress, String outcome, String message, Boolean success, Instant lastSyncTime) {}
+    public record Status(boolean inProgress, String outcome, String message, Boolean success, Instant lastSyncTime, String operation, Instant startedAt) {}
     public Status getStatus() { return status; }
     public boolean needsStartup() { return startup; }
 
     public static class BusyException extends ResponseStatusException {
-        public BusyException() { super(HttpStatus.CONFLICT, "already running"); }
+        public BusyException(String operation) { super(HttpStatus.CONFLICT, "Busy: " + operation + " is running"); }
     }
 
-    private void acquire() {
-        if (!lock.tryAcquire()) throw new BusyException();
-        status = new Status(true, "running", "Running", null, status.lastSyncTime());
+    private synchronized void acquire(String operation) {
+        if (!lock.tryAcquire()) throw new BusyException(status.operation());
+        status = new Status(true, "running", "Running", null, status.lastSyncTime(), operation, Instant.now());
     }
 
     private <T> T execute(Supplier<T> work) {
         try {
             T result = work.get();
-            status = new Status(false, "completed", "Completed", true, sync.getStatus().lastSyncTime());
+            status = new Status(false, "completed", "Completed", true, sync.getStatus().lastSyncTime(), status.operation(), status.startedAt());
             return result;
         } catch (RuntimeException | Error e) {
-            status = new Status(false, "failed", e.getMessage(), false, status.lastSyncTime());
+            status = new Status(false, "failed", e.getMessage(), false, status.lastSyncTime(), status.operation(), status.startedAt());
             throw e;
         } finally { lock.release(); }
     }
 
-    public <T> T exclusive(Supplier<T> work) { acquire(); return execute(work); }
+    public <T> T exclusive(Supplier<T> work) { return exclusive("Sync", work); }
+    public <T> T exclusive(String operation, Supplier<T> work) { acquire(operation); return execute(work); }
 
     public Map<String, Object> start(String message, Runnable work) {
-        return dispatch(message, work, () -> {});
+        return start(message, message, work);
     }
 
-    private Map<String, Object> dispatch(String message, Runnable work, Runnable validate) {
-        acquire();
+    public Map<String, Object> start(String operation, String message, Runnable work) {
+        return dispatch(operation, message, work, () -> {});
+    }
+
+    private Map<String, Object> dispatch(String operation, String message, Runnable work, Runnable validate) {
+        acquire(operation);
         boolean handedOff = false;
         try {
             validate.run();
@@ -80,15 +85,16 @@ public class SyncPipeline {
             handedOff = true;
             return response;
         } catch (RuntimeException | Error e) {
-            status = new Status(false, "failed", e.getMessage(), false, status.lastSyncTime());
+            status = new Status(false, "failed", e.getMessage(), false, status.lastSyncTime(), status.operation(), status.startedAt());
             throw e;
         } finally {
             if (!handedOff) lock.release();
         }
     }
 
-    public SyncService.SyncResult run(Mode mode) { return exclusive(() -> syncAndWarm(mode)); }
-    public Map<String, Object> start(Mode mode) { return start("Sync started", () -> syncAndWarm(mode)); }
+    public SyncService.SyncResult run(Mode mode) { return run(mode, mode == Mode.QUICK ? "Auto-sync" : mode == Mode.FORCE ? "Full re-sync" : "Nightly reconciliation"); }
+    public SyncService.SyncResult run(Mode mode, String operation) { return exclusive(operation, () -> syncAndWarm(mode)); }
+    public Map<String, Object> start(Mode mode) { return start(mode == Mode.FORCE ? "Full re-sync" : "Sync", "Sync started", () -> syncAndWarm(mode)); }
 
     public void warm() {
         warming.warmCaches();
@@ -96,7 +102,7 @@ public class SyncPipeline {
     }
 
     public Map<String, Object> startQb(Integer season) {
-        return dispatch("QB sync started" + (season == null ? "" : " for season " + season), () -> {
+        return dispatch("Player & team stats re-sync" + (season == null ? "" : " (Season " + (season + 103) + ")"), "QB sync started" + (season == null ? "" : " for season " + season), () -> {
             if (season == null) qb.syncAll(); else qb.syncAll(season);
             warm();
             if (Boolean.FALSE.equals(qb.getStatus().success())) throw new IllegalStateException(qb.getStatus().message());

@@ -64,7 +64,15 @@ public class AdminController {
     public Map<String, Object> triggerForceSync() { return pipeline.start(SyncPipeline.Mode.FORCE); }
 
     @PostMapping("/cache/warm")
-    public Map<String, Object> triggerCacheWarm() { return pipeline.start("Cache warming started", pipeline::warm); }
+    public Map<String, Object> triggerCacheWarm() { return pipeline.start("Cache rebuild", "Cache warming started", pipeline::warm); }
+
+    public record Status(SyncPipeline.Status pipeline, QbStatsSyncService.Status qb,
+                         CacheWarmingService.WarmStatus warm, SyncSettingsService.Settings settings) {}
+
+    @GetMapping("/status")
+    public Status getStatus() {
+        return new Status(pipeline.getStatus(), qbSync.getStatus(), cacheWarmingService.getStatus(), settings.view());
+    }
 
     @GetMapping("/sync/status")
     public SyncPipeline.Status getSyncStatus() { return pipeline.getStatus(); }
@@ -86,7 +94,7 @@ public class AdminController {
 
     @PostMapping("/sync/verbose")
     public Map<String, Object> triggerVerboseSync() {
-        var result = pipeline.run(SyncPipeline.Mode.FULL);
+        var result = pipeline.run(SyncPipeline.Mode.FULL, "Sync");
         return Map.of("success", result.success(), "message", result.message(), "log", result.log());
     }
 

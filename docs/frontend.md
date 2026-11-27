@@ -55,7 +55,7 @@ Two tabs:
 QB names link to the player's NeonSportz page via `rosterId`.
 
 ### AdminPage
-Passcode gate driven by `GET /api/admin/auth`. Sync controls (incremental + force with confirmation modal, QB sync), cache warming with live progress polling (2s interval while `inProgress=true`), Elo config editor, sync status display. Footer shows nightly sync schedule.
+Passcode gate driven by `GET /api/admin/auth`. A live status card leads the Sync, Maintenance, Repairs & backfills, and Elo model sections in a `max-w-3xl` layout. One `GET /api/admin/status` poll refreshes pipeline, player/team sync, cache warming and sync settings every 2s while active, every 10s idle, and immediately on focus or returning to a visible tab; hidden tabs pause polling. Actions keep fast polling for at least six seconds to catch delayed starts. The card shows operation, detailed progress, elapsed time, outcome and relative sync timestamps; locked actions explain which operation is running, and failures show backend messages. Auto-sync has interval presets and a custom minutes input. Full re-sync and all-season player/team repairs require inline confirmation; repairs and probability backfills have season selectors. Elo Save is enabled only for changes, with default hints and Reset to defaults; save responses refresh settings state. Nightly full reconciliation runs at 4am ET.
 
 ### AboutPage
 Card grids for stat definitions (PyPAT, Luck, SoS, Elo, TANY/A, RUSH+) and per-page descriptions. Data sync banner. Resource links (videos, blog posts, external references). **Adding a stat or a page means adding it here too** — this page is the user-facing contract for what every number means.
