@@ -24,6 +24,7 @@ public class CacheWarmingService {
     private static final Logger log = LoggerFactory.getLogger(CacheWarmingService.class);
 
     private final ComputeGate gate;
+    private final TeamEfficiencyService efficiency;
     private final StatsService statsService;
     private final EloHistoryService eloHistoryService;
     private final QbStatsService qbStatsService;
@@ -45,7 +46,8 @@ public class CacheWarmingService {
         return new WarmStatus(inProgress, startedAt, completedAt, message, success);
     }
 
-    public CacheWarmingService(StatsService statsService, EloHistoryService eloHistoryService, QbStatsService qbStatsService, OddsService odds, OddsSnapshotService snapshots, LeverageService leverage, ChampionshipService championship, ComputeGate gate, com.rzs.stats.playoffs.ClinchService clinch, com.rzs.stats.config.PlayoffCacheInvalidation invalidation) {
+    public CacheWarmingService(StatsService statsService, EloHistoryService eloHistoryService, QbStatsService qbStatsService, OddsService odds, OddsSnapshotService snapshots, LeverageService leverage, ChampionshipService championship, ComputeGate gate, com.rzs.stats.playoffs.ClinchService clinch, com.rzs.stats.config.PlayoffCacheInvalidation invalidation, TeamEfficiencyService efficiency) {
+        this.efficiency = efficiency;
         this.gate = gate;
         this.statsService = statsService;
         this.eloHistoryService = eloHistoryService;
@@ -57,7 +59,7 @@ public class CacheWarmingService {
         this.invalidation = invalidation;
     }
 
-    @CacheEvict(cacheResolver = CacheNames.SITE, allEntries = true, beforeInvocation = true)
+    @CacheEvict(cacheResolver = CacheNames.ALL, allEntries = true, beforeInvocation = true)
     public void warmCaches() {
         inProgress = true;
         startedAt = Instant.now();
@@ -79,7 +81,10 @@ public class CacheWarmingService {
                     statsService.getGames(season, 1, week);
                 }
                 try {
-                    qbStatsService.leaderboard(Scope.SEASON, season, null, Stage.REGULAR, null, false);
+                    for (Stage stage : Stage.values()) {
+                        qbStatsService.leaderboard(Scope.SEASON, season, null, stage, null, false);
+                        efficiency.efficiency(season, stage);
+                    }
                 } catch (Exception e) {
                     log.warn("Cache warming: QB season {} failed", season, e);
                 }

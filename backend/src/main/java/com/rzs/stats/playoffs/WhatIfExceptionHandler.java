@@ -10,4 +10,10 @@ public class WhatIfExceptionHandler {
     public ResponseEntity<String> busy() {
         return ResponseEntity.status(503).header("Retry-After", "5").body("Playoff simulations are busy; try again shortly");
     }
+
+    @ExceptionHandler(com.rzs.stats.service.SyncPipeline.BusyException.class)
+    public ResponseEntity<String> syncBusy() {
+        return ResponseEntity.status(409).body("already running");
+    }
+
 }

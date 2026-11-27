@@ -11,7 +11,7 @@ import java.util.Optional;
 
 public interface GameRepository extends JpaRepository<GameEntity, Long> {
 
-    @Query("SELECT g.gameId, g.status, g.homeScore, g.awayScore, g.weekIndex, g.seasonIndex, g.stageIndex, h.teamId, a.teamId FROM GameEntity g LEFT JOIN g.homeTeam h LEFT JOIN g.awayTeam a ORDER BY g.seasonIndex, g.gameId, g.id")
+    @Query("SELECT g.gameId, g.status, g.homeScore, g.awayScore, g.weekIndex, g.seasonIndex, g.stageIndex, h.teamId, a.teamId, g.nsPk, g.simmed FROM GameEntity g LEFT JOIN g.homeTeam h LEFT JOIN g.awayTeam a ORDER BY g.seasonIndex, g.gameId, g.id")
     @org.springframework.data.jpa.repository.QueryHints(@jakarta.persistence.QueryHint(name = "org.hibernate.fetchSize", value = "500"))
     java.util.stream.Stream<Object[]> fingerprintRows();
 
@@ -31,6 +31,9 @@ public interface GameRepository extends JpaRepository<GameEntity, Long> {
 
     @Query("SELECT g FROM GameEntity g LEFT JOIN FETCH g.homeTeam LEFT JOIN FETCH g.awayTeam WHERE g.seasonIndex = :seasonIndex")
     List<GameEntity> findBySeasonIndex(Integer seasonIndex);
+
+    @Query("SELECT g FROM GameEntity g LEFT JOIN FETCH g.homeTeam LEFT JOIN FETCH g.awayTeam WHERE g.nsPk IN :pks")
+    List<GameEntity> findByNsPkIn(List<Integer> pks);
 
     @Cacheable("seasonGames")
     @Query("SELECT g FROM GameEntity g LEFT JOIN FETCH g.homeTeam LEFT JOIN FETCH g.awayTeam WHERE g.seasonIndex = :season AND g.stageIndex = :stage AND g.weekIndex BETWEEN :minWeek AND :maxWeek AND g.status >= 2")

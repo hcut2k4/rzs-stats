@@ -18,6 +18,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest({AdminController.class, AdminAuthController.class})
 @Import(AdminTokenFilter.class)
 class AdminTokenUnsetTest {
+    @MockBean com.rzs.stats.service.SyncPipeline pipeline;
+    @MockBean com.rzs.stats.service.SyncSettingsService syncSettings;
+
 
     @Autowired MockMvc mvc;
     @MockBean com.rzs.stats.service.EloConfigService eloConfig;

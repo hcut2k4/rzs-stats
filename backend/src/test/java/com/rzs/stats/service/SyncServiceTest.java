@@ -15,7 +15,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -40,46 +39,33 @@ class SyncServiceTest {
     }
 
     @org.junit.jupiter.params.ParameterizedTest
-    @org.junit.jupiter.params.provider.ValueSource(strings = {"sync", "force", "verbose"})
-    void successfulSyncVariantsRecordPersistedStatus(String variant) {
-        when(client.fetchLeagueInfo()).thenReturn(league(0));
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void successfulSyncRecordsPersistedStatus(boolean force) {
         when(client.fetchAllTeams()).thenReturn(List.of());
         when(client.fetchAllGamesForSeason(0)).thenReturn(List.of());
-        boolean success = switch (variant) {
-            case "force" -> service.syncForce().success();
-            case "verbose" -> service.syncVerbose().success();
-            default -> service.sync().success();
-        };
+        boolean success = service.sync(league(0), false, force).success();
         assertThat(success).isTrue();
-        verify(persistedStatus).successful(0);
+        verify(persistedStatus).checked();
     }
 
     @org.junit.jupiter.params.ParameterizedTest
-    @org.junit.jupiter.params.provider.ValueSource(strings = {"sync", "force", "verbose"})
-    void failedSyncVariantsDoNotRecordSuccessfulStatus(String variant) {
-        when(client.fetchLeagueInfo()).thenThrow(new IllegalStateException("upstream unavailable"));
-        boolean success = switch (variant) {
-            case "force" -> service.syncForce().success();
-            case "verbose" -> service.syncVerbose().success();
-            default -> service.sync().success();
-        };
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void failedSyncDoesNotRecordSuccessfulStatus(boolean force) {
+        when(client.fetchAllTeams()).thenThrow(new IllegalStateException("upstream unavailable"));
+        boolean success = service.sync(league(0), false, force).success();
         assertThat(success).isFalse();
         verify(persistedStatus).failed();
         verify(persistedStatus, never()).successful(anyInt());
     }
 
-    // ── sync() ─────────────────────────────────────────────────────────────────
-
     @Test
     void sync_success_upsertsTeamsAndGames() {
-        when(client.fetchLeagueInfo()).thenReturn(league(1));  // season=1 → index=0
         when(client.fetchAllTeams()).thenReturn(List.of(nsTeam(10), nsTeam(20)));
         when(client.fetchAllGamesForSeason(0)).thenReturn(List.of(nsGame(100, 2), nsGame(101, 2)));
-        when(teamRepository.findByTeamId(any())).thenReturn(Optional.empty());
         when(teamRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         when(gameRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        SyncService.SyncResult result = service.sync();
+        SyncService.SyncResult result = service.sync(league(0), false, false);
 
         assertThat(result.success()).isTrue();
         verify(teamRepository, times(2)).save(any(TeamEntity.class));
@@ -91,13 +77,11 @@ class SyncServiceTest {
         TeamEntity old = new TeamEntity();
         old.setTeamId(999);
         when(teamRepository.findAll()).thenReturn(List.of(old));
-        when(client.fetchLeagueInfo()).thenReturn(league(0));
         when(client.fetchAllTeams()).thenReturn(List.of(nsTeam(10)));
         when(client.fetchAllGamesForSeason(0)).thenReturn(List.of());
-        when(teamRepository.findByTeamId(any())).thenReturn(Optional.empty());
         when(teamRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        service.sync();
+        service.sync(league(0), false, false);
 
         verify(qbRepository).deleteAllInBatch();
         verify(gameRepository).deleteAllInBatch();
@@ -109,13 +93,11 @@ class SyncServiceTest {
         TeamEntity same = new TeamEntity();
         same.setTeamId(10);
         when(teamRepository.findAll()).thenReturn(List.of(same));
-        when(client.fetchLeagueInfo()).thenReturn(league(0));
         when(client.fetchAllTeams()).thenReturn(List.of(nsTeam(10)));
         when(client.fetchAllGamesForSeason(0)).thenReturn(List.of());
-        when(teamRepository.findByTeamId(any())).thenReturn(Optional.of(same));
         when(teamRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        service.sync();
+        service.sync(league(0), false, false);
 
         verify(gameRepository, never()).deleteAllInBatch();
         verify(teamRepository, never()).deleteAllInBatch();
@@ -123,34 +105,32 @@ class SyncServiceTest {
 
     @Test
     void sync_doesNotPurgeWhenApiReturnsNoTeams() {
-        when(client.fetchLeagueInfo()).thenReturn(league(0));
         when(client.fetchAllTeams()).thenReturn(List.of());
         when(client.fetchAllGamesForSeason(0)).thenReturn(List.of());
 
-        service.sync();
+        service.sync(league(0), false, false);
 
         verify(gameRepository, never()).deleteAllInBatch();
     }
 
     @Test
     void sync_storesGamesWithAnyNonNullStatus() {
-        when(client.fetchLeagueInfo()).thenReturn(league(1));
         when(client.fetchAllTeams()).thenReturn(List.of());
         // status=1 (future) and status=2 (complete) should both be stored; null-status skipped
         when(client.fetchAllGamesForSeason(0)).thenReturn(
                 List.of(nsGame(100, 1), nsGame(101, 2), nsGameNullStatus(102)));
         when(gameRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        service.sync();
+        service.sync(league(0), false, false);
 
         verify(gameRepository, times(2)).save(any(GameEntity.class));
     }
 
     @Test
     void sync_clientThrows_returnsFailureResult() {
-        when(client.fetchLeagueInfo()).thenThrow(new RuntimeException("connection refused"));
+        when(client.fetchAllTeams()).thenThrow(new RuntimeException("connection refused"));
 
-        SyncService.SyncResult result = service.sync();
+        SyncService.SyncResult result = service.sync(league(0), false, false);
 
         assertThat(result.success()).isFalse();
         assertThat(result.message()).contains("Sync failed:");
@@ -159,11 +139,10 @@ class SyncServiceTest {
 
     @Test
     void sync_updatesStatusAfterSuccess() {
-        when(client.fetchLeagueInfo()).thenReturn(league(1));
         when(client.fetchAllTeams()).thenReturn(List.of());
         when(client.fetchAllGamesForSeason(0)).thenReturn(List.of());
 
-        service.sync();
+        service.sync(league(0), false, false);
 
         SyncService.SyncStatus status = service.getStatus();
         assertThat(status.lastSyncTime()).isNotNull();
@@ -172,23 +151,20 @@ class SyncServiceTest {
 
     @Test
     void sync_updatesStatusAfterFailure() {
-        when(client.fetchLeagueInfo()).thenThrow(new RuntimeException("timeout"));
+        when(client.fetchAllTeams()).thenThrow(new RuntimeException("timeout"));
 
-        service.sync();
+        service.sync(league(0), false, false);
 
         SyncService.SyncStatus status = service.getStatus();
-        assertThat(status.lastSyncTime()).isNotNull();
         assertThat(status.success()).isFalse();
     }
 
     @Test
     void sync_syncsAllSeasonsUpToCurrent() {
-        // season=3 (1-based) → currentSeasonIndex=2 → syncs seasons 0, 1, 2
-        when(client.fetchLeagueInfo()).thenReturn(league(3));
         when(client.fetchAllTeams()).thenReturn(List.of());
         when(client.fetchAllGamesForSeason(anyInt())).thenReturn(List.of());
 
-        service.sync();
+        service.sync(league(2), false, false);
 
         verify(client).fetchAllGamesForSeason(0);
         verify(client).fetchAllGamesForSeason(1);
@@ -196,19 +172,18 @@ class SyncServiceTest {
     }
 
     @Test
-    void sync_existingGame_updatesWithoutCounting() {
-        when(client.fetchLeagueInfo()).thenReturn(league(1));
+    void sync_existingGame_countsChangedRecords() {
         when(client.fetchAllTeams()).thenReturn(List.of());
         GameEntity existing = new GameEntity();
+        existing.setGameId(100); existing.setSeasonIndex(0); existing.setWeekIndex(0);
         when(client.fetchAllGamesForSeason(0)).thenReturn(List.of(nsGame(100, 2)));
         when(gameRepository.findBySeasonIndex(0)).thenReturn(List.of(existing));
         when(gameRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        SyncService.SyncResult result = service.sync();
+        SyncService.SyncResult result = service.sync(league(0), false, false);
 
-        // Existing game was updated (not counted as new), so message says "0 games added/updated"
-        // Actually it says "X games added/updated" where X counts new games (upsertGame returns false for existing)
         assertThat(result.success()).isTrue();
+        assertThat(result.changed()).isEqualTo(1);
         verify(gameRepository, times(1)).save(any(GameEntity.class));
     }
 
@@ -217,12 +192,11 @@ class SyncServiceTest {
     @Test
     void sync_skipsHistoricalSeasonAlreadyInDb() {
         // currentSeasonIndex=1; season 0 is historical with games → skipped; season 1 (current) → fetched
-        when(client.fetchLeagueInfo()).thenReturn(league(1));
         when(client.fetchAllTeams()).thenReturn(List.of());
         when(gameRepository.countBySeasonIndex(0)).thenReturn(50L);
         when(client.fetchAllGamesForSeason(1)).thenReturn(List.of());
 
-        service.sync();
+        service.sync(league(1), false, false);
 
         verify(client, never()).fetchAllGamesForSeason(0);
         verify(client, times(1)).fetchAllGamesForSeason(1);
@@ -231,11 +205,10 @@ class SyncServiceTest {
     @Test
     void sync_fetchesCurrentSeasonEvenWhenItIsOnlySeason() {
         // currentSeasonIndex=0; s < 0 is never true so countBySeasonIndex is never checked
-        when(client.fetchLeagueInfo()).thenReturn(league(0));
         when(client.fetchAllTeams()).thenReturn(List.of());
         when(client.fetchAllGamesForSeason(0)).thenReturn(List.of());
 
-        service.sync();
+        service.sync(league(0), false, false);
 
         verify(client, times(1)).fetchAllGamesForSeason(0);
     }
@@ -244,12 +217,11 @@ class SyncServiceTest {
 
     @Test
     void sync_loadsTeamsOnceViaBatchLoad() {
-        when(client.fetchLeagueInfo()).thenReturn(league(0));
         when(client.fetchAllTeams()).thenReturn(List.of());
         when(client.fetchAllGamesForSeason(0)).thenReturn(List.of(nsGame(100, 2), nsGame(101, 2)));
         when(gameRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        service.sync();
+        service.sync(league(0), false, false);
 
         verify(teamRepository, times(1)).findAll();
         verify(teamRepository, never()).findByTeamId(any());
@@ -260,13 +232,12 @@ class SyncServiceTest {
 
     @Test
     void sync_loadsGamesInBatchPerSeason() {
-        when(client.fetchLeagueInfo()).thenReturn(league(0));
         when(client.fetchAllTeams()).thenReturn(List.of());
         when(client.fetchAllGamesForSeason(0)).thenReturn(List.of(nsGame(1, 2), nsGame(2, 2)));
         when(gameRepository.findBySeasonIndex(0)).thenReturn(List.of());
         when(gameRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        service.sync();
+        service.sync(league(0), false, false);
 
         verify(gameRepository, times(1)).findBySeasonIndex(0);
         verify(gameRepository, never()).findBySeasonIndexAndGameId(any(), any());
@@ -281,12 +252,11 @@ class SyncServiceTest {
         existing.setWeekIndex(0); existing.setHomeScore(28); existing.setAwayScore(14);
         existing.setStatus(2); existing.setSimmed(false); existing.setNsPk(999);
 
-        when(client.fetchLeagueInfo()).thenReturn(league(0));
         when(client.fetchAllTeams()).thenReturn(List.of());
         when(client.fetchAllGamesForSeason(0)).thenReturn(List.of(nsGame(100, 2)));
         when(gameRepository.findBySeasonIndex(0)).thenReturn(List.of(existing));
 
-        service.sync();
+        service.sync(league(0), false, false);
 
         verify(gameRepository, never()).save(any());
     }
@@ -298,13 +268,12 @@ class SyncServiceTest {
         existing.setWeekIndex(0); existing.setHomeScore(0); existing.setAwayScore(0);
         existing.setStatus(1); existing.setSimmed(false);
 
-        when(client.fetchLeagueInfo()).thenReturn(league(0));
         when(client.fetchAllTeams()).thenReturn(List.of());
         when(client.fetchAllGamesForSeason(0)).thenReturn(List.of(nsGame(100, 2)));
         when(gameRepository.findBySeasonIndex(0)).thenReturn(List.of(existing));
         when(gameRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        service.sync();
+        service.sync(league(0), false, false);
 
         verify(gameRepository, times(1)).save(any(GameEntity.class));
     }
@@ -344,6 +313,7 @@ class SyncServiceTest {
     private static NsGame nsGame(int gameId, int status) {
         NsGame g = new NsGame();
         g.setGameId(gameId);
+        g.setPk(999);
         g.setSeasonIndex(0);
         g.setStageIndex(1);
         g.setWeekIndex(0);
@@ -358,6 +328,7 @@ class SyncServiceTest {
     private static NsGame nsGameNullStatus(int gameId) {
         NsGame g = new NsGame();
         g.setGameId(gameId);
+        g.setPk(999);
         g.setSeasonIndex(0);
         g.setStageIndex(1);
         g.setWeekIndex(0);

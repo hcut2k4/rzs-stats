@@ -58,6 +58,7 @@ class SyncFailureFlowTest {
     }
 
     @Autowired SyncService sync;
+    @Autowired NeonSportzClient client;
     @Autowired SyncStatusRepository status;
     @Autowired TeamRepository teams;
     @Autowired CacheManager caches;
@@ -69,7 +70,7 @@ class SyncFailureFlowTest {
         failGames = false; renamed = false;
         var team = new TeamEntity(); team.setTeamId(1); team.setAbbrName("A"); team.setDisplayName("Original");
         team.setConference("AFC"); team.setDivision("East"); teams.saveAndFlush(team);
-        assertThat(sync.sync().success()).isTrue();
+        assertThat(sync.sync(client.fetchLeagueInfo(), false, false).success()).isTrue();
         CacheNames.PLAYOFF.forEach(name -> caches.getCache(name).put("keep", "value"));
         SimulationService.resetSeedings();
     }
@@ -78,15 +79,11 @@ class SyncFailureFlowTest {
     static void stop() { upstream.stop(0); }
 
     @ParameterizedTest
-    @ValueSource(strings = {"sync", "force", "verbose"})
-    void failureAfterTeamUpdateRollsBackAndEvictsWithoutAdvancingSuccessfulStatus(String variant) {
+    @ValueSource(booleans = {false, true})
+    void failureAfterTeamUpdateRollsBackAndEvictsWithoutAdvancingSuccessfulStatus(boolean force) {
         var before = status.findById(1L).orElseThrow();
         renamed = true; failGames = true;
-        boolean success = switch (variant) {
-            case "force" -> sync.syncForce().success();
-            case "verbose" -> sync.syncVerbose().success();
-            default -> sync.sync().success();
-        };
+        boolean success = sync.sync(client.fetchLeagueInfo(), false, force).success();
         assertThat(success).isFalse();
         assertThat(teams.findByTeamId(1).orElseThrow().getDisplayName()).isEqualTo("Original");
         var after = status.findById(1L).orElseThrow();
@@ -98,7 +95,7 @@ class SyncFailureFlowTest {
 
     @Test
     void unchangedSyncKeepsEveryPlayoffCacheAndDoesNotSimulate() {
-        assertThat(sync.sync().success()).isTrue();
+        assertThat(sync.sync(client.fetchLeagueInfo(), false, false).success()).isTrue();
         CacheNames.PLAYOFF.forEach(name -> assertThat(caches.getCache(name).get("keep", String.class)).isEqualTo("value"));
         assertThat(SimulationService.seedings()).isZero();
     }

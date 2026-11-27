@@ -21,6 +21,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(AdminTokenFilter.class)
 @TestPropertySource(properties = "rzs.admin-token=secret")
 class AdminTokenTest {
+    @MockBean com.rzs.stats.service.SyncPipeline pipeline;
+    @MockBean com.rzs.stats.service.SyncSettingsService syncSettings;
+
 
     @Autowired MockMvc mvc;
     @MockBean com.rzs.stats.service.EloConfigService eloConfig;

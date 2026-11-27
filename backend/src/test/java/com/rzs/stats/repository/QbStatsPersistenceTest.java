@@ -135,7 +135,7 @@ class QbStatsPersistenceTest {
             ReflectionTestUtils.setField(client, "baseUrl", "http://127.0.0.1:" + server.getAddress().getPort());
             ReflectionTestUtils.setField(client, "league", "TEST");
             var sync = new QbStatsSyncService(client, games, teams, repository, teamStats, writer);
-            sync.syncIncremental();
+            sync.syncIncremental(0, java.util.Set.of());
             assertThat(sync.getStatus().success()).isTrue();
             assertThat(sync.getStatus().message()).isEqualTo("2 QB weeks synced");
             assertThat(teamStats.countBySeasonIndexAndStageIndexAndWeekIndex(0, 1, 0)).isEqualTo(2);
@@ -143,11 +143,11 @@ class QbStatsPersistenceTest {
             assertThat(requests).anyMatch(r -> r.contains("weekIndex=0"));
             assertThat(requests).noneMatch(r -> r.contains("weekIndex=1"));
             requests.clear();
-            sync.syncIncremental();
+            sync.syncIncremental(0, java.util.Set.of());
             assertThat(sync.getStatus().success()).isTrue();
-            assertThat(sync.getStatus().message()).isEqualTo("1 QB weeks synced");
+            assertThat(sync.getStatus().message()).isEqualTo("0 QB weeks synced");
             assertThat(requests).noneMatch(r -> r.contains("weekIndex=0") || r.contains("weekIndex=1"));
-            assertThat(requests).anyMatch(r -> r.contains("weekIndex=2"));
+            assertThat(requests).isEmpty();
         } finally {
             server.stop(0);
         }

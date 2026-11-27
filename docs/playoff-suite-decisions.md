@@ -44,3 +44,7 @@ Merged to local master (still unpushed). Backend 489 tests, frontend 468 tests, 
 - Process note: two Codex runs once edited one worktree at once and left it half-finished; a single reconciling run fixed it. Do not relaunch a Codex job in a worktree while its predecessor may still be running.
 
 - Admin page now has a "Backfill playoff probability history" section (season picker + button) that calls POST /api/admin/playoffs/odds/backfill. New weeks are saved automatically after each sync whose data changed (one snapshot per season and upcoming week; the first one is kept).
+
+## Frequent sync and weekly snapshots
+
+Keep the first saved snapshot for each `(season, nextWeek)`; no snapshot algorithm changes. Frequent polling captures the new baseline sooner after the prior week finishes, closer to pre-week odds than a nightly-only capture. Startup still warms after deployment, and repeated warming preserves saved snapshots.

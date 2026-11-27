@@ -32,7 +32,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "playoffs.leverage-simulations=100", "rzs.playoffs.clinch.max-remaining-games=4"})
 @AutoConfigureCache(cacheProvider = CacheType.CAFFEINE)
 @EnableCaching
-@Import({JacksonAutoConfiguration.class, CacheNames.class, ComputeGate.class, SeasonStateLoader.class,
+@Import({SyncPipeline.class, SyncSettingsService.class, SyncService.class, QbStatsSyncService.class,
+        QbStatsWeekWriter.class, CacheWarmingService.class, StatsService.class, QbStatsService.class,
+        QbStatsCalculator.class, TeamEfficiencyService.class, TeamEfficiencyCalculator.class,
+        com.rzs.stats.client.NeonSportzClient.class, LeverageService.class, JacksonAutoConfiguration.class, CacheNames.class, ComputeGate.class, SeasonStateLoader.class,
         SimulationService.class, OddsService.class, LeverageService.class, ClinchService.class, PathService.class,
         ScenarioService.class, ChampionshipService.class, PlayoffPictureService.class, WhatIfService.class,
         OddsSnapshotService.class, OddsHistoryService.class, EloQueryService.class, EloHistoryService.class,

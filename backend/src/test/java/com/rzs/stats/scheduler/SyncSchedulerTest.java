@@ -1,44 +1,34 @@
 package com.rzs.stats.scheduler;
 
-import com.rzs.stats.service.SyncService;
-import org.junit.jupiter.api.BeforeEach;
+import com.rzs.stats.service.*;
+import com.rzs.stats.model.entity.SyncSettingsEntity;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 class SyncSchedulerTest {
-
-    @Mock SyncService syncService;
-    @Mock com.rzs.stats.service.QbStatsSyncService qbSync;
-
-    @Mock com.rzs.stats.service.CacheWarmingService warming;
-
-    @InjectMocks SyncScheduler syncScheduler;
-
-    @BeforeEach
-    void setUp() {
-        when(syncService.sync()).thenReturn(new SyncService.SyncResult(true, "ok"));
+    @Test
+    void offSkipsFrequentPollsButKeepsNightlyReconciliation() {
+        var pipeline = mock(SyncPipeline.class);
+        var settings = mock(SyncSettingsService.class);
+        var row = new SyncSettingsEntity();
+        row.setIntervalMinutes(0);
+        when(settings.get()).thenReturn(row);
+        var scheduler = new SyncScheduler(pipeline, settings);
+        scheduler.tick();
+        verify(pipeline, never()).run(any());
+        scheduler.scheduledSync();
+        verify(pipeline).run(SyncPipeline.Mode.FULL);
     }
 
     @Test
-    void scheduledSync_callsSyncServiceSync() {
-        syncScheduler.scheduledSync();
-        verify(syncService, times(1)).sync();
-        verify(qbSync).syncIncremental();
-        verify(warming).warmCaches();
-    }
-
-    @Test
-    void scheduledSync_completesEvenIfSyncFails() {
-        when(syncService.sync()).thenReturn(new SyncService.SyncResult(false, "failed"));
-        assertDoesNotThrow(() -> syncScheduler.scheduledSync());
-        verifyNoInteractions(qbSync, warming);
-        verify(syncService, times(1)).sync();
+    void busyNightlyRunIsRetriedOnNextTick() {
+        var pipeline = mock(SyncPipeline.class);
+        var settings = mock(SyncSettingsService.class);
+        when(settings.get()).thenReturn(new SyncSettingsEntity());
+        when(pipeline.run(SyncPipeline.Mode.FULL)).thenThrow(new IllegalStateException("already running"));
+        var scheduler = new SyncScheduler(pipeline, settings);
+        scheduler.scheduledSync();
+        scheduler.tick();
+        verify(pipeline, times(2)).run(SyncPipeline.Mode.FULL);
     }
 }

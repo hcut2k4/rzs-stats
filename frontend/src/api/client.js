@@ -61,3 +61,6 @@ export const getPlayoffPath = (abbr, season, rules = 'madden') => api.get(`/play
 
 export const getPlayoffOddsHistory = (season, team) => api.get('/playoffs/odds/history', { params: { season, team } }).then(r => r.data)
 export const getPlayoffChampionship = (season, rules = 'madden') => api.get('/playoffs/championship', { params: { season, rules } }).then(r => r.data)
+
+export const getSyncSettings = () => api.get('/admin/sync/settings').then(r => r.data)
+export const putSyncSettings = intervalMinutes => api.put('/admin/sync/settings', { intervalMinutes }).then(r => r.data)

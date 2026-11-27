@@ -63,6 +63,13 @@ public class SyncStatusService {
     }
 
     @Transactional
+    public void checked() {
+        var row = status.findById(1L).orElseGet(SyncStatusEntity::new);
+        row.update(Instant.now(), row.getLastFingerprint());
+        status.save(row);
+    }
+
+    @Transactional
     public void successful(int season) {
         var fingerprint = fingerprint(season);
         var row = status.findById(1L).orElseGet(SyncStatusEntity::new);

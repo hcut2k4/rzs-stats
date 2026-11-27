@@ -5,16 +5,11 @@ import com.rzs.stats.client.NeonSportzClient;
 import com.rzs.stats.model.ns.NsLeague;
 import com.rzs.stats.repository.GameRepository;
 import com.rzs.stats.service.CacheWarmingService;
-import com.rzs.stats.service.SyncService;
+import com.rzs.stats.service.SyncPipeline;
+import com.rzs.stats.service.SyncSettingsService;
 import com.rzs.stats.service.EloConfigService;
 import com.rzs.stats.model.dto.EloConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
-
-import java.util.concurrent.CompletableFuture;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,9 +19,8 @@ import java.util.Map;
 @RequestMapping("/api/admin")
 public class AdminController {
 
-    private static final Logger log = LoggerFactory.getLogger(AdminController.class);
-
-    private final SyncService syncService;
+    private final SyncPipeline pipeline;
+    private final SyncSettingsService settings;
     private final NeonSportzClient client;
     private final GameRepository gameRepository;
     private final CacheWarmingService cacheWarmingService;
@@ -34,10 +28,10 @@ public class AdminController {
     private final EloConfigService eloConfig;
     private final QbStatsSyncService qbSync;
 
-    public AdminController(SyncService syncService, NeonSportzClient client, GameRepository gameRepository, CacheWarmingService cacheWarmingService, EloConfigService eloConfig, QbStatsSyncService qbSync) {
+    public AdminController(NeonSportzClient client, GameRepository gameRepository, CacheWarmingService cacheWarmingService, EloConfigService eloConfig, QbStatsSyncService qbSync, SyncPipeline pipeline, SyncSettingsService settings) {
+        this.pipeline = pipeline; this.settings = settings;
         this.eloConfig = eloConfig;
         this.qbSync = qbSync;
-        this.syncService = syncService;
         this.client = client;
         this.gameRepository = gameRepository;
         this.cacheWarmingService = cacheWarmingService;
@@ -45,14 +39,7 @@ public class AdminController {
 
     @PostMapping("/sync/qb")
     public Map<String, Object> triggerQbSync(@RequestParam(required = false) Integer season) {
-        if (season != null && (season < 0 || season > client.fetchLeagueInfo().getSeason())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid season");
-        }
-        CompletableFuture.runAsync(() -> {
-            if (season == null) qbSync.syncAll();
-            else qbSync.syncAll(season);
-        });
-        return Map.of("success", true, "message", "QB sync started" + (season == null ? "" : " for season " + season));
+        return pipeline.startQb(season);
     }
 
     @GetMapping("/sync/qb/status")
@@ -71,48 +58,25 @@ public class AdminController {
     }
 
     @PostMapping("/sync")
-    public Map<String, Object> triggerSync() {
-        log.info("Manual sync triggered");
-        CompletableFuture.runAsync(() -> {
-                    if (syncService.sync().success()) {
-                        cacheWarmingService.warmCaches();
-                        qbSync.syncIncremental();
-                    }
-                })
-                .exceptionally(ex -> {
-                    log.error("Unexpected error during async sync", ex);
-                    return null;
-                });
-        return Map.of("success", true, "message", "Sync started");
-    }
+    public Map<String, Object> triggerSync() { return pipeline.start(SyncPipeline.Mode.FULL); }
 
     @PostMapping("/sync/force")
-    public Map<String, Object> triggerForceSync() {
-        log.info("Force sync triggered");
-        CompletableFuture.runAsync(() -> {
-                    if (syncService.syncForce().success()) cacheWarmingService.warmCaches();
-                })
-                .exceptionally(ex -> {
-                    log.error("Unexpected error during async force sync", ex);
-                    return null;
-                });
-        return Map.of("success", true, "message", "Force sync started — all seasons will be re-synced");
-    }
+    public Map<String, Object> triggerForceSync() { return pipeline.start(SyncPipeline.Mode.FORCE); }
 
     @PostMapping("/cache/warm")
-    public Map<String, Object> triggerCacheWarm() {
-        log.info("Cache warming triggered");
-        CompletableFuture.runAsync(() -> cacheWarmingService.warmCaches())
-                .exceptionally(ex -> {
-                    log.error("Cache warming failed", ex);
-                    return null;
-                });
-        return Map.of("success", true, "message", "Cache warming started — all caches cleared and rebuilding");
-    }
+    public Map<String, Object> triggerCacheWarm() { return pipeline.start("Cache warming started", pipeline::warm); }
 
     @GetMapping("/sync/status")
-    public SyncService.SyncStatus getSyncStatus() {
-        return syncService.getStatus();
+    public SyncPipeline.Status getSyncStatus() { return pipeline.getStatus(); }
+
+    @GetMapping("/sync/settings")
+    public SyncSettingsService.Settings getSyncSettings() { return settings.view(); }
+
+    public record Interval(Integer intervalMinutes) {}
+
+    @PutMapping("/sync/settings")
+    public SyncSettingsService.Settings setSyncSettings(@RequestBody Interval interval) {
+        return settings.update(interval.intervalMinutes());
     }
 
     @GetMapping("/cache/warm/status")
@@ -122,8 +86,7 @@ public class AdminController {
 
     @PostMapping("/sync/verbose")
     public Map<String, Object> triggerVerboseSync() {
-        SyncService.VerboseSyncResult result = syncService.syncVerbose();
-        if (result.success()) CompletableFuture.runAsync(() -> cacheWarmingService.warmCaches());
+        var result = pipeline.run(SyncPipeline.Mode.FULL);
         return Map.of("success", result.success(), "message", result.message(), "log", result.log());
     }
 

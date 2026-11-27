@@ -32,7 +32,7 @@ class EloConfigControllerTest {
     @BeforeEach
     void setUp() {
         mvc = MockMvcBuilders.standaloneSetup(new StatsController(null, null, null, config),
-                new AdminController(null, null, null, null, config, null))
+                new AdminController(null, null, null, config, null, null, null))
                 .addFilters(new AdminTokenFilter("secret")).build();
     }
 

@@ -19,6 +19,7 @@ import static org.mockito.Mockito.*;
 
 @SpringBootTest
 class StatsCacheTest {
+    @MockBean com.rzs.stats.scheduler.SyncScheduler scheduler;
 
     @MockBean NeonSportzClient client;
     @MockBean GameRepository gameRepository;
@@ -67,30 +68,27 @@ class StatsCacheTest {
     }
 
     @Test
-    void syncAndForceSyncEvictEloAndEverySiteCache() {
+    void idleSyncAndForceSyncKeepSiteCaches() {
         for (boolean force : List.of(false, true)) {
             cacheManager.getCacheNames().forEach(name -> cacheManager.getCache(name).put("sentinel", "old"));
             eloHistoryService.getTimeline();
-            if (force) syncService.syncForce(); else syncService.sync();
+            syncService.sync(client.fetchLeagueInfo(), false, force);
             for (String name : cacheManager.getCacheNames()) {
                 if (!com.rzs.stats.config.CacheNames.PLAYOFF.contains(name))
-                    org.assertj.core.api.Assertions.assertThat(cacheManager.getCache(name).get("sentinel")).isNull();
+                    org.assertj.core.api.Assertions.assertThat(cacheManager.getCache(name).get("sentinel", String.class)).isEqualTo("old");
             }
             eloHistoryService.getTimeline();
         }
-        verify(gameRepository, times(3)).findAllForElo();
+        verify(gameRepository, times(1)).findAllForElo();
     }
 
     @Test
-    void warmingEvictsSiteCachesAndRecomputesEloEvenWithoutSeasons() {
+    void warmingEvictsAllCachesAndRecomputesEloEvenWithoutSeasons() {
         eloHistoryService.getTimeline();
         cacheManager.getCacheNames().forEach(name -> cacheManager.getCache(name).put("sentinel", "old"));
         warming.warmCaches();
-        for (String name : cacheManager.getCacheNames()) {
-            if (com.rzs.stats.config.CacheNames.PLAYOFF.contains(name))
-                org.assertj.core.api.Assertions.assertThat(cacheManager.getCache(name).get("sentinel", String.class)).isEqualTo("old");
-            else org.assertj.core.api.Assertions.assertThat(cacheManager.getCache(name).get("sentinel")).isNull();
-        }
+        for (String name : cacheManager.getCacheNames())
+            org.assertj.core.api.Assertions.assertThat(cacheManager.getCache(name).get("sentinel")).isNull();
         org.assertj.core.api.Assertions.assertThat(warming.getStatus().success()).isTrue();
         eloHistoryService.getTimeline();
         verify(gameRepository, times(2)).findAllForElo();
@@ -151,17 +149,15 @@ class StatsCacheTest {
     }
 
     @Test
-    void computeStandings_cacheEvictedAfterSync() {
+    void computeStandings_cacheKeptAfterIdleSync() {
         // Populate cache
         statsService.computeStandings(0);
         verify(gameRepository, times(1)).findRegularSeasonGames(anyInt(), anyInt(), anyInt(), anyInt());
 
-        // Evict via sync
-        syncService.sync();
+        syncService.sync(client.fetchLeagueInfo(), false, false);
 
-        // Cache cleared — next call should hit DB again
         statsService.computeStandings(0);
-        verify(gameRepository, times(2)).findRegularSeasonGames(anyInt(), anyInt(), anyInt(), anyInt());
+        verify(gameRepository, times(1)).findRegularSeasonGames(anyInt(), anyInt(), anyInt(), anyInt());
     }
 
     @Test
@@ -173,12 +169,12 @@ class StatsCacheTest {
     }
 
     @Test
-    void getAvailableSeasons_cacheEvictedAfterSync() {
+    void getAvailableSeasons_cacheKeptAfterIdleSync() {
         statsService.getAvailableSeasons();
-        syncService.sync();
+        syncService.sync(client.fetchLeagueInfo(), false, false);
         statsService.getAvailableSeasons();
 
-        verify(gameRepository, times(2)).findDistinctSeasonIndicesWithMinGames(anyLong());
+        verify(gameRepository, times(1)).findDistinctSeasonIndicesWithMinGames(anyLong());
     }
 
     @Test
@@ -200,20 +196,20 @@ class StatsCacheTest {
         verify(gameRepository, times(1)).findDistinctRegularSeasonWeeks(anyInt(), anyInt());
     }
     @Test
-    void syncAndForceSyncEvictTeamEfficiency() {
+    void idleSyncAndForceSyncKeepTeamEfficiency() {
         for (boolean force : List.of(false, true)) {
             cacheManager.getCache("teamEfficiency").put("sentinel", "old");
-            if (force) syncService.syncForce(); else syncService.sync();
-            org.assertj.core.api.Assertions.assertThat(cacheManager.getCache("teamEfficiency").get("sentinel")).isNull();
+            syncService.sync(client.fetchLeagueInfo(), false, force);
+            org.assertj.core.api.Assertions.assertThat(cacheManager.getCache("teamEfficiency").get("sentinel", String.class)).isEqualTo("old");
         }
     }
 
     @Test
-    void replacingAWeekEvictsQuarterbacksAndTeamEfficiency() {
+    void replacingAnUnchangedEmptyWeekKeepsQuarterbacksAndTeamEfficiency() {
         for (String name : List.of("qbStats", "teamEfficiency")) cacheManager.getCache(name).put("sentinel", "old");
         weekWriter.replaceWeek(0, 1, 0, List.of(), List.of());
         for (String name : List.of("qbStats", "teamEfficiency")) {
-            org.assertj.core.api.Assertions.assertThat(cacheManager.getCache(name).get("sentinel")).isNull();
+            org.assertj.core.api.Assertions.assertThat(cacheManager.getCache(name).get("sentinel", String.class)).isEqualTo("old");
         }
     }
 }

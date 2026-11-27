@@ -59,7 +59,7 @@ backend/src/main/java/com/rzs/stats/
 │                NsPassingStat, NsRushingStat, NsTeamStat,
 │                NsKickingStat, NsPuntingStat
 ├── client/  NeonSportzClient.java
-├── scheduler/  SyncScheduler.java   # nightly @Scheduled cron
+├── scheduler/  SyncScheduler.java   # one-minute ticker + nightly FULL
 └── config/
     ├── WebConfig.java              # CORS
     ├── CacheNames.java             # the ALL cache resolver — every cache name lives here
@@ -204,7 +204,8 @@ Forced runs use `SimulationService` with the baseline's season/week/rules seed, 
 | POST | `/sync` | Incremental sync — skips historical seasons |
 | POST | `/sync/force` | Re-syncs all seasons (~30 min, heavy API load) |
 | POST | `/sync/verbose` | Sync with detailed per-game log (synchronous) |
-| GET | `/sync/status` | `{lastSyncTime, lastSyncMessage, lastSyncSuccess}` |
+| GET | `/sync/status` | `{lastSyncTime, message, success, inProgress, outcome}` |
+| GET/PUT | `/sync/settings` | Persist interval and return check/change/next-run timestamps |
 | POST | `/cache/warm` | Evict all caches, rebuild async |
 | GET | `/cache/warm/status` | `{inProgress, message, completedAt, success}` |
 | POST | `/sync/qb` | Sync QB and team game stats from NeonSportz; optional `?season=N` restricts the full resync to that season |
@@ -243,11 +244,11 @@ Picture rows join the available cached season/rules baseline from `OddsService` 
 
 ## Caching
 
-Site caches keep the global Caffeine spec (maximum 500 entries, 24-hour expiry). `CacheNames.SITE` includes the pre-existing stats caches and cheap `playoffPicture`; sync, force sync, verbose sync and cache warming still evict those caches.
+Site caches keep the global Caffeine spec (maximum 500 entries, 24-hour expiry). `CacheNames.SITE` includes the pre-existing stats caches and cheap `playoffPicture`; the pipeline retains caches on idle polls and warming evicts through ALL.
 
 Expensive playoff caches use per-cache Caffeine configuration in `CacheNames`: `playoffOdds`, `playoffBaseline`, `playoffChampionship`, `leverage`, `playoffClinch`, `playoffPath`, `playoffWhatIf` and `playoffScenarios`. They have size bounds only, without time expiry (128 entries, except eight shared baselines and two scenario classifications). Cache loaders use single-flight, including programmatic Caffeine loaders for shared baselines, What-If and scenarios. The ALL resolver includes both groups for explicit invalidation.
 
-Every successful sync streams ordered scalar projections of all seasons' game IDs, status, scores, week, season, stage and participants, plus team IDs, abbreviations, display names, conference/division and Elo configuration into SHA-256; it does not load game entities. The single `sync_status` row stores `last_sync_at` and `last_fingerprint`. A changed fingerprint evicts expensive playoff caches after commit and schedules warming; an unchanged fingerprint keeps them and does no playoff warming, including after restart. Failed syncs roll back partial writes, evict playoff caches after transaction completion and preserve the persisted fingerprint and last successful sync timestamp. Elo configuration changes also invalidate playoff caches. Warming runs odds plus snapshot persistence, leverage, then Madden clinch; Path remains lazy.
+Every game/team-changing sync streams ordered scalar projections of all seasons' game IDs, status, scores, week, season, stage and participants, plus team IDs, abbreviations, display names, conference/division and Elo configuration into SHA-256; it does not load game entities. The single `sync_status` row stores `last_sync_at` and `last_fingerprint`. A changed fingerprint evicts expensive playoff caches after commit. The nontransactional pipeline then syncs QB weeks before evicting ALL and warming once. Idle polls update the successful timestamp without scanning the fingerprint. Startup always runs FULL and warms, even without changes. Failed syncs roll back partial writes, evict playoff caches after transaction completion and preserve the persisted fingerprint and last successful sync timestamp. Elo configuration changes also invalidate playoff caches. Warming runs odds plus snapshot persistence, leverage, then Madden clinch; Path remains lazy.
 
 `ComputeGate` owns one bounded executor with `playoffs.max-concurrent-computations` threads (default two). Odds, championship, leverage, What-If, Path, clinch, scenarios and historical/backfill simulation share it. Nested CPU work executes inline on its existing worker. Cache hits bypass admission. Public admission waits `playoffs.compute-timeout-ms` (default 10,000); each admitted computation has `playoffs.compute-deadline-ms` (default 30,000). Timeout or saturation returns 503 with `Retry-After: 5`; cancellation interrupts the worker and hot loops check interruption. Warming waits for admission. Input/database reads occur before dispatching CPU work so workers do not inherit request transactions.
 
@@ -257,21 +258,23 @@ Snapshot rows retain nullable internal `model_version`, `elo_config_hash`, `inpu
 
 ## Data Sync
 
-NeonSportzClient paginates via `next` links until null. SyncService:
+`SyncPipeline` coordinates QUICK, FULL and FORCE with a single-permit semaphore. Reservation happens before asynchronous dispatch, and completion releases it on the worker thread. All admin sync/warm entry points and probability backfill use this guard; busy calls return 409 with "already running". Status includes `inProgress`, `outcome` (`running`, `completed`, `failed`), message and success. The pipeline itself is not transactional: game/status writes and each QB week commit before cache warming.
 
-1. Fetches league info → current `seasonIndex`
-2. Upserts teams (key: `teamId`)
-3. For each season 0…current:
-   - Incremental mode: skips season if `count > 0` in DB
-   - Upserts games: key = `(seasonIndex, gameId)`, sets `nsPk` for URLs
-4. Persists successful sync time and fingerprint; evicts site caches and invalidates expensive playoff caches only when inputs change
+QUICK fetches league info once, then the earliest stored stage-1 week containing unplayed games and its next-lower stored week. This handles the missing playoff week 21. Without unplayed games it fetches the whole current season. Unknown teams escalate to FULL. League season, stage or week changes and the first run after startup also select FULL.
 
-`GET /api/sync/status` reads the persisted successful timestamp (ISO-8601 or null), without caching.
+FULL fetches teams with `size=100`, saving only changed metadata, reconciles all current-season games and imports empty historical seasons. FORCE reprocesses every season. Existing historical game corrections require FORCE; upstream deletions and superseded games remain out of scope. New and edited games count as changes, with both old and new weeks marked when a game moves. League purges and team changes count too. `SyncStatusService.successful()` scans the input fingerprint only after game/team changes; idle success advances the timestamp without a scan.
 
-`nsPk` is the NeonSportz URL key (e.g. `11263917`). `gameId` is an external ref ID (e.g. `544735511`) used only for deduplication — never for URLs.
+`sync_settings` is a single persisted row (id 1), created by Hibernate `ddl-auto=update`. It stores `intervalMinutes`, `lastCheckedAt`, `lastChangedAt`, `lastFullSuccessAt` and league season/stage/week. `SYNC_INTERVAL_MINUTES` seeds the interval (default 15; allowed 0, 5, 10, 15, 30, 60). GET/PUT `/api/admin/sync/settings` expose the interval, timestamps and `nextRunAt`; invalid values return 400. Off disables frequent polls. A one-minute scheduler ticker runs due polls; nightly FULL uses `SYNC_CRON` (4 AM ET) and remains due after overlap until FULL succeeds. Startup FULL always warms. This assumes one Railway instance, since the guard and caches are local to the process.
 
-### QB and team stat sync is separate
-`QbStatsSyncService` runs on its own trigger (`POST /api/admin/sync/qb`) and walks season/stage/week (optional `?season=N` rewrites every completed week of that season; omitted rewrites all seasons), with `QbStatsWeekWriter` replacing one week of QB rows and team rows together in one transaction. Traded passers are reassigned only when team sack totals and non-negative yard gaps identify a unique best move; their rushing rows follow them. Each week reads five paginated feeds (passing, rushing, teams, kicking, punting) at 100 rows a page, so a week is at least five requests and more when a feed spans pages (rushing usually does); a 429 is waited out and retried up to six times. The incremental run skips a week only when both QB and team rows exist, so the first run after deploying team stats backfills history by itself. A fresh database that has games synced can still have **zero QB rows** — the QB leaderboard and the Efficiency page will come back empty until this sync runs. Worth remembering when a local environment looks half-empty.
+Changed data evicts through `CacheNames.ALL` and warms site and playoff caches once, after QB writes. Identical QB/team refetches preserve existing rows and caches; only changed rows trigger warming. Warming includes TeamEfficiency and seasonal QB REGULAR, PLAYOFFS and BOTH tables. Manual warming remains available. Public `GET /api/sync/status` reads the persisted last successful game sync timestamp without caching.
+
+`nsPk` is the NeonSportz URL key; `gameId` is an external ref ID used for deduplication, never URLs. The client follows upstream pagination links until null.
+
+### QB and team stat sync
+
+Every poll checks database QB existence and team-row counts for completed weeks. Missing/short weeks, changed game weeks and failed weeks are fetched; idle polls make no stat HTTP requests. FULL additionally refreshes the current/previous stored weeks, or the latest two at season end, to catch missing passers and corrected kicking/punting values that row counts cannot detect. Each fetch reads passing, rushing, team, kicking and punting feeds with `size=100`. Throttling waits and retries up to six times.
+
+`QbStatsWeekWriter` replaces one week of QB and team rows together in a transaction. Its cache eviction happens before the pipeline warms, leaving QB and efficiency caches populated at completion. Traded passers are reassigned only when sack totals and nonnegative yard gaps identify a unique best move; rushing rows follow them. `/api/admin/sync/qb` manually rewrites all seasons, or just `?season=N`, under the same guard, then warms.
 
 ## N+1 Prevention
 
