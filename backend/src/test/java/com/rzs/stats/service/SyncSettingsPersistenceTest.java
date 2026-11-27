@@ -76,14 +76,16 @@ class SyncSettingsPersistenceTest {
     }
 
     @Test
-    void intervalDefaultsToFifteenAndOffPersistsWithoutNextRun() throws Exception {
-        assertThat(settings.view().intervalMinutes()).isEqualTo(15);
+    void intervalDefaultsToTwoHoursAndOffPersistsWithoutNextRun() throws Exception {
+        assertThat(settings.view().intervalMinutes()).isEqualTo(120);
         var http = MockMvcBuilders.standaloneSetup(new AdminController(null, null, null, null, null, null, settings)).build();
         http.perform(put("/api/admin/sync/settings").contentType("application/json").content("{\"intervalMinutes\":0}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.intervalMinutes").value(0))
                 .andExpect(jsonPath("$.nextRunAt").doesNotExist());
         assertThat(settingRows.findById(1L).orElseThrow().getIntervalMinutes()).isZero();
-        for (String value : List.of("1", "-1", "7", "null"))
+        http.perform(put("/api/admin/sync/settings").contentType("application/json").content("{\"intervalMinutes\":7}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.intervalMinutes").value(7));
+        for (String value : List.of("-1", "10081", "null"))
             http.perform(put("/api/admin/sync/settings").contentType("application/json").content("{\"intervalMinutes\":" + value + "}"))
                     .andExpect(status().isBadRequest());
     }
