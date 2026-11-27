@@ -27,7 +27,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DataJpaTest(showSql = false, properties = {"playoffs.simulations=100", "playoffs.compute-timeout-ms=20"})
 @AutoConfigureCache(cacheProvider = CacheType.CAFFEINE)
 @EnableCaching
-@Import({com.rzs.stats.config.CacheNames.class, com.rzs.stats.service.SyncStatusService.class, com.rzs.stats.playoffs.ComputeGate.class, SeasonStateLoader.class, OddsService.class, SimulationService.class, OddsSnapshotService.class,
+@Import({SyncPipeline.class, SyncSettingsService.class, SyncService.class, QbStatsSyncService.class,
+        QbStatsWeekWriter.class, CacheWarmingService.class, StatsService.class, QbStatsService.class,
+        QbStatsCalculator.class, TeamEfficiencyService.class, TeamEfficiencyCalculator.class,
+        com.rzs.stats.client.NeonSportzClient.class, LeverageService.class, com.rzs.stats.config.CacheNames.class, com.rzs.stats.service.SyncStatusService.class, com.rzs.stats.playoffs.ComputeGate.class, SeasonStateLoader.class, OddsService.class, SimulationService.class, OddsSnapshotService.class,
         ChampionshipService.class, OddsHistoryService.class,
         com.rzs.stats.controller.PlayoffsChampionshipController.class, com.rzs.stats.controller.PlayoffsOddsHistoryController.class,
         PlayoffsController.class, ClinchService.class, PlayoffPictureService.class, CacheNames.class, EloQueryService.class,

@@ -8,6 +8,10 @@ public class NsLeague {
     private String name;
     private Integer season;
     private Integer week;
+    private Integer stage;
+
+    public Integer getStage() { return stage; }
+    public void setStage(Integer stage) { this.stage = stage; }
 
     @JsonProperty("calendar_year")
     private Integer calendarYear;

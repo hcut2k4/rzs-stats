@@ -82,12 +82,11 @@ class TeamGamePersistenceTest {
         var replacement = new NsTeam();
         replacement.setTeamId(999);
         replacement.setAbbrName("NEW");
-        when(client.fetchLeagueInfo()).thenReturn(league);
         when(client.fetchAllTeams()).thenReturn(List.of(replacement));
         when(client.fetchAllGamesForSeason(0)).thenReturn(List.of());
         var sync = new SyncService(client, teams, games, qbs, repository, org.mockito.Mockito.mock(com.rzs.stats.service.SyncStatusService.class));
 
-        var result = sync.sync();
+        var result = sync.sync(league, false, false);
 
         assertThat(result.success()).as(result.message()).isTrue();
         assertThat(qbs.count()).isZero();

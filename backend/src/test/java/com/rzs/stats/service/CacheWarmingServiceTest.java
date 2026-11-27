@@ -25,6 +25,7 @@ class CacheWarmingServiceTest {
     @Mock OddsService odds;
     @Mock com.rzs.stats.playoffs.LeverageService leverage;
     @Mock OddsSnapshotService snapshots;
+    @Mock TeamEfficiencyService efficiency;
     CacheWarmingService warming;
 
     private com.rzs.stats.config.PlayoffCacheInvalidation invalidation() {
@@ -33,7 +34,7 @@ class CacheWarmingServiceTest {
 
     @BeforeEach
     void setUp() {
-        warming = new CacheWarmingService(stats, elo, qb, odds, snapshots, leverage, championship, new com.rzs.stats.playoffs.ComputeGate(2, 100), org.mockito.Mockito.mock(com.rzs.stats.playoffs.ClinchService.class), invalidation());
+        warming = new CacheWarmingService(stats, elo, qb, odds, snapshots, leverage, championship, new com.rzs.stats.playoffs.ComputeGate(2, 100), org.mockito.Mockito.mock(com.rzs.stats.playoffs.ClinchService.class), invalidation(), efficiency);
         lenient().when(leverage.canonicalKey(null, null)).thenReturn(new com.rzs.stats.playoffs.LeverageService.Key(2, 11));
     }
 

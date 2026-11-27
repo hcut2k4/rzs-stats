@@ -74,7 +74,11 @@ class SyncPersistenceTest {
                 () -> game.setWeekIndex(2), () -> game.setSeasonIndex(0), () -> game.setStageIndex(2),
                 () -> { home.setDisplayName("Renamed"); teams.save(home); },
                 () -> { home.setAbbrName("REN"); teams.save(home); }, () -> { home.setConference("NFC"); teams.save(home); },
-                () -> { home.setDivision("South"); teams.save(home); });
+                () -> { home.setDivision("South"); teams.save(home); },
+                () -> { home.setPrimaryColor("123456"); teams.save(home); },
+                () -> { home.setLogoId(42); teams.save(home); },
+                () -> { home.setNickname("New nickname"); teams.save(home); },
+                () -> { home.setCityName("New city"); teams.save(home); });
         for (var mutate : mutations) {
             caches.getCache("playoffOdds").put("old", "value");
             String previous = rows.findById(1L).orElseThrow().getLastFingerprint();

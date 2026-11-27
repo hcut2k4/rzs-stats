@@ -48,7 +48,7 @@ public class NeonSportzClient {
     }
 
     public List<NsTeam> fetchAllTeams() {
-        String url = baseUrl + "/leagues/" + league + "/teams/";
+        String url = baseUrl + "/leagues/" + league + "/teams/?size=100";
         return fetchAllPages(url, new ParameterizedTypeReference<NsPagedResponse<NsTeam>>() {});
     }
 
@@ -56,6 +56,11 @@ public class NeonSportzClient {
     // from the API response. We use size=500 to minimize pagination round-trips.
     public List<NsGame> fetchAllGamesForSeason(int seasonIndex) {
         String url = baseUrl + "/leagues/" + league + "/games/?seasonIndex=" + seasonIndex + "&size=500";
+        return fetchAllPages(url, new ParameterizedTypeReference<NsPagedResponse<NsGame>>() {});
+    }
+
+    public List<NsGame> fetchGamesForWeek(int season, int week) {
+        String url = baseUrl + "/leagues/" + league + "/games/?seasonIndex=" + season + "&weekIndex=" + week + "&size=100";
         return fetchAllPages(url, new ParameterizedTypeReference<NsPagedResponse<NsGame>>() {});
     }
 

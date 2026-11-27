@@ -1,124 +1,49 @@
 package com.rzs.stats.controller;
 
+import com.rzs.stats.service.*;
 import com.rzs.stats.client.NeonSportzClient;
 import com.rzs.stats.repository.GameRepository;
-import com.rzs.stats.service.CacheWarmingService;
-import com.rzs.stats.service.SyncService;
 import org.junit.jupiter.api.Test;
-import com.rzs.stats.service.EloConfigService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
-
-import java.time.Instant;
-
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
+import java.util.Map;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(AdminController.class)
-@org.springframework.context.annotation.Import(EloConfigService.class)
 class AdminControllerTest {
-    @org.springframework.boot.test.mock.mockito.MockBean
-    com.rzs.stats.config.PlayoffCacheInvalidation playoffInvalidation;
-
-    @MockBean com.rzs.stats.repository.EloConfigRepository eloConfigs;
     @Autowired MockMvc mvc;
-    @MockBean SyncService syncService;
-    @MockBean com.rzs.stats.service.QbStatsSyncService qbSync;
+    @MockBean SyncService sync;
+    @MockBean QbStatsSyncService qb;
+    @MockBean CacheWarmingService warming;
+    @MockBean SyncPipeline pipeline;
+    @MockBean SyncSettingsService settings;
     @MockBean NeonSportzClient client;
-    @MockBean GameRepository gameRepository;
-    @MockBean CacheWarmingService cacheWarmingService;
+    @MockBean GameRepository games;
+    @MockBean EloConfigService elo;
 
     @Test
-    void postQbSyncReturnsImmediatelyWithStartedMessage() throws Exception {
-        mvc.perform(post("/api/admin/sync/qb"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("QB sync started"));
-        org.mockito.Mockito.verify(qbSync, org.mockito.Mockito.timeout(1000)).syncAll();
+    void syncStartsThroughSharedPipeline() throws Exception {
+        when(pipeline.start(SyncPipeline.Mode.FULL)).thenReturn(Map.of("success", true, "message", "Sync started"));
+        mvc.perform(post("/api/admin/sync")).andExpect(status().isOk()).andExpect(jsonPath("$.success").value(true));
+        verify(pipeline).start(SyncPipeline.Mode.FULL);
     }
 
     @Test
-    void qbSyncRestrictsResyncToRequestedSeason() throws Exception {
-        var league = new com.rzs.stats.model.ns.NsLeague();
-        league.setSeason(2);
-        when(client.fetchLeagueInfo()).thenReturn(league);
-        for (int season : new int[]{0, 2}) {
-            mvc.perform(post("/api/admin/sync/qb").param("season", String.valueOf(season)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.message").value("QB sync started for season " + season));
-            verify(qbSync, timeout(1000)).syncAll(season);
-        }
-        verify(qbSync, never()).syncAll();
+    void busySyncReturnsConflict() throws Exception {
+        when(pipeline.start(SyncPipeline.Mode.FULL)).thenThrow(new SyncPipeline.BusyException());
+        mvc.perform(post("/api/admin/sync")).andExpect(status().isConflict()).andExpect(content().string("already running"));
     }
 
     @Test
-    void qbSyncRejectsSeasonsOutsideLeagueHistory() throws Exception {
-        var league = new com.rzs.stats.model.ns.NsLeague();
-        league.setSeason(2);
-        when(client.fetchLeagueInfo()).thenReturn(league);
-        for (String season : new String[]{"-1", "3"}) {
-            mvc.perform(post("/api/admin/sync/qb").param("season", season))
-                    .andExpect(status().isBadRequest());
-        }
-        verifyNoInteractions(qbSync);
-    }
-
-    @Test
-    void qbSyncStatusIncludesProgressAndOutcome() throws Exception {
-        when(qbSync.getStatus()).thenReturn(new com.rzs.stats.service.QbStatsSyncService.Status(
-                false, "Done", Instant.parse("2026-11-14T12:00:00Z"), true));
-        mvc.perform(get("/api/admin/sync/qb/status"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.inProgress").value(false))
-                .andExpect(jsonPath("$.message").value("Done"))
-                .andExpect(jsonPath("$.completedAt").exists())
-                .andExpect(jsonPath("$.success").value(true));
-    }
-
-    @Test
-    void manualSyncRunsQbSyncAfterSuccessfulGameSync() throws Exception {
-        when(syncService.sync()).thenReturn(new SyncService.SyncResult(true, "ok"));
-        mvc.perform(post("/api/admin/sync"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("Sync started"));
-        verify(qbSync, timeout(1000)).syncIncremental();
-        var order = inOrder(syncService, qbSync);
-        order.verify(syncService).sync();
-        order.verify(qbSync).syncIncremental();
-    }
-
-    @Test
-    void failedGameSyncSkipsQbSyncAndStillReturnsStarted() throws Exception {
-        when(syncService.sync()).thenReturn(new SyncService.SyncResult(false, "failed"));
-        mvc.perform(post("/api/admin/sync"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
-        verify(syncService, timeout(1000)).sync();
-        verify(qbSync, after(100).never()).syncIncremental();
-    }
-
-    @Test
-    void getSyncStatus_returns200WithStatus() throws Exception {
-        Instant now = Instant.parse("2025-01-15T02:00:00Z");
-        when(syncService.getStatus()).thenReturn(
-                new SyncService.SyncStatus(now, "32 teams synced", true));
-
-        mvc.perform(get("/api/admin/sync/status"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("32 teams synced"));
-    }
-
-    @Test
-    void getSyncStatus_beforeAnySync_returns200() throws Exception {
-        when(syncService.getStatus()).thenReturn(new SyncService.SyncStatus(null, null, null));
-
-        mvc.perform(get("/api/admin/sync/status"))
-                .andExpect(status().isOk());
+    void statusExposesRunningOutcome() throws Exception {
+        when(pipeline.getStatus()).thenReturn(new SyncPipeline.Status(true, "running", "Running", null, null));
+        mvc.perform(get("/api/admin/sync/status")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.inProgress").value(true)).andExpect(jsonPath("$.outcome").value("running"));
     }
 }

@@ -46,9 +46,11 @@ public class QbStatsSyncService {
 
     public record Status(boolean inProgress, String message, Instant completedAt, Boolean success) {}
     public Status getStatus() { return status; }
-    public void syncIncremental() { sync(false, null); }
+    public int syncIncremental(int current, Set<SyncService.Week> changedWeeks) {
+        return sync(false, null, current, changedWeeks);
+    }
     public void syncAll() { syncAll(null); }
-    public void syncAll(Integer season) { sync(true, season); }
+    public void syncAll(Integer season) { sync(true, season, client.fetchLeagueInfo().getSeason(), Set.of()); }
 
     private synchronized boolean begin(Integer season) {
         if (status.inProgress()) return false;
@@ -56,34 +58,40 @@ public class QbStatsSyncService {
         return true;
     }
 
-    private void sync(boolean full, Integer requestedSeason) {
-        if (!begin(requestedSeason)) return;
+    private final Set<SyncService.Week> pending = new HashSet<>();
+
+    private int sync(boolean full, Integer requestedSeason, int current, Set<SyncService.Week> changedWeeks) {
+        if (!begin(requestedSeason)) return 0;
+        pending.addAll(changedWeeks);
+        int weeksSynced = 0;
+        int changed = 0;
         try {
-            int current = client.fetchLeagueInfo().getSeason();
             Map<String, TeamEntity> byAbbr = teams.findAll().stream().collect(Collectors.toMap(TeamEntity::getAbbrName, t -> t));
-            int weeksSynced = 0;
             for (int season = requestedSeason == null ? 0 : requestedSeason;
                  season <= (requestedSeason == null ? current : requestedSeason); season++) {
                 List<GameEntity> completed = games.findCompletedInScope(season, 0, 22);
-                List<Integer> weeks = completed.stream().map(g -> g.getWeekIndex()).distinct().sorted().toList();
-                int latest = weeks.stream().mapToInt(Integer::intValue).max().orElse(-1);
+                final int seasonIndex = season;
+                List<Integer> weeks = java.util.stream.Stream.concat(completed.stream().map(GameEntity::getWeekIndex),
+                        pending.stream().filter(w -> w.season() == seasonIndex).map(SyncService.Week::week)).distinct().sorted().toList();
                 for (int week : weeks) {
                     Set<String> completedTeams = new HashSet<>();
                     completed.stream().filter(g -> g.getWeekIndex() == week).forEach(g -> {
                         if (g.getHomeTeam() != null) completedTeams.add(g.getHomeTeam().getAbbrName());
                         if (g.getAwayTeam() != null) completedTeams.add(g.getAwayTeam().getAbbrName());
                     });
-                    if (!full && !(season == current && week == latest)
+                    if (!full && !pending.contains(new SyncService.Week(season, week))
                             && repository.existsBySeasonIndexAndStageIndexAndWeekIndex(season, 1, week)
                             && teamRepository.countBySeasonIndexAndStageIndexAndWeekIndex(season, 1, week) >= completedTeams.size()) continue;
+                    pending.add(new SyncService.Week(season, week));
                     status = new Status(true, "Syncing QB season " + season + ", week " + week, null, null);
                     List<NsPassingStat> passing = client.fetchPassingStats(season, 1, week);
                     List<NsRushingStat> rushing = client.fetchRushingStats(season, 1, week);
                     List<NsTeamStat> teamStats = client.fetchTeamsStats(season, 1, week);
                     List<NsKickingStat> kicking = client.fetchKickingStats(season, 1, week);
                     List<NsPuntingStat> punting = client.fetchPuntingStats(season, 1, week);
-                    writer.replaceWeek(season, 1, week, buildRows(season, week, passing, rushing, teamStats, byAbbr, completedTeams),
-                            buildTeamRows(season, week, passing, rushing, teamStats, kicking, punting, byAbbr, completedTeams));
+                    if (writer.replaceWeek(season, 1, week, buildRows(season, week, passing, rushing, teamStats, byAbbr, completedTeams),
+                            buildTeamRows(season, week, passing, rushing, teamStats, kicking, punting, byAbbr, completedTeams))) changed++;
+                    pending.remove(new SyncService.Week(season, week));
                     weeksSynced++;
                 }
             }
@@ -92,6 +100,7 @@ public class QbStatsSyncService {
             status = new Status(false, "QB sync failed" + (requestedSeason == null ? "" : " for season " + requestedSeason) + ": " + e.getMessage(), Instant.now(), false);
             log.error("QB sync failed", e);
         }
+        return changed;
     }
 
     List<QbGameStatEntity> buildRows(int season, int week, List<NsPassingStat> passing, List<NsRushingStat> rushing,

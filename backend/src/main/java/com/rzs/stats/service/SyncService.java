@@ -2,7 +2,6 @@ package com.rzs.stats.service;
 
 import com.rzs.stats.repository.QbGameStatRepository;
 import com.rzs.stats.repository.TeamGameStatRepository;
-import com.rzs.stats.config.CacheNames;
 import com.rzs.stats.client.NeonSportzClient;
 import com.rzs.stats.model.entity.GameEntity;
 import com.rzs.stats.model.entity.TeamEntity;
@@ -13,7 +12,6 @@ import com.rzs.stats.repository.GameRepository;
 import com.rzs.stats.repository.TeamRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -54,294 +51,112 @@ public class SyncService {
         this.gameRepository = gameRepository;
     }
 
-    @CacheEvict(cacheResolver = CacheNames.SITE, allEntries = true)
+    public List<Integer> refreshWindow(int season) {
+        var window = quickWindow(season);
+        if (!window.isEmpty()) return window;
+        return gameRepository.findBySeasonIndex(season).stream().filter(g -> Integer.valueOf(1).equals(g.getStageIndex()))
+                .map(GameEntity::getWeekIndex).distinct().sorted(java.util.Comparator.reverseOrder()).limit(2).toList();
+    }
+
     @Transactional
-    public SyncResult sync() {
-        int teamsUpserted = 0;
-        int gamesAdded = 0;
-
+    public SyncResult sync(NsLeague league, boolean quick, boolean force) {
+        int changed = 0;
+        Set<Week> changedWeeks = new java.util.HashSet<>();
+        List<String> details = new ArrayList<>();
+        details.add("[LEAGUE] season=" + league.getSeason() + ", stage=" + league.getStage() + ", week=" + league.getWeek());
         try {
-            log.info("Sync started");
-            NsLeague league = client.fetchLeagueInfo();
-            // season from API is 1-based and matches the seasonIndex used in game requests
-            int currentSeasonIndex = league.getSeason();
-            log.info("Current season index: {}", currentSeasonIndex);
-
-            // Sync teams
-            List<NsTeam> nsTeams = client.fetchAllTeams();
-            purgeIfLeagueReplaced(nsTeams);
-            for (NsTeam nsTeam : nsTeams) {
-                upsertTeam(nsTeam);
-                teamsUpserted++;
+            int current = league.getSeason();
+            List<TeamEntity> storedTeams = teamRepository.findAll();
+            Map<Integer, TeamEntity> byId = new HashMap<>();
+            Map<Integer, TeamEntity> byNsId = new HashMap<>();
+            storedTeams.forEach(t -> { byId.put(t.getTeamId(), t); byNsId.put(t.getNsId(), t); });
+            List<NsGame> incoming = new ArrayList<>();
+            if (quick) {
+                List<Integer> window = quickWindow(current);
+                if (window.isEmpty()) incoming.addAll(client.fetchAllGamesForSeason(current));
+                else for (int week : window) incoming.addAll(client.fetchGamesForWeek(current, week));
+                if (incoming.stream().anyMatch(g -> (g.getHomeTeam() != null && resolveTeam(g.getHomeTeam(), byId, byNsId) == null)
+                        || (g.getAwayTeam() != null && resolveTeam(g.getAwayTeam(), byId, byNsId) == null))) quick = false;
             }
-            log.info("Teams synced: {}", teamsUpserted);
-
-            // Batch-load all teams for O(1) lookup during game sync
-            Map<Integer, TeamEntity> teamsByTeamId = new HashMap<>();
-            Map<Integer, TeamEntity> teamsByNsId = new HashMap<>();
-            teamRepository.findAll().forEach(t -> {
-                if (t.getTeamId() != null) teamsByTeamId.put(t.getTeamId(), t);
-                if (t.getNsId() != null) teamsByNsId.put(t.getNsId(), t);
-            });
-
-            // Sync seasons: skip historical seasons already fully stored in DB
-            for (int s = 0; s <= currentSeasonIndex; s++) {
-                if (s < currentSeasonIndex) {
-                    long count = gameRepository.countBySeasonIndex(s);
-                    log.info("Season {}/{}: {} games in DB", s, currentSeasonIndex, count);
-                    if (count > 0) {
-                        log.info("Skipping season {}/{} (already synced)", s, currentSeasonIndex);
-                        continue;
+            if (!quick) {
+                List<NsTeam> nsTeams = client.fetchAllTeams();
+                Set<Integer> ids = nsTeams.stream().map(NsTeam::getTeamId).collect(Collectors.toSet());
+                if (!storedTeams.isEmpty() && !ids.isEmpty() && storedTeams.stream().noneMatch(t -> ids.contains(t.getTeamId()))) {
+                    qbRepository.deleteAllInBatch();
+                    teamStatRepository.deleteAllInBatch();
+                    gameRepository.deleteAllInBatch();
+                    teamRepository.deleteAllInBatch();
+                    byId.clear(); byNsId.clear(); changed++;
+                    details.add("[PURGE] League replaced; removed stored games and teams");
+                }
+                for (NsTeam ns : nsTeams) {
+                    TeamEntity team = byId.getOrDefault(ns.getTeamId(), new TeamEntity());
+                    if (team.getId() == null || !Objects.equals(team.getNsId(), ns.getId())
+                            || !Objects.equals(team.getDisplayName(), ns.getDisplayName())
+                            || !Objects.equals(team.getNickname(), ns.getNickName())
+                            || !Objects.equals(team.getCityName(), ns.getCityName())
+                            || !Objects.equals(team.getAbbrName(), ns.getAbbrName())
+                            || !Objects.equals(team.getConference(), ns.getConferenceName())
+                            || !Objects.equals(team.getDivision(), ns.getDivisionName())
+                            || !Objects.equals(team.getPrimaryColor(), ns.getPrimaryColor())
+                            || !Objects.equals(team.getLogoId(), ns.getLogoId())) {
+                        team.setTeamId(ns.getTeamId()); team.setNsId(ns.getId());
+                        team.setDisplayName(ns.getDisplayName()); team.setNickname(ns.getNickName());
+                        team.setCityName(ns.getCityName()); team.setAbbrName(ns.getAbbrName());
+                        team.setConference(ns.getConferenceName()); team.setDivision(ns.getDivisionName());
+                        team.setPrimaryColor(ns.getPrimaryColor()); team.setLogoId(ns.getLogoId());
+                        teamRepository.save(team); changed++;
+                        details.add("[TEAM] Updated " + ns.getDisplayName() + " (teamId=" + ns.getTeamId() + ")");
                     }
-                } else {
-                    log.info("Season {}/{}: current season (always sync)", s, currentSeasonIndex);
+                    byId.put(team.getTeamId(), team); byNsId.put(team.getNsId(), team);
                 }
-                gamesAdded += syncGamesForSeason(s, teamsByTeamId, teamsByNsId);
-            }
-
-            String message = teamsUpserted + " teams synced, " + gamesAdded + " games added/updated";
-            lastSyncTime = Instant.now();
-            lastSyncMessage = message;
-            persistedStatus.successful(currentSeasonIndex);
-            lastSyncSuccess = true;
-            log.info("Sync completed: {}", message);
-            return new SyncResult(true, message);
-
-        } catch (Exception e) {
-            persistedStatus.failed();
-            String message = "Sync failed: " + e.getMessage();
-            lastSyncTime = Instant.now();
-            lastSyncMessage = message;
-            lastSyncSuccess = false;
-            log.error("Sync failed after {} teams, {} games", teamsUpserted, gamesAdded, e);
-            return new SyncResult(false, message);
-        }
-    }
-
-    @CacheEvict(cacheResolver = CacheNames.SITE, allEntries = true)
-    @Transactional
-    public SyncResult syncForce() {
-        int teamsUpserted = 0;
-        int gamesAdded = 0;
-
-        try {
-            log.info("Force sync started — all seasons will be re-synced");
-            NsLeague league = client.fetchLeagueInfo();
-            int currentSeasonIndex = league.getSeason();
-            log.info("Current season index: {}", currentSeasonIndex);
-
-            List<NsTeam> nsTeams = client.fetchAllTeams();
-            purgeIfLeagueReplaced(nsTeams);
-            for (NsTeam nsTeam : nsTeams) {
-                upsertTeam(nsTeam);
-                teamsUpserted++;
-            }
-            log.info("Teams synced: {}", teamsUpserted);
-
-            Map<Integer, TeamEntity> teamsByTeamId = new HashMap<>();
-            Map<Integer, TeamEntity> teamsByNsId = new HashMap<>();
-            teamRepository.findAll().forEach(t -> {
-                if (t.getTeamId() != null) teamsByTeamId.put(t.getTeamId(), t);
-                if (t.getNsId() != null) teamsByNsId.put(t.getNsId(), t);
-            });
-
-            for (int s = 0; s <= currentSeasonIndex; s++) {
-                log.info("Force syncing season {}/{}", s, currentSeasonIndex);
-                gamesAdded += syncGamesForSeason(s, teamsByTeamId, teamsByNsId);
-            }
-
-            String message = teamsUpserted + " teams synced, " + gamesAdded + " games added/updated";
-            lastSyncTime = Instant.now();
-            lastSyncMessage = message;
-            persistedStatus.successful(currentSeasonIndex);
-            lastSyncSuccess = true;
-            log.info("Force sync completed: {}", message);
-            return new SyncResult(true, message);
-
-        } catch (Exception e) {
-            persistedStatus.failed();
-            String message = "Force sync failed: " + e.getMessage();
-            lastSyncTime = Instant.now();
-            lastSyncMessage = message;
-            lastSyncSuccess = false;
-            log.error("Force sync failed after {} teams, {} games", teamsUpserted, gamesAdded, e);
-            return new SyncResult(false, message);
-        }
-    }
-
-    @CacheEvict(cacheResolver = CacheNames.SITE, allEntries = true)
-    @Transactional
-    public VerboseSyncResult syncVerbose() {
-        List<String> log = new ArrayList<>();
-        int teamsUpserted = 0;
-        int gamesAdded = 0;
-
-        try {
-            NsLeague league = client.fetchLeagueInfo();
-            int currentSeasonIndex = league.getSeason();
-            log.add("[LEAGUE] season=" + league.getSeason() + ", week=" + league.getWeek() + ", calendarYear=" + league.getCalendarYear());
-
-            List<NsTeam> nsTeams = client.fetchAllTeams();
-            log.add("[TEAMS] API returned " + nsTeams.size() + " teams");
-            purgeIfLeagueReplaced(nsTeams);
-            for (NsTeam nsTeam : nsTeams) {
-                upsertTeam(nsTeam);
-                log.add("[TEAMS] Upserted: " + nsTeam.getDisplayName() + " (teamId=" + nsTeam.getTeamId() + ", nsId=" + nsTeam.getId() + ")");
-                teamsUpserted++;
-            }
-
-            Map<Integer, TeamEntity> teamsByTeamId = new HashMap<>();
-            Map<Integer, TeamEntity> teamsByNsId = new HashMap<>();
-            teamRepository.findAll().forEach(t -> {
-                if (t.getTeamId() != null) teamsByTeamId.put(t.getTeamId(), t);
-                if (t.getNsId() != null) teamsByNsId.put(t.getNsId(), t);
-            });
-
-            for (int s = 0; s <= currentSeasonIndex; s++) {
-                if (s < currentSeasonIndex && gameRepository.countBySeasonIndex(s) > 0) {
-                    log.add("[SEASON " + s + "] Skipping (already synced)");
-                    continue;
+                incoming.clear();
+                for (int season = 0; season <= current; season++) {
+                    if (!force && season < current && gameRepository.countBySeasonIndex(season) > 0) continue;
+                    incoming.addAll(client.fetchAllGamesForSeason(season));
                 }
-                int[] result = syncGamesForSeasonVerbose(s, log, teamsByTeamId, teamsByNsId);
-                gamesAdded += result[0];
             }
-
-            String message = teamsUpserted + " teams synced, " + gamesAdded + " games added/updated";
+            Map<Integer, Map<Integer, GameEntity>> existing = new HashMap<>();
+            for (NsGame game : incoming) existing.computeIfAbsent(game.getSeasonIndex(), season -> gameRepository.findBySeasonIndex(season)
+                    .stream().collect(Collectors.toMap(GameEntity::getGameId, g -> g)));
+            var newPks = incoming.stream().filter(g -> !existing.get(g.getSeasonIndex()).containsKey(g.getGameId()))
+                    .map(NsGame::getPk).filter(Objects::nonNull).distinct().toList();
+            Map<Integer, GameEntity> byPk = newPks.isEmpty() ? Map.of() : gameRepository.findByNsPkIn(newPks).stream()
+                    .collect(Collectors.toMap(GameEntity::getNsPk, g -> g));
+            for (NsGame game : incoming) {
+                if (game.getStatus() == null) continue;
+                var seasonGames = existing.get(game.getSeasonIndex());
+                if (!seasonGames.containsKey(game.getGameId()) && game.getPk() != null && byPk.containsKey(game.getPk()))
+                    seasonGames.put(game.getGameId(), byPk.get(game.getPk()));
+                Change outcome = upsertGame(game, seasonGames, byId, byNsId, changedWeeks);
+                if (outcome != Change.UNCHANGED) changed++;
+                details.add("[GAME] season=" + game.getSeasonIndex() + ", week=" + game.getWeekIndex()
+                        + ", gameId=" + game.getGameId() + ": " + outcome);
+            }
             lastSyncTime = Instant.now();
-            lastSyncMessage = message;
-            persistedStatus.successful(currentSeasonIndex);
+            lastSyncMessage = changed == 0 ? "No changes" : changed + " records changed";
             lastSyncSuccess = true;
-            log.add("[DONE] " + message);
-            return new VerboseSyncResult(true, message, log);
-
+            if (changed > 0) persistedStatus.successful(current);
+            else persistedStatus.checked();
+            log.info("Sync completed: {}", lastSyncMessage);
+            return new SyncResult(true, lastSyncMessage, changed, Set.copyOf(changedWeeks), List.copyOf(details), !quick);
         } catch (Exception e) {
             persistedStatus.failed();
-            String message = "Sync failed: " + e.getMessage();
-            lastSyncTime = Instant.now();
-            lastSyncMessage = message;
+            lastSyncMessage = "Sync failed: " + e.getMessage();
             lastSyncSuccess = false;
-            log.add("[ERROR] " + message);
-            return new VerboseSyncResult(false, message, log);
+            log.error("Sync failed", e);
+            return new SyncResult(false, lastSyncMessage);
         }
     }
 
-    private int[] syncGamesForSeasonVerbose(int seasonIndex, List<String> log,
-                                             Map<Integer, TeamEntity> teamsByTeamId,
-                                             Map<Integer, TeamEntity> teamsByNsId) {
-        List<NsGame> games = client.fetchAllGamesForSeason(seasonIndex);
-        if (games.isEmpty()) {
-            log.add("[SEASON " + seasonIndex + "] API returned 0 games — skipping");
-            return new int[]{0};
-        }
-        log.add("[SEASON " + seasonIndex + "] API returned " + games.size() + " games");
-
-        Map<Integer, GameEntity> existingByGameId = gameRepository.findBySeasonIndex(seasonIndex)
-                .stream().collect(Collectors.toMap(GameEntity::getGameId, g -> g));
-
-        int stored = 0, skippedStatus = 0;
-        TreeMap<Integer, int[]> weekStats = new TreeMap<>();
-
-        for (NsGame nsGame : games) {
-            if (nsGame.getStatus() == null) {
-                skippedStatus++;
-                continue;
-            }
-            int week = nsGame.getWeekIndex() != null ? nsGame.getWeekIndex() : -1;
-            weekStats.putIfAbsent(week, new int[]{0, 0});
-            if (upsertGameVerbose(nsGame, log, weekStats, week, existingByGameId, teamsByTeamId, teamsByNsId)) stored++;
-        }
-
-        if (skippedStatus > 0) log.add("[SEASON " + seasonIndex + "] Skipped " + skippedStatus + " — null status");
-
-        int totalNullTeam = weekStats.values().stream().mapToInt(a -> a[1]).sum();
-        log.add("[SEASON " + seasonIndex + "] Stored " + (games.size() - skippedStatus) +
-                " — team resolved: " + ((games.size() - skippedStatus) - totalNullTeam) +
-                ", null team: " + totalNullTeam);
-
-        for (var entry : weekStats.entrySet()) {
-            int wk = entry.getKey();
-            int wkNull = entry.getValue()[1];
-            if (wkNull > 0) {
-                log.add("[SEASON " + seasonIndex + "] Week " + wk + ": " + entry.getValue()[0] + " stored, " + wkNull + " null team");
-            }
-        }
-        return new int[]{stored};
-    }
-
-    private boolean upsertGameVerbose(NsGame ns, List<String> log, TreeMap<Integer, int[]> weekStats, int week,
-                                       Map<Integer, GameEntity> existingByGameId,
-                                       Map<Integer, TeamEntity> teamsByTeamId,
-                                       Map<Integer, TeamEntity> teamsByNsId) {
-        GameEntity existing = existingByGameId.get(ns.getGameId());
-        boolean isNew = existing == null;
-        GameEntity game = isNew ? new GameEntity() : existing;
-
-        TeamEntity resolvedHome = ns.getHomeTeam() != null ? resolveTeam(ns.getHomeTeam(), teamsByTeamId, teamsByNsId) : null;
-        TeamEntity resolvedAway = ns.getAwayTeam() != null ? resolveTeam(ns.getAwayTeam(), teamsByTeamId, teamsByNsId) : null;
-        boolean homeResolved = resolvedHome != null;
-        boolean awayResolved = resolvedAway != null;
-
-        if (!homeResolved && ns.getHomeTeam() != null) {
-            log.add("[SEASON " + ns.getSeasonIndex() + "] Week " + week + " gameId=" + ns.getGameId() +
-                    " homeTeam NOT resolved (id=" + ns.getHomeTeam().getId() + ", teamId=" + ns.getHomeTeam().getTeamId() + ")");
-        }
-        if (!awayResolved && ns.getAwayTeam() != null) {
-            log.add("[SEASON " + ns.getSeasonIndex() + "] Week " + week + " gameId=" + ns.getGameId() +
-                    " awayTeam NOT resolved (id=" + ns.getAwayTeam().getId() + ", teamId=" + ns.getAwayTeam().getTeamId() + ")");
-        }
-
-        if (!homeResolved || !awayResolved) weekStats.get(week)[1]++;
-        weekStats.get(week)[0]++;
-
-        if (!isNew) {
-            boolean teamChanged = !Objects.equals(
-                    existing.getHomeTeam() != null ? existing.getHomeTeam().getId() : null,
-                    resolvedHome != null ? resolvedHome.getId() : null)
-                    || !Objects.equals(
-                    existing.getAwayTeam() != null ? existing.getAwayTeam().getId() : null,
-                    resolvedAway != null ? resolvedAway.getId() : null);
-            boolean changed = !Objects.equals(existing.getStatus(), ns.getStatus())
-                    || !Objects.equals(existing.getHomeScore(), ns.getHomeScore())
-                    || !Objects.equals(existing.getAwayScore(), ns.getAwayScore())
-                    || !Objects.equals(existing.getStageIndex(), ns.getStageIndex())
-                    || !Objects.equals(existing.getWeekIndex(), ns.getWeekIndex())
-                    || !Objects.equals(existing.getSimmed(), ns.getSimmed())
-                    || teamChanged
-                    || existing.getNsPk() == null;
-            if (!changed) return false;
-        }
-
-        game.setGameId(ns.getGameId());
-        game.setNsPk(ns.getPk());
-        game.setSeasonIndex(ns.getSeasonIndex());
-        game.setStageIndex(ns.getStageIndex());
-        game.setWeekIndex(ns.getWeekIndex());
-        game.setHomeScore(ns.getHomeScore());
-        game.setAwayScore(ns.getAwayScore());
-        game.setStatus(ns.getStatus());
-        game.setSimmed(ns.getSimmed());
-        if (resolvedHome != null) game.setHomeTeam(resolvedHome);
-        if (resolvedAway != null) game.setAwayTeam(resolvedAway);
-
-        gameRepository.save(game);
-        return isNew;
-    }
-
-    private int syncGamesForSeason(int seasonIndex, Map<Integer, TeamEntity> teamsByTeamId,
-                                    Map<Integer, TeamEntity> teamsByNsId) {
-        List<NsGame> games = client.fetchAllGamesForSeason(seasonIndex);
-        if (games.isEmpty()) return 0;
-
-        Map<Integer, GameEntity> existingByGameId = gameRepository.findBySeasonIndex(seasonIndex)
-                .stream().collect(Collectors.toMap(GameEntity::getGameId, g -> g));
-
-        int count = 0;
-        for (NsGame nsGame : games) {
-            if (nsGame.getStatus() != null) {
-                if (upsertGame(nsGame, existingByGameId, teamsByTeamId, teamsByNsId)) count++;
-            }
-        }
-        return count;
+    public List<Integer> quickWindow(int season) {
+        var games = gameRepository.findBySeasonIndex(season);
+        var current = games.stream().filter(g -> Integer.valueOf(1).equals(g.getStageIndex())
+                && g.getStatus() != null && g.getStatus() < 2).map(GameEntity::getWeekIndex).min(Integer::compareTo);
+        if (current.isEmpty()) return List.of();
+        var previous = games.stream().filter(g -> Integer.valueOf(1).equals(g.getStageIndex()) && g.getWeekIndex() < current.get())
+                .map(GameEntity::getWeekIndex).max(Integer::compareTo);
+        return previous.map(w -> List.of(current.get(), w)).orElseGet(() -> List.of(current.get()));
     }
 
     private TeamEntity resolveTeam(NsTeam ns, Map<Integer, TeamEntity> teamsByTeamId,
@@ -356,39 +171,9 @@ public class SyncService {
         return null;
     }
 
-    // A new Madden cycle creates a new Neon league with new teamIds (and reused nsIds); old rows would collide.
-    private void purgeIfLeagueReplaced(List<NsTeam> nsTeams) {
-        if (nsTeams.isEmpty()) return;
-        Set<Integer> apiTeamIds = nsTeams.stream().map(NsTeam::getTeamId).collect(Collectors.toSet());
-        List<TeamEntity> existing = teamRepository.findAll();
-        if (!existing.isEmpty() && existing.stream().noneMatch(t -> apiTeamIds.contains(t.getTeamId()))) {
-            log.warn("No stored team matches the API's teams — league was replaced; purging games and teams");
-            qbRepository.deleteAllInBatch();
-            teamStatRepository.deleteAllInBatch();
-            gameRepository.deleteAllInBatch();
-            teamRepository.deleteAllInBatch();
-        }
-    }
-
-    private void upsertTeam(NsTeam ns) {
-        TeamEntity team = teamRepository.findByTeamId(ns.getTeamId())
-                .orElse(new TeamEntity());
-        team.setTeamId(ns.getTeamId());
-        team.setNsId(ns.getId());
-        team.setDisplayName(ns.getDisplayName());
-        team.setNickname(ns.getNickName());
-        team.setCityName(ns.getCityName());
-        team.setAbbrName(ns.getAbbrName());
-        team.setConference(ns.getConferenceName());
-        team.setDivision(ns.getDivisionName());
-        team.setPrimaryColor(ns.getPrimaryColor());
-        team.setLogoId(ns.getLogoId());
-        teamRepository.save(team);
-    }
-
-    private boolean upsertGame(NsGame ns, Map<Integer, GameEntity> existingByGameId,
+    private Change upsertGame(NsGame ns, Map<Integer, GameEntity> existingByGameId,
                                 Map<Integer, TeamEntity> teamsByTeamId,
-                                Map<Integer, TeamEntity> teamsByNsId) {
+                                Map<Integer, TeamEntity> teamsByNsId, Set<Week> changedWeeks) {
         GameEntity existing = existingByGameId.get(ns.getGameId());
         boolean isNew = existing == null;
         GameEntity game = isNew ? new GameEntity() : existing;
@@ -403,17 +188,20 @@ public class SyncService {
                     || !Objects.equals(
                     existing.getAwayTeam() != null ? existing.getAwayTeam().getId() : null,
                     resolvedAway != null ? resolvedAway.getId() : null);
-            boolean changed = !Objects.equals(existing.getStatus(), ns.getStatus())
+            boolean changed = !Objects.equals(existing.getSeasonIndex(), ns.getSeasonIndex())
+                    || !Objects.equals(existing.getStatus(), ns.getStatus())
                     || !Objects.equals(existing.getHomeScore(), ns.getHomeScore())
                     || !Objects.equals(existing.getAwayScore(), ns.getAwayScore())
                     || !Objects.equals(existing.getStageIndex(), ns.getStageIndex())
                     || !Objects.equals(existing.getWeekIndex(), ns.getWeekIndex())
                     || !Objects.equals(existing.getSimmed(), ns.getSimmed())
                     || teamChanged
-                    || existing.getNsPk() == null;
-            if (!changed) return false;
+                    || !Objects.equals(existing.getNsPk(), ns.getPk());
+            if (!changed) return Change.UNCHANGED;
         }
 
+        if (!isNew && Integer.valueOf(1).equals(game.getStageIndex())) changedWeeks.add(new Week(game.getSeasonIndex(), game.getWeekIndex()));
+        if (Integer.valueOf(1).equals(ns.getStageIndex())) changedWeeks.add(new Week(ns.getSeasonIndex(), ns.getWeekIndex()));
         game.setGameId(ns.getGameId());
         game.setNsPk(ns.getPk());
         game.setSeasonIndex(ns.getSeasonIndex());
@@ -427,16 +215,16 @@ public class SyncService {
         if (resolvedAway != null) game.setAwayTeam(resolvedAway);
 
         gameRepository.save(game);
-        return isNew;
+        existingByGameId.put(ns.getGameId(), game);
+        return isNew ? Change.NEW : Change.UPDATED;
     }
 
-    public SyncStatus getStatus() {
-        return new SyncStatus(lastSyncTime, lastSyncMessage, lastSyncSuccess);
+    public SyncStatus getStatus() { return new SyncStatus(lastSyncTime, lastSyncMessage, lastSyncSuccess); }
+
+    public record Week(int season, int week) {}
+    private enum Change { NEW, UPDATED, UNCHANGED }
+    public record SyncResult(boolean success, String message, int changed, Set<Week> changedWeeks, List<String> log, boolean full) {
+        public SyncResult(boolean success, String message) { this(success, message, 0, Set.of(), List.of(message), false); }
     }
-
-    public record SyncResult(boolean success, String message) {}
-
-    public record VerboseSyncResult(boolean success, String message, java.util.List<String> log) {}
-
     public record SyncStatus(Instant lastSyncTime, String message, Boolean success) {}
 }

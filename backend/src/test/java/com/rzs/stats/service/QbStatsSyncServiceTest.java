@@ -358,25 +358,20 @@ class QbStatsSyncServiceTest {
     private void league() {
         NsLeague league = new NsLeague();
         league.setSeason(1);
-        when(client.fetchLeagueInfo()).thenReturn(league);
+        lenient().when(client.fetchLeagueInfo()).thenReturn(league);
         when(teams.findAll()).thenReturn(List.of(team));
     }
 
     @Test
-    void incrementalSkipsStoredWeeksButRepullsLatestCurrentSeasonWeek() {
+    void incrementalSkipsAllStoredWeeksWithoutChanges() {
         league();
         when(games.findCompletedInScope(0, 0, 22)).thenReturn(List.of(game(17)));
         when(games.findCompletedInScope(1, 0, 22)).thenReturn(List.of(game(0), game(1), game(18)));
         when(repository.existsBySeasonIndexAndStageIndexAndWeekIndex(anyInt(), eq(1), anyInt())).thenReturn(true);
         when(teamRepository.countBySeasonIndexAndStageIndexAndWeekIndex(anyInt(), eq(1), anyInt())).thenReturn(1L);
-        service.syncIncremental();
-        verify(client).fetchPassingStats(1, 1, 18);
-        verify(client).fetchRushingStats(1, 1, 18);
-        verify(client).fetchTeamsStats(1, 1, 18);
-        verify(client).fetchKickingStats(1, 1, 18);
-        verify(client).fetchPuntingStats(1, 1, 18);
-        verify(writer).replaceWeek(1, 1, 18, List.of(), List.of());
-        verifyNoMoreInteractions(writer);
+        service.syncIncremental(1, java.util.Set.of());
+        verify(client, never()).fetchPassingStats(anyInt(), anyInt(), anyInt());
+        verifyNoInteractions(writer);
         assertThat(service.getStatus().success()).isTrue();
         assertThat(service.getStatus().inProgress()).isFalse();
         assertThat(service.getStatus().completedAt()).isNotNull();
@@ -395,7 +390,7 @@ class QbStatsSyncServiceTest {
         when(repository.existsBySeasonIndexAndStageIndexAndWeekIndex(1, 1, 1)).thenReturn(true);
         when(teamRepository.countBySeasonIndexAndStageIndexAndWeekIndex(1, 1, 0)).thenReturn(1L);
         when(teamRepository.countBySeasonIndexAndStageIndexAndWeekIndex(1, 1, 1)).thenReturn(1L);
-        service.syncIncremental();
+        service.syncIncremental(1, java.util.Set.of());
         verify(writer).replaceWeek(1, 1, 0, List.of(), List.of());
         verify(writer).replaceWeek(1, 1, 2, List.of(), List.of());
         verifyNoMoreInteractions(writer);
@@ -568,7 +563,7 @@ class QbStatsSyncServiceTest {
         punt.puntTotalAtt = 3;
         when(client.fetchKickingStats(0, 1, 0)).thenReturn(List.of(kick));
         when(client.fetchPuntingStats(0, 1, 0)).thenReturn(List.of(punt));
-        service.syncIncremental();
+        service.syncIncremental(1, java.util.Set.of());
         verify(client).fetchKickingStats(0, 1, 0);
         verify(client).fetchPuntingStats(0, 1, 0);
         verify(writer).replaceWeek(eq(0), eq(1), eq(0),

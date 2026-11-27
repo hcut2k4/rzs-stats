@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import PageHeader from '../components/PageHeader'
-import { triggerSync, triggerForceSync, getSyncStatus, triggerCacheWarm, getCacheWarmStatus, checkAdminAuth, setAdminToken, getEloConfig, putEloConfig, triggerQbSync, getQbSyncStatus, getSeasons, triggerProbabilityBackfill } from '../api/client'
+import { triggerSync, triggerForceSync, getSyncStatus, triggerCacheWarm, getCacheWarmStatus, checkAdminAuth, setAdminToken, getEloConfig, putEloConfig, triggerQbSync, getQbSyncStatus, getSeasons, triggerProbabilityBackfill, getSyncSettings, putSyncSettings } from '../api/client'
 
 const ELO_DEFAULTS = { initialRating: 1500, k: 25, divisor: 400, movEnabled: true, marginCap: 28, homeFieldAdvantage: 0, offseasonRetention: 0.78 }
 
@@ -110,6 +110,17 @@ function EloConfigPanel() {
 
 function AdminTools() {
   const [status, setStatus] = useState(null)
+  const [settings, setSettings] = useState(null)
+  const [settingsError, setSettingsError] = useState(null)
+  const [saving, setSaving] = useState(false)
+
+  const saveInterval = async value => {
+    setSaving(true)
+    setSettingsError(null)
+    try { setSettings(await putSyncSettings(Number(value))) }
+    catch { setSettingsError('Failed to save auto-sync interval') }
+    finally { setSaving(false) }
+  }
   const [syncing, setSyncing] = useState(false)
   const [result, setResult] = useState(null)
   const [warmStatus, setWarmStatus] = useState(null)
@@ -118,10 +129,26 @@ function AdminTools() {
   const [qbSyncing, setQbSyncing] = useState(false)
 
   useEffect(() => {
+    getSyncSettings().then(setSettings).catch(() => setSettingsError('Failed to load auto-sync settings'))
     getSyncStatus().then(setStatus).catch(() => {})
     getCacheWarmStatus().then(setWarmStatus).catch(() => {})
     getQbSyncStatus().then(setQbStatus).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (!syncing && !warming && !qbSyncing && !status?.inProgress) return
+    const id = setInterval(() => {
+      getSyncStatus().then(s => {
+        setStatus(s)
+        if (!s.inProgress) {
+          setSyncing(false)
+          setResult({ success: s.success, message: s.message })
+          getSyncSettings().then(setSettings).catch(() => {})
+        }
+      }).catch(() => {})
+    }, 2000)
+    return () => clearInterval(id)
+  }, [syncing, warming, qbSyncing, status?.inProgress])
 
   useEffect(() => {
     if (!qbSyncing) return
@@ -154,7 +181,6 @@ function AdminTools() {
       getSyncStatus().then(setStatus)
     } catch {
       setResult({ success: false, message: 'Request failed' })
-    } finally {
       setSyncing(false)
     }
   }
@@ -163,6 +189,7 @@ function AdminTools() {
     setWarming(true)
     try {
       await triggerCacheWarm()
+      getSyncStatus().then(setStatus).catch(() => {})
     } catch {
       setWarming(false)
     }
@@ -176,6 +203,7 @@ function AdminTools() {
     setQbSyncing(true)
     try {
       await triggerQbSync()
+      getSyncStatus().then(setStatus).catch(() => {})
     } catch {
       setQbSyncing(false)
     }
@@ -195,7 +223,6 @@ function AdminTools() {
       getSyncStatus().then(setStatus)
     } catch {
       setResult({ success: false, message: 'Request failed' })
-    } finally {
       setSyncing(false)
     }
   }
@@ -205,6 +232,17 @@ function AdminTools() {
       <PageHeader title="Admin" qualifier="Sync and cache controls" />
 
       <div className="border border-line rounded p-5 space-y-4">
+        <label className="text-sm block">Auto-sync interval
+          <select aria-label="Auto-sync interval" className="field ml-2" value={settings?.intervalMinutes ?? 15}
+            disabled={!settings || saving} onChange={e => saveInterval(e.target.value)}>
+            {[0, 5, 10, 15, 30, 60].map(value => <option key={value} value={value}>{value === 0 ? 'Off' : `${value} min`}</option>)}
+          </select>
+        </label>
+        {settingsError && <p role="alert" className="text-sm text-bad">{settingsError}</p>}
+        {settings && <dl className="text-sm space-y-1">
+          {[['Last checked', settings.lastCheckedAt], ['Last data change', settings.lastChangedAt], ['Next check', settings.nextRunAt]].map(([label, time]) =>
+            <div key={label}><dt className="text-muted inline">{label}: </dt><dd className="inline">{time ? new Date(time).toLocaleString() : label === 'Next check' ? 'Off' : 'Never'}</dd></div>)}
+        </dl>}
         <div>
           <p className="text-sm text-muted mb-1">Last sync</p>
           <p className="font-mono text-sm">
@@ -221,7 +259,7 @@ function AdminTools() {
 
         <button
           onClick={handleSync}
-          disabled={syncing}
+          disabled={syncing || status?.inProgress}
           className="btn-primary w-full justify-center py-2"
         >
           {syncing ? 'Syncing...' : 'Sync Now'}
@@ -244,7 +282,7 @@ function AdminTools() {
         </div>
         <button
           onClick={handleForceSync}
-          disabled={syncing}
+          disabled={syncing || status?.inProgress}
           className="btn w-full justify-center py-2"
         >
           {syncing ? 'Running...' : 'Force Re-sync All Seasons'}
@@ -287,7 +325,7 @@ function AdminTools() {
           <p className="text-sm font-medium text-ink">Re-sync Player & Team Stats</p>
           <p className="text-xs text-muted mt-1">
             Re-pulls every QB and team game line for all seasons from the passing, rushing, kicking, punting and team endpoints.
-            Nightly sync only fetches new weeks, so use this after a schema or allocation change.
+            Automatic sync repairs missing weeks and refreshes recent weeks nightly. Use this after a schema or allocation change.
           </p>
         </div>
         {qbStatus?.completedAt && !qbStatus.inProgress && (
@@ -318,7 +356,7 @@ function AdminTools() {
       <EloConfigPanel />
 
       <p className="mt-4 text-xs text-muted">
-        Data syncs automatically every night at 4am ET.
+        Auto-sync uses the interval above, with a full reconciliation every night at 4am ET.
       </p>
     </div>
   )

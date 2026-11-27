@@ -43,7 +43,8 @@ The embedded DB starts empty. Sync from the Admin page, or `POST /api/admin/sync
 - Railway's default `DATABASE_URL` is a postgres:// URL — Spring rejects it
 - `ALLOWED_ORIGINS`: set to the frontend Railway URL
 - `ADMIN_TOKEN`: **must be set**, or every `/api/admin/**` route is unauthenticated
-- `SYNC_CRON`: optional override of the nightly schedule
+- `SYNC_CRON`: optional override of the nightly FULL reconciliation schedule
+- `SYNC_INTERVAL_MINUTES`: initial polling interval (default 15); allowed 0, 5, 10, 15, 30, 60. The persisted admin setting takes precedence after creation.
 - Auto-deploys on push to master
 
 **Frontend**:
@@ -53,8 +54,18 @@ The embedded DB starts empty. Sync from the Admin page, or `POST /api/admin/sync
 
 ## Sync schedule
 
-Scheduled: `0 0 4 * * *` America/New_York (4 AM ET, respects DST), overridable via `SYNC_CRON`.
+A one-minute ticker checks the persisted interval. The default is 15 minutes; the Admin page can select Off, 5, 10, 15, 30 or 60 minutes and shows last checked, last data change and next check. Off disables frequent polling; startup and nightly reconciliation still run.
+
+The first run after startup is FULL and always warms empty caches. QUICK polls fetch league info and the current and previous stored stage-1 weeks. The current week is the earliest week with unplayed games; the previous week is the next lower stored week, including the playoff gap from 20 to 22. With no unplayed games, polling fetches the whole current season. Season, stage or league-week changes escalate to FULL.
+
+Nightly FULL reconciliation runs at `0 0 4 * * *` America/New_York (4 AM ET, respects DST), overridable via `SYNC_CRON`. A busy nightly run remains due and retries on the ticker until a FULL succeeds. FULL reconciles teams and the current season, and imports empty historical seasons. Existing historical game corrections require manual Force sync. Deleted or superseded upstream games are not removed automatically.
+
+Every poll checks database QB/team-stat gaps and retries failed weeks. Changed game weeks also refetch stats; FULL refreshes the current and previous stored weeks (or the latest two after season end). Games commit first, then each QB week commits, then changed data triggers one full cache eviction and warm. Idle polls retain caches. Team metadata changes and league purges also count as changes. The public last-sync timestamp remains the last successful game sync.
+
+Sync, Force, verbose sync, QB sync, cache warming and probability backfill share one guard, reserved before async handoff. Busy admin calls return HTTP 409, "already running". The Admin page polls status until completion or failure.
+
+This deployment assumes **one Railway backend instance**. Additional replicas would each poll and retain separate, potentially stale Caffeine caches.
 
 ## Cache warm after deploy
 
-**After a deploy or Railway restart**, caches are cold. Hit `POST /api/admin/cache/warm` from the Admin page; poll `/api/admin/cache/warm/status` for progress. Target: <60s for a full warm.
+Startup FULL automatically warms caches, including team efficiency and seasonal playoff QB tables. `POST /api/admin/cache/warm` remains a manual override; poll `/api/admin/cache/warm/status` for progress. Target: <60s for a full warm.

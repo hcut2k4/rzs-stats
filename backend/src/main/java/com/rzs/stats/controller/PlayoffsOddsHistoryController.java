@@ -6,9 +6,11 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 public class PlayoffsOddsHistoryController {
     private final OddsHistoryService history;
+    private final com.rzs.stats.service.SyncPipeline pipeline;
 
-    public PlayoffsOddsHistoryController(OddsHistoryService history) {
+    public PlayoffsOddsHistoryController(OddsHistoryService history, com.rzs.stats.service.SyncPipeline pipeline) {
         this.history = history;
+        this.pipeline = pipeline;
     }
 
     @GetMapping("/api/playoffs/odds/history")
@@ -19,6 +21,6 @@ public class PlayoffsOddsHistoryController {
 
     @PostMapping("/api/admin/playoffs/odds/backfill")
     public OddsHistoryService.Backfill backfill(@RequestParam int season) {
-        return history.backfill(season);
+        return pipeline.exclusive(() -> history.backfill(season));
     }
 }
