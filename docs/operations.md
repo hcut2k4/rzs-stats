@@ -44,7 +44,7 @@ The embedded DB starts empty. Sync from the Admin page, or `POST /api/admin/sync
 - `ALLOWED_ORIGINS`: set to the frontend Railway URL
 - `ADMIN_TOKEN`: **must be set**, or every `/api/admin/**` route is unauthenticated
 - `SYNC_CRON`: optional override of the nightly FULL reconciliation schedule
-- `SYNC_INTERVAL_MINUTES`: initial polling interval (default 15); allowed 0, 5, 10, 15, 30, 60. The persisted admin setting takes precedence after creation.
+- `SYNC_INTERVAL_MINUTES`: initial polling interval in minutes (default 120); any whole number from 0 (off) to 10080. The persisted admin setting takes precedence after creation.
 - Auto-deploys on push to master
 
 **Frontend**:
@@ -54,7 +54,7 @@ The embedded DB starts empty. Sync from the Admin page, or `POST /api/admin/sync
 
 ## Sync schedule
 
-A one-minute ticker checks the persisted interval. The default is 15 minutes; the Admin page can select Off, 5, 10, 15, 30 or 60 minutes and shows last checked, last data change and next check. Off disables frequent polling; startup and nightly reconciliation still run.
+A one-minute ticker checks the persisted interval. The default is 120 minutes; the Admin page takes any whole number of minutes from 1 to 10080 (0 turns it off) and shows last checked, last data change and next check. Off disables frequent polling; startup and nightly reconciliation still run.
 
 The first run after startup is FULL and always warms empty caches. QUICK polls fetch league info and the current and previous stored stage-1 weeks. The current week is the earliest week with unplayed games; the previous week is the next lower stored week, including the playoff gap from 20 to 22. With no unplayed games, polling fetches the whole current season. Season, stage or league-week changes escalate to FULL.
 

@@ -9,16 +9,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import java.time.Instant;
-import java.util.Set;
 
 @Service
 public class SyncSettingsService {
     private final SyncSettingsRepository repository;
     private final int defaultInterval;
-    private static final Set<Integer> INTERVALS = Set.of(0, 5, 10, 15, 30, 60);
+    private static final int MAX_INTERVAL_MINUTES = 10080;
 
-    public SyncSettingsService(SyncSettingsRepository repository, @Value("${rzs.sync.interval-minutes:15}") int defaultInterval) {
-        if (!INTERVALS.contains(defaultInterval)) throw new IllegalArgumentException("Invalid sync interval");
+    public SyncSettingsService(SyncSettingsRepository repository, @Value("${rzs.sync.interval-minutes:120}") int defaultInterval) {
+        if (!valid(defaultInterval)) throw new IllegalArgumentException("Invalid sync interval");
         this.repository = repository;
         this.defaultInterval = defaultInterval;
     }
@@ -44,7 +43,7 @@ public class SyncSettingsService {
 
     @Transactional
     public Settings update(Integer interval) {
-        if (interval == null || !INTERVALS.contains(interval)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid sync interval");
+        if (interval == null || !valid(interval)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid sync interval");
         get();
         repository.updateInterval(interval);
         return view();
@@ -68,4 +67,5 @@ public class SyncSettingsService {
         repository.updateFullSuccess(Instant.now());
     }
 
+    private static boolean valid(int minutes) { return minutes >= 0 && minutes <= MAX_INTERVAL_MINUTES; }
 }

@@ -113,11 +113,16 @@ function AdminTools() {
   const [settings, setSettings] = useState(null)
   const [settingsError, setSettingsError] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [intervalInput, setIntervalInput] = useState('')
 
   const saveInterval = async value => {
     setSaving(true)
     setSettingsError(null)
-    try { setSettings(await putSyncSettings(Number(value))) }
+    try {
+      const saved = await putSyncSettings(Number(value))
+      setSettings(saved)
+      setIntervalInput(String(saved.intervalMinutes))
+    }
     catch { setSettingsError('Failed to save auto-sync interval') }
     finally { setSaving(false) }
   }
@@ -129,7 +134,7 @@ function AdminTools() {
   const [qbSyncing, setQbSyncing] = useState(false)
 
   useEffect(() => {
-    getSyncSettings().then(setSettings).catch(() => setSettingsError('Failed to load auto-sync settings'))
+    getSyncSettings().then(s => { setSettings(s); setIntervalInput(String(s.intervalMinutes)) }).catch(() => setSettingsError('Failed to load auto-sync settings'))
     getSyncStatus().then(setStatus).catch(() => {})
     getCacheWarmStatus().then(setWarmStatus).catch(() => {})
     getQbSyncStatus().then(setQbStatus).catch(() => {})
@@ -232,12 +237,14 @@ function AdminTools() {
       <PageHeader title="Admin" qualifier="Sync and cache controls" />
 
       <div className="border border-line rounded p-5 space-y-4">
-        <label className="text-sm block">Auto-sync interval
-          <select aria-label="Auto-sync interval" className="field ml-2" value={settings?.intervalMinutes ?? 15}
-            disabled={!settings || saving} onChange={e => saveInterval(e.target.value)}>
-            {[0, 5, 10, 15, 30, 60].map(value => <option key={value} value={value}>{value === 0 ? 'Off' : `${value} min`}</option>)}
-          </select>
-        </label>
+        <form className="text-sm" onSubmit={e => { e.preventDefault(); saveInterval(intervalInput) }}>
+          <label>Auto-sync interval (minutes)
+            <input aria-label="Auto-sync interval" type="number" min="0" max="10080" step="1" className="field ml-2 w-24"
+              value={intervalInput} disabled={!settings || saving} onChange={e => setIntervalInput(e.target.value)} />
+          </label>
+          <button type="submit" className="btn ml-2" disabled={!settings || saving || intervalInput === '' || !Number.isInteger(Number(intervalInput)) || Number(intervalInput) < 0 || Number(intervalInput) > 10080}>Save interval</button>
+          <p className="text-muted mt-1">0 turns auto-sync off. Maximum 10080 (one week).</p>
+        </form>
         {settingsError && <p role="alert" className="text-sm text-bad">{settingsError}</p>}
         {settings && <dl className="text-sm space-y-1">
           {[['Last checked', settings.lastCheckedAt], ['Last data change', settings.lastChangedAt], ['Next check', settings.nextRunAt]].map(([label, time]) =>
