@@ -65,6 +65,7 @@ it.each(['picture', 'probability'])('sorts every %s column and exports the displ
     await userEvent.click(tableRegion(table).getByTitle('Download every row of the table, in its current sort and columns, as CSV'))
     expect(csv.mock.lastCall[0].rows.map(r => r.team.displayName)).toEqual(displayedTeams(table))
   }
+  expect(screen.queryByLabelText('Clinch key')).not.toBeInTheDocument()
   const teamHeader = headers[tab === 'picture' ? 1 : 0]
   await userEvent.click(within(teamHeader).getByRole('button'))
   const teams = displayedTeams(table)
@@ -179,13 +180,14 @@ it('sorts accuracy buckets and exports the displayed order', async () => {
   csv.mockRestore()
 })
 
-it('keeps clinch chips compact with the full proof explanation available', async () => {
+it.each(['picture', 'probability'])('keeps %s clinch icons compact with the full proof explanation and a visible key', async tab => {
   const team = picture.conferences[0].seeds[0].team
   client.getPlayoffClinch.mockResolvedValue({ ...clinch, teams: [{ ...clinch.teams[0], team, playoffs: 'clinched', division: 'clinched', oneSeed: null }] })
-  show('picture')
-  const table = await screen.findByRole('table', { name: 'AFC playoff picture' })
+  show(tab)
+  const table = await screen.findByRole('table', { name: tab === 'picture' ? 'AFC playoff picture' : 'AFC playoff probability' })
   const row = within(table).getByRole('link', { name: team.displayName }).closest('tr')
-  const badge = await within(row).findByText('Div')
+  expect(await screen.findByLabelText('Clinch key')).toBeInTheDocument()
+  const badge = await within(row).findByText('Clinched division')
   expect(badge.closest('[title]')).toHaveAttribute('title', expect.stringContaining('Clinched division. Guaranteed'))
   expect(within(row).getByText('Clinched division')).toHaveClass('sr-only')
 })

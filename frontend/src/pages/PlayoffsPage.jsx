@@ -2,7 +2,7 @@ import { Fragment, useEffect } from 'react'
 import { SortTh, useSorter } from '../components/SortTh'
 import { probShade } from '../utils/playoffOdds'
 import WhatIfTab from '../components/playoffs/WhatIfTab'
-import ClinchBadge, { useClinch, teamMarker, markerOdds, markerValue } from '../components/playoffs/ClinchBadge'
+import ClinchBadge, { useClinch, teamMarker, markerOdds, markerValue, clinchIcons, ClinchKey } from '../components/playoffs/ClinchBadge'
 import OddsTab from '../components/playoffs/OddsTab'
 import LeverageTab from '../components/playoffs/LeverageTab'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -130,6 +130,7 @@ export default function PlayoffsPage() {
       {(seasons.error || picture.error) && <p className="text-bad">Could not load playoff picture. Try again in a moment.</p>}
       {(seasons.loading || picture.loading) && <p className="text-muted">Loading…</p>}
       {((seasons.data?.length === 0) || (data && (data.throughWeek == null || !hasRows))) && <p className="text-muted">No playoff picture yet. Completed regular-season games will appear here.</p>}
+      {data?.throughWeek != null && hasRows && data.conferences.some(c => [...c.seeds, ...c.hunt].some(r => clinchIcons(teamMarker(clinch, r.team.teamId)).length)) && <div className="mb-3"><ClinchKey /></div>}
       {data?.throughWeek != null && hasRows && <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">{data.conferences.map(conference => <Conference key={conference.name} conference={conference} data={data} clinch={clinch} />)}</div>}
       </>}
     </div>

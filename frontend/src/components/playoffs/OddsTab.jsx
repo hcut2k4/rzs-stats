@@ -4,7 +4,7 @@ import PlayoffError from './PlayoffError'
 import OddsHistory from './OddsHistory'
 import InfoTip from '../InfoTip'
 import { SortTh, useSorter } from '../SortTh'
-import ClinchBadge, { useClinch, teamMarker, markerOdds, markerValue } from './ClinchBadge'
+import ClinchBadge, { useClinch, teamMarker, markerOdds, markerValue, clinchIcons, ClinchKey } from './ClinchBadge'
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { getPlayoffOdds, getPlayoffCalibration, getPlayoffChampionship } from '../../api/client'
@@ -120,6 +120,7 @@ export default function OddsTab({ season, rules }) {
     <p className="text-xs text-muted mb-2">{data.simulations.toLocaleString()} simulations · computed {formatComputed(data.computedAt)}</p>
     {view === 'history' ? <OddsHistory key={data.season} season={data.season} currentTeams={data.conferences.flatMap(c => c.teams)} /> : <>
       {championship.error && <p className="text-xs text-muted mb-2">Title probabilities unavailable. Playoff probabilities are shown below.</p>}
+      {data.conferences.filter(c => !conf || data.conferences.length === 1 || c.name === conf).some(c => c.teams.some(r => clinchIcons(teamMarker(clinch, r.team.teamId)).length)) && <div className="mb-3"><ClinchKey /></div>}
       <SeedLegend />
       <div className={`grid grid-cols-1 ${conf || data.conferences.length === 1 ? '' : 'xl:grid-cols-2'} gap-4`}>{data.conferences.filter(c => !conf || data.conferences.length === 1 || c.name === conf).map(conference => <ConferenceProbability key={conference.name} conference={conference} data={data} clinch={clinch} championship={championship.data} focused={!!conf} />)}</div>
     </>}
