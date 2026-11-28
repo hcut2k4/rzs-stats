@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { getSeasons, getStandings, getSeasonTrends, getAvailableWeeks } from '../api/client'
-import ClinchBadge, { useClinch, teamMarker } from '../components/playoffs/ClinchBadge'
+import ClinchBadge, { useClinch, teamMarker, clinchIcons, ClinchKey } from '../components/playoffs/ClinchBadge'
 import ExportMenu from '../components/ExportMenu'
 import { specCols } from '../utils/exportTable'
 import { TeamCell } from '../components/TeamLogo'
@@ -122,8 +122,8 @@ export default function StandingsPage() {
   })
 
   const COLS = [
-    { key: 'rank',           label: '#', desc: 'Row number in the current sort order. Not an official standing or playoff seed.', tx: (_, i) => i + 1, value: (_, i) => i + 1, z: '0', fmt: (_, i) => i + 1, stickyLeft: 'left-0', w: 'w-10' },
-    { key: 'displayName',    label: 'Team', logo: r => r.abbrName, desc: 'City plus nickname.', tx: (_, i, row) => `${row.cityName} ${row.displayName}`, fmt: (v, _, row) => <span className="inline-flex items-center gap-2"><TeamCell abbr={row.abbrName} name={`${row.cityName} ${row.displayName}`} /><ClinchBadge markers={teamMarker(clinch, row.teamId)} /></span>, stickyLeft: 'left-10' },
+    { key: 'rank',           label: '#', desc: 'Row number in the current sort order. Not an official standing or playoff seed.', tx: (_, i) => i + 1, value: (_, i) => i + 1, z: '0', fmt: (_, i) => i + 1, stickyLeft: 'left-0', w: 'w-7 min-w-7 max-w-7 sm:w-10 sm:min-w-10 sm:max-w-10 overflow-hidden' },
+    { key: 'displayName',    label: 'Team', logo: r => r.abbrName, desc: 'City plus nickname.', tx: (_, i, row) => `${row.cityName} ${row.displayName}`, fmt: (v, _, row) => <span className="inline-flex items-center gap-1"><TeamCell abbr={row.abbrName} name={`${row.cityName} ${row.displayName}`} short size={20} /><ClinchBadge markers={teamMarker(clinch, row.teamId)} compact /></span>, stickyLeft: 'left-7 sm:left-10' },
     { key: 'wins',           label: 'W', desc: 'Wins. A tie counts 0.5 toward expected wins.', value: r => r.wins, z: '0', group: 'Record', groupStart: true },
     { key: 'losses',         label: 'L', desc: 'Losses.', value: r => r.losses, z: '0', group: 'Record' },
     { key: 'ties',           label: 'T', desc: 'Ties. A tie counts 0.5 toward expected wins.', value: r => r.ties, z: '0', group: 'Record' },
@@ -250,6 +250,8 @@ export default function StandingsPage() {
               Group by conference
             </label>
 
+            {!loading && !error && standings.some(r => clinchIcons(teamMarker(clinch, r.teamId)).length) && <ClinchKey />}
+
             {sosToggleReady && (
               <div className="flex items-center gap-2 text-sm">
                 <InfoTip text="Last season's results are more reliable early on. From Week 10 through the playoffs, this season's results are the default.">
@@ -301,14 +303,14 @@ export default function StandingsPage() {
                       {COLS.map(col => (
                         <th
                           key={col.key}
-                          className={`th cursor-pointer hover:text-ink${
+                          className={`th ${col.stickyLeft ? 'px-1 sm:px-2' : ''}${col.key !== 'rank' ? ' cursor-pointer hover:text-ink' : ''}${
                             col.stickyLeft ? ` sticky ${col.stickyLeft} z-20 bg-bg ${col.w ?? ''}` : ''
                           }${col.groupStart ? ' border-l border-rule' : ''}`}
                           title={col.title ?? col.desc}
-                          onClick={() => handleSort(col.sortKey ?? col.key)}
+                          onClick={col.key === 'rank' ? undefined : () => handleSort(col.sortKey ?? col.key)}
                         >
                           {col.label}
-                          {sortKey === (col.sortKey ?? col.key) && (sortAsc ? ' ▲' : ' ▼')}
+                          {col.key !== 'rank' && sortKey === (col.sortKey ?? col.key) && (sortAsc ? ' ▲' : ' ▼')}
                         </th>
                       ))}
                     </tr>
@@ -323,7 +325,7 @@ export default function StandingsPage() {
                           return (
                             <td
                               key={col.key}
-                              className={`px-2 py-1.5 whitespace-nowrap${
+                              className={`${col.stickyLeft ? 'px-1 sm:px-2' : 'px-2'} py-1.5 whitespace-nowrap${
                                 col.stickyLeft ? ` sticky ${col.stickyLeft} z-10 ${i % 2 ? 'bg-surface' : 'bg-bg'} ${col.w ?? ''}` : ''
                               }${col.groupStart ? ' border-l border-rule' : ''}${col.key === 'displayName' ? ' font-semibold' : ''}${col.stickyLeft && col.key !== 'rank' ? ' border-r border-line' : ''}`}
                               style={bgColor ? { backgroundColor: bgColor } : undefined}

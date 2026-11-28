@@ -199,6 +199,7 @@ const PAGES = [
     name: 'Clinched / Eliminated',
     bullets: [
       'A badge means the result is proven in every possible outcome of the remaining games. Ties and unknown scores are considered. Proven probabilities show 100% or 0%; simulated estimates keep >99% or <1%.',
+      'Standings and playoff tables use icons with a visible key: a green check for a playoff spot, crown for the division, and 1 for the No. 1 seed. A muted slashed symbol means out of that goal; a red cross means eliminated from the playoffs. Tables show the highest clinched goal and broadest elimination, up to two icons. Team pages spell out the status.',
       'No badge means it is not settled yet. The proof relies on Madden 27’s tiebreak rules, which match past decisions about 99.85% of the time.',
     ],
   },

@@ -15,11 +15,11 @@ export function TeamLogo({ abbr, size = 24 }) {
   )
 }
 
-export function TeamCell({ abbr, name, size = 24 }) {
+export function TeamCell({ abbr, name, size = 24, short = false }) {
   return (
-    <span className="flex items-center gap-2">
+    <span className={short ? "flex items-center gap-1" : "flex items-center gap-2"}>
       <TeamLogo abbr={abbr} size={size} />
-      {abbr ? <Link to={`/teams/${abbr}`} className="hover:text-accent hover:underline underline-offset-2">{name ?? abbr}</Link> : <span>{name}</span>}
+      {abbr ? <Link to={`/teams/${abbr}`} className="hover:text-accent hover:underline underline-offset-2" aria-label={short ? `${name ?? abbr} (${abbr})` : undefined} title={short ? name ?? abbr : undefined}>{short ? <><span className="sm:hidden">{abbr}</span><span className="hidden sm:inline">{name ?? abbr}</span></> : name ?? abbr}</Link> : <span>{name}</span>}
     </span>
   )
 }
